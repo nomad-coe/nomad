@@ -198,7 +198,6 @@ where = [
     "dependencies/parsers/electronic",
     "dependencies/parsers/workflow",
     "dependencies/parsers/simulation",
-    "dependencies/schema/simulation/workflow",
     "dependencies/normalizers/simulation/workflow",
     "dependencies/normalizers/simulation/dos",
     "dependencies/normalizers/simulation/band_structure",

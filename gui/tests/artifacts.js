@@ -650,7 +650,7 @@ window.nomadArtifacts = {
       "description": "A list of user curated datasets this entry belongs to.",
       "type": {
         "type_kind": "reference",
-        "type_data": "/packages/18/section_definitions/0"
+        "type_data": "/packages/19/section_definitions/0"
       },
       "shape": [
         "0..*"
@@ -6254,7 +6254,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PlotlyFigureQuantity",
             "base_sections": [
-              "/packages/29/section_definitions/6"
+              "/packages/30/section_definitions/6"
             ],
             "constraints": [
               "dimensions",
@@ -6294,7 +6294,7 @@ window.nomadArtifacts = {
             "name": "PlotSection",
             "description": "The PlotSection base section serves as an additional functionality to your sections. This base section is designed to simplify the process of creating various types of\nplots, making it easy to use Plotly Express, Plotly Subplot, and the general Plotly graph objects.\n\nFeatures:\n- Plotly Express: Create simple and quick plots with a high-level, expressive API.\n- Plotly Subplot: Organize multiple plots into subplots for more complex visualizations.\n- General Plotly Graph Objects: Fine-tune your plots by working directly with Plotly's graph objects.\n\nUsage:\n- Inherit from this base section to leverage its plot functionality.\n- Customize your plots using the annotations plotly-express, plotly-subplots, or/and plotly-graph-object.\n\nExample Usage:\n```python\nclass CustomSection(PlotSection, ElnBaseSection, EntryData):\n    m_def = Section()\n    time = Quantity(type=float, shape=['*'], unit='s', a_eln=dict(component='NumberEditQuantity'))\n    substrate_temperature = Quantity(type=float, shape=['*'], unit='K', a_eln=dict(component='NumberEditQuantity'))\n    chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa', a_eln=dict(component='NumberEditQuantity'))\n\n    def normalize(self, archive, logger):\n        super(CustomSection, self).normalize(archive, logger)\n\n        first_line = px.scatter(x=self.time, y=self.substrate_temperature)\n        second_line = px.scatter(x=self.time, y=self.chamber_pressure)\n        figure1 = make_subplots(rows=1, cols=2, shared_yaxes=True)\n        figure1.add_trace(first_line.data[0], row=1, col=1)\n        figure1.add_trace(second_line.data[0], row=1, col=2)\n        figure1.update_layout(height=400, width=716, title_text=\"Creating Subplots in Plotly\")\n        self.figures.append(PlotlyFigure(label='figure 1', figure=figure1.to_plotly_json()))\n\n        figure2 = px.scatter(x=self.substrate_temperature, y=self.chamber_pressure, color=self.chamber_pressure, title=\"Chamber as a function of Temperature\")\n        self.figures.append(PlotlyFigure(label='figure 2', index=1, figure=figure2.to_plotly_json()))\n\n        heatmap_data = [[None, None, None, 12, 13, 14, 15, 16],\n             [None, 1, None, 11, None, None, None, 17],\n             [None, 2, 6, 7, None, None, None, 18],\n             [None, 3, None, 8, None, None, None, 19],\n             [5, 4, 10, 9, None, None, None, 20],\n             [None, None, None, 27, None, None, None, 21],\n             [None, None, None, 26, 25, 24, 23, 22]]\n\n        heatmap = go.Heatmap(z=heatmap_data, showscale=False, connectgaps=True, zsmooth='best')\n        figure3 = go.Figure(data=heatmap)\n        self.figures.append(PlotlyFigure(label='figure 3', index=0, figure=figure3.to_plotly_json()))\n```",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "sub_sections": [
               {
@@ -9707,7 +9707,7 @@ window.nomadArtifacts = {
             "name": "Method",
             "description": "Section containing the various parameters that define the theory and the approximations (convergence, thresholds, etc.) behind the calculation.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -9729,7 +9729,7 @@ window.nomadArtifacts = {
                 "name": "starting_method_ref",
                 "description": "Links the current section method to a section method containing the starting\nparameters.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -9744,7 +9744,7 @@ window.nomadArtifacts = {
                 "name": "core_method_ref",
                 "description": "Links the current section method to a section method containing the core settings.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -9771,7 +9771,7 @@ window.nomadArtifacts = {
                 "name": "methods_ref",
                 "description": "Links the section method to other method sections. For instance, one calculation\nis a perturbation performed using a self-consistent field (SCF) calculation as\nstarting point, or a simulated system is partitioned in regions with different but\nconnected Hamiltonians (e.g., QM/MM, or a region treated via Kohn-Sham DFT\nembedded into a region treated via orbital-free DFT).",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -10797,7 +10797,7 @@ window.nomadArtifacts = {
             "name": "System",
             "description": "Contains parameters describing a system of atomic configuration. These inclue the compound name, atomic positions, lattice vectors, contraints on the atoms, etc.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -10867,7 +10867,7 @@ window.nomadArtifacts = {
                 "name": "sub_system_ref",
                 "description": "Links the current section system to a sub system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -10882,7 +10882,7 @@ window.nomadArtifacts = {
                 "name": "systems_ref",
                 "description": "Links the current section system to other section systems. Such a link is\nnecessary for example between the supercell and the reference unit cell in a phonon\ncalculation. The relationship should be described by kind and the referred section\nsystem is given by value. An external url can also be provided in place of value.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -10948,7 +10948,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/1"
               },
@@ -10974,7 +10974,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "prototype",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/3",
                 "repeats": true
@@ -10985,7 +10985,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "springer_material",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/4",
                 "repeats": true
@@ -10996,7 +10996,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/2",
                 "repeats": true
@@ -11007,7 +11007,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "descriptors",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/7",
                 "repeats": false
@@ -11477,7 +11477,7 @@ window.nomadArtifacts = {
                 "name": "total",
                 "description": "Contains the value and information regarding the total energy of the system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/3/section_definitions/4"
               },
@@ -11650,7 +11650,7 @@ window.nomadArtifacts = {
                 "name": "double_counting",
                 "description": "Double counting correction when performing Hubbard model calculations.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/3/section_definitions/4"
               },
@@ -12033,7 +12033,7 @@ window.nomadArtifacts = {
             "name": "BandGapDeprecated",
             "description": "Base class for breaking up circular dependencies between BandGap, Dos, and BandStructure.",
             "base_sections": [
-              "/packages/26/section_definitions/1"
+              "/packages/27/section_definitions/1"
             ],
             "quantities": [
               {
@@ -12735,7 +12735,7 @@ window.nomadArtifacts = {
             "name": "ElectronicStructureProvenance",
             "description": "\n    ",
             "base_sections": [
-              "/packages/26/section_definitions/0"
+              "/packages/27/section_definitions/0"
             ],
             "quantities": [
               {
@@ -13354,7 +13354,7 @@ window.nomadArtifacts = {
             "name": "Spectra",
             "description": "Section containing the spectra properties.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -13885,7 +13885,7 @@ window.nomadArtifacts = {
             "name": "BaseCalculation",
             "description": "Contains computed properties of a configuration as defined by the corresponding section system and with the simulation method defined by section method. The\nreferences to the system and method sections are given by system_ref and method_ref,\nrespectively.\n\nProperties derived from a group of configurations are not included in this section but\ncan be accessed in section workflow.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -13895,7 +13895,7 @@ window.nomadArtifacts = {
                 "name": "system_ref",
                 "description": "Links the calculation to a section system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -13910,7 +13910,7 @@ window.nomadArtifacts = {
                 "name": "method_ref",
                 "description": "Links the calculation to a section method.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -13925,7 +13925,7 @@ window.nomadArtifacts = {
                 "name": "starting_calculation_ref",
                 "description": "Links the current section calculation to the starting calculation.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -13952,7 +13952,7 @@ window.nomadArtifacts = {
                 "name": "calculations_ref",
                 "description": "Links the current section calculation to other section calculations. Such a link\nis necessary for example if the referenced calculation is a self-consistent\ncalculation that serves as a starting point or a calculation is part of a domain\ndecomposed simulation that needs to be connected.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -14177,7 +14177,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/3/section_definitions/5"
               },
@@ -14645,7 +14645,7 @@ window.nomadArtifacts = {
             "name": "Run",
             "description": "Every section run represents a single call of a program.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -14691,7 +14691,7 @@ window.nomadArtifacts = {
                 "name": "starting_run_ref",
                 "description": "Links the current section run to a section run containing the calculations from\nwhich the current section starts.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -14718,7 +14718,7 @@ window.nomadArtifacts = {
                 "name": "runs_ref",
                 "description": "Links the the current section to other run sections. Such a link is necessary for\nexample for workflows that may contain a series of runs.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -14810,7 +14810,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SimulationWorkflowMethod",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ]
           },
           {
@@ -14819,7 +14819,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SimulationWorkflowResults",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -14829,7 +14829,7 @@ window.nomadArtifacts = {
                 "name": "calculation_result_ref",
                 "description": "Reference to calculation result. In the case of serial workflows, this corresponds\nto the final step in the simulation. For the parallel case, it refers to the reference calculation.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -14871,7 +14871,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SimulationWorkflow",
             "base_sections": [
-              "/packages/27/section_definitions/3"
+              "/packages/28/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -14887,7 +14887,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/1"
               }
@@ -15472,7 +15472,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/6"
               }
@@ -15737,7 +15737,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/12"
               }
@@ -16262,7 +16262,7 @@ window.nomadArtifacts = {
             "name": "Property",
             "description": "Generic parent section for all property types.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -17027,7 +17027,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/30"
               }
@@ -17275,7 +17275,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/33"
               }
@@ -17869,7 +17869,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/37"
               }
@@ -17906,7 +17906,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/5"
               }
@@ -18076,7 +18076,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/41"
               }
@@ -18193,7 +18193,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/44"
               }
@@ -18282,7 +18282,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/47"
               }
@@ -18426,7 +18426,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/50"
               }
@@ -18557,7 +18557,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/53"
               }
@@ -18766,7 +18766,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/56"
               }
@@ -18979,7 +18979,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/61"
               }
@@ -19066,7 +19066,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/64"
               }
@@ -22377,7 +22377,7 @@ window.nomadArtifacts = {
                 "name": "calculation_result_ref",
                 "description": "Reference to calculation result. In the case of geometry_optimization and\nmolecular dynamics, this corresponds to the final step in the simulation. For the\nrest of the workflow types, it refers to the original system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -22418,7 +22418,7 @@ window.nomadArtifacts = {
                 "name": "run_ref",
                 "description": "Links the section workflow to the section run that contains the calculations.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -22445,7 +22445,7 @@ window.nomadArtifacts = {
                 "name": "workflows_ref",
                 "description": "Links the the current section to other workflow sections. Such a link is necessary\nfor example between an Debye model that uses a the poisson ratio calculated\nfrom an elastic workflow.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -22471,7 +22471,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "single_point",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/6/section_definitions/32",
                 "repeats": false
@@ -22482,7 +22482,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/6/section_definitions/31",
                 "repeats": false
@@ -22493,7 +22493,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "geometry_optimization",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/6/section_definitions/9",
                 "repeats": false
@@ -22504,7 +22504,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "phonon",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/6/section_definitions/10",
                 "repeats": false
@@ -22656,7 +22656,7 @@ window.nomadArtifacts = {
             "name": "Downloads",
             "description": "Allows you to upload a very small file that will add very large files to your upload. Imagine there are large file resources in the internet (e.g. on a data sharing service)\nthat you need to add to your upload. This way you do not need to download those large\nfiles first, just to upload them to NOMAD.\n\nWhen this section is processed, it will download files from given URLs, add\nthem to the upload, and trigger processing for given mainfiles.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -22901,7 +22901,7 @@ window.nomadArtifacts = {
               "/packages/8/section_definitions/0"
             ],
             "extending_sections": [
-              "/packages/20/section_definitions/2"
+              "/packages/21/section_definitions/2"
             ],
             "quantities": [
               {
@@ -23105,7 +23105,7 @@ window.nomadArtifacts = {
             "name": "HubbardKanamoriModel",
             "description": "Setup of the local Hubbard model.",
             "extending_sections": [
-              "/packages/20/section_definitions/4"
+              "/packages/21/section_definitions/4"
             ],
             "quantities": [
               {
@@ -25622,7 +25622,7 @@ window.nomadArtifacts = {
               "/packages/8/section_definitions/34"
             ],
             "extending_sections": [
-              "/packages/20/section_definitions/5"
+              "/packages/21/section_definitions/5"
             ],
             "quantities": [
               {
@@ -26196,13 +26196,13 @@ window.nomadArtifacts = {
             "name": "Method",
             "description": "Section containing the various parameters that define the theory and the approximations (convergence, thresholds, etc.) behind the calculation.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "extending_sections": [
-              "/packages/20/section_definitions/1",
-              "/packages/21/section_definitions/0",
+              "/packages/21/section_definitions/1",
               "/packages/22/section_definitions/0",
-              "/packages/23/section_definitions/0"
+              "/packages/23/section_definitions/0",
+              "/packages/24/section_definitions/0"
             ],
             "quantities": [
               {
@@ -26243,7 +26243,7 @@ window.nomadArtifacts = {
                 "name": "starting_method_ref",
                 "description": "Links the current section method to a section method containing the starting\nparameters.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -26258,7 +26258,7 @@ window.nomadArtifacts = {
                 "name": "core_method_ref",
                 "description": "Links the current section method to a section method containing the core settings.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -26285,7 +26285,7 @@ window.nomadArtifacts = {
                 "name": "methods_ref",
                 "description": "Links the section method to other method sections. For instance, one calculation\nis a perturbation performed using a self-consistent field (SCF) calculation as\nstarting point, or a simulated system is partitioned in regions with different but\nconnected Hamiltonians (e.g., QM/MM, or a region treated via Kohn-Sham DFT\nembedded into a region treated via orbital-free DFT).",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -27365,10 +27365,10 @@ window.nomadArtifacts = {
             "name": "System",
             "description": "Contains parameters describing a system of atomic configuration. These inclue the compound name, atomic positions, lattice vectors, contraints on the atoms, etc.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "extending_sections": [
-              "/packages/20/section_definitions/3"
+              "/packages/21/section_definitions/3"
             ],
             "quantities": [
               {
@@ -27438,7 +27438,7 @@ window.nomadArtifacts = {
                 "name": "sub_system_ref",
                 "description": "Links the current section system to a sub system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -27453,7 +27453,7 @@ window.nomadArtifacts = {
                 "name": "systems_ref",
                 "description": "Links the current section system to other section systems. Such a link is\nnecessary for example between the supercell and the reference unit cell in a phonon\ncalculation. The relationship should be described by kind and the referred section\nsystem is given by value. An external url can also be provided in place of value.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -27519,7 +27519,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/9/section_definitions/1"
               },
@@ -27545,7 +27545,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "prototype",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/9/section_definitions/3",
                 "repeats": true
@@ -27556,7 +27556,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "springer_material",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/9/section_definitions/4",
                 "repeats": true
@@ -27567,7 +27567,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/9/section_definitions/2",
                 "repeats": true
@@ -27578,7 +27578,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "descriptors",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/9/section_definitions/8",
                 "repeats": false
@@ -27657,7 +27657,7 @@ window.nomadArtifacts = {
             "name": "AtomicValues",
             "description": "Generic section containing information regarding the values of an atomic quantity.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -28063,7 +28063,7 @@ window.nomadArtifacts = {
                 "name": "total",
                 "description": "Contains the value and information regarding the total energy of the system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/10/section_definitions/4"
               },
@@ -28236,7 +28236,7 @@ window.nomadArtifacts = {
                 "name": "double_counting",
                 "description": "Double counting correction when performing Hubbard model calculations.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/10/section_definitions/4"
               },
@@ -28619,7 +28619,7 @@ window.nomadArtifacts = {
             "name": "BandGapDeprecated",
             "description": "Base class for breaking up circular dependencies between BandGap, Dos, and BandStructure.",
             "base_sections": [
-              "/packages/26/section_definitions/1"
+              "/packages/27/section_definitions/1"
             ],
             "quantities": [
               {
@@ -29336,7 +29336,7 @@ window.nomadArtifacts = {
             "name": "ElectronicStructureProvenance",
             "description": "\n    ",
             "base_sections": [
-              "/packages/26/section_definitions/0"
+              "/packages/27/section_definitions/0"
             ],
             "quantities": [
               {
@@ -29955,7 +29955,7 @@ window.nomadArtifacts = {
             "name": "Spectra",
             "description": "Section containing the spectra properties.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -30697,7 +30697,7 @@ window.nomadArtifacts = {
             "name": "BaseCalculation",
             "description": "Contains computed properties of a configuration as defined by the corresponding section system and with the simulation method defined by section method. The\nreferences to the system and method sections are given by system_ref and method_ref,\nrespectively.\n\nProperties derived from a group of configurations are not included in this section but\ncan be accessed in section workflow.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -30707,7 +30707,7 @@ window.nomadArtifacts = {
                 "name": "system_ref",
                 "description": "Links the calculation to a section system.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -30722,7 +30722,7 @@ window.nomadArtifacts = {
                 "name": "method_ref",
                 "description": "Links the calculation to a section method.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -30737,7 +30737,7 @@ window.nomadArtifacts = {
                 "name": "starting_calculation_ref",
                 "description": "Links the current section calculation to the starting calculation.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -30764,7 +30764,7 @@ window.nomadArtifacts = {
                 "name": "calculations_ref",
                 "description": "Links the current section calculation to other section calculations. Such a link\nis necessary for example if the referenced calculation is a self-consistent\ncalculation that serves as a starting point or a calculation is part of a domain\ndecomposed simulation that needs to be connected.",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -30989,7 +30989,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/10/section_definitions/5"
               },
@@ -31271,6 +31271,678 @@ window.nomadArtifacts = {
       {
         "m_def": "nomad.metainfo.metainfo.Package",
         "m_parent_index": 11,
+        "m_parent_sub_section": "packages",
+        "name": "runschema.run",
+        "section_definitions": [
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 0,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Program",
+            "description": "Contains the specifications of the program.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "name",
+                "description": "Specifies the name of the program that generated the data.",
+                "categories": [
+                  "/packages/11/category_definitions/0",
+                  "/packages/11/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "version",
+                "description": "Specifies the official release version of the program that was used.",
+                "categories": [
+                  "/packages/11/category_definitions/0",
+                  "/packages/11/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "version_internal",
+                "description": "Specifies a program version tag used internally for development purposes.\nAny kind of tagging system is supported, including git commit hashes.",
+                "categories": [
+                  "/packages/11/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "compilation_datetime",
+                "description": "Contains the program compilation date and time from *Unix epoch* (00:00:00 UTC on\n1 January 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
+                "categories": [
+                  "/packages/11/category_definitions/0",
+                  "/packages/11/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "compilation_host",
+                "description": "Specifies the host on which the program was compiled.",
+                "categories": [
+                  "/packages/11/category_definitions/0",
+                  "/packages/11/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "section_definitions",
+            "name": "TimeRun",
+            "description": "Contains information on timing information of the run.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "date_end",
+                "description": "Stores the end date of the run as time since the *Unix epoch* (00:00:00 UTC on 1\nJanuary 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "date_start",
+                "description": "Stores the start date of the run as time since the *Unix epoch* (00:00:00 UTC on 1\nJanuary 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "cpu1_end",
+                "description": "Stores the end time of the run on CPU 1.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "cpu1_start",
+                "description": "Stores the start time of the run on CPU 1.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "wall_end",
+                "description": "Stores the internal wall-clock time at the end of the run.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "wall_start",
+                "description": "Stores the internal wall-clock time from the start of the run.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 2,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MessageRun",
+            "description": "Contains warning, error, and info messages of the run.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "type",
+                "description": "Type of the message. Can be one of warning, error, info, debug.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "value",
+                "description": "Value of the message of the computational program, given by type.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Run",
+            "description": "Every section run represents a single call of a program.",
+            "base_sections": [
+              "/packages/25/section_definitions/0"
+            ],
+            "extending_sections": [
+              "/packages/21/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "calculation_file_uri",
+                "description": "Contains the nomad uri of a raw the data file connected to the current run. There\nshould be an value for the main_file_uri and all ancillary files.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "clean_end",
+                "description": "Indicates whether this run terminated properly (true), or if it was killed or\nexited with an error code unequal to zero (false).",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "bool"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "raw_id",
+                "description": "An optional calculation id, if one is found in the code input/output files.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "starting_run_ref",
+                "description": "Links the current section run to a section run containing the calculations from\nwhich the current section starts.",
+                "categories": [
+                  "/packages/27/category_definitions/0"
+                ],
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/11/section_definitions/3"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "n_references",
+                "description": "Number of references to the current section calculation.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "runs_ref",
+                "description": "Links the the current section to other run sections. Such a link is necessary for\nexample for workflows that may contain a series of runs.",
+                "categories": [
+                  "/packages/27/category_definitions/0"
+                ],
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/11/section_definitions/3"
+                },
+                "shape": [
+                  "n_references"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "program",
+                "sub_section": "/packages/11/section_definitions/0"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "time_run",
+                "sub_section": "/packages/11/section_definitions/1"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "message",
+                "sub_section": "/packages/11/section_definitions/2"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "sub_sections",
+                "name": "method",
+                "sub_section": "/packages/8/section_definitions/44",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "sub_sections",
+                "name": "system",
+                "sub_section": "/packages/9/section_definitions/9",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "sub_sections",
+                "name": "calculation",
+                "sub_section": "/packages/10/section_definitions/40",
+                "repeats": true
+              }
+            ]
+          }
+        ],
+        "category_definitions": [
+          {
+            "m_def": "nomad.metainfo.metainfo.Category",
+            "m_parent_index": 0,
+            "m_parent_sub_section": "category_definitions",
+            "name": "AccessoryInfo",
+            "description": "Information that *in theory* should not affect the results of the calculations (e.g.,\ntiming)."
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Category",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "category_definitions",
+            "name": "ProgramInfo",
+            "description": "Contains information on the program that generated the data, i.e. the program_name,\nprogram_version, program_compilation_host and program_compilation_datetime as direct\nchildren of this field.",
+            "categories": [
+              "/packages/11/category_definitions/0"
+            ]
+          }
+        ]
+      },
+      {
+        "m_def": "nomad.metainfo.metainfo.Package",
+        "m_parent_index": 12,
+        "m_parent_sub_section": "packages",
+        "name": "simulationworkflowschema.general",
+        "section_definitions": [
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 0,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SimulationWorkflowMethod",
+            "base_sections": [
+              "/packages/25/section_definitions/0"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SimulationWorkflowResults",
+            "base_sections": [
+              "/packages/25/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "calculation_result_ref",
+                "description": "Reference to calculation result. In the case of serial workflows, this corresponds\nto the final step in the simulation. For the parallel case, it refers to the reference calculation.",
+                "categories": [
+                  "/packages/27/category_definitions/0"
+                ],
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/40"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "n_calculations",
+                "description": "Number of calculations in workflow.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "calculations_ref",
+                "description": "List of references to each calculation section in the simulation.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/40"
+                },
+                "shape": [
+                  "n_calculations"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 2,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SimulationWorkflow",
+            "base_sections": [
+              "/packages/28/section_definitions/3"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "method",
+                "sub_section": "/packages/12/section_definitions/0"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "categories": [
+                  "/packages/27/category_definitions/0"
+                ],
+                "sub_section": "/packages/12/section_definitions/1"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ParallelSimulation",
+            "base_sections": [
+              "/packages/12/section_definitions/2"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SerialSimulation",
+            "base_sections": [
+              "/packages/12/section_definitions/2"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 5,
+            "m_parent_sub_section": "section_definitions",
+            "name": "BeyondDFT",
+            "description": "Base class used to normalize standard workflows beyond DFT containing two specific SinglePoint tasks (GWWorkflow = DFT + GW, DMFTWorkflow = DFT + DMFT,\nMaxEntWorkflow = DMFT + MaxEnt, and so on) and store the outputs in the self.results\nsection.",
+            "base_sections": [
+              "/packages/12/section_definitions/4"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 6,
+            "m_parent_sub_section": "section_definitions",
+            "name": "DFTMethod",
+            "description": "Base class defining the DFT input methodologies: starting XC functional and electrons representation (basis set).",
+            "base_sections": [
+              "/packages/12/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "starting_point",
+                "description": "Reference to the starting point (XC functional or HF) used.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/8/section_definitions/22"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "electrons_representation",
+                "description": "Reference to the basis set used.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/8/section_definitions/18"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 7,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ElectronicStructureOutputs",
+            "description": "Base class defining the typical output properties of any electronic structure SinglePoint calculation: DFT, TB, DMFT, GW, MaxEnt, XS.",
+            "base_sections": [
+              "/packages/12/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap",
+                "description": "Reference to the band gap section.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "dos",
+                "description": "Reference to the density of states section.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/17"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "band_structure",
+                "description": "Reference to the band structure section.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/14"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "greens_functions",
+                "description": "Ref to the Green functions section.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/29"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 8,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MagneticOutputs",
+            "description": "Base class defining the typical output properties of magnetic SinglePoint calculations.",
+            "base_sections": [
+              "/packages/12/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "magnetic_shielding",
+                "description": "Reference to the magnetic shielding tensors.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/34"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "electric_field_gradient",
+                "description": "Reference to the electric field gradient tensors.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/35"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "spin_spin_coupling",
+                "description": "Reference to the spin-spin coupling tensors.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/36"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "magnetic_susceptibility_nmr",
+                "description": "Reference to the magnetic susceptibility tensors.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/10/section_definitions/37"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "m_def": "nomad.metainfo.metainfo.Package",
+        "m_parent_index": 13,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.results",
         "section_definitions": [
@@ -31839,7 +32511,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "species",
-                "sub_section": "/packages/28/section_definitions/0",
+                "sub_section": "/packages/29/section_definitions/0",
                 "repeats": true
               },
               {
@@ -31847,14 +32519,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "lattice_parameters",
-                "sub_section": "/packages/11/section_definitions/2"
+                "sub_section": "/packages/13/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "wyckoff_sets",
-                "sub_section": "/packages/11/section_definitions/3",
+                "sub_section": "/packages/13/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -31872,7 +32544,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "structure_original",
                 "description": "Contains a selected representative structure from the the original\ndata.",
-                "sub_section": "/packages/11/section_definitions/4",
+                "sub_section": "/packages/13/section_definitions/4",
                 "repeats": false
               },
               {
@@ -31881,7 +32553,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "structure_conventional",
                 "description": "Contains the conventional structure that is derived from\nstructure_original. This conventional stucture has been idealized and\nthe conventions employed by spglib are used.",
-                "sub_section": "/packages/11/section_definitions/4",
+                "sub_section": "/packages/13/section_definitions/4",
                 "repeats": false
               },
               {
@@ -31890,7 +32562,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "structure_primitive",
                 "description": "Contains the primitive structure that is derived from\nstructure_original. This primitive stucture has been idealized and the\nconventions employed by spglib are used.",
-                "sub_section": "/packages/11/section_definitions/4",
+                "sub_section": "/packages/13/section_definitions/4",
                 "repeats": false
               }
             ]
@@ -32596,7 +33268,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "wyckoff_sets",
-                "sub_section": "/packages/11/section_definitions/3",
+                "sub_section": "/packages/13/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -33777,7 +34449,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "elemental_composition",
-                "sub_section": "/packages/11/section_definitions/1",
+                "sub_section": "/packages/13/section_definitions/1",
                 "repeats": true
               },
               {
@@ -33785,7 +34457,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system_relation",
-                "sub_section": "/packages/11/section_definitions/10",
+                "sub_section": "/packages/13/section_definitions/10",
                 "repeats": false
               },
               {
@@ -33793,7 +34465,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cell",
-                "sub_section": "/packages/11/section_definitions/7",
+                "sub_section": "/packages/13/section_definitions/7",
                 "repeats": false
               },
               {
@@ -33801,7 +34473,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
-                "sub_section": "/packages/11/section_definitions/8",
+                "sub_section": "/packages/13/section_definitions/8",
                 "repeats": false
               },
               {
@@ -33809,7 +34481,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "metal_coordination",
-                "sub_section": "/packages/11/section_definitions/11",
+                "sub_section": "/packages/13/section_definitions/11",
                 "repeats": true
               },
               {
@@ -33820,7 +34492,7 @@ window.nomadArtifacts = {
                 "more": {
                   "nested": false
                 },
-                "sub_section": "/packages/11/section_definitions/9"
+                "sub_section": "/packages/13/section_definitions/9"
               }
             ]
           },
@@ -34267,7 +34939,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "elemental_composition",
-                "sub_section": "/packages/11/section_definitions/1",
+                "sub_section": "/packages/13/section_definitions/1",
                 "repeats": true
               },
               {
@@ -34275,7 +34947,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
-                "sub_section": "/packages/11/section_definitions/6",
+                "sub_section": "/packages/13/section_definitions/6",
                 "repeats": false
               },
               {
@@ -34288,7 +34960,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "topology",
-                "sub_section": "/packages/11/section_definitions/12",
+                "sub_section": "/packages/13/section_definitions/12",
                 "repeats": true
               }
             ]
@@ -34657,7 +35329,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "hubbard_kanamori_model",
-                "sub_section": "/packages/11/section_definitions/14",
+                "sub_section": "/packages/13/section_definitions/14",
                 "repeats": true
               }
             ]
@@ -34820,7 +35492,7 @@ window.nomadArtifacts = {
             "name": "GW",
             "description": "\n        Methodology for a GW calculation.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/17"
+              "/packages/13/section_definitions/17"
             ],
             "quantities": [
               {
@@ -34859,7 +35531,7 @@ window.nomadArtifacts = {
             "name": "BSE",
             "description": "\n        Methodology for a BSE calculation.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/17"
+              "/packages/13/section_definitions/17"
             ],
             "quantities": [
               {
@@ -35191,7 +35863,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quantum_circuit",
-                "sub_section": "/packages/11/section_definitions/21"
+                "sub_section": "/packages/13/section_definitions/21"
               }
             ]
           },
@@ -35374,7 +36046,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft",
-                "sub_section": "/packages/11/section_definitions/15",
+                "sub_section": "/packages/13/section_definitions/15",
                 "repeats": false
               },
               {
@@ -35382,7 +36054,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "tb",
-                "sub_section": "/packages/11/section_definitions/16",
+                "sub_section": "/packages/13/section_definitions/16",
                 "repeats": false
               },
               {
@@ -35390,7 +36062,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
-                "sub_section": "/packages/11/section_definitions/18",
+                "sub_section": "/packages/13/section_definitions/18",
                 "repeats": false
               },
               {
@@ -35398,7 +36070,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "bse",
-                "sub_section": "/packages/11/section_definitions/19",
+                "sub_section": "/packages/13/section_definitions/19",
                 "repeats": false
               },
               {
@@ -35406,7 +36078,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft",
-                "sub_section": "/packages/11/section_definitions/20",
+                "sub_section": "/packages/13/section_definitions/20",
                 "repeats": false
               },
               {
@@ -35414,7 +36086,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quantum_cms",
-                "sub_section": "/packages/11/section_definitions/22",
+                "sub_section": "/packages/13/section_definitions/22",
                 "repeats": false
               },
               {
@@ -35422,7 +36094,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "precision",
-                "sub_section": "/packages/11/section_definitions/23",
+                "sub_section": "/packages/13/section_definitions/23",
                 "repeats": false
               }
             ]
@@ -35474,7 +36146,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "xrd",
-                "sub_section": "/packages/11/section_definitions/25",
+                "sub_section": "/packages/13/section_definitions/25",
                 "repeats": false
               }
             ]
@@ -35578,7 +36250,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "simulation",
-                "sub_section": "/packages/11/section_definitions/24",
+                "sub_section": "/packages/13/section_definitions/24",
                 "repeats": false
               },
               {
@@ -35586,7 +36258,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "measurement",
-                "sub_section": "/packages/11/section_definitions/26",
+                "sub_section": "/packages/13/section_definitions/26",
                 "repeats": false
               }
             ]
@@ -35647,7 +36319,7 @@ window.nomadArtifacts = {
             "name": "MDProvenance",
             "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
             "base_sections": [
-              "/packages/26/section_definitions/0"
+              "/packages/27/section_definitions/0"
             ],
             "sub_sections": [
               {
@@ -35655,7 +36327,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "molecular_dynamics",
-                "sub_section": "/packages/11/section_definitions/28",
+                "sub_section": "/packages/13/section_definitions/28",
                 "repeats": false
               }
             ]
@@ -35667,7 +36339,7 @@ window.nomadArtifacts = {
             "name": "MDPropertySection",
             "description": "\n        Base class for referring to molecular dynamics properties.\n        ",
             "base_sections": [
-              "/packages/26/section_definitions/1"
+              "/packages/27/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -35675,7 +36347,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/11/section_definitions/29",
+                "sub_section": "/packages/13/section_definitions/29",
                 "repeats": false
               }
             ]
@@ -35721,7 +36393,7 @@ window.nomadArtifacts = {
             "name": "DOSElectronic",
             "description": "\n        Contains the total electronic density of states.\n\n        OLD VERSION: it will eventually be deprecated.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/31"
+              "/packages/13/section_definitions/31"
             ],
             "quantities": [
               {
@@ -35776,7 +36448,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/29/section_definitions/9",
+                "sub_section": "/packages/30/section_definitions/9",
                 "repeats": true
               }
             ]
@@ -35902,7 +36574,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/29/section_definitions/9",
+                "sub_section": "/packages/30/section_definitions/9",
                 "repeats": true
               }
             ]
@@ -35914,7 +36586,7 @@ window.nomadArtifacts = {
             "name": "DOSPhonon",
             "description": "\n        Contains the phonon density of states.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/31"
+              "/packages/13/section_definitions/31"
             ]
           },
           {
@@ -35974,7 +36646,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "data",
-                "sub_section": "/packages/11/section_definitions/33",
+                "sub_section": "/packages/13/section_definitions/33",
                 "repeats": true
               }
             ]
@@ -36043,7 +36715,7 @@ window.nomadArtifacts = {
             "name": "BandStructurePhonon",
             "description": "\n        This section stores information on a vibrational band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/36"
+              "/packages/13/section_definitions/36"
             ]
           },
           {
@@ -36053,7 +36725,7 @@ window.nomadArtifacts = {
             "name": "BandStructureElectronic",
             "description": "\n        This section stores information on a electonic band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/36"
+              "/packages/13/section_definitions/36"
             ],
             "quantities": [
               {
@@ -36097,7 +36769,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/29/section_definitions/9",
+                "sub_section": "/packages/30/section_definitions/9",
                 "repeats": true
               }
             ]
@@ -36344,7 +37016,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_phonon",
-                "sub_section": "/packages/11/section_definitions/37",
+                "sub_section": "/packages/13/section_definitions/37",
                 "repeats": false
               },
               {
@@ -36352,7 +37024,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_phonon",
-                "sub_section": "/packages/11/section_definitions/34",
+                "sub_section": "/packages/13/section_definitions/34",
                 "repeats": false
               },
               {
@@ -36360,7 +37032,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "heat_capacity_constant_volume",
-                "sub_section": "/packages/11/section_definitions/40",
+                "sub_section": "/packages/13/section_definitions/40",
                 "repeats": false
               },
               {
@@ -36368,7 +37040,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_free_helmholtz",
-                "sub_section": "/packages/11/section_definitions/41",
+                "sub_section": "/packages/13/section_definitions/41",
                 "repeats": false
               }
             ]
@@ -36414,7 +37086,7 @@ window.nomadArtifacts = {
                 "name": "volumes",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/33/section_definitions/2/quantities/1"
+                  "type_data": "/packages/34/section_definitions/2/quantities/1"
                 }
               },
               {
@@ -36424,7 +37096,7 @@ window.nomadArtifacts = {
                 "name": "energies_raw",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/33/section_definitions/2/quantities/2"
+                  "type_data": "/packages/34/section_definitions/2/quantities/2"
                 }
               },
               {
@@ -36434,7 +37106,7 @@ window.nomadArtifacts = {
                 "name": "energies_fit",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/33/section_definitions/1/quantities/1"
+                  "type_data": "/packages/34/section_definitions/1/quantities/1"
                 }
               }
             ]
@@ -36707,7 +37379,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_volume_curve",
-                "sub_section": "/packages/11/section_definitions/43",
+                "sub_section": "/packages/13/section_definitions/43",
                 "repeats": true
               },
               {
@@ -36720,7 +37392,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "bulk_modulus",
-                "sub_section": "/packages/11/section_definitions/44",
+                "sub_section": "/packages/13/section_definitions/44",
                 "repeats": true
               },
               {
@@ -36733,7 +37405,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "shear_modulus",
-                "sub_section": "/packages/11/section_definitions/45",
+                "sub_section": "/packages/13/section_definitions/45",
                 "repeats": true
               }
             ]
@@ -36789,7 +37461,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/29/section_definitions/10",
+                "sub_section": "/packages/30/section_definitions/10",
                 "repeats": true
               },
               {
@@ -36797,7 +37469,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_electronic",
-                "sub_section": "/packages/11/section_definitions/32",
+                "sub_section": "/packages/13/section_definitions/32",
                 "repeats": true
               },
               {
@@ -36805,7 +37477,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_electronic_new",
-                "sub_section": "/packages/11/section_definitions/35",
+                "sub_section": "/packages/13/section_definitions/35",
                 "repeats": true
               },
               {
@@ -36813,7 +37485,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_electronic",
-                "sub_section": "/packages/11/section_definitions/38",
+                "sub_section": "/packages/13/section_definitions/38",
                 "repeats": true
               },
               {
@@ -36821,7 +37493,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "greens_functions_electronic",
-                "sub_section": "/packages/11/section_definitions/39",
+                "sub_section": "/packages/13/section_definitions/39",
                 "repeats": true
               },
               {
@@ -36829,7 +37501,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electric_field_gradient",
-                "sub_section": "/packages/11/section_definitions/48",
+                "sub_section": "/packages/13/section_definitions/48",
                 "repeats": true
               }
             ]
@@ -36860,7 +37532,7 @@ window.nomadArtifacts = {
             "name": "SpinSpinCoupling",
             "description": "\n        Base class for the spin-spin coupling information.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/0"
+              "/packages/13/section_definitions/0"
             ],
             "quantities": [
               {
@@ -36910,7 +37582,7 @@ window.nomadArtifacts = {
             "name": "MagneticSusceptibility",
             "description": "\n        Base class for the magnetic susceptibility information.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/0"
+              "/packages/13/section_definitions/0"
             ],
             "quantities": [
               {
@@ -36951,7 +37623,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "magnetic_shielding",
-                "sub_section": "/packages/11/section_definitions/50",
+                "sub_section": "/packages/13/section_definitions/50",
                 "repeats": true
               },
               {
@@ -36959,7 +37631,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spin_spin_coupling",
-                "sub_section": "/packages/11/section_definitions/51",
+                "sub_section": "/packages/13/section_definitions/51",
                 "repeats": true
               },
               {
@@ -36967,7 +37639,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "magnetic_susceptibility",
-                "sub_section": "/packages/11/section_definitions/52",
+                "sub_section": "/packages/13/section_definitions/52",
                 "repeats": true
               }
             ]
@@ -37025,7 +37697,7 @@ window.nomadArtifacts = {
             "name": "VolumeDynamic",
             "description": "\n        Contains volume values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/54"
+              "/packages/13/section_definitions/54"
             ],
             "quantities": [
               {
@@ -37050,7 +37722,7 @@ window.nomadArtifacts = {
             "name": "PressureDynamic",
             "description": "\n        Contains pressure values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/54"
+              "/packages/13/section_definitions/54"
             ],
             "quantities": [
               {
@@ -37075,7 +37747,7 @@ window.nomadArtifacts = {
             "name": "TemperatureDynamic",
             "description": "\n        Contains temperature values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/54"
+              "/packages/13/section_definitions/54"
             ],
             "quantities": [
               {
@@ -37100,7 +37772,7 @@ window.nomadArtifacts = {
             "name": "EnergyDynamic",
             "description": "\n        Contains energy values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/54"
+              "/packages/13/section_definitions/54"
             ],
             "quantities": [
               {
@@ -37125,7 +37797,7 @@ window.nomadArtifacts = {
             "name": "Trajectory",
             "description": "\n        Thermodynamic properties reported for an ensemble evolving in time.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/30"
+              "/packages/13/section_definitions/30"
             ],
             "quantities": [
               {
@@ -37159,7 +37831,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "temperature",
-                "sub_section": "/packages/11/section_definitions/57",
+                "sub_section": "/packages/13/section_definitions/57",
                 "repeats": false
               },
               {
@@ -37167,7 +37839,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "pressure",
-                "sub_section": "/packages/11/section_definitions/56",
+                "sub_section": "/packages/13/section_definitions/56",
                 "repeats": false
               },
               {
@@ -37175,7 +37847,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "volume",
-                "sub_section": "/packages/11/section_definitions/55",
+                "sub_section": "/packages/13/section_definitions/55",
                 "repeats": false
               },
               {
@@ -37183,7 +37855,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_potential",
-                "sub_section": "/packages/11/section_definitions/58",
+                "sub_section": "/packages/13/section_definitions/58",
                 "repeats": false
               }
             ]
@@ -37205,7 +37877,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "trajectory",
-                "sub_section": "/packages/11/section_definitions/59",
+                "sub_section": "/packages/13/section_definitions/59",
                 "repeats": true
               }
             ]
@@ -37217,8 +37889,8 @@ window.nomadArtifacts = {
             "name": "RadiusOfGyration",
             "description": "\n        Contains Radius of Gyration values as a trajectory.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/54",
-              "/packages/11/section_definitions/30"
+              "/packages/13/section_definitions/54",
+              "/packages/13/section_definitions/30"
             ],
             "quantities": [
               {
@@ -37293,7 +37965,7 @@ window.nomadArtifacts = {
             "name": "RadialDistributionFunction",
             "description": "\n        Radial distribution function.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/30"
+              "/packages/13/section_definitions/30"
             ],
             "quantities": [
               {
@@ -37492,7 +38164,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "radial_distribution_function",
-                "sub_section": "/packages/11/section_definitions/62",
+                "sub_section": "/packages/13/section_definitions/62",
                 "repeats": true
               },
               {
@@ -37505,7 +38177,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/11/section_definitions/61",
+                "sub_section": "/packages/13/section_definitions/61",
                 "repeats": true
               },
               {
@@ -37518,7 +38190,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "diffraction_pattern",
-                "sub_section": "/packages/11/section_definitions/63",
+                "sub_section": "/packages/13/section_definitions/63",
                 "repeats": true
               }
             ]
@@ -37530,7 +38202,7 @@ window.nomadArtifacts = {
             "name": "MeanSquaredDisplacement",
             "description": "\n        Mean Squared Displacements.\n        ",
             "base_sections": [
-              "/packages/11/section_definitions/30"
+              "/packages/13/section_definitions/30"
             ],
             "quantities": [
               {
@@ -37718,7 +38390,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "mean_squared_displacement",
-                "sub_section": "/packages/11/section_definitions/65",
+                "sub_section": "/packages/13/section_definitions/65",
                 "repeats": true
               }
             ]
@@ -38007,7 +38679,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "solar_cell",
-                "sub_section": "/packages/11/section_definitions/67",
+                "sub_section": "/packages/13/section_definitions/67",
                 "repeats": false
               }
             ]
@@ -38096,7 +38768,7 @@ window.nomadArtifacts = {
               "label_quantity": "name"
             },
             "base_sections": [
-              "/packages/11/section_definitions/69"
+              "/packages/13/section_definitions/69"
             ],
             "quantities": [
               {
@@ -38133,7 +38805,7 @@ window.nomadArtifacts = {
               "label_quantity": "name"
             },
             "base_sections": [
-              "/packages/11/section_definitions/69"
+              "/packages/13/section_definitions/69"
             ],
             "quantities": [
               {
@@ -38623,7 +39295,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "reactants",
-                "sub_section": "/packages/11/section_definitions/70",
+                "sub_section": "/packages/13/section_definitions/70",
                 "repeats": true
               },
               {
@@ -38636,7 +39308,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "products",
-                "sub_section": "/packages/11/section_definitions/71",
+                "sub_section": "/packages/13/section_definitions/71",
                 "repeats": true
               },
               {
@@ -38649,7 +39321,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "rates",
-                "sub_section": "/packages/11/section_definitions/72",
+                "sub_section": "/packages/13/section_definitions/72",
                 "repeats": true
               },
               {
@@ -38662,7 +39334,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "reaction_conditions",
-                "sub_section": "/packages/11/section_definitions/73",
+                "sub_section": "/packages/13/section_definitions/73",
                 "repeats": false
               },
               {
@@ -38675,7 +39347,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "reaction_mechanism",
-                "sub_section": "/packages/11/section_definitions/74",
+                "sub_section": "/packages/13/section_definitions/74",
                 "repeats": true
               }
             ]
@@ -38807,7 +39479,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "reaction",
-                "sub_section": "/packages/11/section_definitions/75",
+                "sub_section": "/packages/13/section_definitions/75",
                 "repeats": false
               },
               {
@@ -38815,7 +39487,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "catalyst",
-                "sub_section": "/packages/11/section_definitions/76",
+                "sub_section": "/packages/13/section_definitions/76",
                 "repeats": false
               }
             ]
@@ -39048,7 +39720,7 @@ window.nomadArtifacts = {
             "name": "SpectraProvenance",
             "description": "\n        Contains provenance information (mainly the methodology section) for spectra properties\n        derived from an experiment or a calculation.\n        ",
             "base_sections": [
-              "/packages/26/section_definitions/0"
+              "/packages/27/section_definitions/0"
             ],
             "sub_sections": [
               {
@@ -39056,7 +39728,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eels",
-                "sub_section": "/packages/11/section_definitions/79"
+                "sub_section": "/packages/13/section_definitions/79"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -39179,7 +39851,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/11/section_definitions/80"
+                "sub_section": "/packages/13/section_definitions/80"
               }
             ]
           },
@@ -39200,7 +39872,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "spectra",
-                "sub_section": "/packages/11/section_definitions/81",
+                "sub_section": "/packages/13/section_definitions/81",
                 "repeats": true
               }
             ]
@@ -39256,7 +39928,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "structural",
-                "sub_section": "/packages/11/section_definitions/64",
+                "sub_section": "/packages/13/section_definitions/64",
                 "repeats": false
               },
               {
@@ -39264,7 +39936,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dynamical",
-                "sub_section": "/packages/11/section_definitions/66",
+                "sub_section": "/packages/13/section_definitions/66",
                 "repeats": false
               },
               {
@@ -39272,7 +39944,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "structures",
-                "sub_section": "/packages/11/section_definitions/5",
+                "sub_section": "/packages/13/section_definitions/5",
                 "repeats": false
               },
               {
@@ -39280,7 +39952,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "vibrational",
-                "sub_section": "/packages/11/section_definitions/42",
+                "sub_section": "/packages/13/section_definitions/42",
                 "repeats": false
               },
               {
@@ -39288,7 +39960,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
-                "sub_section": "/packages/11/section_definitions/49",
+                "sub_section": "/packages/13/section_definitions/49",
                 "repeats": false
               },
               {
@@ -39296,7 +39968,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "magnetic",
-                "sub_section": "/packages/11/section_definitions/53",
+                "sub_section": "/packages/13/section_definitions/53",
                 "repeats": false
               },
               {
@@ -39304,7 +39976,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "optoelectronic",
-                "sub_section": "/packages/11/section_definitions/68",
+                "sub_section": "/packages/13/section_definitions/68",
                 "repeats": false
               },
               {
@@ -39312,7 +39984,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "catalytic",
-                "sub_section": "/packages/11/section_definitions/77",
+                "sub_section": "/packages/13/section_definitions/77",
                 "repeats": false
               },
               {
@@ -39320,7 +39992,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mechanical",
-                "sub_section": "/packages/11/section_definitions/47",
+                "sub_section": "/packages/13/section_definitions/47",
                 "repeats": false
               },
               {
@@ -39328,7 +40000,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermodynamic",
-                "sub_section": "/packages/11/section_definitions/60",
+                "sub_section": "/packages/13/section_definitions/60",
                 "repeats": false
               },
               {
@@ -39336,7 +40008,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectroscopic",
-                "sub_section": "/packages/11/section_definitions/82",
+                "sub_section": "/packages/13/section_definitions/82",
                 "repeats": false
               },
               {
@@ -39344,7 +40016,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "geometry_optimization",
-                "sub_section": "/packages/11/section_definitions/46",
+                "sub_section": "/packages/13/section_definitions/46",
                 "repeats": false
               }
             ]
@@ -39503,7 +40175,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "material",
-                "sub_section": "/packages/11/section_definitions/13",
+                "sub_section": "/packages/13/section_definitions/13",
                 "repeats": false
               },
               {
@@ -39511,7 +40183,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/11/section_definitions/27",
+                "sub_section": "/packages/13/section_definitions/27",
                 "repeats": false
               },
               {
@@ -39519,7 +40191,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "properties",
-                "sub_section": "/packages/11/section_definitions/83",
+                "sub_section": "/packages/13/section_definitions/83",
                 "repeats": false
               },
               {
@@ -39527,7 +40199,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eln",
-                "sub_section": "/packages/11/section_definitions/84",
+                "sub_section": "/packages/13/section_definitions/84",
                 "repeats": false
               }
             ]
@@ -39536,7 +40208,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 12,
+        "m_parent_index": 14,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln",
         "section_definitions": [
@@ -39573,7 +40245,7 @@ window.nomadArtifacts = {
             "name": "ElnBaseSection",
             "description": "A generic abstract base section for ELNs that provides a few commonly used properties. If you inherit from this section, but do not need some quantities, list those\nquantities in the `eln.hide` annotation of your inheriting section definition.\n\nBesides predefining some quantities, these base sections will add some metadata\nto NOMAD's search. A particular example are `tags`, if you define a string\nor enum quantity in your sections named `tags`, its values will be searchable.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -39667,11 +40339,11 @@ window.nomadArtifacts = {
             "label": "Basic ELN",
             "description": "The most basic ELN to instantiate.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/12/section_definitions/1",
-              "/packages/24/section_definitions/1"
+              "/packages/14/section_definitions/1",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -39717,11 +40389,11 @@ window.nomadArtifacts = {
             "label": "Material Processing ELN",
             "description": "A basic electronic lab notebook for a material processing activity.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/20",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/20",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -39757,7 +40429,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "process_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               }
             ]
           },
@@ -39769,7 +40441,7 @@ window.nomadArtifacts = {
             "label": "Measurement Result",
             "description": "A basic section for describing the result of a measurement.",
             "base_sections": [
-              "/packages/25/section_definitions/25"
+              "/packages/26/section_definitions/25"
             ],
             "quantities": [
               {
@@ -39811,11 +40483,11 @@ window.nomadArtifacts = {
             "label": "Measurement ELN",
             "description": "A basic electronic lab notebook for a measurement activity.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/26",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/26",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -39846,7 +40518,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "measurement_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -39854,7 +40526,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "description": "The result of the measurement.",
-                "sub_section": "/packages/12/section_definitions/4",
+                "sub_section": "/packages/14/section_definitions/4",
                 "repeats": true
               }
             ]
@@ -39867,7 +40539,7 @@ window.nomadArtifacts = {
             "label": "Analysis Result",
             "description": "A basic section for describing the result of an analysis.",
             "base_sections": [
-              "/packages/25/section_definitions/22"
+              "/packages/26/section_definitions/22"
             ],
             "quantities": [
               {
@@ -39909,11 +40581,11 @@ window.nomadArtifacts = {
             "label": "Analysis ELN",
             "description": "A basic electronic lab notebook for an analysis activity.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/23",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/23",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -39944,7 +40616,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "analysis_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -39952,7 +40624,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "outputs",
                 "description": "The input data of the analysis.",
-                "sub_section": "/packages/12/section_definitions/6",
+                "sub_section": "/packages/14/section_definitions/6",
                 "repeats": true
               }
             ]
@@ -39977,11 +40649,11 @@ window.nomadArtifacts = {
             "label": "Generic Sample ELN",
             "description": "A basic electronic lab notebook for a generic sample.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/17",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/17",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -40012,7 +40684,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "sample_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               }
             ]
           },
@@ -40039,11 +40711,11 @@ window.nomadArtifacts = {
             "label": "Substance ELN",
             "description": "A basic electronic lab notebook for a generic sample.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/27",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/27",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -40074,7 +40746,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "substance_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               }
             ]
           },
@@ -40098,11 +40770,11 @@ window.nomadArtifacts = {
             "label": "Instrument ELN",
             "description": "A basic electronic lab notebook for a generic instrument.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/11",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/11",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -40133,7 +40805,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "instrument_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               }
             ]
           },
@@ -40157,11 +40829,11 @@ window.nomadArtifacts = {
             "label": "Collection ELN",
             "description": "A basic electronic lab notebook for a collection of entities.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/8",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/8",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -40192,7 +40864,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "collection_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               }
             ]
           },
@@ -40216,11 +40888,11 @@ window.nomadArtifacts = {
             "label": "Experiment ELN",
             "description": "A basic electronic lab notebook for a collection of activities.",
             "categories": [
-              "/packages/24/category_definitions/2"
+              "/packages/25/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/7",
-              "/packages/24/section_definitions/1"
+              "/packages/26/section_definitions/7",
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -40251,7 +40923,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "experiment_identifiers",
-                "sub_section": "/packages/25/section_definitions/32"
+                "sub_section": "/packages/26/section_definitions/32"
               }
             ]
           },
@@ -40262,7 +40934,7 @@ window.nomadArtifacts = {
             "name": "SampleID",
             "description": "A base section that can be used for sample IDs. If the `sample_owner`, `sample_short_name`, `institute`, and `creation_datetime`\nquantities are provided, the sample_id will be automatically created as a combination\nof these four quantities.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -40451,7 +41123,7 @@ window.nomadArtifacts = {
             "name": "Substance",
             "description": "A base section for any substance defined in the ELN.",
             "base_sections": [
-              "/packages/25/section_definitions/10"
+              "/packages/26/section_definitions/10"
             ],
             "quantities": [
               {
@@ -40721,7 +41393,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_experimental_properties",
-                "sub_section": "/packages/12/section_definitions/14",
+                "sub_section": "/packages/14/section_definitions/14",
                 "repeats": true
               },
               {
@@ -40729,7 +41401,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_property_citations",
-                "sub_section": "/packages/12/section_definitions/15",
+                "sub_section": "/packages/14/section_definitions/15",
                 "repeats": true
               }
             ]
@@ -40741,7 +41413,7 @@ window.nomadArtifacts = {
             "name": "ElnWithFormulaBaseSection",
             "description": "A generic abstract base section for ELNs that provides a few commonly used for items with a chemical formula, e.g. chemicals or samples.",
             "base_sections": [
-              "/packages/12/section_definitions/1"
+              "/packages/14/section_definitions/1"
             ],
             "quantities": [
               {
@@ -40771,7 +41443,7 @@ window.nomadArtifacts = {
             "name": "Chemical",
             "description": "A ELN base section that can be used for chemicals.",
             "base_sections": [
-              "/packages/12/section_definitions/17"
+              "/packages/14/section_definitions/17"
             ]
           },
           {
@@ -40781,7 +41453,7 @@ window.nomadArtifacts = {
             "name": "Sample",
             "description": "A ELN base section that can be used for samples.",
             "base_sections": [
-              "/packages/12/section_definitions/17"
+              "/packages/14/section_definitions/17"
             ]
           },
           {
@@ -40791,7 +41463,7 @@ window.nomadArtifacts = {
             "name": "ElnWithStructureFile",
             "description": "A base section for for parsing crystal structure files, e.g. `.cif`, and populating the Material section in Results.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -40820,7 +41492,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellDefinition",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -40905,7 +41577,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellLayer",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -40992,7 +41664,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellBaseSectionWithOptoelectronicProperties",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -41324,7 +41996,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJVCurve",
             "base_sections": [
-              "/packages/12/section_definitions/24"
+              "/packages/14/section_definitions/24"
             ],
             "quantities": [
               {
@@ -41723,7 +42395,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 13,
+        "m_parent_index": 15,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln.labfolder",
         "section_definitions": [
@@ -41807,7 +42479,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "children",
-                "sub_section": "/packages/13/section_definitions/1",
+                "sub_section": "/packages/15/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -41819,7 +42491,7 @@ window.nomadArtifacts = {
             "name": "LabfolderDataElementGrid",
             "description": "A labfolder grid containing data elements.",
             "base_sections": [
-              "/packages/13/section_definitions/0"
+              "/packages/15/section_definitions/0"
             ],
             "quantities": [
               {
@@ -41851,7 +42523,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "children",
-                "sub_section": "/packages/13/section_definitions/0",
+                "sub_section": "/packages/15/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -42084,7 +42756,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "elements",
-                "sub_section": "/packages/13/section_definitions/2",
+                "sub_section": "/packages/15/section_definitions/2",
                 "repeats": true
               }
             ]
@@ -42095,7 +42767,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderTextElement",
             "base_sections": [
-              "/packages/13/section_definitions/2"
+              "/packages/15/section_definitions/2"
             ],
             "quantities": [
               {
@@ -42122,7 +42794,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderFileElement",
             "base_sections": [
-              "/packages/13/section_definitions/2"
+              "/packages/15/section_definitions/2"
             ],
             "quantities": [
               {
@@ -42183,7 +42855,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderImageElement",
             "base_sections": [
-              "/packages/13/section_definitions/2"
+              "/packages/15/section_definitions/2"
             ],
             "quantities": [
               {
@@ -42305,7 +42977,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderTableElement",
             "base_sections": [
-              "/packages/13/section_definitions/2"
+              "/packages/15/section_definitions/2"
             ],
             "quantities": [
               {
@@ -42343,7 +43015,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderDataElement",
             "base_sections": [
-              "/packages/13/section_definitions/2"
+              "/packages/15/section_definitions/2"
             ],
             "quantities": [
               {
@@ -42376,7 +43048,7 @@ window.nomadArtifacts = {
                 "name": "nomad_data_schema",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/29/section_definitions/3"
+                  "type_data": "/packages/30/section_definitions/3"
                 }
               }
             ],
@@ -42386,7 +43058,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "data_elements",
-                "sub_section": "/packages/13/section_definitions/1",
+                "sub_section": "/packages/15/section_definitions/1",
                 "repeats": true
               },
               {
@@ -42394,7 +43066,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "nomad_data",
-                "sub_section": "/packages/13/section_definitions/2"
+                "sub_section": "/packages/15/section_definitions/2"
               }
             ]
           },
@@ -42404,7 +43076,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderWellPlateElement",
             "base_sections": [
-              "/packages/13/section_definitions/2"
+              "/packages/15/section_definitions/2"
             ],
             "quantities": [
               {
@@ -42459,10 +43131,10 @@ window.nomadArtifacts = {
             "name": "LabfolderProject",
             "label": "Labfolder Project Import",
             "categories": [
-              "/packages/24/category_definitions/1"
+              "/packages/25/category_definitions/1"
             ],
             "base_sections": [
-              "/packages/24/section_definitions/1"
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -42543,7 +43215,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "entries",
-                "sub_section": "/packages/13/section_definitions/3",
+                "sub_section": "/packages/15/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -42552,7 +43224,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 14,
+        "m_parent_index": 16,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln.openbis",
         "section_definitions": [
@@ -42672,7 +43344,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "OpenbisExperiment",
             "base_sections": [
-              "/packages/14/section_definitions/0"
+              "/packages/16/section_definitions/0"
             ],
             "sub_sections": [
               {
@@ -42680,7 +43352,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "attachments",
-                "sub_section": "/packages/14/section_definitions/1",
+                "sub_section": "/packages/16/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -42694,7 +43366,7 @@ window.nomadArtifacts = {
               "label_quantity": "code"
             },
             "base_sections": [
-              "/packages/14/section_definitions/0"
+              "/packages/16/section_definitions/0"
             ],
             "quantities": [
               {
@@ -42715,7 +43387,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "experiments",
-                "sub_section": "/packages/14/section_definitions/2",
+                "sub_section": "/packages/16/section_definitions/2",
                 "repeats": true
               }
             ]
@@ -42730,7 +43402,7 @@ window.nomadArtifacts = {
               "label_quantity": "code"
             },
             "base_sections": [
-              "/packages/14/section_definitions/0"
+              "/packages/16/section_definitions/0"
             ],
             "sub_sections": [
               {
@@ -42738,7 +43410,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "projects",
-                "sub_section": "/packages/14/section_definitions/3",
+                "sub_section": "/packages/16/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -42750,10 +43422,10 @@ window.nomadArtifacts = {
             "name": "OpenbisEntry",
             "label": "Openbis Project Import",
             "categories": [
-              "/packages/24/category_definitions/1"
+              "/packages/25/category_definitions/1"
             ],
             "base_sections": [
-              "/packages/24/section_definitions/1"
+              "/packages/25/section_definitions/1"
             ],
             "quantities": [
               {
@@ -42817,7 +43489,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spaces",
-                "sub_section": "/packages/14/section_definitions/4",
+                "sub_section": "/packages/16/section_definitions/4",
                 "repeats": true
               }
             ]
@@ -42826,7 +43498,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 15,
+        "m_parent_index": 17,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.measurements",
         "section_definitions": [
@@ -42989,7 +43661,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the used sample.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/15/section_definitions/0"
+                  "type_data": "/packages/17/section_definitions/0"
                 }
               }
             ],
@@ -43000,7 +43672,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "sample",
                 "description": "The used sample.",
-                "sub_section": "/packages/15/section_definitions/0"
+                "sub_section": "/packages/17/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -43008,7 +43680,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "measurement",
                 "description": "Measurements performed in this experiment.",
-                "sub_section": "/packages/15/section_definitions/3",
+                "sub_section": "/packages/17/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -43150,7 +43822,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "sample",
-                "sub_section": "/packages/15/section_definitions/0",
+                "sub_section": "/packages/17/section_definitions/0",
                 "repeats": true
               },
               {
@@ -43158,7 +43830,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "instrument",
-                "sub_section": "/packages/15/section_definitions/2",
+                "sub_section": "/packages/17/section_definitions/2",
                 "repeats": true
               }
             ]
@@ -43283,7 +43955,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "additional_channels",
                 "description": "Metadata for additional channels. The order is the same as the channel data\nappears in `additional_channel_data`.",
-                "sub_section": "/packages/15/section_definitions/5/inner_section_definitions/0",
+                "sub_section": "/packages/17/section_definitions/5/inner_section_definitions/0",
                 "repeats": true
               }
             ],
@@ -43366,7 +44038,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectrum",
-                "sub_section": "/packages/15/section_definitions/5"
+                "sub_section": "/packages/17/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -43376,7 +44048,7 @@ window.nomadArtifacts = {
                 "more": {
                   "repreats": true
                 },
-                "sub_section": "/packages/24/section_definitions/2"
+                "sub_section": "/packages/25/section_definitions/2"
               }
             ]
           }
@@ -43384,7 +44056,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 16,
+        "m_parent_index": 18,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.tabulartree",
         "section_definitions": [
@@ -43450,7 +44122,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "info",
-                "sub_section": "/packages/16/section_definitions/0"
+                "sub_section": "/packages/18/section_definitions/0"
               }
             ]
           },
@@ -43478,14 +44150,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "info",
-                "sub_section": "/packages/16/section_definitions/0"
+                "sub_section": "/packages/18/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "nodes",
-                "sub_section": "/packages/16/section_definitions/1",
+                "sub_section": "/packages/18/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -43514,14 +44186,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "info",
-                "sub_section": "/packages/16/section_definitions/0"
+                "sub_section": "/packages/18/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "nodes",
-                "sub_section": "/packages/16/section_definitions/2",
+                "sub_section": "/packages/18/section_definitions/2",
                 "repeats": true
               }
             ]
@@ -43550,14 +44222,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "info",
-                "sub_section": "/packages/16/section_definitions/0"
+                "sub_section": "/packages/18/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "nodes",
-                "sub_section": "/packages/16/section_definitions/3",
+                "sub_section": "/packages/18/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -43566,384 +44238,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 17,
-        "m_parent_sub_section": "packages",
-        "name": "runschema.run",
-        "section_definitions": [
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 0,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Program",
-            "description": "Contains the specifications of the program.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "name",
-                "description": "Specifies the name of the program that generated the data.",
-                "categories": [
-                  "/packages/17/category_definitions/0",
-                  "/packages/17/category_definitions/1"
-                ],
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "version",
-                "description": "Specifies the official release version of the program that was used.",
-                "categories": [
-                  "/packages/17/category_definitions/0",
-                  "/packages/17/category_definitions/1"
-                ],
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "version_internal",
-                "description": "Specifies a program version tag used internally for development purposes.\nAny kind of tagging system is supported, including git commit hashes.",
-                "categories": [
-                  "/packages/17/category_definitions/1"
-                ],
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "compilation_datetime",
-                "description": "Contains the program compilation date and time from *Unix epoch* (00:00:00 UTC on\n1 January 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
-                "categories": [
-                  "/packages/17/category_definitions/0",
-                  "/packages/17/category_definitions/1"
-                ],
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "compilation_host",
-                "description": "Specifies the host on which the program was compiled.",
-                "categories": [
-                  "/packages/17/category_definitions/0",
-                  "/packages/17/category_definitions/1"
-                ],
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 1,
-            "m_parent_sub_section": "section_definitions",
-            "name": "TimeRun",
-            "description": "Contains information on timing information of the run.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "date_end",
-                "description": "Stores the end date of the run as time since the *Unix epoch* (00:00:00 UTC on 1\nJanuary 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "date_start",
-                "description": "Stores the start date of the run as time since the *Unix epoch* (00:00:00 UTC on 1\nJanuary 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "cpu1_end",
-                "description": "Stores the end time of the run on CPU 1.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "cpu1_start",
-                "description": "Stores the start time of the run on CPU 1.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "wall_end",
-                "description": "Stores the internal wall-clock time at the end of the run.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "name": "wall_start",
-                "description": "Stores the internal wall-clock time from the start of the run.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 2,
-            "m_parent_sub_section": "section_definitions",
-            "name": "MessageRun",
-            "description": "Contains warning, error, and info messages of the run.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "type",
-                "description": "Type of the message. Can be one of warning, error, info, debug.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "value",
-                "description": "Value of the message of the computational program, given by type.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 3,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Run",
-            "description": "Every section run represents a single call of a program.",
-            "base_sections": [
-              "/packages/24/section_definitions/0"
-            ],
-            "extending_sections": [
-              "/packages/20/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "calculation_file_uri",
-                "description": "Contains the nomad uri of a raw the data file connected to the current run. There\nshould be an value for the main_file_uri and all ancillary files.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "clean_end",
-                "description": "Indicates whether this run terminated properly (true), or if it was killed or\nexited with an error code unequal to zero (false).",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "bool"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "raw_id",
-                "description": "An optional calculation id, if one is found in the code input/output files.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "starting_run_ref",
-                "description": "Links the current section run to a section run containing the calculations from\nwhich the current section starts.",
-                "categories": [
-                  "/packages/26/category_definitions/0"
-                ],
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/17/section_definitions/3"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "n_references",
-                "description": "Number of references to the current section calculation.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "name": "runs_ref",
-                "description": "Links the the current section to other run sections. Such a link is necessary for\nexample for workflows that may contain a series of runs.",
-                "categories": [
-                  "/packages/26/category_definitions/0"
-                ],
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/17/section_definitions/3"
-                },
-                "shape": [
-                  "n_references"
-                ]
-              }
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "program",
-                "sub_section": "/packages/17/section_definitions/0"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "sub_sections",
-                "name": "time_run",
-                "sub_section": "/packages/17/section_definitions/1"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "sub_sections",
-                "name": "message",
-                "sub_section": "/packages/17/section_definitions/2"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "sub_sections",
-                "name": "method",
-                "sub_section": "/packages/8/section_definitions/44",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "sub_sections",
-                "name": "system",
-                "sub_section": "/packages/9/section_definitions/9",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "sub_sections",
-                "name": "calculation",
-                "sub_section": "/packages/10/section_definitions/40",
-                "repeats": true
-              }
-            ]
-          }
-        ],
-        "category_definitions": [
-          {
-            "m_def": "nomad.metainfo.metainfo.Category",
-            "m_parent_index": 0,
-            "m_parent_sub_section": "category_definitions",
-            "name": "AccessoryInfo",
-            "description": "Information that *in theory* should not affect the results of the calculations (e.g.,\ntiming)."
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Category",
-            "m_parent_index": 1,
-            "m_parent_sub_section": "category_definitions",
-            "name": "ProgramInfo",
-            "description": "Contains information on the program that generated the data, i.e. the program_name,\nprogram_version, program_compilation_host and program_compilation_datetime as direct\nchildren of this field.",
-            "categories": [
-              "/packages/17/category_definitions/0"
-            ]
-          }
-        ]
-      },
-      {
-        "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 18,
+        "m_parent_index": 19,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.datamodel",
         "description": "All generic entry metadata and related classes.",
@@ -44565,7 +44860,7 @@ window.nomadArtifacts = {
                 "name": "upload_id",
                 "description": "The persistent and globally unique identifier for the upload of the entry",
                 "categories": [
-                  "/packages/18/category_definitions/1"
+                  "/packages/19/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44585,8 +44880,8 @@ window.nomadArtifacts = {
                 "name": "upload_name",
                 "description": "The user provided upload name",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44608,8 +44903,8 @@ window.nomadArtifacts = {
                 "name": "upload_create_time",
                 "description": "The date and time when the upload was created in nomad",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "custom",
@@ -44628,8 +44923,8 @@ window.nomadArtifacts = {
                 "name": "entry_id",
                 "description": "A persistent and globally unique identifier for the entry",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/3"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44694,7 +44989,7 @@ window.nomadArtifacts = {
                 "name": "entry_hash",
                 "description": "A raw file content based checksum/hash",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44716,9 +45011,9 @@ window.nomadArtifacts = {
                 "name": "entry_create_time",
                 "description": "The date and time when the entry was created in nomad",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/3",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/3",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "custom",
@@ -44732,7 +45027,7 @@ window.nomadArtifacts = {
                 "name": "last_edit_time",
                 "description": "The date and time the user metadata was last edited.",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "custom",
@@ -44751,8 +45046,8 @@ window.nomadArtifacts = {
                 "name": "parser_name",
                 "description": "The NOMAD parser used for the last processing",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/3"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44773,8 +45068,8 @@ window.nomadArtifacts = {
                 "name": "mainfile",
                 "description": "The path to the mainfile from the root directory of the uploaded files",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/3"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44794,8 +45089,8 @@ window.nomadArtifacts = {
                 "name": "mainfile_key",
                 "description": "Key used to differentiate between different *child entries* of an entry.\nFor parent entries and entries that do not have any children, the value should\nbe empty.",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/3"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44853,7 +45148,7 @@ window.nomadArtifacts = {
                 "name": "pid",
                 "description": "The unique, sequentially enumerated, integer PID that was used in the legacy\nNOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44888,8 +45183,8 @@ window.nomadArtifacts = {
                 "name": "external_id",
                 "description": "A user provided external id. Usually the id for an entry in an external database\nwhere the data was imported from.",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44908,7 +45203,7 @@ window.nomadArtifacts = {
                 "name": "published",
                 "description": "Indicates if the entry is published",
                 "categories": [
-                  "/packages/18/category_definitions/1"
+                  "/packages/19/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44931,8 +45226,8 @@ window.nomadArtifacts = {
                 "name": "publish_time",
                 "description": "The date and time when the upload was published in nomad",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "custom",
@@ -44951,8 +45246,8 @@ window.nomadArtifacts = {
                 "name": "with_embargo",
                 "description": "Indicated if this entry is under an embargo",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/3"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44967,8 +45262,8 @@ window.nomadArtifacts = {
                 "name": "embargo_length",
                 "description": "The length of the requested embargo period, in months",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -44987,8 +45282,8 @@ window.nomadArtifacts = {
                 "name": "license",
                 "description": "A short license description (e.g. CC BY 4.0), that refers to the\nlicense of this entry.",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45008,8 +45303,8 @@ window.nomadArtifacts = {
                 "name": "processed",
                 "description": "Indicates that the entry is successfully processed.",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/3"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45029,7 +45324,7 @@ window.nomadArtifacts = {
                 "name": "last_processing_time",
                 "description": "The date and time of the last processing.",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "custom",
@@ -45067,7 +45362,7 @@ window.nomadArtifacts = {
                 "name": "nomad_version",
                 "description": "The NOMAD version used for the last processing",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45086,7 +45381,7 @@ window.nomadArtifacts = {
                 "name": "nomad_commit",
                 "description": "The NOMAD commit used for the last processing",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45105,8 +45400,8 @@ window.nomadArtifacts = {
                 "name": "comment",
                 "description": "A user provided comment for this entry",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45125,8 +45420,8 @@ window.nomadArtifacts = {
                 "name": "references",
                 "description": "User provided references (URLs) for this entry",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45148,8 +45443,8 @@ window.nomadArtifacts = {
                 "name": "external_db",
                 "description": "The repository or external database where the original data resides",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "enum",
@@ -45195,8 +45490,8 @@ window.nomadArtifacts = {
                 "name": "main_author",
                 "description": "The main author of the entry",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "User",
@@ -45210,8 +45505,8 @@ window.nomadArtifacts = {
                 "name": "coauthors",
                 "description": "A user provided list of co-authors for the whole upload. These can view and edit the\nupload when in staging, and view it also if it is embargoed.",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "Author",
@@ -45229,8 +45524,8 @@ window.nomadArtifacts = {
                 "name": "coauthor_groups",
                 "description": "A list of co-author groups for the whole upload, cf. `coauthors`.",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45248,7 +45543,7 @@ window.nomadArtifacts = {
                 "name": "entry_coauthors",
                 "description": "A user provided list of co-authors specific for this entry. This is a legacy field,\nfor new uploads, coauthors should be specified on the upload level only.",
                 "categories": [
-                  "/packages/18/category_definitions/2"
+                  "/packages/19/category_definitions/2"
                 ],
                 "type": {
                   "type_kind": "Author",
@@ -45266,8 +45561,8 @@ window.nomadArtifacts = {
                 "name": "reviewers",
                 "description": "A user provided list of reviewers. Reviewers can see the whole upload, also if\nit is unpublished or embargoed",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "User",
@@ -45285,8 +45580,8 @@ window.nomadArtifacts = {
                 "name": "reviewer_groups",
                 "description": "A list of reviewer groups, cf. `reviewers`.",
                 "categories": [
-                  "/packages/18/category_definitions/1",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/1",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -45409,12 +45704,12 @@ window.nomadArtifacts = {
                 "name": "datasets",
                 "description": "A list of user curated datasets this entry belongs to.",
                 "categories": [
-                  "/packages/18/category_definitions/2",
-                  "/packages/18/category_definitions/0"
+                  "/packages/19/category_definitions/2",
+                  "/packages/19/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/18/section_definitions/0"
+                  "type_data": "/packages/19/section_definitions/0"
                 },
                 "shape": [
                   "0..*"
@@ -45505,7 +45800,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "entry_timestamp",
                 "description": "A timestamp based on RFC3161.",
-                "sub_section": "/packages/18/section_definitions/4"
+                "sub_section": "/packages/19/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -45518,7 +45813,7 @@ window.nomadArtifacts = {
                 },
                 "name": "optimade",
                 "description": "Metadata used for the optimade API.",
-                "sub_section": "/packages/28/section_definitions/1"
+                "sub_section": "/packages/29/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -45531,7 +45826,7 @@ window.nomadArtifacts = {
                 },
                 "name": "section_defs",
                 "description": "All sections that are compatible with the present sections in this entry.",
-                "sub_section": "/packages/18/section_definitions/1",
+                "sub_section": "/packages/19/section_definitions/1",
                 "repeats": true
               },
               {
@@ -45544,7 +45839,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "entry_references",
-                "sub_section": "/packages/18/section_definitions/2",
+                "sub_section": "/packages/19/section_definitions/2",
                 "repeats": true
               },
               {
@@ -45557,7 +45852,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "search_quantities",
-                "sub_section": "/packages/18/section_definitions/3",
+                "sub_section": "/packages/19/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -45569,7 +45864,7 @@ window.nomadArtifacts = {
             "name": "EntryArchive",
             "label": "Entry",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -45605,7 +45900,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "run",
-                "sub_section": "/packages/17/section_definitions/3",
+                "sub_section": "/packages/11/section_definitions/3",
                 "repeats": true
               },
               {
@@ -45613,7 +45908,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "measurement",
-                "sub_section": "/packages/15/section_definitions/3",
+                "sub_section": "/packages/17/section_definitions/3",
                 "repeats": true
               },
               {
@@ -45621,7 +45916,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "data",
-                "sub_section": "/packages/24/section_definitions/1"
+                "sub_section": "/packages/25/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -45629,7 +45924,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "workflow",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/6/section_definitions/34",
                 "repeats": true
@@ -45640,9 +45935,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "workflow2",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/27/section_definitions/3"
+                "sub_section": "/packages/28/section_definitions/3"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -45655,9 +45950,9 @@ window.nomadArtifacts = {
                 },
                 "name": "metadata",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/5"
+                "sub_section": "/packages/19/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -45670,16 +45965,16 @@ window.nomadArtifacts = {
                 },
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/11/section_definitions/85"
+                "sub_section": "/packages/13/section_definitions/85"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "tabular_tree",
-                "sub_section": "/packages/16/section_definitions/4",
+                "sub_section": "/packages/18/section_definitions/4",
                 "repeats": false
               },
               {
@@ -45687,7 +45982,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "definitions",
-                "sub_section": "/packages/29/section_definitions/4"
+                "sub_section": "/packages/30/section_definitions/4"
               }
             ]
           }
@@ -45732,7 +46027,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 19,
+        "m_parent_index": 20,
         "m_parent_sub_section": "packages",
         "name": "nomad.parsing.tabular",
         "section_definitions": [
@@ -45743,7 +46038,7 @@ window.nomadArtifacts = {
             "name": "TableData",
             "description": "Table data",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -45771,7 +46066,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 20,
+        "m_parent_index": 21,
         "m_parent_sub_section": "packages",
         "name": "electronicparsers.vasp.metainfo.vasp",
         "section_definitions": [
@@ -45781,7 +46076,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Run",
             "base_sections": [
-              "/packages/17/section_definitions/3"
+              "/packages/11/section_definitions/3"
             ],
             "extends_base_section": true,
             "quantities": [
@@ -46019,7 +46314,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 21,
+        "m_parent_index": 22,
         "m_parent_sub_section": "packages",
         "name": "electronicparsers.vasp.metainfo.vasp_incars",
         "section_definitions": [
@@ -46040,7 +46335,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ADDGRID",
                 "description": "ADDGRID determines whether an additional support grid is used for the evaluation\nof the augmentation charges.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46055,7 +46350,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_AEXX",
                 "description": "AEXX specifies the fraction of exact exchange in a Hartree-Fock/DFT hybrid\nfunctional type calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46070,7 +46365,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_AGGAC",
                 "description": "AGGAC specifies the fraction of gradient corrections to the correlation in a\nHartree-Fock/DFT hybrid functional type calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46085,7 +46380,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_AGGAX",
                 "description": "AGGAX specifies the fraction of gradient corrections to the exchange in a Hartree-\nFock/DFT hybrid functional type calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46100,7 +46395,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ALDAC",
                 "description": "ALDAC specifies the fraction of LDA correlation in a Hartree-Fock/DFT hybrid\nfunctional type calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46115,7 +46410,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ALGO",
                 "description": "Option to specify the electronic minimisation algorithm (as of VASP.4.5) and/or to\nselect the type of GW calculations.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46130,7 +46425,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_AMIN",
                 "description": "AMIN specifies the minimal mixing parameter in Kerker's initial approximation to\nthe charge dielectric function used in the Broyden / Pulay mixing scheme (IMIX=4,\nINIMIX=1).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46145,7 +46440,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_AMIX",
                 "description": "AMIX specifies the linear mixing parameter.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46160,7 +46455,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_AMIX_MAG",
                 "description": "AMIX_MAG linear mixing parameter for the magnetization density.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46175,7 +46470,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ANDERSEN_PROB",
                 "description": "ANDERSEN_PROB sets the collision probability for the Anderson thermostat (in case\nVASP was compiled with the flag -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46190,7 +46485,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ANTIRES",
                 "description": "The flag ANTIRES determines whether the Tamm-Dancoff approximation is used or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46205,7 +46500,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_APACO",
                 "description": "APACO sets the maximum distance in the evaluation of the pair-correlation function\n(in Angstroms).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46220,7 +46515,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_BMIX",
                 "description": "BMIX sets the cutoff wave vector for Kerker mixing scheme (IMIX = 1 and / or\nINIMIX = 1).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46235,7 +46530,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_BMIX_MAG",
                 "description": "BMIX_MAG sets the cutoff wave vector for Kerker mixing scheme (IMIX=1 and/or\nINIMIX=1) for the magnetization density.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46250,7 +46545,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CH_LSPEC",
                 "description": "This flag controls whether the imaginary part of the dielectric function for a\nselected core electron is calculated and written to the OUTCAR file or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46265,7 +46560,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CH_NEDOS",
                 "description": "This tag specifies the number of frequency (energy) grid points on the x-axis in\nthe calculation of the dielectric function for XAS spectra.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46280,7 +46575,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CH_SIGMA",
                 "description": "This tag specifies the broadening in eV of the imaginary dielectric function for a\ncore electron.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46295,7 +46590,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CLL",
                 "description": "CLL selects the angular (l) quantum number of the excited electron when using\nICORELEVEL=2.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46310,7 +46605,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CLN",
                 "description": "CLN selects the main quantum number of the excited electron when using\nICORELEVEL=2.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46325,7 +46620,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CLNT",
                 "description": "CLNT selects for which species the core levels are calculated using the tag\nICORELEVEL.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46340,7 +46635,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CLZ",
                 "description": "CLZ selects the electron count of the excited electron when using ICORELEVEL=2.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46355,7 +46650,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CMBJ",
                 "description": "defines the _c_ parameter in the modified Becke-Johnson meta-GGA potential. NOTE:\nEither specify a single value, or one value per atomic type (FIXME)",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46370,7 +46665,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CMBJA",
                 "description": "sets the $\\alpha$ parameter in the modified Becke-Johnson meta-GGA potential.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46385,7 +46680,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CMBJB",
                 "description": "sets the $\\eta$ parameter in the modified Becke-Johnson meta-GGA potential.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46400,7 +46695,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_CSHIFT",
                 "description": "CSHIFT sets the (small) complex shift $\\eta$ in the Kramers-Kronig transformation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46415,7 +46710,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_DEPER",
                 "description": "DEPER specifies a relative stopping criterion for the optimization of an\neigenvalue.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46430,7 +46725,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_DIMER_DIST",
                 "description": "The flag DIMER_DIST defines the step size for the numerical differentiation (in\nAngstrongs) for the Improved Dimer Method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46445,7 +46740,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_DIPOL",
                 "description": "Specifies the center of the cell in direct lattice coordinates with respect to\nwhich the total dipole-moment in the cell is calculated.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46462,7 +46757,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_DQ",
                 "description": "Step size for the finite difference _k_-space derivative in the linear response\ncalculation of chemical shifts. Typical values for DQ are in the range [0.001 -\n0.003]. The default is often sufficient",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46477,7 +46772,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EBREAK",
                 "description": "EBREAK specifies an absolute stopping criterion for the optimization of an\neigenvalue.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46492,7 +46787,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EDIFF",
                 "description": "EDIFF specifies the global break condition for the electronic SC-loop.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46507,7 +46802,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EDIFFG",
                 "description": "EDIFFG defines the break condition for the ionic relaxation loop.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46522,7 +46817,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EFIELD",
                 "description": "EFIELD controls the magnitude of the applied electric force field.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46537,7 +46832,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EFIELD_PEAD",
                 "description": "EFIELD_PEAD specifies the homogeneous electric field in the electric enthalpy\nfunctional used to compute the  self-consistent response to finite electric\nfields.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46554,7 +46849,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EINT",
                 "description": "Specifies the energy range of the bands that are used for the evaluation of the\npartial charge density needed in Band decomposed charge densities. Check also\nNBMOD and IBAND.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46571,7 +46866,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EMAX",
                 "description": "EMAX specifies the  upper boundary of the energy range for the evaluation of the\nDOS.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46586,7 +46881,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EMIN",
                 "description": "specifies the lower boundary of the energy range for the evaluation of the DOS.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46601,7 +46896,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENAUG",
                 "description": "ENAUG specifies the cut-off energy of the plane wave representation of the\naugmentation charges in eV.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46616,7 +46911,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENCUT",
                 "description": "ENCUT specifies the cutoff energy for the planewave basis set in eV.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46631,7 +46926,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENCUTFOCK",
                 "description": "The ENCUTFOCK tag sets the energy cutoff that determines the FFT grids used by the\nHartree-Fock routines. WARNING: The flag ENCUTFOCK is no longer supported in\nVASP.5.2.4 and newer versions. Please use PRECFOCK instead.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46646,7 +46941,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENCUTGW",
                 "description": "The tag ENCUTGW sets the energy cutoff for response function. It controls the\nbasis set for the response functions  in exactly the same manner as ENCUT does for\nthe orbitals.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46661,7 +46956,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENCUTGWSOFT",
                 "description": "The flag ENCUTGWSOFT sets the energy cutoff for response function, such that it\nallows to truncate the Coulomb kernel slowly between the energy specified by\nENCUTGWSOFT and ENCUTGW.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46676,7 +46971,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENINI",
                 "description": "ENINI controls the cutoff during the initial (steepest descent) phase for\nIALGO=48.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46691,7 +46986,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EPSILON",
                 "description": "EPSILON sets the dielectric constant of the medium.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46706,7 +47001,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EVENONLY",
                 "description": "EVENONLY=.TRUE. selects a subset of k-points for the representation of the Fock\nexchange potential, with $C_1=C_2=C_3=1$, and $n_1+n_2+n_3$ even.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46721,7 +47016,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_EVENONLYGW",
                 "description": "EVENONLYGW allows to restrict the k-points in the evaluation of response functions\n(in GW calculations) to even values.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46736,7 +47031,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_FERDO",
                 "description": "FERDO sets the occupancies of the states in the down-spin channel for ISMEAR=-2\nand ISPIN=2.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46753,7 +47048,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_FERWE",
                 "description": "FERWE sets the occupancies of the states for  ISMEAR=-2.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46770,7 +47065,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_FINDIFF",
                 "description": "The flag DIMER_DIST defines whether a forward (FINDIFF=1) or a central (FINDIFF=2)\ndifference formula for the numerical differentiation to compute the curvature\nalong the dimer direction is used in the Improved Dimer Method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46785,7 +47080,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_GGA",
                 "description": "GGA specifies the type of generalized-gradient-approximation one wishes to use.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46800,7 +47095,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_GGA_COMPAT",
                 "description": "This flag restores the full lattice symmetry for gradient corrected functionals.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -46815,7 +47110,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HFLMAX",
                 "description": "To be compatible w.r.t. old releases, VASP also reads the flag HFLMAX to the same\neffect as LMAXFOCK.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46830,7 +47125,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HFRCUT",
                 "description": "HFRCUT specifies the spherical cutoff radius for the potential kernel in hybrid\nfunctionals.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46845,7 +47140,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HFSCREEN",
                 "description": "HFSCREEN specifies the range-separation parameter in range separated hybrid\nfunctionals.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46860,7 +47155,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HILLS_BIN",
                 "description": "HILLS_BIN sets the number of steps after which the bias potential is updated in a\nmetadynamics run (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46875,7 +47170,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HILLS_H",
                 "description": "HILLS_H specifies the height of the Gaussian hill (in eV) used in metadynamics (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46890,7 +47185,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HILLS_W",
                 "description": "HILLS_W specifies the width of the Gaussian hill (in units of the corresponding\ncollective variable) used in metadynamics (in case VASP was compiled with\n-Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46905,7 +47200,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_HITOLER",
                 "description": "HITOLER specifies the convergence parameter for iterative Hirschfeld partitioning\n(DFT-TS/HI).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46920,7 +47215,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_I_CONSTRAINED_M",
                 "description": "I_CONSTRAINED_M switches on the constrained local moments approach.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46935,7 +47230,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IALGO",
                 "description": "IALGO selects the algorithm used to optimize the orbitals. WARNING",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46950,7 +47245,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IBAND",
                 "description": "Controls which bands are used in the calculation of Band decomposed charge\ndensities. Check also NBMOD and EINT.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46967,7 +47262,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IBRION",
                 "description": "IBRION determines how the ions are updated and moved.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46982,7 +47277,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ICHARG",
                 "description": "ICHARG determines how VASP constructs the <i>initial</i> charge density.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -46997,7 +47292,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ICHIBARE",
                 "description": "determines the order of the finite difference stencil used to calculate the\nmagnetic susceptibility.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47012,7 +47307,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ICORELEVEL",
                 "description": "ICORELEVEL controls whether the core energies are explicitely calculated or not\nand how they are calculated.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47027,7 +47322,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IDIPOL",
                 "description": "IDIPOL switches on monopole/dipole and quadrupole corrections to the total energy.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47042,7 +47337,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IEPSILON",
                 "description": "The flag IEPSILON determines along which Cartesien the E field is applied.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47057,7 +47352,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IGPAR",
                 "description": "This tag specifies the socalled parallel or  $G_{||}$ direction in the integration\nover the reciprocal space unit cell needed for LCALCPOL.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47072,7 +47367,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IMAGES",
                 "description": "IMAGES defines the number of interpolated geometries between the initial and final\nstate in Elastic Band calculations",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47087,7 +47382,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IMIX",
                 "description": "IMIX specifies the type of mixing.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47102,7 +47397,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_INCREM",
                 "description": "INCREM controls the transformation velocity in the slow-growth approach (in case\nVASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47119,7 +47414,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_INIMIX",
                 "description": "INIMIX determines the functional form of the initial mixing matrix in the Broyden\nscheme (IMIX=4).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47134,7 +47429,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_INIWAV",
                 "description": "INIWAV specifies how to set up the initial orbitals in case ISTART=0.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47149,7 +47444,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IPEAD",
                 "description": "IPEAD specifies the order of the finite difference stencil used to compute the\nderivative of the cell-periodic part of the orbitals w.r.t. **k** (LPEAD=.TRUE.),\nand the derivative of the polarization w.r.t. the orbitals,  for (LCALCEPS=.TRUE.,\nor EFIELD_PEAD$\\not=$0).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47164,7 +47459,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ISIF",
                 "description": "ISIF determines whether the stress tensor is calculated and which principal\ndegrees-of-freedom are allowed to change in relaxation and molecular dynamics\nruns.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47179,7 +47474,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ISMEAR",
                 "description": "ISMEAR determines how the partial occupancies $f_{n\\mathbf{k}}$  are set for each\norbital. SIGMA  determines the width of the smearing in eV.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47194,7 +47489,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ISPIN",
                 "description": "ISPIN specifies spin polarization.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47209,7 +47504,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ISTART",
                 "description": "ISTART determines whether or not to read the WAVECAR file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47224,7 +47519,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ISYM",
                 "description": "ISYM determines the way VASP treats symmetry.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47239,7 +47534,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IVDW",
                 "description": "This tag controls whether vdW corrections are calculated or not. If they are\ncalculated IVDW controls how they are calculated.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47254,7 +47549,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_IWAVPR",
                 "description": "IWAVPR determines how orbitals and/or charge densities are extrapolated from one\nionic configuration to the next configuration.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47269,7 +47564,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_KBLOCK",
                 "description": "After KBLOCK*NBLOCK ionic steps the averaged pair correlation function and DOS are\nwritten to the files PCDAT and DOSCAR. More details can be found on the page\ndescribing the tag NBLOCK.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47284,7 +47579,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_KGAMMA",
                 "description": "Determines whether the _k_-points (determined by the tag KSPACING if KPOINTS file\nis not present) are center around (KGAMMA=.TRUE.), or shifted away\n(KGAMMA=.FALSE.) from the $\\Gamma$ point.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47299,7 +47594,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_KPAR",
                 "description": "KPAR determines the number of **k**-points that are to be treated in parallel\n(available as of VASP.5.3.2).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47314,7 +47609,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_KPOINT_BSE",
                 "description": "The flag KPOINT_BSE allows to calculate the dielectric matrix at one of the\nkpoints used to sample the Brillouin zone. NOTE: Either specify one or three\nintegers (FIXME)",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47329,7 +47624,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_KPUSE",
                 "description": "Specifies which k-points are used in the evaluation of the partial dos (Band\ndecomposed charge densities).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47346,7 +47641,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_KSPACING",
                 "description": "The tag KSPACING determines the number of k-points if the KPOINTS file is not\npresent.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47361,7 +47656,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LADDER",
                 "description": "Controls whether the ladder diagrams are included in the BSE calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47376,7 +47671,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LAECHG",
                 "description": "When LAECHG=.TRUE. the all-electron charge density will be reconstructed\nexplicitly and written out to file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47391,7 +47686,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LAMBDA",
                 "description": "LAMBDA sets the weight with which the penalty terms of the constrained local\nmoment approach enter into the total energy expression and the Hamiltonian.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47406,7 +47701,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LANGEVIN_GAMMA",
                 "description": "LANGEVIN_GAMMA specifies the friction coefficients (in ps$^{-1}$) for atomic\ndegrees-of-freedom when using a Langevin thermostat (in case VASP was compiled\nwith -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47423,7 +47718,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LANGEVIN_GAMMA_L",
                 "description": "LANGEVIN_GAMMA_L specifies the friction coefficient (in ps$^{-1}$) for lattice\ndegrees-of-freedom in case of Parrinello-Rahman dynamics (in case VASP was\ncompiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47438,7 +47733,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LASPH",
                 "description": "include non-spherical contributions related to the gradient of the density in the\nPAW spheres.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47453,7 +47748,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LASYNC",
                 "description": "This tag controls the overlap in communication.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47468,7 +47763,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LATTICE_CONSTRAINTS",
                 "description": "The tag LATTICE_CONSTRAINTS determines whether the lattice dynamics are released\n(LATTICE_CONSTRAINTS=.TRUE.) in the given directions or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47485,7 +47780,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LBERRY",
                 "description": "This tag is used in the the evaluation of the Berry phase expression for the\nelectronic polarization of an insulating system.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47500,7 +47795,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LBLUEOUT",
                 "description": "for LBLUEOUT=.TRUE., VASP writes output for the free-energy gradient calculation\nto the REPORT-file (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47515,7 +47810,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LBONE",
                 "description": "LBONE adds the small B-component to the chemical shift tensor.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47530,7 +47825,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LCALCEPS",
                 "description": "for LCALCEPS=.TRUE. the macroscopic ion-clamped static dielectric tensor, Born\neffective charge tensors, and the ion-clamped piezoelectric tensor of the system\nare determined from the response to finite electric fields.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47545,7 +47840,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LCALCPOL",
                 "description": "LCALCPOL=.TRUE. switches on the evaluation of the Berry phase expressions for the\nmacroscopic electronic polarization in accordance with the so-called Modern Theory\nof Polarization.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47560,7 +47855,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LCHARG",
                 "description": "LCHARG determines whether the charge densities (files CHGCAR and CHG) are written.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47575,7 +47870,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LCHIMAG",
                 "description": "calculate the chemical shifts by means of linear response.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47590,7 +47885,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LCORR",
                 "description": "Controls whether Harris corrections are calculated or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47605,7 +47900,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDAU",
                 "description": "LDAU=.TRUE. switches on the L(S)DA+U.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47620,7 +47915,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDAUJ",
                 "description": "LDAUJ specifies the strength of the effective on-site exchange interactions.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47637,7 +47932,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDAUL",
                 "description": "LDAUL specifies the _l_-quantum number for which the on-site interaction is added.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47654,7 +47949,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDAUPRINT",
                 "description": "LDAUPRINT controls the verbosity of the L(S)DA+U routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47669,7 +47964,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDAUTYPE",
                 "description": "LDAUTYPE specifies which type of L(S)DA+U approach will be used.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47684,7 +47979,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDAUU",
                 "description": "LDAUU specifies the strength of the effective on-site Coulomb interactions.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47701,7 +47996,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDIAG",
                 "description": "This tag determines whether a subspace diagonalization is performed or not within\nthe main algorithm selected by IALGO.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47716,7 +48011,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LDIPOL",
                 "description": "LDIPOL switches on corrections to the potential and forces in VASP. Can be applied\nfor charged molecules and  molecules and slabs with a net dipole moment.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47731,7 +48026,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LEFG",
                 "description": "The LEFG Computes the Electric Field Gradient at positions of the atomic nuclei.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47746,7 +48041,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LELF",
                 "description": "LELF determines whether to create an ELFCAR file or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47761,7 +48056,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LEPSILON",
                 "description": "LEPSILON=.TRUE. determines the static dielectric matrix, ion-clamped piezoelectric\ntensor and the Born effective charges using density functional perturbation\ntheory.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47776,7 +48071,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LFOCKAEDFT",
                 "description": "LFOCKAEDFT forces VASP to use the same charge augmentation for the Hartree and DFT\nexchange correlation part as is used in the Fock exchange and the many body beyond\nDFT methods, such as RPA, MP2 etc.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47791,7 +48086,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LHARTREE",
                 "description": "Controls whether the bubble diagrams are included in the BSE calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47806,7 +48101,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LHFCALC",
                 "description": "LHFCALC specifies whether Hartree-Fock/DFT hybrid functional type calculations are\nperformed.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47821,7 +48116,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LHYPERFINE",
                 "description": "compute the hyperfine tensors at the atomic sites (available as of vasp.5.3.2).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47836,7 +48131,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LKPROJ",
                 "description": "switches on the **k**-point projection scheme.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47851,7 +48146,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LLRAUG",
                 "description": "LLRAUG calculates the two-center contributions to the chemical shift tensor.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47866,7 +48161,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMAXFOCK",
                 "description": "LMAXFOCK sets the maximum angular momentum quantum number _L_ for the augmentation\nof charge densities in Hartree-Fock type routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47881,7 +48176,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMAXFOCKAE",
                 "description": "NMAXFOCKAE and LMAXFOCKAE determine whether the overlap densities in the Fock\nexchange and correlated wave function methods are accurately reconstructed on the\nplane wave grid. This flag generally only applies to the Fock-exchange part as\nwell as many-body post DFT methods (GW, RPA, MP2, etc.).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47896,7 +48191,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMAXMIX",
                 "description": "LMAXMIX controls up to which l-quantum number the one-center PAW charge densities\nare passed through the charge density mixer and written to the CHGCAR file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47911,7 +48206,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMAXPAW",
                 "description": "LMAXPAW sets the maximum _l_-quantum number for the evaluation of the one-center\nterms on the radial support grids in the PAW method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47926,7 +48221,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMAXTAU",
                 "description": "LMAXTAU is the maximum _l_-quantum number included in the PAW one-center expansion\nof the kinetic energy density.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -47941,7 +48236,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMIXTAU",
                 "description": "send the kinetic energy density through the density mixer as well.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47956,7 +48251,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LMONO",
                 "description": "LMONO switches on monopole-monopole corrections for the total energy.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47971,7 +48266,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LNABLA",
                 "description": "LNABLA=.TRUE. evaluates the transversal expression for the frequency dependent\ndielectric matrix.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -47986,7 +48281,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LNMR_SYM_RED",
                 "description": "discard symmetry operations that are not consistent with the way _k_-space\nderivative are calculated in the linear response calculations of chemical shifts.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48001,7 +48296,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LNONCOLLINEAR",
                 "description": "LNONCOLLINEAR specifies whether fully non-collinear magnetic calculations are\nperformed.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48016,7 +48311,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LOCPROJ",
                 "description": "by means of the LOCPROJ-tag one may specify a (set of) local function(s) on which\nthe orbitals are to be projected. These projections are written to the PROJCAR,\nLOCPROJ, and vasprun.xml files.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48031,7 +48326,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LOPTICS",
                 "description": "LOPTICS=.TRUE. calculates the frequency dependent dielectric matrix after the\nelectronic ground state has been determined.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48046,7 +48341,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LORBIT",
                 "description": "LORBIT, together with an appropriate RWIGS, determines whether the PROCAR or\nPROOUT files are written.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48061,7 +48356,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LORBMOM",
                 "description": "LORBMOM specifies whether the orbital moments are written out or not (in a\ncalculation using LSORBIT=.TRUE.).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48076,7 +48371,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LPARD",
                 "description": "Determines whether partial (band or k-point decomposed) charge densities are\nevaluated. See also 'Band-decomposed charge densities' .",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48091,7 +48386,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LPEAD",
                 "description": "for LPEAD=.TRUE., the derivative of the cell-periodic part of the orbitals w.r.t.\n**k**  is calculated using finite differences.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48106,7 +48401,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LPLANE",
                 "description": "LPLANE switches on the plane-wise data distribution in real space.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48121,7 +48416,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LREAL",
                 "description": "LREAL determines whether the projection operators are evaluated in real-space or\nin reciprocal space.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48136,7 +48431,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LRPA",
                 "description": "LRPA=.TRUE. includes local field effect on the Hartree level only.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48151,7 +48446,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSCAAWARE",
                 "description": "LSCAAWARE controls the distribution of the Hamilton matrix.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48166,7 +48461,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSCALAPACK",
                 "description": "LSCALAPACK controls the use of scaLAPACK.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48181,7 +48476,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSCALU",
                 "description": "LSCALU switches on the parallel LU decomposition (using scaLAPACK) in the\northonormalization of the wave functions.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48196,7 +48491,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSCSGRAD",
                 "description": "LSCSGRAD decides whether to compute gradients in the calculation of the MBD\ndispersion energy.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48211,7 +48506,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSELFENERGY",
                 "description": "This tag controls whether the frequency dependent self-energy is calculated or\nnot.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48226,7 +48521,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSEPB",
                 "description": "Specifies whether the charge density is calculated for every band separately and\nwritten to a file PARCHG.nb.* (LSEPB=.TRUE.) or whether charge density is merged\nfor all selected bands and written to the files PARCHG.ALLB.* or PARCHG.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48241,7 +48536,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSEPK",
                 "description": "Specifies whether the charge density of every k-point is write to the files\nPARCHG.*.nk (LSEPK=.TRUE.) or whether it is merged to a single file. If the merged\nfile is written, then the weight of each k-point is determined from the KPOINTS\nfile, otherwise the k-point weights of one are chosen.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48256,7 +48551,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSORBIT",
                 "description": "LSORBIT specifies whether spin-orbit coupling is taken into account.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48271,7 +48566,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSPECTRAL",
                 "description": "LSPECTRAL specifies to use the spectral method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48286,7 +48581,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSPECTRALGW",
                 "description": "LSPECTRALGW specifies to use the spectral method for calculating the self-energy.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48301,7 +48596,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSPIRAL",
                 "description": "set LSPIRAL=.TRUE. to represent spin spirals by means of a generalized Bloch\ncondition.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48316,7 +48611,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LSUBROT",
                 "description": "LSUBROT determines whether an optimal rotation matrix between the occupied and\nunoccupied block is sought, when a direct optimization of the energy functional is\nperformed (i.e. ALGO = All | Damped).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48331,7 +48626,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LTHOMAS",
                 "description": "LTHOMAS selects a decomposition of the exchange functional based on Thomas-Fermi\nscreening.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48346,7 +48641,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LUSE_VDW",
                 "description": "The flag LUSE_VDW determines whether the VdW-DF functional of Langreth and\nLundqvist et al. is used or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48361,7 +48656,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LVDW_EWALD",
                 "description": "LVDW_EWALD decides whether lattice summation in $E_{disp}$ expression by means of\nEwald's summation is computed in the DFT-D2 method (available in VASP.5.3.4 and\nlater).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48376,7 +48671,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LVDW_ONECELL",
                 "description": "LVDW_ONECELL  can be used to disable vdW interaction with mirror image in X Y Z\ndirection. This is advisable for molecular calculations in the gas phase. In all\nother cases, use the default.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48393,7 +48688,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LVDWEXPANSION",
                 "description": "LVDWEXPANSION  decides whether to write the two- to six- body contributions to MBD\ndispersion energy in the OUTCAR file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48408,7 +48703,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LVHAR",
                 "description": "This tag determines whether the total local potential (saved in the file LOCPOT)\ncontains the entire local potential (ionic + Hartree + exchange correlation) or\nthe electrostatic contributions only (ionic + Hartree).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48423,7 +48718,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LVTOT",
                 "description": "LVTOT determines whether the total local potential is written to the LOCPOT file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48438,7 +48733,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LWANNIER90",
                 "description": "LWANNIER90=.TRUE. switches on the interface between VASP and WANNIER90.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48453,7 +48748,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LWANNIER90_RUN",
                 "description": "LWANNIER90_RUN executes wannier_setup (see LWANNIER90=.TRUE.) and subsequently\nruns WANNIER90 in library mode (wannier_run).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48468,7 +48763,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LWAVE",
                 "description": "LWAVE determines whether the wavefunctions are written to the WAVECAR file at the\nend of a run.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48483,7 +48778,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LWRITE_MMN_AMN",
                 "description": "LWRITE_MMN_AMN=.TRUE. tells the VASP2WANNIER90 interface to write the\nwannier90.mmn and wannier90.amn files.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48498,7 +48793,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LWRITE_UNK",
                 "description": "LWRITE_UNK decides whether the cell-periodic part of the relevant Bloch functions\nis written.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48513,7 +48808,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LWRITE_WANPROJ",
                 "description": "LWRITE_WANPROJ determines whether the Wannier projection fille WANPROJ is written.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48528,7 +48823,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_LZEROZ",
                 "description": "for LZEROZ=.TRUE. the _z_-component of the spin-spiral magnetisation density will\nbe forced to be and to remain zero.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48543,7 +48838,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_M_CONSTR",
                 "description": "M_CONSTR specifies the desired local magnetic moment (size and/or direction) for\nthe constrained local moments approach.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48560,7 +48855,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_MAGMOM",
                 "description": "MAGMOM Specifies the initial magnetic moment for each atom, if and only if\nICHARG=2, or if ICHARG=1 and the CHGCAR file contains no magnetisation density",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48577,7 +48872,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_MAXMEM",
                 "description": "MAXMEM specifies the maximum memory one MPI rank will attempt to allocate (in\nMByte).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48592,7 +48887,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_MAXMIX",
                 "description": "MAXMIX specifies the maximum number steps stored in Broyden mixer IMIX=4).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48607,7 +48902,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_MDALGO",
                 "description": "MDALGO specifies the molecular dynamics simulation protocol (in case IBRION=0 and\nVASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48622,7 +48917,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_METAGGA",
                 "description": "selects one of various meta-GGA functionals.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -48637,7 +48932,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_MINROT",
                 "description": "The flag MINROT defines the value for which the dimer is rotated only if the\npredicted rotation angle is greater than MINROT (rad.) in the Improved Dimer\nMethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48652,7 +48947,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_MIXPRE",
                 "description": "MIXPRE specifies the metric in the Broyden mixing scheme(IMIX=4).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48667,7 +48962,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_AFILT2_MB",
                 "description": "This tag sets the filtering parameter for the angular filtering for\nML_FF_IAFILT2_MB in the machine learning force-field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48682,7 +48977,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_CDOUB",
                 "description": "This flag controls the necessity of DFT calculations in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48697,7 +48992,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_CSF",
                 "description": "This flag sets the threshold for the spilling factor in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48712,7 +49007,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_CSIG",
                 "description": "Parameter used in the automatic determination of threshold for Bayesian error\nestimation in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48727,7 +49022,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_CSLOPE",
                 "description": "Parameter used in the automatic determination of threshold for Bayesian error\nestimation in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48742,7 +49037,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_CTIFOR",
                 "description": "This flag sets the threshold for the Bayesian error estimation on the force in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48757,7 +49052,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_EATOM",
                 "description": "Reference total energies of isolated atoms used in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48774,7 +49069,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_IAFILT2_MB",
                 "description": "This tag specifies the type of angular filtering used in the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48789,7 +49084,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_IBROAD1_MB",
                 "description": "This tag determines how the atomic distribution is broadened for the radial\ndescriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48804,7 +49099,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_IBROAD2_MB",
                 "description": "This tag determines how the atomic distribution is broadened for the angular\ndescriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48819,7 +49114,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ICOUPLE_MB",
                 "description": "This tag specifies the atoms where the coupling parameter is introduced to\ncalculate the chemical potential within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48836,7 +49131,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ICUT1_MB",
                 "description": "This tag specifies the type of cutoff function used for the radial descriptor in\nthe machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48851,7 +49146,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ICUT2_MB",
                 "description": "This tag specifies the type of cutoff function used for the angular descriptor in\nthe machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48866,7 +49161,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_IERR",
                 "description": "This tag selects the error estimation method used in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48881,7 +49176,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_IREG_MB",
                 "description": "This tag specifies whether the regularization parameters are kept constant or not\nin the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48896,7 +49191,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ISAMPLE",
                 "description": "This tag controls the sampling in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48911,7 +49206,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ISCALE_TOTEN_MB",
                 "description": "This tag specifies how to scale the energy data for the many-body term in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48926,7 +49221,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ISOAP1_MB",
                 "description": "This tag defines the type of the SOAP kernel for the radial descriptor in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48941,7 +49236,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ISOAP2_MB",
                 "description": "This tag defines the type of the SOAP kernel for the angular descriptor in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48956,7 +49251,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_ISTART",
                 "description": "This tag decides if and how calculations are continued from existing data in\nmachine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48971,7 +49266,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_IWEIGHT",
                 "description": "Flag to control the weighting of training data in the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -48986,7 +49281,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LAFILT2_MB",
                 "description": "This tag specifies whether angular filtering is applied or not within the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49001,7 +49296,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LBASIS_DISCARD",
                 "description": "This variable specifies whether the basis sets are thrown away when its number\nexceeds ML_FF_MB_MB in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49016,7 +49311,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LCONF_DISCARD",
                 "description": "This flag decides whether configurations that do not provide local reference\nconfigurations are discarded or not in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49031,7 +49326,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LCOUPLE_MB",
                 "description": "This tag specifies whether coupling parameters are used for the calculation of\nchemical potentials is used or not within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49046,7 +49341,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LCRITERIA",
                 "description": "Decides whether the threshold in the learning decision step for the Bayesian error\nestimation is renewed or not in the machine learning force field methods.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49061,7 +49356,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LEATOM_MB",
                 "description": "This term specifies whether the total atomic energy is written out or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49076,7 +49371,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LHEAT_MB",
                 "description": "This flag specifies whether the heat flux is calculated or not in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49091,7 +49386,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LMAX2_MB",
                 "description": "This tag specifies the maximum angular momentum quantum number of spherical\nharmonics used to expand atomic distributions within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49106,7 +49401,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LMLFF",
                 "description": "Main control tag whether to use machine learned force fields or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49121,7 +49416,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LMLMB",
                 "description": "This controls whether the many-body interaction term is included in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49136,7 +49431,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LNORM1_MB",
                 "description": "This tag specifies whether the radial descriptor is normalized (by dividing\nthrough it's norm) or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49151,7 +49446,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_LNORM2_MB",
                 "description": "This tag specifies whether the angular descriptor is normalized (by dividing\nthrough it's norm) or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -49166,7 +49461,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MB_MB",
                 "description": "This flag sets the maximum number of basis sets describing the many-body\ninteractions in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49181,7 +49476,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MCONF",
                 "description": "This flag sets the maximum number of configurations used for training in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49196,7 +49491,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MCONF_NEW",
                 "description": "This flag sets the number of configurations that are stored temporally as\ncandidates for the training data in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49211,7 +49506,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MHIS",
                 "description": "This flag sets the number of estimated errors stored in memory to determine the\nthreshold for the Bayesian error in the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49226,7 +49521,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MRB1_MB",
                 "description": "This tag sets the number of radial basis sets used to expand the atomic\ndistribution for the radial descriptor within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49241,7 +49536,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MRB2_MB",
                 "description": "This tag sets the number of radial basis sets used to expand the atomic\ndistribution for the angular descriptor withtin the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49256,7 +49551,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MSPL1_MB",
                 "description": "This tag sets the number of points for the radial grid used in the spline\ninterpolation for the radial descriptor within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49271,7 +49566,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_MSPL2_MB",
                 "description": "This tag sets the number of points for the radial grid used in the spline\ninterpolation of the angular descriptor within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49286,7 +49581,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NATOM_COUPLED_MB",
                 "description": "This tag specifies the number of atoms for which a coupling parameter is\nintroduced to calculate the chemical potential within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49301,7 +49596,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NDIM_SCALAPACK",
                 "description": "This flag sets the dimension of the ScaLAPACK grids used in the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49316,7 +49611,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NHYP1_MB",
                 "description": "Polynomial power of the radial kernel.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49331,7 +49626,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NHYP2_MB",
                 "description": "Polynomial parameter (power) of the SOAP kernel.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49346,7 +49641,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NMDINT",
                 "description": "Tag to control the minimum interval to get training samples in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49361,7 +49656,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NR1_MB",
                 "description": "This tag determines the number of grid points used to execute radial integrations\nto compute the radial descriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49376,7 +49671,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NR2_MB",
                 "description": "This tag determines the number of grid points used to execute radial integrations\nto compute the angular descriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49391,7 +49686,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_NWRITE",
                 "description": "This tag controls part of the output within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49406,7 +49701,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_RCOUPLE_MB",
                 "description": "This tag specifies the value of the coupling parameter for the calculation of the\nchemical potential within the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49421,7 +49716,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_RCUT1_MB",
                 "description": "This flag sets the cutoff radius for the radial descriptor in the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49436,7 +49731,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_RCUT2_MB",
                 "description": "This flag sets the cutoff radius for the angular descriptor in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49451,7 +49746,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_SIGV0_MB",
                 "description": "This flag sets the initial noise parameter in the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49466,7 +49761,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_SIGW0_MB",
                 "description": "This flag sets the initial precision parameter in the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49481,7 +49776,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_SION1_MB",
                 "description": "This tag specifies the width of the Gaussian functions used for broadening the\natomic distributions for the radial descriptor within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49496,7 +49791,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_SION2_MB",
                 "description": "This tag specifies the width of the Gaussian functions used for broadening the\natomic distributions of the angular descriptor within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49511,7 +49806,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_W1_MB",
                 "description": "This tag defines the weight for the radial descriptor within the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49526,7 +49821,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_W2_MB",
                 "description": "This tag defines the weight for the angular descriptor within the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49541,7 +49836,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_WTIFOR",
                 "description": "This tag sets the weight for the scaling of the forces in the training data within\nthe machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49556,7 +49851,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_WTOTEN",
                 "description": "This tag sets the weight for the scaling of the total energy in the training data\nwithin the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49571,7 +49866,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ML_FF_WTSIF",
                 "description": "This tag sets the weight for the scaling of the total energy in the training data\nwithin the machine learning force field method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49586,7 +49881,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBANDS",
                 "description": "NBANDS determines the actual number of bands in the calculation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49601,7 +49896,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBANDSGW",
                 "description": "The flag determines how many QP energies are calculated and updated in GW type\ncalculations.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49616,7 +49911,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBANDSO",
                 "description": "NBANDSO determines how many occupied orbitals are included in the Casida/BSE\ncalculations or time-propagation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49631,7 +49926,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBANDSV",
                 "description": "NBANDSV determines how many unoccupied orbitals are included in the Casida/BSE\ncalculations or timepropagation.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49646,7 +49941,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBLK",
                 "description": "NBLK determines the blocking factor in many BLAS level 3 routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49661,7 +49956,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBLOCK",
                 "description": "After NBLOCK ionic steps the pair correlation function and the DOS are calculated\nand the ionic configuration is written to the XDATCAR-file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49676,7 +49971,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBMOD",
                 "description": "Controls which bands are used in the calculation of Band decomposed charge\ndensities. Check also IBAND and EINT.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49691,7 +49986,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NBSEEIG",
                 "description": "NBSEEIG sets the number number of BSE eigenvectors written to the BSEFATBAND\noutput file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49706,7 +50001,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NCORE",
                 "description": "NCORE determines the number of compute cores that work on an individual orbital\n(available as of VASP.5.2.13).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49721,7 +50016,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NCRPA_BANDS",
                 "description": "Controls which bands are excluded in CRPA. Check also NTARGET_STATES.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49738,7 +50033,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NDAV",
                 "description": "NDAV sets the maximum number of iterative steps per bands per RMM-DIIS step\n(IALGO=4X).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49753,7 +50048,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NEDOS",
                 "description": "NEDOS specifies number of gridpoints on which the DOS is evaluated",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49768,7 +50063,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NELECT",
                 "description": "NELECT sets the number of electrons.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49783,7 +50078,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NELM",
                 "description": "NELM sets the maximum number of electronic SC (selfconsistency) steps which may be\nperformed.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49798,7 +50093,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NELMDL",
                 "description": "NELMDL specifies the number of non-selfconsistent steps at the beginning.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49813,7 +50108,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NELMIN",
                 "description": "NELMIN specifies the minimum number of electronic SCF steps.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49828,7 +50123,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NFREE",
                 "description": "depending on IBRION, NFREE specifies the number of remembered steps in the history\nof ionic convergence runs, or the number of ionic displacements in frozen phonon\ncalculations.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49843,7 +50138,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGX",
                 "description": "NGX sets the number of grid points in the FFT-grid along the first lattice vector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49858,7 +50153,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGXF",
                 "description": "NGXF sets the number of grid points in the fine FFT-grid along the first lattice\nvector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49873,7 +50168,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGY",
                 "description": "NGY sets the number of grid points in the FFT-grid along the second lattice\nvector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49888,7 +50183,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGYF",
                 "description": "NGYF sets the number of grid points in the fine FFT-grid along the second lattice\nvector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49903,7 +50198,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGYROMAG",
                 "description": "NGYROMAG specifies the nuclear gyromagnetic ratios (in MHz, for H<sub>0</sub> = 1\nT) for the atomic types on the POTCAR file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49920,7 +50215,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGZ",
                 "description": "NGZ sets the number of grid points in the FFT-grid along the third lattice vector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49935,7 +50230,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NGZF",
                 "description": "NGZF sets the number of grid points in the fine  FFT-grid along the first lattice\nvector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49950,7 +50245,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NKRED",
                 "description": "NKRED specifies an uniform reduction factor for the **q**-point grid\nrepresentation of the exact exchange potential and the correlation part in GW\ncalculations.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49965,7 +50260,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NKREDX",
                 "description": "NKREDX specifies a reduction factor for the **q**-point grid representation of the\nexact exchange potential along reciprocal space direction **b**<sub>1</sub>.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49980,7 +50275,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NKREDY",
                 "description": "NKREDY specifies a reduction factor for the **q**-point grid representation of the\nexact exchange potential along reciprocal space direction **b**<sub>2</sub>.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -49995,7 +50290,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NKREDZ",
                 "description": "NKREDZ specifies a reduction factor for the **q**-point grid representation of the\nexact exchange potential along reciprocal space direction **b**<sub>3</sub>.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50010,7 +50305,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NLSPLINE",
                 "description": "construct the PAW projectors in reciprocal space using spline interpolation so\nthat they are _k_-differentiable.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50025,7 +50320,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NMAXFOCKAE",
                 "description": "NMAXFOCKAE and LMAXFOCKAE determine whether the overlap densities in the Fock\nexchange and correlated wave function methods are accurately reconstructed on the\nplane wave grid. This flag generally only applies to the Fock-exchange part as\nwell as many-body post DFT methods (GW, RPA, MP2, etc.).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50040,7 +50335,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NOMEGA",
                 "description": "NOMEGA specifies the number of (imaginary) frequency and imaginary time grid\npoints.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50055,7 +50350,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NOMEGAPAR",
                 "description": "NOMEGAPAR available as of VASP.6, specifies the number of processor groups sharing\nthe same imaginary frequency grid points..",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50070,7 +50365,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NOMEGAR",
                 "description": "NOMEGAR specifies the number of frequency grid points along the real axis.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50085,7 +50380,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NPACO",
                 "description": "NPACO sets the number of slots in the pair-correlation function written to PCDAT.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50100,7 +50395,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NPAR",
                 "description": "NPAR determines the number of bands that are treated in parallel.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50115,7 +50410,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NPPSTR",
                 "description": "NPPSTR specifies the number of k-points on the strings in the IGPAR direction.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50130,7 +50425,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NSIM",
                 "description": "NSIM sets the number of bands that are optimized simultaneously by the RMM-DIIS\nalgorithm.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50145,7 +50440,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NSUBSYS",
                 "description": "NSUBSYS defines the atomic subsystems in calculations with multiple Anderson\nthermostats (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50160,7 +50455,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NSW",
                 "description": "NSW sets the maximum number of ionic steps.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50175,7 +50470,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NTARGET_STATES",
                 "description": "Controls which Wannier states are excluded in CRPA. Check also NCRPA_BANDS.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50192,7 +50487,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NTAUPAR",
                 "description": "NTAUPAR available as of VASP.6, specifies the number of MPI groups sharing same\nimaginary time grid points. The default value of NTAUPAR is set automatically and\ndepends on MAXMEM, the available memory for each rank on one node.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50207,7 +50502,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NUPDOWN",
                 "description": "Sets the difference between the number of electrons in the up and down spin\ncomponents.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50222,7 +50517,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_NWRITE",
                 "description": "This flag determines how much will be written to the file OUTCAR ('verbosity\nflag').",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50237,7 +50532,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ODDONLY",
                 "description": "ODDONLY=.TRUE. selects a subset of **k**-points for the representation of the Fock\nexchange potential, with _C_<sub>1</sub>=_C_<sub>2</sub>=_C_<sub>3</sub>=1, and\n_n_<sub>1</sub>+_n_<sub>2</sub>+_n_<sub>3</sub> odd.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50252,7 +50547,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ODDONLYGW",
                 "description": "ODDONLYGW allows to avoid the inclusion of the  point in the evaluation of\nresponse functions (in GW calculations).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50267,7 +50562,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OFIELD_A",
                 "description": "The flag OFIELD_A sets the desired order parameter *Q*<sub>6</sub> in the\nInterface pinning method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50282,7 +50577,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OFIELD_KAPPA",
                 "description": "The flag OFIELD_KAPPA sets the strength of bias potential in units of 'eV/(unit of\nQ)$^2$' in the Interface pinning method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50297,7 +50592,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OFIELD_Q6_FAR",
                 "description": "The flag OFIELD_Q6_FAR sets the far fading distance (in Angstroms) for the\ncomputation of a continuous to *Q*<sub>6</sub> parameter in the Interface pinning\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50312,7 +50607,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OFIELD_Q6_NEAR",
                 "description": "The flag OFIELD_Q6_NEAR sets the near fading distance (in Angstroms) for the\ncomputation of a continuous *Q*<sub>6</sub> parameter in the Interface pinning\nmethod.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50327,7 +50622,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OMEGAMAX",
                 "description": "OMEGAMAX specifies the maximum frequency for dense part of the frequency grid. For\nCRPA calculations, OMEGAMAX is the frequency point of the interaction.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50342,7 +50637,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OMEGAMIN",
                 "description": "minimum frequency in the frequency grid.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50357,7 +50652,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_OMEGATL",
                 "description": "OMEGATL specifies the maximum frequency for coarse part of the frequency grid.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50372,7 +50667,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PARAM1",
                 "description": "The flag PARAM1 determines the first parameter used in the enhancement factor of\nthe optPBE-vdW and optB88-vdW functional.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50387,7 +50682,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PARAM2",
                 "description": "The flag PARAM2 determines the second parameter used in the enhancement factor of\nthe optPBE-vdW and optB88-vdW functional.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50402,7 +50697,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PFLAT",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50417,7 +50712,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PHON_LBOSE",
                 "description": "This flag determines whether random structures in the Monte-Carlo (MC) sampling\nare created according to Bose-Einstein or Maxwell-Boltzmann statistics.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50432,7 +50727,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PHON_LMC",
                 "description": "This flag controls whether electron-phonon interactions from Monte-Carlo sampling\nare calculated or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50447,7 +50742,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PHON_NSTRUCT",
                 "description": "This flag sets the number of structures for electron-phonon interactions from\nMonte-Carlo (MC) sampling.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50462,7 +50757,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PHON_NTLIST",
                 "description": "This flag sets the number temperatures for that the electron-phonon interactions\nusing the ZG configuration is evaluated.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50477,7 +50772,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PHON_TLIST",
                 "description": "This flag provides the list of temperatures for that the electron-phonon\ninteractions using the ZG configuration is evaluated.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50494,7 +50789,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PLEVEL",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50509,7 +50804,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PMASS",
                 "description": "PMASS assigns a fictitious mass (in amu) to the lattice degrees-of-freedom in case\nof Parrinello-Rahman dynamics (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50524,7 +50819,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_POMASS",
                 "description": "POMASS describes the mass of each atomic sphere in atomic units.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50539,7 +50834,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_POTIM",
                 "description": "POTIM sets the time step (MD) or step width scaling (ionic relaxations).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50554,7 +50849,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PREC",
                 "description": "PREC specifies the precision  mode.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50569,7 +50864,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PRECFOCK",
                 "description": "PRECFOCK controls the FFT grids used in the exact exchange routines (Hartree-Fock\nand hybrid functionals).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50584,7 +50879,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PROUTINE",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50599,7 +50894,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PSTRESS",
                 "description": "This flag controls whether Pulay corrections are added to the stress tensor or\nnot. In molecular dynamics calculations it controls the pressure. The unit of\nPSTRESS is in kB.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50614,7 +50909,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PSUBSYS",
                 "description": "PSUBSYS sets the collision probabilities for the atoms in each atomic subsystem in\ncalculations with multiple Anderson thermostats (in case VASP was compiled with\n-Dtbdyn). Note: 0 \u2264 PSUBSYS \u2264 1",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50631,7 +50926,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_PTHRESHOLD",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50646,7 +50941,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_QMAXFOCKAE",
                 "description": "The parameter QMAXFOCKAE controls at which wave vectors the local augmentation\ncharges are fitted to obtain an accurate charge augmentation on the plane wave\ngrid.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50663,7 +50958,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_QSPIRAL",
                 "description": "the QSPIRAL-tag specifies the spin spiral propagation vector.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50680,7 +50975,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_QUAD_EFG",
                 "description": "nuclear quadrupole moment (in millbarn) for the atomic types on the POTCAR file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50697,7 +50992,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_RANDOM_SEED",
                 "description": "RANDOM_SEED specifies the seed of the random-number-generator (in case VASP was\ncompiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50714,7 +51009,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ROPT",
                 "description": "ROPT determines how precise the projectors are represented in real space.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50731,7 +51026,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_RWIGS",
                 "description": "RWIGS specifies the Wigner-Seitz radius for each atom type.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50748,7 +51043,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SAXIS",
                 "description": "SAXIS specifies the quantisation axis for noncollinear spins.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50765,7 +51060,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SCSRAD",
                 "description": "SCSRAD defines the cutoff radius (in Angs ) used in the calculation of\n$\\tau_{ij}$ within the Tkatchenko-Scheffler method. Self-consistent screening in\nTkatchenko-Scheffler method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50780,7 +51075,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SHAKEMAXITER",
                 "description": "SHAKEMAXITER specifies the maximum number of iterations in the SHAKE algorithm (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50795,7 +51090,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SHAKETOL",
                 "description": "SHAKETOL specifies the tolerance for the SHAKE algorithm (in case VASP was\ncompiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50810,7 +51105,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SIGMA",
                 "description": "SIGMA specifies the width of the smearing in eV.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50825,7 +51120,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SMASS",
                 "description": "SMASS controls the velocities during an ab-initio molecular dynamics run.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50840,7 +51135,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SMEARINGS",
                 "description": "SMEARINGS defines the smearing parameters for ISMEAR=-3 in the calculation of the\npartial occupancies.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50857,7 +51152,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SPRING",
                 "description": "SPRING gives the <i>spring constant</i> between the images as used in the elastic\nband method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50872,7 +51167,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_STEP_MAX",
                 "description": "The flag STEP_MAX defines the trust radius (upper limit) for the optimization step\n(in Angs ) in the Improved Dimer Method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50887,7 +51182,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_STEP_SIZE",
                 "description": "The flag STEP_SIZE defines the trial step size for the optimization step (in Angs\n) in the Improved Dimer Method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50902,7 +51197,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SYMPREC",
                 "description": "SYMPREC determines to which accuracy the positions in the POSCAR file must be\nspecified (as of VASP.4.4.4).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50917,7 +51212,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_SYSTEM",
                 "description": "The 'title string' defined by SYSTEM is for the user only and should help the user\nto identify what he wants to do with this specific input file.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -50932,7 +51227,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_TEBEG",
                 "description": "TEBEG sets the start temperature for an ab-initio molecular dynamics run\n(IBRION=0) and other routines (e.g. Electron-phonon interactions from Monte-Carlo\nsampling).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50947,7 +51242,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_TEEND",
                 "description": "TEEND sets the final temperature for an ab-initio molecular dynamics run\n(IBRION=0; SMASS=\u22121).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50962,7 +51257,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_TIME",
                 "description": "TIME controls the time step for IALGO=5X and for the initial (steepest descent)\nphase of IALGO=4X.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50977,7 +51272,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_TSUBSYS",
                 "description": "TSUBSYS sets the temperatures for the atomic subsystems in calculations with\nmultiple Anderson thermostats (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -50994,7 +51289,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VALUE_MAX",
                 "description": "VALUE_MAX sets the upper limits for the monitoring of geometric parameters (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51011,7 +51306,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VALUE_MIN",
                 "description": "VALUE_MIN sets the lower limits for the monitoring of geometric parameters (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51028,7 +51323,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VCUTOFF",
                 "description": "The parameter VCUTOFF sets the energy cutoff for bare Coulomb matrix elements and\ncontrols the basis set for the bare Coulomb interaction.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51043,7 +51338,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_A1",
                 "description": "VDW_A1 defines the damping function parameter  in the DFT-D3 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51058,7 +51353,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_A2",
                 "description": "VDW_A2 defines the damping function parameter  in the DFT-D3 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51073,7 +51368,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_C6",
                 "description": "VDW_C6 defines the  $C_6$ parameters (units: J.nm$^6$mol$^{-1}$ ) for each species\ndefined in the POSCAR file within the DFT-D2 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51090,7 +51385,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_CNRADIUS",
                 "description": "VDW_CNRADIUS defines the cutoff radius (in Angs ) for the calculation of the\ncoordination numbers used in the DFT-D3 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51105,7 +51400,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_D",
                 "description": "VDW_D defines the damping parameter _d_ in the DFT-D2method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51120,7 +51415,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_R0",
                 "description": "VDW_R0 defines the $R_0$ parameters (units: Angs ) for each species defined in the\nPOSCAR file within the DFT-D2 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51137,7 +51432,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_RADIUS",
                 "description": "VDW_RADIUS defines the cutoff radius (in Angs) for the pair interactions used in\nthe DFT-D2 and DFT-D3 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51152,7 +51447,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_S6",
                 "description": "VDW_S6 defines the global scaling factor _S_6_ in the DFT-D2 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51167,7 +51462,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_S8",
                 "description": "VDW_S8 defines the damping function parameter $s_8$ in the DFT-D3 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51182,7 +51477,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VDW_SR",
                 "description": "VDW_SR defines the damping function parameter $S_R$ (or scaling factor) in the\nDFT-D2 and DFT-D3 method.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51197,7 +51492,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_VOSKOWN",
                 "description": "Determines whether Vosko-Wilk-Nusair interpolation is used or not.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51212,7 +51507,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_WC",
                 "description": "WC specifies the weight factor for each step in Broyden mixing scheme (IMIX=4).",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51227,7 +51522,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_WEIMIN",
                 "description": "WEIMIN specifies the maximum weight for a band to be considered empty.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51242,7 +51537,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ZVAL",
                 "description": "ZVAL describes the valency of each atomic sphere.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51265,7 +51560,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 22,
+        "m_parent_index": 23,
         "m_parent_sub_section": "packages",
         "name": "electronicparsers.vasp.metainfo.vasp_incarsOut",
         "section_definitions": [
@@ -51286,7 +51581,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ADDGRID",
                 "description": "ADDGRID determines whether an additional support grid is used for the evaluation\nof the augmentation charges.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -51301,7 +51596,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_AEXX",
                 "description": "AEXX specifies the fraction of exact exchange in a Hartree-Fock/DFT hybrid\nfunctional type calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51316,7 +51611,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_AGGAC",
                 "description": "AGGAC specifies the fraction of gradient corrections to the correlation in a\nHartree-Fock/DFT hybrid functional type calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51331,7 +51626,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_AGGAX",
                 "description": "AGGAX specifies the fraction of gradient corrections to the exchange in a Hartree-\nFock/DFT hybrid functional type calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51346,7 +51641,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ALDAC",
                 "description": "ALDAC specifies the fraction of LDA correlation in a Hartree-Fock/DFT hybrid\nfunctional type calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51361,7 +51656,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ALGO",
                 "description": "Option to specify the electronic minimisation algorithm (as of VASP.4.5) and/or to\nselect the type of GW calculations.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -51376,7 +51671,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_AMIN",
                 "description": "AMIN specifies the minimal mixing parameter in Kerker's initial approximation to\nthe charge dielectric function used in the Broyden / Pulay mixing scheme (IMIX=4,\nINIMIX=1).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51391,7 +51686,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_AMIX",
                 "description": "AMIX specifies the linear mixing parameter.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51406,7 +51701,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_AMIX_MAG",
                 "description": "AMIX_MAG linear mixing parameter for the magnetization density.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51421,7 +51716,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ANDERSEN_PROB",
                 "description": "ANDERSEN_PROB sets the collision probability for the Anderson thermostat (in case\nVASP was compiled with the flag -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51436,7 +51731,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ANTIRES",
                 "description": "The flag ANTIRES determines whether the Tamm-Dancoff approximation is used or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51451,7 +51746,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_APACO",
                 "description": "APACO sets the maximum distance in the evaluation of the pair-correlation function\n(in Angstroms).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51466,7 +51761,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_BMIX",
                 "description": "BMIX sets the cutoff wave vector for Kerker mixing scheme (IMIX = 1 and / or\nINIMIX = 1).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51481,7 +51776,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_BMIX_MAG",
                 "description": "BMIX_MAG sets the cutoff wave vector for Kerker mixing scheme (IMIX=1 and/or\nINIMIX=1) for the magnetization density.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51496,7 +51791,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CH_LSPEC",
                 "description": "This flag controls whether the imaginary part of the dielectric function for a\nselected core electron is calculated and written to the OUTCAR file or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -51511,7 +51806,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CH_NEDOS",
                 "description": "This tag specifies the number of frequency (energy) grid points on the x-axis in\nthe calculation of the dielectric function for XAS spectra.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51526,7 +51821,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CH_SIGMA",
                 "description": "This tag specifies the broadening in eV of the imaginary dielectric function for a\ncore electron.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51541,7 +51836,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CLL",
                 "description": "CLL selects the angular (l) quantum number of the excited electron when using\nICORELEVEL=2.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51556,7 +51851,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CLN",
                 "description": "CLN selects the main quantum number of the excited electron when using\nICORELEVEL=2.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51571,7 +51866,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CLNT",
                 "description": "CLNT selects for which species the core levels are calculated using the tag\nICORELEVEL.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51586,7 +51881,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CLZ",
                 "description": "CLZ selects the electron count of the excited electron when using ICORELEVEL=2.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51601,7 +51896,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CMBJ",
                 "description": "defines the _c_ parameter in the modified Becke-Johnson meta-GGA potential. NOTE:\nEither specify a single value, or one value per atomic type (FIXME)",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51616,7 +51911,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CMBJA",
                 "description": "sets the $\\alpha$ parameter in the modified Becke-Johnson meta-GGA potential.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51631,7 +51926,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CMBJB",
                 "description": "sets the $\\eta$ parameter in the modified Becke-Johnson meta-GGA potential.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51646,7 +51941,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_CSHIFT",
                 "description": "CSHIFT sets the (small) complex shift $\\eta$ in the Kramers-Kronig transformation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51661,7 +51956,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_DEPER",
                 "description": "DEPER specifies a relative stopping criterion for the optimization of an\neigenvalue.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51676,7 +51971,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_DIMER_DIST",
                 "description": "The flag DIMER_DIST defines the step size for the numerical differentiation (in\nAngstrongs) for the Improved Dimer Method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51691,7 +51986,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_DIPOL",
                 "description": "Specifies the center of the cell in direct lattice coordinates with respect to\nwhich the total dipole-moment in the cell is calculated.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51708,7 +52003,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_DQ",
                 "description": "Step size for the finite difference _k_-space derivative in the linear response\ncalculation of chemical shifts. Typical values for DQ are in the range [0.001 -\n0.003]. The default is often sufficient",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51723,7 +52018,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EBREAK",
                 "description": "EBREAK specifies an absolute stopping criterion for the optimization of an\neigenvalue.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51738,7 +52033,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EDIFF",
                 "description": "EDIFF specifies the global break condition for the electronic SC-loop.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51753,7 +52048,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EDIFFG",
                 "description": "EDIFFG defines the break condition for the ionic relaxation loop.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51768,7 +52063,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EFIELD",
                 "description": "EFIELD controls the magnitude of the applied electric force field.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51783,7 +52078,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EFIELD_PEAD",
                 "description": "EFIELD_PEAD specifies the homogeneous electric field in the electric enthalpy\nfunctional used to compute the  self-consistent response to finite electric\nfields.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51800,7 +52095,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EINT",
                 "description": "Specifies the energy range of the bands that are used for the evaluation of the\npartial charge density needed in Band decomposed charge densities. Check also\nNBMOD and IBAND.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51817,7 +52112,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EMAX",
                 "description": "EMAX specifies the  upper boundary of the energy range for the evaluation of the\nDOS.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51832,7 +52127,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EMIN",
                 "description": "specifies the lower boundary of the energy range for the evaluation of the DOS.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51847,7 +52142,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENAUG",
                 "description": "ENAUG specifies the cut-off energy of the plane wave representation of the\naugmentation charges in eV.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51862,7 +52157,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENCUT",
                 "description": "ENCUT specifies the cutoff energy for the planewave basis set in eV.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51877,7 +52172,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENCUTFOCK",
                 "description": "The ENCUTFOCK tag sets the energy cutoff that determines the FFT grids used by the\nHartree-Fock routines. WARNING: The flag ENCUTFOCK is no longer supported in\nVASP.5.2.4 and newer versions. Please use PRECFOCK instead.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51892,7 +52187,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENCUTGW",
                 "description": "The tag ENCUTGW sets the energy cutoff for response function. It controls the\nbasis set for the response functions  in exactly the same manner as ENCUT does for\nthe orbitals.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51907,7 +52202,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENCUTGWSOFT",
                 "description": "The flag ENCUTGWSOFT sets the energy cutoff for response function, such that it\nallows to truncate the Coulomb kernel slowly between the energy specified by\nENCUTGWSOFT and ENCUTGW.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51922,7 +52217,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENINI",
                 "description": "ENINI controls the cutoff during the initial (steepest descent) phase for\nIALGO=48.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51937,7 +52232,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EPSILON",
                 "description": "EPSILON sets the dielectric constant of the medium.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51952,7 +52247,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EVENONLY",
                 "description": "EVENONLY=.TRUE. selects a subset of k-points for the representation of the Fock\nexchange potential, with $C_1=C_2=C_3=1$, and $n_1+n_2+n_3$ even.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -51967,7 +52262,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_EVENONLYGW",
                 "description": "EVENONLYGW allows to restrict the k-points in the evaluation of response functions\n(in GW calculations) to even values.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -51982,7 +52277,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_FERDO",
                 "description": "FERDO sets the occupancies of the states in the down-spin channel for ISMEAR=-2\nand ISPIN=2.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -51999,7 +52294,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_FERWE",
                 "description": "FERWE sets the occupancies of the states for  ISMEAR=-2.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52016,7 +52311,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_FINDIFF",
                 "description": "The flag DIMER_DIST defines whether a forward (FINDIFF=1) or a central (FINDIFF=2)\ndifference formula for the numerical differentiation to compute the curvature\nalong the dimer direction is used in the Improved Dimer Method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52031,7 +52326,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_GGA",
                 "description": "GGA specifies the type of generalized-gradient-approximation one wishes to use.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52046,7 +52341,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_GGA_COMPAT",
                 "description": "This flag restores the full lattice symmetry for gradient corrected functionals.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52061,7 +52356,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HFLMAX",
                 "description": "To be compatible w.r.t. old releases, VASP also reads the flag HFLMAX to the same\neffect as LMAXFOCK.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52076,7 +52371,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HFRCUT",
                 "description": "HFRCUT specifies the spherical cutoff radius for the potential kernel in hybrid\nfunctionals.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52091,7 +52386,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HFSCREEN",
                 "description": "HFSCREEN specifies the range-separation parameter in range separated hybrid\nfunctionals.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52106,7 +52401,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HILLS_BIN",
                 "description": "HILLS_BIN sets the number of steps after which the bias potential is updated in a\nmetadynamics run (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52121,7 +52416,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HILLS_H",
                 "description": "HILLS_H specifies the height of the Gaussian hill (in eV) used in metadynamics (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52136,7 +52431,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HILLS_W",
                 "description": "HILLS_W specifies the width of the Gaussian hill (in units of the corresponding\ncollective variable) used in metadynamics (in case VASP was compiled with\n-Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52151,7 +52446,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_HITOLER",
                 "description": "HITOLER specifies the convergence parameter for iterative Hirschfeld partitioning\n(DFT-TS/HI).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52166,7 +52461,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_I_CONSTRAINED_M",
                 "description": "I_CONSTRAINED_M switches on the constrained local moments approach.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52181,7 +52476,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IALGO",
                 "description": "IALGO selects the algorithm used to optimize the orbitals. WARNING",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52196,7 +52491,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IBAND",
                 "description": "Controls which bands are used in the calculation of Band decomposed charge\ndensities. Check also NBMOD and EINT.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52213,7 +52508,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IBRION",
                 "description": "IBRION determines how the ions are updated and moved.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52228,7 +52523,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ICHARG",
                 "description": "ICHARG determines how VASP constructs the <i>initial</i> charge density.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52243,7 +52538,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ICHIBARE",
                 "description": "determines the order of the finite difference stencil used to calculate the\nmagnetic susceptibility.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52258,7 +52553,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ICORELEVEL",
                 "description": "ICORELEVEL controls whether the core energies are explicitely calculated or not\nand how they are calculated.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52273,7 +52568,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IDIPOL",
                 "description": "IDIPOL switches on monopole/dipole and quadrupole corrections to the total energy.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52288,7 +52583,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IEPSILON",
                 "description": "The flag IEPSILON determines along which Cartesien the E field is applied.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52303,7 +52598,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IGPAR",
                 "description": "This tag specifies the socalled parallel or  $G_{||}$ direction in the integration\nover the reciprocal space unit cell needed for LCALCPOL.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52318,7 +52613,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IMAGES",
                 "description": "IMAGES defines the number of interpolated geometries between the initial and final\nstate in Elastic Band calculations",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52333,7 +52628,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IMIX",
                 "description": "IMIX specifies the type of mixing.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52348,7 +52643,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_INCREM",
                 "description": "INCREM controls the transformation velocity in the slow-growth approach (in case\nVASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52365,7 +52660,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_INIMIX",
                 "description": "INIMIX determines the functional form of the initial mixing matrix in the Broyden\nscheme (IMIX=4).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52380,7 +52675,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_INIWAV",
                 "description": "INIWAV specifies how to set up the initial orbitals in case ISTART=0.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52395,7 +52690,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IPEAD",
                 "description": "IPEAD specifies the order of the finite difference stencil used to compute the\nderivative of the cell-periodic part of the orbitals w.r.t. **k** (LPEAD=.TRUE.),\nand the derivative of the polarization w.r.t. the orbitals,  for (LCALCEPS=.TRUE.,\nor EFIELD_PEAD$\\not=$0).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52410,7 +52705,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ISIF",
                 "description": "ISIF determines whether the stress tensor is calculated and which principal\ndegrees-of-freedom are allowed to change in relaxation and molecular dynamics\nruns.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52425,7 +52720,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ISMEAR",
                 "description": "ISMEAR determines how the partial occupancies $f_{n\\mathbf{k}}$  are set for each\norbital. SIGMA  determines the width of the smearing in eV.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52440,7 +52735,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ISPIN",
                 "description": "ISPIN specifies spin polarization.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52455,7 +52750,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ISTART",
                 "description": "ISTART determines whether or not to read the WAVECAR file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52470,7 +52765,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ISYM",
                 "description": "ISYM determines the way VASP treats symmetry.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52485,7 +52780,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IVDW",
                 "description": "This tag controls whether vdW corrections are calculated or not. If they are\ncalculated IVDW controls how they are calculated.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52500,7 +52795,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_IWAVPR",
                 "description": "IWAVPR determines how orbitals and/or charge densities are extrapolated from one\nionic configuration to the next configuration.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52515,7 +52810,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_KBLOCK",
                 "description": "After KBLOCK*NBLOCK ionic steps the averaged pair correlation function and DOS are\nwritten to the files PCDAT and DOSCAR. More details can be found on the page\ndescribing the tag NBLOCK.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52530,7 +52825,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_KGAMMA",
                 "description": "Determines whether the _k_-points (determined by the tag KSPACING if KPOINTS file\nis not present) are center around (KGAMMA=.TRUE.), or shifted away\n(KGAMMA=.FALSE.) from the $\\Gamma$ point.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52545,7 +52840,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_KPAR",
                 "description": "KPAR determines the number of **k**-points that are to be treated in parallel\n(available as of VASP.5.3.2).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52560,7 +52855,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_KPOINT_BSE",
                 "description": "The flag KPOINT_BSE allows to calculate the dielectric matrix at one of the\nkpoints used to sample the Brillouin zone. NOTE: Either specify one or three\nintegers (FIXME)",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52575,7 +52870,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_KPUSE",
                 "description": "Specifies which k-points are used in the evaluation of the partial dos (Band\ndecomposed charge densities).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52592,7 +52887,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_KSPACING",
                 "description": "The tag KSPACING determines the number of k-points if the KPOINTS file is not\npresent.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52607,7 +52902,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LADDER",
                 "description": "Controls whether the ladder diagrams are included in the BSE calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52622,7 +52917,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LAECHG",
                 "description": "When LAECHG=.TRUE. the all-electron charge density will be reconstructed\nexplicitly and written out to file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52637,7 +52932,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LAMBDA",
                 "description": "LAMBDA sets the weight with which the penalty terms of the constrained local\nmoment approach enter into the total energy expression and the Hamiltonian.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52652,7 +52947,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LANGEVIN_GAMMA",
                 "description": "LANGEVIN_GAMMA specifies the friction coefficients (in ps$^{-1}$) for atomic\ndegrees-of-freedom when using a Langevin thermostat (in case VASP was compiled\nwith -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52669,7 +52964,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LANGEVIN_GAMMA_L",
                 "description": "LANGEVIN_GAMMA_L specifies the friction coefficient (in ps$^{-1}$) for lattice\ndegrees-of-freedom in case of Parrinello-Rahman dynamics (in case VASP was\ncompiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52684,7 +52979,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LASPH",
                 "description": "include non-spherical contributions related to the gradient of the density in the\nPAW spheres.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52699,7 +52994,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LASYNC",
                 "description": "This tag controls the overlap in communication.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52714,7 +53009,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LATTICE_CONSTRAINTS",
                 "description": "The tag LATTICE_CONSTRAINTS determines whether the lattice dynamics are released\n(LATTICE_CONSTRAINTS=.TRUE.) in the given directions or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52731,7 +53026,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LBERRY",
                 "description": "This tag is used in the the evaluation of the Berry phase expression for the\nelectronic polarization of an insulating system.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52746,7 +53041,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LBLUEOUT",
                 "description": "for LBLUEOUT=.TRUE., VASP writes output for the free-energy gradient calculation\nto the REPORT-file (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52761,7 +53056,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LBONE",
                 "description": "LBONE adds the small B-component to the chemical shift tensor.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52776,7 +53071,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LCALCEPS",
                 "description": "for LCALCEPS=.TRUE. the macroscopic ion-clamped static dielectric tensor, Born\neffective charge tensors, and the ion-clamped piezoelectric tensor of the system\nare determined from the response to finite electric fields.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52791,7 +53086,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LCALCPOL",
                 "description": "LCALCPOL=.TRUE. switches on the evaluation of the Berry phase expressions for the\nmacroscopic electronic polarization in accordance with the so-called Modern Theory\nof Polarization.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52806,7 +53101,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LCHARG",
                 "description": "LCHARG determines whether the charge densities (files CHGCAR and CHG) are written.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52821,7 +53116,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LCHIMAG",
                 "description": "calculate the chemical shifts by means of linear response.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52836,7 +53131,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LCORR",
                 "description": "Controls whether Harris corrections are calculated or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52851,7 +53146,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDAU",
                 "description": "LDAU=.TRUE. switches on the L(S)DA+U.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52866,7 +53161,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDAUJ",
                 "description": "LDAUJ specifies the strength of the effective on-site exchange interactions.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52883,7 +53178,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDAUL",
                 "description": "LDAUL specifies the _l_-quantum number for which the on-site interaction is added.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52900,7 +53195,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDAUPRINT",
                 "description": "LDAUPRINT controls the verbosity of the L(S)DA+U routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52915,7 +53210,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDAUTYPE",
                 "description": "LDAUTYPE specifies which type of L(S)DA+U approach will be used.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52930,7 +53225,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDAUU",
                 "description": "LDAUU specifies the strength of the effective on-site Coulomb interactions.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -52947,7 +53242,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDIAG",
                 "description": "This tag determines whether a subspace diagonalization is performed or not within\nthe main algorithm selected by IALGO.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52962,7 +53257,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LDIPOL",
                 "description": "LDIPOL switches on corrections to the potential and forces in VASP. Can be applied\nfor charged molecules and  molecules and slabs with a net dipole moment.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52977,7 +53272,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LEFG",
                 "description": "The LEFG Computes the Electric Field Gradient at positions of the atomic nuclei.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -52992,7 +53287,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LELF",
                 "description": "LELF determines whether to create an ELFCAR file or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53007,7 +53302,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LEPSILON",
                 "description": "LEPSILON=.TRUE. determines the static dielectric matrix, ion-clamped piezoelectric\ntensor and the Born effective charges using density functional perturbation\ntheory.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53022,7 +53317,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LFOCKAEDFT",
                 "description": "LFOCKAEDFT forces VASP to use the same charge augmentation for the Hartree and DFT\nexchange correlation part as is used in the Fock exchange and the many body beyond\nDFT methods, such as RPA, MP2 etc.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53037,7 +53332,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LHARTREE",
                 "description": "Controls whether the bubble diagrams are included in the BSE calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53052,7 +53347,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LHFCALC",
                 "description": "LHFCALC specifies whether Hartree-Fock/DFT hybrid functional type calculations are\nperformed.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53067,7 +53362,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LHYPERFINE",
                 "description": "compute the hyperfine tensors at the atomic sites (available as of vasp.5.3.2).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53082,7 +53377,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LKPROJ",
                 "description": "switches on the **k**-point projection scheme.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53097,7 +53392,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LLRAUG",
                 "description": "LLRAUG calculates the two-center contributions to the chemical shift tensor.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53112,7 +53407,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMAXFOCK",
                 "description": "LMAXFOCK sets the maximum angular momentum quantum number _L_ for the augmentation\nof charge densities in Hartree-Fock type routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53127,7 +53422,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMAXFOCKAE",
                 "description": "NMAXFOCKAE and LMAXFOCKAE determine whether the overlap densities in the Fock\nexchange and correlated wave function methods are accurately reconstructed on the\nplane wave grid. This flag generally only applies to the Fock-exchange part as\nwell as many-body post DFT methods (GW, RPA, MP2, etc.).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53142,7 +53437,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMAXMIX",
                 "description": "LMAXMIX controls up to which l-quantum number the one-center PAW charge densities\nare passed through the charge density mixer and written to the CHGCAR file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53157,7 +53452,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMAXPAW",
                 "description": "LMAXPAW sets the maximum _l_-quantum number for the evaluation of the one-center\nterms on the radial support grids in the PAW method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53172,7 +53467,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMAXTAU",
                 "description": "LMAXTAU is the maximum _l_-quantum number included in the PAW one-center expansion\nof the kinetic energy density.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53187,7 +53482,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMIXTAU",
                 "description": "send the kinetic energy density through the density mixer as well.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53202,7 +53497,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LMONO",
                 "description": "LMONO switches on monopole-monopole corrections for the total energy.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53217,7 +53512,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LNABLA",
                 "description": "LNABLA=.TRUE. evaluates the transversal expression for the frequency dependent\ndielectric matrix.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53232,7 +53527,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LNMR_SYM_RED",
                 "description": "discard symmetry operations that are not consistent with the way _k_-space\nderivative are calculated in the linear response calculations of chemical shifts.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53247,7 +53542,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LNONCOLLINEAR",
                 "description": "LNONCOLLINEAR specifies whether fully non-collinear magnetic calculations are\nperformed.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53262,7 +53557,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LOCPROJ",
                 "description": "by means of the LOCPROJ-tag one may specify a (set of) local function(s) on which\nthe orbitals are to be projected. These projections are written to the PROJCAR,\nLOCPROJ, and vasprun.xml files.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53277,7 +53572,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LOPTICS",
                 "description": "LOPTICS=.TRUE. calculates the frequency dependent dielectric matrix after the\nelectronic ground state has been determined.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53292,7 +53587,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LORBIT",
                 "description": "LORBIT, together with an appropriate RWIGS, determines whether the PROCAR or\nPROOUT files are written.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53307,7 +53602,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LORBMOM",
                 "description": "LORBMOM specifies whether the orbital moments are written out or not (in a\ncalculation using LSORBIT=.TRUE.).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53322,7 +53617,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LPARD",
                 "description": "Determines whether partial (band or k-point decomposed) charge densities are\nevaluated. See also 'Band-decomposed charge densities' .",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53337,7 +53632,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LPEAD",
                 "description": "for LPEAD=.TRUE., the derivative of the cell-periodic part of the orbitals w.r.t.\n**k**  is calculated using finite differences.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53352,7 +53647,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LPLANE",
                 "description": "LPLANE switches on the plane-wise data distribution in real space.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53367,7 +53662,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LREAL",
                 "description": "LREAL determines whether the projection operators are evaluated in real-space or\nin reciprocal space.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53382,7 +53677,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LRPA",
                 "description": "LRPA=.TRUE. includes local field effect on the Hartree level only.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53397,7 +53692,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSCAAWARE",
                 "description": "LSCAAWARE controls the distribution of the Hamilton matrix.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53412,7 +53707,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSCALAPACK",
                 "description": "LSCALAPACK controls the use of scaLAPACK.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53427,7 +53722,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSCALU",
                 "description": "LSCALU switches on the parallel LU decomposition (using scaLAPACK) in the\northonormalization of the wave functions.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53442,7 +53737,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSCSGRAD",
                 "description": "LSCSGRAD decides whether to compute gradients in the calculation of the MBD\ndispersion energy.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53457,7 +53752,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSELFENERGY",
                 "description": "This tag controls whether the frequency dependent self-energy is calculated or\nnot.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53472,7 +53767,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSEPB",
                 "description": "Specifies whether the charge density is calculated for every band separately and\nwritten to a file PARCHG.nb.* (LSEPB=.TRUE.) or whether charge density is merged\nfor all selected bands and written to the files PARCHG.ALLB.* or PARCHG.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53487,7 +53782,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSEPK",
                 "description": "Specifies whether the charge density of every k-point is write to the files\nPARCHG.*.nk (LSEPK=.TRUE.) or whether it is merged to a single file. If the merged\nfile is written, then the weight of each k-point is determined from the KPOINTS\nfile, otherwise the k-point weights of one are chosen.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53502,7 +53797,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSORBIT",
                 "description": "LSORBIT specifies whether spin-orbit coupling is taken into account.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53517,7 +53812,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSPECTRAL",
                 "description": "LSPECTRAL specifies to use the spectral method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53532,7 +53827,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSPECTRALGW",
                 "description": "LSPECTRALGW specifies to use the spectral method for calculating the self-energy.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53547,7 +53842,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSPIRAL",
                 "description": "set LSPIRAL=.TRUE. to represent spin spirals by means of a generalized Bloch\ncondition.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53562,7 +53857,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LSUBROT",
                 "description": "LSUBROT determines whether an optimal rotation matrix between the occupied and\nunoccupied block is sought, when a direct optimization of the energy functional is\nperformed (i.e. ALGO = All | Damped).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53577,7 +53872,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LTHOMAS",
                 "description": "LTHOMAS selects a decomposition of the exchange functional based on Thomas-Fermi\nscreening.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53592,7 +53887,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LUSE_VDW",
                 "description": "The flag LUSE_VDW determines whether the VdW-DF functional of Langreth and\nLundqvist et al. is used or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53607,7 +53902,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LVDW_EWALD",
                 "description": "LVDW_EWALD decides whether lattice summation in $E_{disp}$ expression by means of\nEwald's summation is computed in the DFT-D2 method (available in VASP.5.3.4 and\nlater).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53622,7 +53917,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LVDW_ONECELL",
                 "description": "LVDW_ONECELL  can be used to disable vdW interaction with mirror image in X Y Z\ndirection. This is advisable for molecular calculations in the gas phase. In all\nother cases, use the default.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53639,7 +53934,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LVDWEXPANSION",
                 "description": "LVDWEXPANSION  decides whether to write the two- to six- body contributions to MBD\ndispersion energy in the OUTCAR file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53654,7 +53949,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LVHAR",
                 "description": "This tag determines whether the total local potential (saved in the file LOCPOT)\ncontains the entire local potential (ionic + Hartree + exchange correlation) or\nthe electrostatic contributions only (ionic + Hartree).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53669,7 +53964,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LVTOT",
                 "description": "LVTOT determines whether the total local potential is written to the LOCPOT file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53684,7 +53979,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LWANNIER90",
                 "description": "LWANNIER90=.TRUE. switches on the interface between VASP and WANNIER90.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53699,7 +53994,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LWANNIER90_RUN",
                 "description": "LWANNIER90_RUN executes wannier_setup (see LWANNIER90=.TRUE.) and subsequently\nruns WANNIER90 in library mode (wannier_run).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53714,7 +54009,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LWAVE",
                 "description": "LWAVE determines whether the wavefunctions are written to the WAVECAR file at the\nend of a run.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53729,7 +54024,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LWRITE_MMN_AMN",
                 "description": "LWRITE_MMN_AMN=.TRUE. tells the VASP2WANNIER90 interface to write the\nwannier90.mmn and wannier90.amn files.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53744,7 +54039,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LWRITE_UNK",
                 "description": "LWRITE_UNK decides whether the cell-periodic part of the relevant Bloch functions\nis written.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53759,7 +54054,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LWRITE_WANPROJ",
                 "description": "LWRITE_WANPROJ determines whether the Wannier projection fille WANPROJ is written.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53774,7 +54069,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LZEROZ",
                 "description": "for LZEROZ=.TRUE. the _z_-component of the spin-spiral magnetisation density will\nbe forced to be and to remain zero.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53789,7 +54084,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_M_CONSTR",
                 "description": "M_CONSTR specifies the desired local magnetic moment (size and/or direction) for\nthe constrained local moments approach.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53806,7 +54101,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_MAGMOM",
                 "description": "MAGMOM Specifies the initial magnetic moment for each atom, if and only if\nICHARG=2, or if ICHARG=1 and the CHGCAR file contains no magnetisation density",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53821,7 +54116,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_MAXMEM",
                 "description": "MAXMEM specifies the maximum memory one MPI rank will attempt to allocate (in\nMByte).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53836,7 +54131,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_MAXMIX",
                 "description": "MAXMIX specifies the maximum number steps stored in Broyden mixer IMIX=4).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53851,7 +54146,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_MDALGO",
                 "description": "MDALGO specifies the molecular dynamics simulation protocol (in case IBRION=0 and\nVASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53866,7 +54161,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_METAGGA",
                 "description": "selects one of various meta-GGA functionals.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -53881,7 +54176,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_MINROT",
                 "description": "The flag MINROT defines the value for which the dimer is rotated only if the\npredicted rotation angle is greater than MINROT (rad.) in the Improved Dimer\nMethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53896,7 +54191,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_MIXPRE",
                 "description": "MIXPRE specifies the metric in the Broyden mixing scheme(IMIX=4).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53911,7 +54206,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_AFILT2_MB",
                 "description": "This tag sets the filtering parameter for the angular filtering for\nML_FF_IAFILT2_MB in the machine learning force-field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53926,7 +54221,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_CDOUB",
                 "description": "This flag controls the necessity of DFT calculations in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53941,7 +54236,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_CSF",
                 "description": "This flag sets the threshold for the spilling factor in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53956,7 +54251,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_CSIG",
                 "description": "Parameter used in the automatic determination of threshold for Bayesian error\nestimation in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53971,7 +54266,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_CSLOPE",
                 "description": "Parameter used in the automatic determination of threshold for Bayesian error\nestimation in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -53986,7 +54281,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_CTIFOR",
                 "description": "This flag sets the threshold for the Bayesian error estimation on the force in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54001,7 +54296,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_EATOM",
                 "description": "Reference total energies of isolated atoms used in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54018,7 +54313,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_IAFILT2_MB",
                 "description": "This tag specifies the type of angular filtering used in the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54033,7 +54328,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_IBROAD1_MB",
                 "description": "This tag determines how the atomic distribution is broadened for the radial\ndescriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54048,7 +54343,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_IBROAD2_MB",
                 "description": "This tag determines how the atomic distribution is broadened for the angular\ndescriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54063,7 +54358,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ICOUPLE_MB",
                 "description": "This tag specifies the atoms where the coupling parameter is introduced to\ncalculate the chemical potential within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54080,7 +54375,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ICUT1_MB",
                 "description": "This tag specifies the type of cutoff function used for the radial descriptor in\nthe machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54095,7 +54390,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ICUT2_MB",
                 "description": "This tag specifies the type of cutoff function used for the angular descriptor in\nthe machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54110,7 +54405,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_IERR",
                 "description": "This tag selects the error estimation method used in the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54125,7 +54420,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_IREG_MB",
                 "description": "This tag specifies whether the regularization parameters are kept constant or not\nin the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54140,7 +54435,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ISAMPLE",
                 "description": "This tag controls the sampling in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54155,7 +54450,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ISCALE_TOTEN_MB",
                 "description": "This tag specifies how to scale the energy data for the many-body term in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54170,7 +54465,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ISOAP1_MB",
                 "description": "This tag defines the type of the SOAP kernel for the radial descriptor in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54185,7 +54480,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ISOAP2_MB",
                 "description": "This tag defines the type of the SOAP kernel for the angular descriptor in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54200,7 +54495,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_ISTART",
                 "description": "This tag decides if and how calculations are continued from existing data in\nmachine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54215,7 +54510,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_IWEIGHT",
                 "description": "Flag to control the weighting of training data in the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54230,7 +54525,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LAFILT2_MB",
                 "description": "This tag specifies whether angular filtering is applied or not within the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54245,7 +54540,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LBASIS_DISCARD",
                 "description": "This variable specifies whether the basis sets are thrown away when its number\nexceeds ML_FF_MB_MB in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54260,7 +54555,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LCONF_DISCARD",
                 "description": "This flag decides whether configurations that do not provide local reference\nconfigurations are discarded or not in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54275,7 +54570,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LCOUPLE_MB",
                 "description": "This tag specifies whether coupling parameters are used for the calculation of\nchemical potentials is used or not within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54290,7 +54585,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LCRITERIA",
                 "description": "Decides whether the threshold in the learning decision step for the Bayesian error\nestimation is renewed or not in the machine learning force field methods.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54305,7 +54600,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LEATOM_MB",
                 "description": "This term specifies whether the total atomic energy is written out or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54320,7 +54615,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LHEAT_MB",
                 "description": "This flag specifies whether the heat flux is calculated or not in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54335,7 +54630,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LMAX2_MB",
                 "description": "This tag specifies the maximum angular momentum quantum number of spherical\nharmonics used to expand atomic distributions within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54350,7 +54645,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LMLFF",
                 "description": "Main control tag whether to use machine learned force fields or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54365,7 +54660,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LMLMB",
                 "description": "This controls whether the many-body interaction term is included in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54380,7 +54675,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LNORM1_MB",
                 "description": "This tag specifies whether the radial descriptor is normalized (by dividing\nthrough it's norm) or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54395,7 +54690,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_LNORM2_MB",
                 "description": "This tag specifies whether the angular descriptor is normalized (by dividing\nthrough it's norm) or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -54410,7 +54705,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MB_MB",
                 "description": "This flag sets the maximum number of basis sets describing the many-body\ninteractions in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54425,7 +54720,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MCONF",
                 "description": "This flag sets the maximum number of configurations used for training in the\nmachine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54440,7 +54735,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MCONF_NEW",
                 "description": "This flag sets the number of configurations that are stored temporally as\ncandidates for the training data in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54455,7 +54750,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MHIS",
                 "description": "This flag sets the number of estimated errors stored in memory to determine the\nthreshold for the Bayesian error in the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54470,7 +54765,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MRB1_MB",
                 "description": "This tag sets the number of radial basis sets used to expand the atomic\ndistribution for the radial descriptor within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54485,7 +54780,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MRB2_MB",
                 "description": "This tag sets the number of radial basis sets used to expand the atomic\ndistribution for the angular descriptor withtin the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54500,7 +54795,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MSPL1_MB",
                 "description": "This tag sets the number of points for the radial grid used in the spline\ninterpolation for the radial descriptor within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54515,7 +54810,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_MSPL2_MB",
                 "description": "This tag sets the number of points for the radial grid used in the spline\ninterpolation of the angular descriptor within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54530,7 +54825,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NATOM_COUPLED_MB",
                 "description": "This tag specifies the number of atoms for which a coupling parameter is\nintroduced to calculate the chemical potential within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54545,7 +54840,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NDIM_SCALAPACK",
                 "description": "This flag sets the dimension of the ScaLAPACK grids used in the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54560,7 +54855,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NHYP1_MB",
                 "description": "Polynomial power of the radial kernel.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54575,7 +54870,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NHYP2_MB",
                 "description": "Polynomial parameter (power) of the SOAP kernel.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54590,7 +54885,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NMDINT",
                 "description": "Tag to control the minimum interval to get training samples in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54605,7 +54900,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NR1_MB",
                 "description": "This tag determines the number of grid points used to execute radial integrations\nto compute the radial descriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54620,7 +54915,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NR2_MB",
                 "description": "This tag determines the number of grid points used to execute radial integrations\nto compute the angular descriptor within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54635,7 +54930,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_NWRITE",
                 "description": "This tag controls part of the output within the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54650,7 +54945,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_RCOUPLE_MB",
                 "description": "This tag specifies the value of the coupling parameter for the calculation of the\nchemical potential within the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54665,7 +54960,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_RCUT1_MB",
                 "description": "This flag sets the cutoff radius for the radial descriptor in the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54680,7 +54975,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_RCUT2_MB",
                 "description": "This flag sets the cutoff radius for the angular descriptor in the machine\nlearning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54695,7 +54990,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_SIGV0_MB",
                 "description": "This flag sets the initial noise parameter in the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54710,7 +55005,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_SIGW0_MB",
                 "description": "This flag sets the initial precision parameter in the machine learning force field\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54725,7 +55020,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_SION1_MB",
                 "description": "This tag specifies the width of the Gaussian functions used for broadening the\natomic distributions for the radial descriptor within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54740,7 +55035,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_SION2_MB",
                 "description": "This tag specifies the width of the Gaussian functions used for broadening the\natomic distributions of the angular descriptor within the machine learning force\nfield method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54755,7 +55050,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_W1_MB",
                 "description": "This tag defines the weight for the radial descriptor within the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54770,7 +55065,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_W2_MB",
                 "description": "This tag defines the weight for the angular descriptor within the machine learning\nforce field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54785,7 +55080,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_WTIFOR",
                 "description": "This tag sets the weight for the scaling of the forces in the training data within\nthe machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54800,7 +55095,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_WTOTEN",
                 "description": "This tag sets the weight for the scaling of the total energy in the training data\nwithin the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54815,7 +55110,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ML_FF_WTSIF",
                 "description": "This tag sets the weight for the scaling of the total energy in the training data\nwithin the machine learning force field method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54830,7 +55125,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBANDS",
                 "description": "NBANDS determines the actual number of bands in the calculation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54845,7 +55140,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBANDSGW",
                 "description": "The flag determines how many QP energies are calculated and updated in GW type\ncalculations.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54860,7 +55155,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBANDSO",
                 "description": "NBANDSO determines how many occupied orbitals are included in the Casida/BSE\ncalculations or time-propagation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54875,7 +55170,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBANDSV",
                 "description": "NBANDSV determines how many unoccupied orbitals are included in the Casida/BSE\ncalculations or timepropagation.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54890,7 +55185,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBLK",
                 "description": "NBLK determines the blocking factor in many BLAS level 3 routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54905,7 +55200,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBLOCK",
                 "description": "After NBLOCK ionic steps the pair correlation function and the DOS are calculated\nand the ionic configuration is written to the XDATCAR-file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54920,7 +55215,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBMOD",
                 "description": "Controls which bands are used in the calculation of Band decomposed charge\ndensities. Check also IBAND and EINT.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54935,7 +55230,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NBSEEIG",
                 "description": "NBSEEIG sets the number number of BSE eigenvectors written to the BSEFATBAND\noutput file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54950,7 +55245,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NCORE",
                 "description": "NCORE determines the number of compute cores that work on an individual orbital\n(available as of VASP.5.2.13).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54965,7 +55260,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NCRPA_BANDS",
                 "description": "Controls which bands are excluded in CRPA. Check also NTARGET_STATES.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54982,7 +55277,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NDAV",
                 "description": "NDAV sets the maximum number of iterative steps per bands per RMM-DIIS step\n(IALGO=4X).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -54997,7 +55292,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NEDOS",
                 "description": "NEDOS specifies number of gridpoints on which the DOS is evaluated",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55012,7 +55307,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NELECT",
                 "description": "NELECT sets the number of electrons.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55027,7 +55322,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NELM",
                 "description": "NELM sets the maximum number of electronic SC (selfconsistency) steps which may be\nperformed.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55042,7 +55337,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NELMDL",
                 "description": "NELMDL specifies the number of non-selfconsistent steps at the beginning.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55057,7 +55352,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NELMIN",
                 "description": "NELMIN specifies the minimum number of electronic SCF steps.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55072,7 +55367,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NFREE",
                 "description": "depending on IBRION, NFREE specifies the number of remembered steps in the history\nof ionic convergence runs, or the number of ionic displacements in frozen phonon\ncalculations.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55087,7 +55382,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGX",
                 "description": "NGX sets the number of grid points in the FFT-grid along the first lattice vector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55102,7 +55397,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGXF",
                 "description": "NGXF sets the number of grid points in the fine FFT-grid along the first lattice\nvector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55117,7 +55412,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGY",
                 "description": "NGY sets the number of grid points in the FFT-grid along the second lattice\nvector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55132,7 +55427,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGYF",
                 "description": "NGYF sets the number of grid points in the fine FFT-grid along the second lattice\nvector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55147,7 +55442,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGYROMAG",
                 "description": "NGYROMAG specifies the nuclear gyromagnetic ratios (in MHz, for H<sub>0</sub> = 1\nT) for the atomic types on the POTCAR file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55164,7 +55459,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGZ",
                 "description": "NGZ sets the number of grid points in the FFT-grid along the third lattice vector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55179,7 +55474,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NGZF",
                 "description": "NGZF sets the number of grid points in the fine  FFT-grid along the first lattice\nvector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55194,7 +55489,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NKRED",
                 "description": "NKRED specifies an uniform reduction factor for the **q**-point grid\nrepresentation of the exact exchange potential and the correlation part in GW\ncalculations.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55209,7 +55504,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NKREDX",
                 "description": "NKREDX specifies a reduction factor for the **q**-point grid representation of the\nexact exchange potential along reciprocal space direction **b**<sub>1</sub>.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55224,7 +55519,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NKREDY",
                 "description": "NKREDY specifies a reduction factor for the **q**-point grid representation of the\nexact exchange potential along reciprocal space direction **b**<sub>2</sub>.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55239,7 +55534,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NKREDZ",
                 "description": "NKREDZ specifies a reduction factor for the **q**-point grid representation of the\nexact exchange potential along reciprocal space direction **b**<sub>3</sub>.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55254,7 +55549,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NLSPLINE",
                 "description": "construct the PAW projectors in reciprocal space using spline interpolation so\nthat they are _k_-differentiable.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55269,7 +55564,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NMAXFOCKAE",
                 "description": "NMAXFOCKAE and LMAXFOCKAE determine whether the overlap densities in the Fock\nexchange and correlated wave function methods are accurately reconstructed on the\nplane wave grid. This flag generally only applies to the Fock-exchange part as\nwell as many-body post DFT methods (GW, RPA, MP2, etc.).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55284,7 +55579,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NOMEGA",
                 "description": "NOMEGA specifies the number of (imaginary) frequency and imaginary time grid\npoints.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55299,7 +55594,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NOMEGAPAR",
                 "description": "NOMEGAPAR available as of VASP.6, specifies the number of processor groups sharing\nthe same imaginary frequency grid points..",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55314,7 +55609,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NOMEGAR",
                 "description": "NOMEGAR specifies the number of frequency grid points along the real axis.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55329,7 +55624,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NPACO",
                 "description": "NPACO sets the number of slots in the pair-correlation function written to PCDAT.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55344,7 +55639,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NPAR",
                 "description": "NPAR determines the number of bands that are treated in parallel.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55359,7 +55654,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NPPSTR",
                 "description": "NPPSTR specifies the number of k-points on the strings in the IGPAR direction.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55374,7 +55669,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NSIM",
                 "description": "NSIM sets the number of bands that are optimized simultaneously by the RMM-DIIS\nalgorithm.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55389,7 +55684,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NSUBSYS",
                 "description": "NSUBSYS defines the atomic subsystems in calculations with multiple Anderson\nthermostats (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55404,7 +55699,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NSW",
                 "description": "NSW sets the maximum number of ionic steps.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55419,7 +55714,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NTARGET_STATES",
                 "description": "Controls which Wannier states are excluded in CRPA. Check also NCRPA_BANDS.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55436,7 +55731,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NTAUPAR",
                 "description": "NTAUPAR available as of VASP.6, specifies the number of MPI groups sharing same\nimaginary time grid points. The default value of NTAUPAR is set automatically and\ndepends on MAXMEM, the available memory for each rank on one node.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55451,7 +55746,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NUPDOWN",
                 "description": "Sets the difference between the number of electrons in the up and down spin\ncomponents.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55466,7 +55761,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_NWRITE",
                 "description": "This flag determines how much will be written to the file OUTCAR ('verbosity\nflag').",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55481,7 +55776,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ODDONLY",
                 "description": "ODDONLY=.TRUE. selects a subset of **k**-points for the representation of the Fock\nexchange potential, with _C_<sub>1</sub>=_C_<sub>2</sub>=_C_<sub>3</sub>=1, and\n_n_<sub>1</sub>+_n_<sub>2</sub>+_n_<sub>3</sub> odd.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55496,7 +55791,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ODDONLYGW",
                 "description": "ODDONLYGW allows to avoid the inclusion of the  point in the evaluation of\nresponse functions (in GW calculations).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55511,7 +55806,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OFIELD_A",
                 "description": "The flag OFIELD_A sets the desired order parameter *Q*<sub>6</sub> in the\nInterface pinning method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55526,7 +55821,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OFIELD_KAPPA",
                 "description": "The flag OFIELD_KAPPA sets the strength of bias potential in units of 'eV/(unit of\nQ)$^2$' in the Interface pinning method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55541,7 +55836,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OFIELD_Q6_FAR",
                 "description": "The flag OFIELD_Q6_FAR sets the far fading distance (in Angstroms) for the\ncomputation of a continuous to *Q*<sub>6</sub> parameter in the Interface pinning\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55556,7 +55851,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OFIELD_Q6_NEAR",
                 "description": "The flag OFIELD_Q6_NEAR sets the near fading distance (in Angstroms) for the\ncomputation of a continuous *Q*<sub>6</sub> parameter in the Interface pinning\nmethod.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55571,7 +55866,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OMEGAMAX",
                 "description": "OMEGAMAX specifies the maximum frequency for dense part of the frequency grid. For\nCRPA calculations, OMEGAMAX is the frequency point of the interaction.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55586,7 +55881,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OMEGAMIN",
                 "description": "minimum frequency in the frequency grid.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55601,7 +55896,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_OMEGATL",
                 "description": "OMEGATL specifies the maximum frequency for coarse part of the frequency grid.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55616,7 +55911,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PARAM1",
                 "description": "The flag PARAM1 determines the first parameter used in the enhancement factor of\nthe optPBE-vdW and optB88-vdW functional.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55631,7 +55926,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PARAM2",
                 "description": "The flag PARAM2 determines the second parameter used in the enhancement factor of\nthe optPBE-vdW and optB88-vdW functional.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55646,7 +55941,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PFLAT",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55661,7 +55956,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PHON_LBOSE",
                 "description": "This flag determines whether random structures in the Monte-Carlo (MC) sampling\nare created according to Bose-Einstein or Maxwell-Boltzmann statistics.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55676,7 +55971,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PHON_LMC",
                 "description": "This flag controls whether electron-phonon interactions from Monte-Carlo sampling\nare calculated or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55691,7 +55986,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PHON_NSTRUCT",
                 "description": "This flag sets the number of structures for electron-phonon interactions from\nMonte-Carlo (MC) sampling.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55706,7 +56001,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PHON_NTLIST",
                 "description": "This flag sets the number temperatures for that the electron-phonon interactions\nusing the ZG configuration is evaluated.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55721,7 +56016,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PHON_TLIST",
                 "description": "This flag provides the list of temperatures for that the electron-phonon\ninteractions using the ZG configuration is evaluated.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55738,7 +56033,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PLEVEL",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55753,7 +56048,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PMASS",
                 "description": "PMASS assigns a fictitious mass (in amu) to the lattice degrees-of-freedom in case\nof Parrinello-Rahman dynamics (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55768,7 +56063,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_POMASS",
                 "description": "POMASS describes the mass of each atomic sphere in atomic units.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55783,7 +56078,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_POTIM",
                 "description": "POTIM sets the time step (MD) or step width scaling (ionic relaxations).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55798,7 +56093,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PREC",
                 "description": "PREC specifies the precision  mode.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55813,7 +56108,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PRECFOCK",
                 "description": "PRECFOCK controls the FFT grids used in the exact exchange routines (Hartree-Fock\nand hybrid functionals).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -55828,7 +56123,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PROUTINE",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55843,7 +56138,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PSTRESS",
                 "description": "This flag controls whether Pulay corrections are added to the stress tensor or\nnot. In molecular dynamics calculations it controls the pressure. The unit of\nPSTRESS is in kB.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55858,7 +56153,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PSUBSYS",
                 "description": "PSUBSYS sets the collision probabilities for the atoms in each atomic subsystem in\ncalculations with multiple Anderson thermostats (in case VASP was compiled with\n-Dtbdyn). Note: 0 \u2264 PSUBSYS \u2264 1",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55875,7 +56170,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_PTHRESHOLD",
                 "description": "Control flag for the output of the profiling routines.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55890,7 +56185,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_QMAXFOCKAE",
                 "description": "The parameter QMAXFOCKAE controls at which wave vectors the local augmentation\ncharges are fitted to obtain an accurate charge augmentation on the plane wave\ngrid.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55907,7 +56202,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_QSPIRAL",
                 "description": "the QSPIRAL-tag specifies the spin spiral propagation vector.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55924,7 +56219,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_QUAD_EFG",
                 "description": "nuclear quadrupole moment (in millbarn) for the atomic types on the POTCAR file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55941,7 +56236,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_RANDOM_SEED",
                 "description": "RANDOM_SEED specifies the seed of the random-number-generator (in case VASP was\ncompiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55958,7 +56253,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ROPT",
                 "description": "ROPT determines how precise the projectors are represented in real space.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55975,7 +56270,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_RWIGS",
                 "description": "RWIGS specifies the Wigner-Seitz radius for each atom type.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -55992,7 +56287,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SAXIS",
                 "description": "SAXIS specifies the quantisation axis for noncollinear spins.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56009,7 +56304,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SCSRAD",
                 "description": "SCSRAD defines the cutoff radius (in Angs ) used in the calculation of\n$\\tau_{ij}$ within the Tkatchenko-Scheffler method. Self-consistent screening in\nTkatchenko-Scheffler method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56024,7 +56319,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SHAKEMAXITER",
                 "description": "SHAKEMAXITER specifies the maximum number of iterations in the SHAKE algorithm (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56039,7 +56334,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SHAKETOL",
                 "description": "SHAKETOL specifies the tolerance for the SHAKE algorithm (in case VASP was\ncompiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56054,7 +56349,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SIGMA",
                 "description": "SIGMA specifies the width of the smearing in eV.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56069,7 +56364,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SMASS",
                 "description": "SMASS controls the velocities during an ab-initio molecular dynamics run.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56084,7 +56379,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SMEARINGS",
                 "description": "SMEARINGS defines the smearing parameters for ISMEAR=-3 in the calculation of the\npartial occupancies.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56101,7 +56396,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SPRING",
                 "description": "SPRING gives the <i>spring constant</i> between the images as used in the elastic\nband method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56116,7 +56411,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_STEP_MAX",
                 "description": "The flag STEP_MAX defines the trust radius (upper limit) for the optimization step\n(in Angs ) in the Improved Dimer Method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56131,7 +56426,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_STEP_SIZE",
                 "description": "The flag STEP_SIZE defines the trial step size for the optimization step (in Angs\n) in the Improved Dimer Method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56146,7 +56441,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SYMPREC",
                 "description": "SYMPREC determines to which accuracy the positions in the POSCAR file must be\nspecified (as of VASP.4.4.4).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56161,7 +56456,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_SYSTEM",
                 "description": "The 'title string' defined by SYSTEM is for the user only and should help the user\nto identify what he wants to do with this specific input file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -56176,7 +56471,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_TEBEG",
                 "description": "TEBEG sets the start temperature for an ab-initio molecular dynamics run\n(IBRION=0) and other routines (e.g. Electron-phonon interactions from Monte-Carlo\nsampling).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56191,7 +56486,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_TEEND",
                 "description": "TEEND sets the final temperature for an ab-initio molecular dynamics run\n(IBRION=0; SMASS=\u22121).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56206,7 +56501,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_TIME",
                 "description": "TIME controls the time step for IALGO=5X and for the initial (steepest descent)\nphase of IALGO=4X.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56221,7 +56516,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_TSUBSYS",
                 "description": "TSUBSYS sets the temperatures for the atomic subsystems in calculations with\nmultiple Anderson thermostats (in case VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56238,7 +56533,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VALUE_MAX",
                 "description": "VALUE_MAX sets the upper limits for the monitoring of geometric parameters (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56255,7 +56550,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VALUE_MIN",
                 "description": "VALUE_MIN sets the lower limits for the monitoring of geometric parameters (in\ncase VASP was compiled with -Dtbdyn).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56272,7 +56567,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VCUTOFF",
                 "description": "The parameter VCUTOFF sets the energy cutoff for bare Coulomb matrix elements and\ncontrols the basis set for the bare Coulomb interaction.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56287,7 +56582,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_A1",
                 "description": "VDW_A1 defines the damping function parameter  in the DFT-D3 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56302,7 +56597,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_A2",
                 "description": "VDW_A2 defines the damping function parameter  in the DFT-D3 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56317,7 +56612,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_C6",
                 "description": "VDW_C6 defines the  $C_6$ parameters (units: J.nm$^6$mol$^{-1}$ ) for each species\ndefined in the POSCAR file within the DFT-D2 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56334,7 +56629,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_CNRADIUS",
                 "description": "VDW_CNRADIUS defines the cutoff radius (in Angs ) for the calculation of the\ncoordination numbers used in the DFT-D3 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56349,7 +56644,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_D",
                 "description": "VDW_D defines the damping parameter _d_ in the DFT-D2method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56364,7 +56659,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_R0",
                 "description": "VDW_R0 defines the $R_0$ parameters (units: Angs ) for each species defined in the\nPOSCAR file within the DFT-D2 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56381,7 +56676,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_RADIUS",
                 "description": "VDW_RADIUS defines the cutoff radius (in Angs) for the pair interactions used in\nthe DFT-D2 and DFT-D3 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56396,7 +56691,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_S6",
                 "description": "VDW_S6 defines the global scaling factor _S_6_ in the DFT-D2 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56411,7 +56706,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_S8",
                 "description": "VDW_S8 defines the damping function parameter $s_8$ in the DFT-D3 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56426,7 +56721,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VDW_SR",
                 "description": "VDW_SR defines the damping function parameter $S_R$ (or scaling factor) in the\nDFT-D2 and DFT-D3 method.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56441,7 +56736,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_VOSKOWN",
                 "description": "Determines whether Vosko-Wilk-Nusair interpolation is used or not.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56456,7 +56751,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_WC",
                 "description": "WC specifies the weight factor for each step in Broyden mixing scheme (IMIX=4).",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56471,7 +56766,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_WEIMIN",
                 "description": "WEIMIN specifies the maximum weight for a band to be considered empty.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56486,7 +56781,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ZVAL",
                 "description": "ZVAL describes the valency of each atomic sphere.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56509,7 +56804,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 23,
+        "m_parent_index": 24,
         "m_parent_sub_section": "packages",
         "name": "electronicparsers.vasp.metainfo.vasp_incarsUnknown",
         "section_definitions": [
@@ -56530,7 +56825,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_ENMAX",
                 "description": "Maximum cutoff (normally specified only in POTCAR). Value prinded out after\nevaluating the input.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56545,7 +56840,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incar_ENMAX",
                 "description": "Maximum cutoff (normally specified only in POTCAR). Value prinded out after\nevaluating the input.",
                 "categories": [
-                  "/packages/21/category_definitions/0"
+                  "/packages/22/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -56560,7 +56855,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_incarOut_LCOMPAT",
                 "description": "In vasp.4.2 the augmentation charges are forced to be zero at the boundary of the\naugmentation sphere, therefore results are slightly different from vasp.3.2\n(usually differences are smaller than 0.01 meV). The old behavior can be restored\nby setting LCOMPAT = .TRUE. in the INCAR file.",
                 "categories": [
-                  "/packages/22/category_definitions/0"
+                  "/packages/23/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -56583,7 +56878,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 24,
+        "m_parent_index": 25,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.data",
         "section_definitions": [
@@ -56601,7 +56896,7 @@ window.nomadArtifacts = {
             "name": "EntryData",
             "description": "An empty base section definition. This can be used to add new top-level sections to an entry.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ]
           },
           {
@@ -56697,7 +56992,7 @@ window.nomadArtifacts = {
             "name": "User",
             "description": "A NOMAD user. Typically a NOMAD user has a NOMAD account. The user related data is managed by\nNOMAD keycloak user-management system. Users are used to denote authors,\nreviewers, and owners of datasets.",
             "base_sections": [
-              "/packages/24/section_definitions/2"
+              "/packages/25/section_definitions/2"
             ],
             "quantities": [
               {
@@ -56789,7 +57084,7 @@ window.nomadArtifacts = {
             "name": "ElnIntegrationCategory",
             "label": "Third-party ELN Integration",
             "categories": [
-              "/packages/24/category_definitions/0"
+              "/packages/25/category_definitions/0"
             ]
           },
           {
@@ -56799,7 +57094,7 @@ window.nomadArtifacts = {
             "name": "BasicElnCategory",
             "label": "Basic ELN",
             "categories": [
-              "/packages/24/category_definitions/0"
+              "/packages/25/category_definitions/0"
             ]
           },
           {
@@ -56809,7 +57104,7 @@ window.nomadArtifacts = {
             "name": "ElnExampleCategory",
             "label": "Example ELNs",
             "categories": [
-              "/packages/24/category_definitions/0"
+              "/packages/25/category_definitions/0"
             ]
           },
           {
@@ -56819,7 +57114,7 @@ window.nomadArtifacts = {
             "name": "UseCaseElnCategory",
             "label": "Use-cases",
             "categories": [
-              "/packages/24/category_definitions/0"
+              "/packages/25/category_definitions/0"
             ]
           },
           {
@@ -56829,14 +57124,14 @@ window.nomadArtifacts = {
             "name": "WorkflowsElnCategory",
             "label": "Workflows",
             "categories": [
-              "/packages/24/category_definitions/0"
+              "/packages/25/category_definitions/0"
             ]
           }
         ]
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 25,
+        "m_parent_index": 26,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.basesections",
         "section_definitions": [
@@ -56850,7 +57145,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/BFO_0000001"
             ],
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -56939,7 +57234,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/BFO_0000002"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/0"
+              "/packages/26/section_definitions/0"
             ]
           },
           {
@@ -56949,7 +57244,7 @@ window.nomadArtifacts = {
             "name": "ActivityStep",
             "description": "Any dependant step of an `Activity`.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -57020,7 +57315,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/BFO_0000015"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/0"
+              "/packages/26/section_definitions/0"
             ],
             "quantities": [
               {
@@ -57079,7 +57374,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "steps",
                 "description": "An ordered list of all the dependant steps that make up this activity.",
-                "sub_section": "/packages/25/section_definitions/2",
+                "sub_section": "/packages/26/section_definitions/2",
                 "repeats": true
               }
             ]
@@ -57091,7 +57386,7 @@ window.nomadArtifacts = {
             "name": "SectionReference",
             "description": "A section used for referencing another section.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -57128,7 +57423,7 @@ window.nomadArtifacts = {
                 "description": "A reference to a NOMAD archive section.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/24/section_definitions/0"
+                  "type_data": "/packages/25/section_definitions/0"
                 }
               }
             ]
@@ -57140,7 +57435,7 @@ window.nomadArtifacts = {
             "name": "EntityReference",
             "description": "A section used for referencing an Entity.",
             "base_sections": [
-              "/packages/25/section_definitions/4"
+              "/packages/26/section_definitions/4"
             ],
             "quantities": [
               {
@@ -57159,7 +57454,7 @@ window.nomadArtifacts = {
                 "description": "A reference to a NOMAD `Entity` entry.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/25/section_definitions/1"
+                  "type_data": "/packages/26/section_definitions/1"
                 }
               },
               {
@@ -57189,7 +57484,7 @@ window.nomadArtifacts = {
             "name": "ExperimentStep",
             "description": "Any dependant step of an `Experiment`.",
             "base_sections": [
-              "/packages/25/section_definitions/2"
+              "/packages/26/section_definitions/2"
             ],
             "quantities": [
               {
@@ -57207,7 +57502,7 @@ window.nomadArtifacts = {
                 "description": "The activity that makes up this step of the experiment.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/25/section_definitions/3"
+                  "type_data": "/packages/26/section_definitions/3"
                 }
               },
               {
@@ -57238,7 +57533,7 @@ window.nomadArtifacts = {
             "name": "Experiment",
             "description": "A section for grouping activities together into an experiment.",
             "base_sections": [
-              "/packages/25/section_definitions/3"
+              "/packages/26/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -57247,7 +57542,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "steps",
                 "description": "An ordered list of all the dependant steps that make up this activity.",
-                "sub_section": "/packages/25/section_definitions/6",
+                "sub_section": "/packages/26/section_definitions/6",
                 "repeats": true
               }
             ]
@@ -57259,7 +57554,7 @@ window.nomadArtifacts = {
             "name": "Collection",
             "description": "A section for grouping entities together into a collection.",
             "base_sections": [
-              "/packages/25/section_definitions/1"
+              "/packages/26/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -57268,7 +57563,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "entities",
                 "description": "References to the entities that make up the collection.",
-                "sub_section": "/packages/25/section_definitions/5",
+                "sub_section": "/packages/26/section_definitions/5",
                 "repeats": true
               }
             ]
@@ -57283,7 +57578,7 @@ window.nomadArtifacts = {
               "label_quantity": "element"
             },
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -57468,7 +57763,7 @@ window.nomadArtifacts = {
             "name": "System",
             "description": "A base section for any system of materials which is investigated or used to construct other systems.",
             "base_sections": [
-              "/packages/25/section_definitions/1"
+              "/packages/26/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -57477,7 +57772,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "elemental_composition",
                 "description": "A list of all the elements found in the system together and their respective\natomic fraction within the system.",
-                "sub_section": "/packages/25/section_definitions/9",
+                "sub_section": "/packages/26/section_definitions/9",
                 "repeats": true
               }
             ]
@@ -57489,7 +57784,7 @@ window.nomadArtifacts = {
             "name": "Instrument",
             "description": "A base section that can be used for instruments.",
             "base_sections": [
-              "/packages/25/section_definitions/1"
+              "/packages/26/section_definitions/1"
             ]
           },
           {
@@ -57499,7 +57794,7 @@ window.nomadArtifacts = {
             "name": "InstrumentReference",
             "description": "A section used for referencing an Instrument.",
             "base_sections": [
-              "/packages/25/section_definitions/5"
+              "/packages/26/section_definitions/5"
             ],
             "quantities": [
               {
@@ -57518,7 +57813,7 @@ window.nomadArtifacts = {
                 "description": "A reference to a NOMAD `Instrument` entry.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/25/section_definitions/11"
+                  "type_data": "/packages/26/section_definitions/11"
                 }
               }
             ]
@@ -57530,7 +57825,7 @@ window.nomadArtifacts = {
             "name": "Component",
             "description": "A section for describing a component and its role in a composite system.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -57599,7 +57894,7 @@ window.nomadArtifacts = {
             "name": "SystemComponent",
             "description": "A section for describing a system component and its role in a composite system.",
             "base_sections": [
-              "/packages/25/section_definitions/13"
+              "/packages/26/section_definitions/13"
             ],
             "quantities": [
               {
@@ -57617,7 +57912,7 @@ window.nomadArtifacts = {
                 "description": "A reference to the component system.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/25/section_definitions/10"
+                  "type_data": "/packages/26/section_definitions/10"
                 }
               }
             ]
@@ -57629,7 +57924,7 @@ window.nomadArtifacts = {
             "name": "PureSubstanceSection",
             "description": "A sub section for describing any elemental, molecular or single phase pure substance.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -57806,7 +58101,7 @@ window.nomadArtifacts = {
             "name": "PureSubstanceComponent",
             "description": "A section for describing a substance component and its role in a composite system.",
             "base_sections": [
-              "/packages/25/section_definitions/13"
+              "/packages/26/section_definitions/13"
             ],
             "quantities": [
               {
@@ -57835,7 +58130,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "pure_substance",
                 "description": "Section describing the pure substance that is the component.",
-                "sub_section": "/packages/25/section_definitions/15"
+                "sub_section": "/packages/26/section_definitions/15"
               }
             ]
           },
@@ -57846,7 +58141,7 @@ window.nomadArtifacts = {
             "name": "CompositeSystem",
             "description": "A base section for a material systems composed of components. Each component of the composite system is of a (sub)type of `System`.",
             "base_sections": [
-              "/packages/25/section_definitions/10"
+              "/packages/26/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -57855,7 +58150,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "components",
                 "description": "A list of all the components of the composite system containing a name, reference\nto the system section and mass of that component.",
-                "sub_section": "/packages/25/section_definitions/13",
+                "sub_section": "/packages/26/section_definitions/13",
                 "repeats": true
               }
             ]
@@ -57867,7 +58162,7 @@ window.nomadArtifacts = {
             "name": "CompositeSystemReference",
             "description": "A section used for referencing a CompositeSystem.",
             "base_sections": [
-              "/packages/25/section_definitions/5"
+              "/packages/26/section_definitions/5"
             ],
             "quantities": [
               {
@@ -57886,7 +58181,7 @@ window.nomadArtifacts = {
                 "description": "A reference to a NOMAD `CompositeSystem` entry.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/25/section_definitions/17"
+                  "type_data": "/packages/26/section_definitions/17"
                 }
               }
             ]
@@ -57898,7 +58193,7 @@ window.nomadArtifacts = {
             "name": "ProcessStep",
             "description": "Any dependant step of a `Process`.",
             "base_sections": [
-              "/packages/25/section_definitions/2"
+              "/packages/26/section_definitions/2"
             ],
             "quantities": [
               {
@@ -57933,7 +58228,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/OBI_0000094"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/3"
+              "/packages/26/section_definitions/3"
             ],
             "quantities": [
               {
@@ -57963,7 +58258,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "steps",
                 "description": "An ordered list of all the dependant steps that make up this activity.",
-                "sub_section": "/packages/25/section_definitions/19",
+                "sub_section": "/packages/26/section_definitions/19",
                 "repeats": true
               },
               {
@@ -57972,7 +58267,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "instruments",
                 "description": "A list of all the instruments and their role in this process.",
-                "sub_section": "/packages/25/section_definitions/12",
+                "sub_section": "/packages/26/section_definitions/12",
                 "repeats": true
               },
               {
@@ -57981,7 +58276,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "samples",
                 "description": "The samples as that have undergone the process.",
-                "sub_section": "/packages/25/section_definitions/18",
+                "sub_section": "/packages/26/section_definitions/18",
                 "repeats": true
               }
             ]
@@ -57993,7 +58288,7 @@ window.nomadArtifacts = {
             "name": "ActivityResult",
             "description": "A section for the results of an `Activity`.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58024,7 +58319,7 @@ window.nomadArtifacts = {
             "name": "AnalysisResult",
             "description": "A section for the results of an `Analysis` process.",
             "base_sections": [
-              "/packages/25/section_definitions/21"
+              "/packages/26/section_definitions/21"
             ]
           },
           {
@@ -58037,7 +58332,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/OBI_0200000"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/3"
+              "/packages/26/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -58046,7 +58341,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "inputs",
                 "description": "The input data of the analysis.",
-                "sub_section": "/packages/25/section_definitions/4",
+                "sub_section": "/packages/26/section_definitions/4",
                 "repeats": true
               },
               {
@@ -58055,7 +58350,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "outputs",
                 "description": "The output data of the analysis.",
-                "sub_section": "/packages/25/section_definitions/22",
+                "sub_section": "/packages/26/section_definitions/22",
                 "repeats": true
               }
             ]
@@ -58070,7 +58365,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/CHMO_0001301"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/20"
+              "/packages/26/section_definitions/20"
             ]
           },
           {
@@ -58080,7 +58375,7 @@ window.nomadArtifacts = {
             "name": "MeasurementResult",
             "description": "A section for the results of an `Measurement` process.",
             "base_sections": [
-              "/packages/25/section_definitions/21"
+              "/packages/26/section_definitions/21"
             ]
           },
           {
@@ -58093,7 +58388,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/OBI_0000070"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/3"
+              "/packages/26/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -58102,7 +58397,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "samples",
                 "description": "A list of all the samples measured during the measurement.",
-                "sub_section": "/packages/25/section_definitions/18",
+                "sub_section": "/packages/26/section_definitions/18",
                 "repeats": true
               },
               {
@@ -58111,7 +58406,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "instruments",
                 "description": "A list of all the instruments and their role in this process.",
-                "sub_section": "/packages/25/section_definitions/12",
+                "sub_section": "/packages/26/section_definitions/12",
                 "repeats": true
               },
               {
@@ -58120,7 +58415,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "description": "The result of the measurement.",
-                "sub_section": "/packages/25/section_definitions/25",
+                "sub_section": "/packages/26/section_definitions/25",
                 "repeats": true
               }
             ]
@@ -58135,7 +58430,7 @@ window.nomadArtifacts = {
               "http://purl.obolibrary.org/obo/CHEBI_23367"
             ],
             "base_sections": [
-              "/packages/25/section_definitions/10"
+              "/packages/26/section_definitions/10"
             ],
             "quantities": [
               {
@@ -58203,7 +58498,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "pure_substance",
                 "description": "Section with properties describing the substance.",
-                "sub_section": "/packages/25/section_definitions/15"
+                "sub_section": "/packages/26/section_definitions/15"
               }
             ]
           },
@@ -58215,7 +58510,7 @@ window.nomadArtifacts = {
             "label": "PubChem Pure Substance Section",
             "description": "A section for pure substances existing as \"compounds\" in the PubChem database.",
             "base_sections": [
-              "/packages/25/section_definitions/15"
+              "/packages/26/section_definitions/15"
             ],
             "quantities": [
               {
@@ -58261,7 +58556,7 @@ window.nomadArtifacts = {
             "name": "CASExperimentalProperty",
             "description": "A section for experimental properties retrieved from the CAS API.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58306,7 +58601,7 @@ window.nomadArtifacts = {
             "name": "CASPropertyCitation",
             "description": "A section for citations of the experimental properties retrieved from the CAS API.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58354,7 +58649,7 @@ window.nomadArtifacts = {
             "label": "CAS Pure Substance Section",
             "description": "A base section for any `PureSubstance` with a CAS number.",
             "base_sections": [
-              "/packages/25/section_definitions/15"
+              "/packages/26/section_definitions/15"
             ],
             "quantities": [
               {
@@ -58458,7 +58753,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_experimental_properties",
-                "sub_section": "/packages/25/section_definitions/29",
+                "sub_section": "/packages/26/section_definitions/29",
                 "repeats": true
               },
               {
@@ -58466,7 +58761,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_property_citations",
-                "sub_section": "/packages/25/section_definitions/30",
+                "sub_section": "/packages/26/section_definitions/30",
                 "repeats": true
               }
             ]
@@ -58478,7 +58773,7 @@ window.nomadArtifacts = {
             "name": "ReadableIdentifiers",
             "description": "A base section that can be used to generate readable IDs. If the `owner`, `short_name`, `institute`, and `datetime`\nquantities are provided, the lab_id will be automatically created as a combination\nof these four quantities.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58581,7 +58876,7 @@ window.nomadArtifacts = {
             "name": "PublicationReference",
             "description": "A base section that can be used for references.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58664,14 +58959,14 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "HDF5Normalizer",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ]
           }
         ]
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 26,
+        "m_parent_index": 27,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.common",
         "section_definitions": [
@@ -58713,7 +59008,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/26/section_definitions/0",
+                "sub_section": "/packages/27/section_definitions/0",
                 "repeats": false
               }
             ]
@@ -58731,7 +59026,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 27,
+        "m_parent_index": 28,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.workflow",
         "section_definitions": [
@@ -58742,7 +59037,7 @@ window.nomadArtifacts = {
             "name": "Link",
             "description": "Instances of Link are used to represent either a single input or single output of a Task. Using a separate section for links allows to put\nadditional information (e.g. a name) on an input or output.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58778,7 +59073,7 @@ window.nomadArtifacts = {
                 "description": "A reference to the section that contains the actual input or output data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/24/section_definitions/0"
+                  "type_data": "/packages/25/section_definitions/0"
                 }
               }
             ]
@@ -58790,7 +59085,7 @@ window.nomadArtifacts = {
             "name": "Task",
             "description": "Instances of Task are used to represent an activity that happened during workflow execution and that was acting on inputs to produce outputs.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -58819,7 +59114,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "inputs",
                 "description": "All the links to sections that represent the inputs for this task.",
-                "sub_section": "/packages/27/section_definitions/0",
+                "sub_section": "/packages/28/section_definitions/0",
                 "repeats": true
               },
               {
@@ -58828,7 +59123,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "outputs",
                 "description": "All the links to sections that represent the outputs for this task.",
-                "sub_section": "/packages/27/section_definitions/0",
+                "sub_section": "/packages/28/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -58840,7 +59135,7 @@ window.nomadArtifacts = {
             "name": "TaskReference",
             "description": "A proxy section that can be used to compose a workflow of tasks that are contained in a different entry or workflow.",
             "base_sections": [
-              "/packages/27/section_definitions/1"
+              "/packages/28/section_definitions/1"
             ],
             "quantities": [
               {
@@ -58858,7 +59153,7 @@ window.nomadArtifacts = {
                 "description": "A reference to the task that this section is a proxy for.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/27/section_definitions/1"
+                  "type_data": "/packages/28/section_definitions/1"
                 }
               }
             ]
@@ -58870,11 +59165,11 @@ window.nomadArtifacts = {
             "name": "Workflow",
             "description": "Instances of Workflow are used to represent a set of Tasks that connect input and output data objects to produce a provenance graph for those data.\n\nWorkflows themselves can be tasks. This allows to build nested workflows where some\nof the workflow tasks are workflows themselves.",
             "categories": [
-              "/packages/24/category_definitions/5"
+              "/packages/25/category_definitions/5"
             ],
             "base_sections": [
-              "/packages/27/section_definitions/1",
-              "/packages/24/section_definitions/1"
+              "/packages/28/section_definitions/1",
+              "/packages/25/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -58883,7 +59178,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "tasks",
                 "description": "The tasks of this workflow as a repeating sub section. Use TaskReference if tasks cannot be contained.",
-                "sub_section": "/packages/27/section_definitions/1",
+                "sub_section": "/packages/28/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -58892,7 +59187,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 28,
+        "m_parent_index": 29,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.optimade",
         "section_definitions": [
@@ -59595,7 +59890,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "species",
-                "sub_section": "/packages/28/section_definitions/0",
+                "sub_section": "/packages/29/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -59604,7 +59899,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 29,
+        "m_parent_index": 30,
         "m_parent_sub_section": "packages",
         "name": "nomad.metainfo.metainfo",
         "section_definitions": [
@@ -59670,7 +59965,7 @@ window.nomadArtifacts = {
                 "description": "All metainfo definitions can be put into one or more `categories`.\nCategories allow to organize the definitions themselves. It is different from\nsections, which organize the data (e.g. quantity values) and not the definitions\nof data (e.g. quantities definitions). See :ref:`metainfo-categories` for more\ndetails.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/29/section_definitions/5"
+                  "type_data": "/packages/30/section_definitions/5"
                 },
                 "shape": [
                   "0..*"
@@ -59748,7 +60043,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "attributes",
                 "description": "The attributes that can further qualify property values.",
-                "sub_section": "/packages/29/section_definitions/1",
+                "sub_section": "/packages/30/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -59760,7 +60055,7 @@ window.nomadArtifacts = {
             "name": "Attribute",
             "description": "Attributes can be used to qualify all properties (subsections and quantities) with simple scalar values.",
             "base_sections": [
-              "/packages/29/section_definitions/0"
+              "/packages/30/section_definitions/0"
             ],
             "constraints": [
               "is_primitive"
@@ -59800,7 +60095,7 @@ window.nomadArtifacts = {
             "name": "Property",
             "description": "A common base-class for section properties: subsections and quantities.",
             "base_sections": [
-              "/packages/29/section_definitions/0"
+              "/packages/30/section_definitions/0"
             ]
           },
           {
@@ -59810,7 +60105,7 @@ window.nomadArtifacts = {
             "name": "Section",
             "description": "Instances of the class :class:`Section` are created by writing Python classes that extend :class:`MSection` like this:\n\n.. code-block:: python\n\n    class SectionName(BaseSection):\n        ''' Section description '''\n        m_def = Section(**section_attributes)\n\n        quantity_name = Quantity(**quantity_attributes)\n        sub_section_name = SubSection(**sub_section_attributes)\n\nWe call such classes *section classes*. They are not the *section definition*, but just\nrepresentation of it in Python syntax. The *section definition* (in instance of :class:`Section`)\nwill be created for each of these classes and stored in the ``m_def`` property. See\n:ref:`metainfo-reflection` for more details.\n\nMost of the attributes for a :class:`Section` instance will be set automatically from\nthe section class:",
             "base_sections": [
-              "/packages/29/section_definitions/0"
+              "/packages/30/section_definitions/0"
             ],
             "constraints": [
               "resolved_base_sections",
@@ -59824,7 +60119,7 @@ window.nomadArtifacts = {
                 "name": "base_sections",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/29/section_definitions/3"
+                  "type_data": "/packages/30/section_definitions/3"
                 },
                 "shape": [
                   "0..*"
@@ -59838,7 +60133,7 @@ window.nomadArtifacts = {
                 "name": "extending_sections",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/29/section_definitions/3"
+                  "type_data": "/packages/30/section_definitions/3"
                 },
                 "shape": [
                   "0..*"
@@ -59863,7 +60158,7 @@ window.nomadArtifacts = {
                 "name": "inheriting_sections",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/29/section_definitions/3"
+                  "type_data": "/packages/30/section_definitions/3"
                 },
                 "shape": [
                   "0..*"
@@ -60051,7 +60346,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quantities",
-                "sub_section": "/packages/29/section_definitions/6",
+                "sub_section": "/packages/30/section_definitions/6",
                 "repeats": true
               },
               {
@@ -60059,7 +60354,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "sub_sections",
-                "sub_section": "/packages/29/section_definitions/7",
+                "sub_section": "/packages/30/section_definitions/7",
                 "repeats": true
               },
               {
@@ -60073,7 +60368,7 @@ window.nomadArtifacts = {
                   "inner_sections",
                   "sections"
                 ],
-                "sub_section": "/packages/29/section_definitions/3",
+                "sub_section": "/packages/30/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -60085,7 +60380,7 @@ window.nomadArtifacts = {
             "name": "Package",
             "description": "Packages organize metainfo definitions alongside Python modules Each Python module with metainfo Definition (explicitly or implicitly) has a member\n``m_package`` with an instance of this class. Definitions (categories, sections) in\nPython modules are automatically added to the module's :class:`Package`.\nPackages are not nested and rather have the fully qualified Python module name as\nname.\n\nThis allows to inspect all definitions in a Python module and automatically puts\nmodule name and docstring as :class:`Package` name and description.\n\nBesides the regular :class:`Definition` attributes, packages can have the following\nattributes:",
             "base_sections": [
-              "/packages/29/section_definitions/0"
+              "/packages/30/section_definitions/0"
             ],
             "quantities": [
               {
@@ -60126,7 +60421,7 @@ window.nomadArtifacts = {
                   "section_defs",
                   "sections"
                 ],
-                "sub_section": "/packages/29/section_definitions/3",
+                "sub_section": "/packages/30/section_definitions/3",
                 "repeats": true
               },
               {
@@ -60138,7 +60433,7 @@ window.nomadArtifacts = {
                 "aliases": [
                   "category_defs"
                 ],
-                "sub_section": "/packages/29/section_definitions/5",
+                "sub_section": "/packages/30/section_definitions/5",
                 "repeats": true
               }
             ]
@@ -60150,7 +60445,7 @@ window.nomadArtifacts = {
             "name": "Category",
             "description": "Categories allow to organize metainfo definitions (not metainfo data like sections do) Each definition, including categories themselves, can belong to a set of categories.\nCategories therefore form a hierarchy of concepts that definitions can belong to, i.e.\nthey form a `is a` relationship.",
             "base_sections": [
-              "/packages/29/section_definitions/0"
+              "/packages/30/section_definitions/0"
             ]
           },
           {
@@ -60160,7 +60455,7 @@ window.nomadArtifacts = {
             "name": "Quantity",
             "description": "To define quantities, instantiate :class:`Quantity` as a class attribute values in a `section classes`. The name of a quantity is automatically taken from its `section class`\nattribute. You can provide all other attributes to the constructor with keyword arguments\n\nSee :ref:`metainfo-sections` to learn about `section classes`.\nIn Python terms, ``Quantity`` is a descriptor. Descriptors define how to get and\nset attributes in a Python object. This allows us to use sections like regular\nPython objects and quantity like regular Python attributes.\n\nEach quantity must define a basic data type and a shape. The values of a quantity must\nfulfil the given type. The default shape is a single value. Quantities can also have\nphysical units. Units are applied to all values.",
             "base_sections": [
-              "/packages/29/section_definitions/2"
+              "/packages/30/section_definitions/2"
             ],
             "constraints": [
               "dimensions",
@@ -60313,7 +60608,7 @@ window.nomadArtifacts = {
             "name": "SubSection",
             "description": "Like quantities, subsections are defined in a `section class` as attributes of this class. Unlike quantities, each subsection definition becomes a property of\nthe corresponding `section definition` (parent). A subsection definition references\nanother `section definition` as the subsection (child). As a consequence, parent\n`section instances` can contain child `section instances` as subsections.\n\nContrary to the old NOMAD metainfo, we distinguish between subsection the section\nand subsection the property. This allows to use on child `section definition` as\nsubsection of many parent `section definitions`.",
             "base_sections": [
-              "/packages/29/section_definitions/2"
+              "/packages/30/section_definitions/2"
             ],
             "constraints": [
               "has_sub_section"
@@ -60332,7 +60627,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/29/section_definitions/3"
+                  "type_data": "/packages/30/section_definitions/3"
                 }
               },
               {
@@ -60387,7 +60682,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "packages",
                 "description": "Packages in this environment.",
-                "sub_section": "/packages/29/section_definitions/4",
+                "sub_section": "/packages/30/section_definitions/4",
                 "repeats": true
               }
             ]
@@ -60548,7 +60843,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 30,
+        "m_parent_index": 31,
         "m_parent_sub_section": "packages",
         "name": "simulationworkflowschema.chemical_reaction",
         "section_definitions": [
@@ -60558,7 +60853,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ChemicalReactionMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -60582,7 +60877,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ChemicalReactionResults",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "quantities": [
               {
@@ -60617,7 +60912,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ChemicalReaction",
             "base_sections": [
-              "/packages/34/section_definitions/2"
+              "/packages/12/section_definitions/2"
             ],
             "sub_sections": [
               {
@@ -60625,7 +60920,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/30/section_definitions/0"
+                "sub_section": "/packages/31/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -60633,9 +60928,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/30/section_definitions/1"
+                "sub_section": "/packages/31/section_definitions/1"
               }
             ]
           }
@@ -60643,7 +60938,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 31,
+        "m_parent_index": 32,
         "m_parent_sub_section": "packages",
         "name": "simulationworkflowschema.dmft",
         "section_definitions": [
@@ -60654,7 +60949,7 @@ window.nomadArtifacts = {
             "name": "DFTPlusTBPlusDMFTResults",
             "description": "Groups DFT, TB and DMFT outputs: band gaps (all), DOS (DFT, TB), band structures (DFT, TB), Greens functions (DMFT). The ResultsNormalizer takes care\nof adding a label 'DFT', 'PROJECTION, or 'DMFT' in the method `get_dmft_workflow_properties`.",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -60662,7 +60957,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -60670,7 +60965,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "tb_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -60678,7 +60973,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               }
             ]
@@ -60690,7 +60985,7 @@ window.nomadArtifacts = {
             "name": "DFTPlusTBPlusDMFTMethod",
             "description": "Specifies all DFT, TB and DMFT input methodologies: starting XC functional, electrons representation (basis set), TB method reference, DMFT method reference.",
             "base_sections": [
-              "/packages/34/section_definitions/6"
+              "/packages/12/section_definitions/6"
             ],
             "quantities": [
               {
@@ -60724,7 +61019,7 @@ window.nomadArtifacts = {
             "name": "DFTPlusTBPlusDMFT",
             "description": "The DMFT workflow is generated in an extra EntryArchive IF both the TB SinglePoint and the DMFT SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
-              "/packages/34/section_definitions/5"
+              "/packages/12/section_definitions/5"
             ],
             "sub_sections": [
               {
@@ -60732,7 +61027,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/31/section_definitions/1"
+                "sub_section": "/packages/32/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -60740,9 +61035,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/31/section_definitions/0"
+                "sub_section": "/packages/32/section_definitions/0"
               }
             ]
           }
@@ -60750,7 +61045,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 32,
+        "m_parent_index": 33,
         "m_parent_sub_section": "packages",
         "name": "simulationworkflowschema.elastic",
         "section_definitions": [
@@ -60761,7 +61056,7 @@ window.nomadArtifacts = {
             "name": "StrainDiagrams",
             "description": "Section containing the information regarding the elastic strains.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -60862,7 +61157,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ElasticMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -61318,7 +61613,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "strain_diagrams",
-                "sub_section": "/packages/32/section_definitions/0",
+                "sub_section": "/packages/33/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -61329,7 +61624,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Elastic",
             "base_sections": [
-              "/packages/34/section_definitions/3"
+              "/packages/12/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -61337,7 +61632,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/32/section_definitions/1"
+                "sub_section": "/packages/33/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -61345,9 +61640,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/32/section_definitions/2"
+                "sub_section": "/packages/33/section_definitions/2"
               }
             ]
           }
@@ -61355,7 +61650,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 33,
+        "m_parent_index": 34,
         "m_parent_sub_section": "packages",
         "name": "simulationworkflowschema.equation_of_state",
         "section_definitions": [
@@ -61365,7 +61660,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -61389,7 +61684,7 @@ window.nomadArtifacts = {
             "name": "EOSFit",
             "description": "Section containing results of an equation of state fit.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -61490,7 +61785,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateResults",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "quantities": [
               {
@@ -61542,7 +61837,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eos_fit",
-                "sub_section": "/packages/33/section_definitions/1",
+                "sub_section": "/packages/34/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -61553,104 +61848,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfState",
             "base_sections": [
-              "/packages/34/section_definitions/3"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "method",
-                "sub_section": "/packages/33/section_definitions/0"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "sub_sections",
-                "name": "results",
-                "categories": [
-                  "/packages/26/category_definitions/0"
-                ],
-                "sub_section": "/packages/33/section_definitions/2"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 34,
-        "m_parent_sub_section": "packages",
-        "name": "simulationworkflowschema.general",
-        "section_definitions": [
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 0,
-            "m_parent_sub_section": "section_definitions",
-            "name": "SimulationWorkflowMethod",
-            "base_sections": [
-              "/packages/24/section_definitions/0"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 1,
-            "m_parent_sub_section": "section_definitions",
-            "name": "SimulationWorkflowResults",
-            "base_sections": [
-              "/packages/24/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "calculation_result_ref",
-                "description": "Reference to calculation result. In the case of serial workflows, this corresponds\nto the final step in the simulation. For the parallel case, it refers to the reference calculation.",
-                "categories": [
-                  "/packages/26/category_definitions/0"
-                ],
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/40"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "n_calculations",
-                "description": "Number of calculations in workflow.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "calculations_ref",
-                "description": "List of references to each calculation section in the simulation.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/40"
-                },
-                "shape": [
-                  "n_calculations"
-                ]
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 2,
-            "m_parent_sub_section": "section_definitions",
-            "name": "SimulationWorkflow",
-            "base_sections": [
-              "/packages/27/section_definitions/3"
+              "/packages/12/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -61666,207 +61864,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/34/section_definitions/1"
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 3,
-            "m_parent_sub_section": "section_definitions",
-            "name": "ParallelSimulation",
-            "base_sections": [
-              "/packages/34/section_definitions/2"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
-            "m_parent_sub_section": "section_definitions",
-            "name": "SerialSimulation",
-            "base_sections": [
-              "/packages/34/section_definitions/2"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
-            "m_parent_sub_section": "section_definitions",
-            "name": "BeyondDFT",
-            "description": "Base class used to normalize standard workflows beyond DFT containing two specific SinglePoint tasks (GWWorkflow = DFT + GW, DMFTWorkflow = DFT + DMFT,\nMaxEntWorkflow = DMFT + MaxEnt, and so on) and store the outputs in the self.results\nsection.",
-            "base_sections": [
-              "/packages/34/section_definitions/4"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
-            "m_parent_sub_section": "section_definitions",
-            "name": "DFTMethod",
-            "description": "Base class defining the DFT input methodologies: starting XC functional and electrons representation (basis set).",
-            "base_sections": [
-              "/packages/34/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "starting_point",
-                "description": "Reference to the starting point (XC functional or HF) used.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/8/section_definitions/22"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "electrons_representation",
-                "description": "Reference to the basis set used.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/8/section_definitions/18"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
-            "m_parent_sub_section": "section_definitions",
-            "name": "ElectronicStructureOutputs",
-            "description": "Base class defining the typical output properties of any electronic structure SinglePoint calculation: DFT, TB, DMFT, GW, MaxEnt, XS.",
-            "base_sections": [
-              "/packages/34/section_definitions/1"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "band_gap",
-                "description": "Reference to the band gap section.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/19"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "dos",
-                "description": "Reference to the density of states section.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/17"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "band_structure",
-                "description": "Reference to the band structure section.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/14"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "greens_functions",
-                "description": "Ref to the Green functions section.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/29"
-                },
-                "shape": [
-                  "*"
-                ]
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
-            "m_parent_sub_section": "section_definitions",
-            "name": "MagneticOutputs",
-            "description": "Base class defining the typical output properties of magnetic SinglePoint calculations.",
-            "base_sections": [
-              "/packages/34/section_definitions/1"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "magnetic_shielding",
-                "description": "Reference to the magnetic shielding tensors.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/34"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "electric_field_gradient",
-                "description": "Reference to the electric field gradient tensors.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/35"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "spin_spin_coupling",
-                "description": "Reference to the spin-spin coupling tensors.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/36"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "magnetic_susceptibility_nmr",
-                "description": "Reference to the magnetic susceptibility tensors.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/10/section_definitions/37"
-                },
-                "shape": [
-                  "*"
-                ]
+                "sub_section": "/packages/34/section_definitions/2"
               }
             ]
           }
@@ -61884,7 +61884,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimizationMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -62010,7 +62010,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimizationResults",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "quantities": [
               {
@@ -62128,7 +62128,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimization",
             "base_sections": [
-              "/packages/34/section_definitions/4"
+              "/packages/12/section_definitions/4"
             ],
             "sub_sections": [
               {
@@ -62144,7 +62144,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/35/section_definitions/1"
               }
@@ -62165,7 +62165,7 @@ window.nomadArtifacts = {
             "name": "DFTPlusGWResults",
             "description": "Groups DFT and GW outputs: band gaps, DOS, band structures. The ResultsNormalizer takes care of adding a label 'DFT' or 'GW' in the method `get_gw_workflow_properties`.",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -62173,7 +62173,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -62181,7 +62181,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               }
             ]
@@ -62193,7 +62193,7 @@ window.nomadArtifacts = {
             "name": "DFTPlusGWMethod",
             "description": "Specifies both DFT and GW input methodologies: starting XC functional, electrons representation (basis set), GW method reference.",
             "base_sections": [
-              "/packages/34/section_definitions/6"
+              "/packages/12/section_definitions/6"
             ],
             "quantities": [
               {
@@ -62216,7 +62216,7 @@ window.nomadArtifacts = {
             "name": "DFTPlusGW",
             "description": "The GW workflow is generated in an extra EntryArchive IF both the DFT SinglePoint and the GW SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
-              "/packages/34/section_definitions/5"
+              "/packages/12/section_definitions/5"
             ],
             "sub_sections": [
               {
@@ -62232,7 +62232,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/36/section_definitions/0"
               }
@@ -62253,7 +62253,7 @@ window.nomadArtifacts = {
             "name": "DMFTPlusMaxEntResults",
             "description": "Groups DMFT and MaxEnt outputs: greens functions (DMFT, MaxEnt), band gaps (MaxEnt), DOS (MaxEnt), band structures (MaxEnt). The ResultsNormalizer takes care of adding a\nlabel 'DMFT' or 'MaxEnt' in the method `get_maxent_workflow_properties`.",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -62261,7 +62261,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -62269,7 +62269,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "maxent_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               }
             ]
@@ -62281,7 +62281,7 @@ window.nomadArtifacts = {
             "name": "DMFTPlusMaxEntMethod",
             "description": "Specifies both DMFT and MaxEnt input methodologies: DMFT method references, MaxEnt method reference.",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -62315,7 +62315,7 @@ window.nomadArtifacts = {
             "name": "DMFTPlusMaxEnt",
             "description": "The MaxEnt (Maximum Entropy) workflow is generated in an extra EntryArchive IF both the DMFT SinglePoint and the MaxEnt SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
-              "/packages/34/section_definitions/5"
+              "/packages/12/section_definitions/5"
             ],
             "sub_sections": [
               {
@@ -62331,7 +62331,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/37/section_definitions/0"
               }
@@ -62352,7 +62352,7 @@ window.nomadArtifacts = {
             "name": "ThermostatParameters",
             "description": "Section containing the parameters pertaining to the thermostat for a molecular dynamics run.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -62528,7 +62528,7 @@ window.nomadArtifacts = {
             "name": "BarostatParameters",
             "description": "Section containing the parameters pertaining to the barostat for a molecular dynamics run.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -62730,7 +62730,7 @@ window.nomadArtifacts = {
             "name": "Lambdas",
             "description": "Section for storing all lambda parameters for free energy perturbation",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -62774,7 +62774,7 @@ window.nomadArtifacts = {
             "name": "FreeEnergyCalculationParameters",
             "description": "Section containing the parameters pertaining to a free energy calculation workflow that interpolates between two system states (defined via the interpolation parameter lambda).\nThe parameters are stored for each molecular dynamics run separately, to be referenced\nby the overarching workflow.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -62907,7 +62907,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamicsMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -63066,7 +63066,7 @@ window.nomadArtifacts = {
             "name": "Property",
             "description": "Generic parent section for all property types.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -63955,7 +63955,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamics",
             "base_sections": [
-              "/packages/34/section_definitions/4"
+              "/packages/12/section_definitions/4"
             ],
             "sub_sections": [
               {
@@ -63971,7 +63971,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/38/section_definitions/19"
               }
@@ -63991,7 +63991,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PhononMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64211,7 +64211,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Phonon",
             "base_sections": [
-              "/packages/34/section_definitions/3"
+              "/packages/12/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -64227,7 +64227,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/39/section_definitions/1"
               }
@@ -64248,7 +64248,7 @@ window.nomadArtifacts = {
             "name": "PhotonPolarizationResults",
             "description": "Groups all polarization outputs: spectrum.",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "quantities": [
               {
@@ -64285,7 +64285,7 @@ window.nomadArtifacts = {
             "name": "PhotonPolarizationMethod",
             "description": "Defines the full macroscopic dielectric tensor methodology: BSE method reference.",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64308,7 +64308,7 @@ window.nomadArtifacts = {
             "name": "PhotonPolarization",
             "description": "The PhotonPolarization workflow is generated in an extra EntryArchive FOR all polarization EntryArchives present in the upload. It groups them for a set of given method parameters.\n\nThis entry is also recognized as the full macroscopic dielectric tensor entry (e.g. calculated\nvia BSE).",
             "base_sections": [
-              "/packages/34/section_definitions/3"
+              "/packages/12/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -64324,7 +64324,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/40/section_definitions/0"
               }
@@ -64344,7 +64344,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SinglePointResults",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "quantities": [
               {
@@ -64488,7 +64488,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SinglePointMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64511,7 +64511,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SinglePoint",
             "base_sections": [
-              "/packages/34/section_definitions/2"
+              "/packages/12/section_definitions/2"
             ],
             "sub_sections": [
               {
@@ -64527,7 +64527,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/41/section_definitions/0"
               }
@@ -64539,7 +64539,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ParallelSimulation",
             "base_sections": [
-              "/packages/34/section_definitions/2"
+              "/packages/12/section_definitions/2"
             ]
           }
         ]
@@ -64557,7 +64557,7 @@ window.nomadArtifacts = {
             "name": "FirstPrinciplesPlusTBResults",
             "description": "Groups first principles and TB outputs: band gaps, DOS, band structures. The ResultsNormalizer takes care of adding a label 'FirstPrinciples' or 'TB' in the method\n`get_tb_workflow_properties`.",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -64565,7 +64565,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "first_principles_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -64573,7 +64573,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "tb_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               }
             ]
@@ -64585,7 +64585,7 @@ window.nomadArtifacts = {
             "name": "FirstPrinciplesPlusTBMethod",
             "description": "Specifies both the first principles and the TB input methodologies.",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64619,7 +64619,7 @@ window.nomadArtifacts = {
             "name": "FirstPrinciplesPlusTB",
             "description": "The TB (tight-binding) workflow is generated in an extra EntryArchive IF both the first principles SinglePoint and the TB SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
-              "/packages/34/section_definitions/4"
+              "/packages/12/section_definitions/4"
             ],
             "sub_sections": [
               {
@@ -64635,7 +64635,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/42/section_definitions/0"
               }
@@ -64656,7 +64656,7 @@ window.nomadArtifacts = {
             "name": "Decomposition",
             "description": "Section containing information about the system to which an unstable compound will decompose to.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64704,7 +64704,7 @@ window.nomadArtifacts = {
             "name": "Stability",
             "description": "Section containing information regarding the stability of the system.",
             "base_sections": [
-              "/packages/24/section_definitions/0"
+              "/packages/25/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64789,7 +64789,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ThermodynamicsResults",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "quantities": [
               {
@@ -65051,7 +65051,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ThermodynamicsMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ]
           },
           {
@@ -65060,7 +65060,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Thermodynamics",
             "base_sections": [
-              "/packages/34/section_definitions/4"
+              "/packages/12/section_definitions/4"
             ],
             "sub_sections": [
               {
@@ -65076,7 +65076,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/43/section_definitions/2"
               }
@@ -65097,7 +65097,7 @@ window.nomadArtifacts = {
             "name": "XSResults",
             "description": "Groups DFT, GW and PhotonPolarization outputs: band gaps (DFT, GW), DOS (DFT, GW), band structures (DFT, GW), spectra (PhotonPolarization). The ResultsNormalizer takes\ncare of adding a label 'DFT' or 'GW' in the method `get_xs_workflow_properties`.",
             "base_sections": [
-              "/packages/34/section_definitions/1"
+              "/packages/12/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -65105,7 +65105,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -65113,7 +65113,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw_outputs",
-                "sub_section": "/packages/34/section_definitions/7",
+                "sub_section": "/packages/12/section_definitions/7",
                 "repeats": false
               },
               {
@@ -65132,7 +65132,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "XSMethod",
             "base_sections": [
-              "/packages/34/section_definitions/0"
+              "/packages/12/section_definitions/0"
             ]
           },
           {
@@ -65142,7 +65142,7 @@ window.nomadArtifacts = {
             "name": "XS",
             "description": "The XS workflow is generated in an extra EntryArchive IF both the DFT SinglePoint and the PhotonPolarization EntryArchives are present in the upload.",
             "base_sections": [
-              "/packages/34/section_definitions/5"
+              "/packages/12/section_definitions/5"
             ],
             "sub_sections": [
               {
@@ -65158,7 +65158,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "categories": [
-                  "/packages/26/category_definitions/0"
+                  "/packages/27/category_definitions/0"
                 ],
                 "sub_section": "/packages/44/section_definitions/0"
               }

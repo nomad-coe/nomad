@@ -4561,11 +4561,12 @@ window.nomadEnv = {
           "description": "Schema for the nomad run section.",
           "plugin_package": "runschema"
         },
-        "schema/simulation/workflow": {
-          "plugin_type": "schema",
-          "id": "schema/simulation/workflow",
-          "name": "simulationworkflowschema",
-          "description": "This is a collection of schemas for various types of simulation workflows.\n"
+        "simulationworkflowschema:simulationworkflow_schema_entry_point": {
+          "id": "simulationworkflowschema:simulationworkflow_schema_entry_point",
+          "entry_point_type": "schema_package",
+          "name": "SimulationWorkflowSchema",
+          "description": "Schema for the nomad simulation workflows.",
+          "plugin_package": "simulationworkflowschema"
         }
       }
     },
@@ -4638,6 +4639,17 @@ window.nomadEnv = {
         ],
         "homepage": "https://github.com/nomad-coe/nomad-schema-plugin-run.git",
         "name": "runschema",
+        "repository": null,
+        "version": "1.0"
+      },
+      "simulationworkflowschema": {
+        "description": "Simulation workflow schema plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "simulationworkflowschema:simulationworkflow_schema_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-schema-simulation-workflow-plugin",
+        "name": "simulationworkflowschema",
         "repository": null,
         "version": "1.0"
       }
