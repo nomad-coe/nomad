@@ -39,11 +39,8 @@ class SchemaInterface:
     @property
     def module(self):
         if self._module is None:
-            if isinstance(self._entry_point, SchemaPackageEntryPoint):
-                self._entry_point.load()
-                package = self._entry_point.plugin_package
-            elif isinstance(self._entry_point, Schema):
-                package = self._entry_point.python_package
+            self._entry_point.load()
+            package = self._entry_point.plugin_package
             self._module = importlib.import_module(package)
         return self._module
 
@@ -54,7 +51,7 @@ class SchemaInterface:
 simulationworkflowschema, runschema = None, None
 config.load_plugins()
 for entry_point in config.plugins.entry_points.filtered_values():
-    if entry_point.name == 'simulationworkflowschema':
+    if entry_point.name == 'SimulationWorkflowSchema':
         simulationworkflowschema = SchemaInterface(entry_point)
     elif entry_point.name == 'RunSchema':
         runschema = SchemaInterface(entry_point)

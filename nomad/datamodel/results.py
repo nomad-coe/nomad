@@ -49,7 +49,19 @@ from nomad.datamodel.optimade import Species as OptimadeSpecies  # noqa
 
 try:
     import runschema
+
+    runschema.run_schema_entry_point.load()
+    import runschema.method
+    import runschema.calculation
+    import runschema.system
+
     import simulationworkflowschema
+
+    simulationworkflowschema.simulationworkflow_schema_entry_point.load()
+    import simulationworkflowschema.equation_of_state
+    import simulationworkflowschema.geometry_optimization
+    import simulationworkflowschema.molecular_dynamics
+    import simulationworkflowschema.thermodynamics
 except Exception as e:
     logger = utils.get_logger(__name__)
     logger.error('Error importing simulation schemas.')
@@ -2227,10 +2239,10 @@ class MolecularDynamics(MSection):
         """,
     )
     if simulationworkflowschema:
-        time_step = simulationworkflowschema.MolecularDynamicsMethod.integration_timestep.m_copy()
+        time_step = simulationworkflowschema.molecular_dynamics.MolecularDynamicsMethod.integration_timestep.m_copy()
         time_step.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
 
-        ensemble_type = simulationworkflowschema.MolecularDynamicsMethod.thermodynamic_ensemble.m_copy()
+        ensemble_type = simulationworkflowschema.molecular_dynamics.MolecularDynamicsMethod.thermodynamic_ensemble.m_copy()
         ensemble_type.m_annotations['elasticsearch'] = Elasticsearch(
             material_entry_type
         )
@@ -2591,7 +2603,7 @@ class HeatCapacityConstantVolume(MSection):
     )
     if simulationworkflowschema:
         heat_capacities = Quantity(
-            type=simulationworkflowschema.ThermodynamicsResults.heat_capacity_c_v,
+            type=simulationworkflowschema.thermodynamics.ThermodynamicsResults.heat_capacity_c_v,
             shape=[],
             description="""
             Specific heat capacity values at constant volume.
@@ -2599,7 +2611,7 @@ class HeatCapacityConstantVolume(MSection):
         )
 
         temperatures = Quantity(
-            type=simulationworkflowschema.ThermodynamicsResults.temperature,
+            type=simulationworkflowschema.thermodynamics.ThermodynamicsResults.temperature,
             description="""
             The temperatures at which heat capacities are calculated.
             """,
@@ -2615,14 +2627,14 @@ class EnergyFreeHelmholtz(MSection):
     )
     if simulationworkflowschema:
         energies = Quantity(
-            type=simulationworkflowschema.ThermodynamicsResults.vibrational_free_energy_at_constant_volume,
+            type=simulationworkflowschema.thermodynamics.ThermodynamicsResults.vibrational_free_energy_at_constant_volume,
             shape=[],
             description="""
             The Helmholtz free energies per atom at constant volume.
             """,
         )
         temperatures = Quantity(
-            type=simulationworkflowschema.ThermodynamicsResults.temperature,
+            type=simulationworkflowschema.thermodynamics.ThermodynamicsResults.temperature,
             description="""
             The temperatures at which Helmholtz free energies are calculated.
             """,
@@ -2672,9 +2684,11 @@ class EnergyVolumeCurve(MSection):
         ],
     )
     if simulationworkflowschema:
-        volumes = Quantity(type=simulationworkflowschema.EquationOfStateResults.volumes)
+        volumes = Quantity(
+            type=simulationworkflowschema.equation_of_state.EquationOfStateResults.volumes
+        )
         energies_raw = Quantity(
-            type=simulationworkflowschema.EquationOfStateResults.energies
+            type=simulationworkflowschema.equation_of_state.EquationOfStateResults.energies
         )
         energies_fit = Quantity(
             type=simulationworkflowschema.equation_of_state.EOSFit.fitted_energies
@@ -2765,30 +2779,30 @@ class GeometryOptimization(MSection):
         )
     if simulationworkflowschema:
         energies = Quantity(
-            type=simulationworkflowschema.GeometryOptimizationResults.energies,
+            type=simulationworkflowschema.geometry_optimization.GeometryOptimizationResults.energies,
             description="""
             List of energy_total values gathered from the single configuration
             calculations that are a part of the optimization trajectory.
             """,
         )
-        type = simulationworkflowschema.GeometryOptimization.name.m_copy()
-        convergence_tolerance_energy_difference = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
+        type = simulationworkflowschema.geometry_optimization.GeometryOptimization.name.m_copy()
+        convergence_tolerance_energy_difference = simulationworkflowschema.geometry_optimization.GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
         convergence_tolerance_energy_difference.m_annotations['elasticsearch'] = (
             Elasticsearch(material_entry_type)
         )
-        convergence_tolerance_force_maximum = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
+        convergence_tolerance_force_maximum = simulationworkflowschema.geometry_optimization.GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
         convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = (
             Elasticsearch(material_entry_type)
         )
-        final_force_maximum = simulationworkflowschema.GeometryOptimizationResults.final_force_maximum.m_copy()
+        final_force_maximum = simulationworkflowschema.geometry_optimization.GeometryOptimizationResults.final_force_maximum.m_copy()
         final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
             material_entry_type
         )
-        final_energy_difference = simulationworkflowschema.GeometryOptimizationResults.final_energy_difference.m_copy()
+        final_energy_difference = simulationworkflowschema.geometry_optimization.GeometryOptimizationResults.final_energy_difference.m_copy()
         final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(
             material_entry_type
         )
-        final_displacement_maximum = simulationworkflowschema.GeometryOptimizationResults.final_displacement_maximum.m_copy()
+        final_displacement_maximum = simulationworkflowschema.geometry_optimization.GeometryOptimizationResults.final_displacement_maximum.m_copy()
         final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(
             material_entry_type
         )
