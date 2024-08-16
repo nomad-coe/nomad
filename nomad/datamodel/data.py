@@ -208,7 +208,7 @@ class UserReference(Reference):
         return value.user_id
 
 
-user_reference = UserReference()
+user_reference = UserReference
 
 
 class AuthorReference(Reference):
@@ -233,7 +233,7 @@ class AuthorReference(Reference):
         raise ValueError(f'Cannot serialize {value}.')
 
 
-author_reference = AuthorReference()
+author_reference = AuthorReference
 
 
 class Query(JSON):

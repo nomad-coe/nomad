@@ -426,7 +426,7 @@ def test_user_author(def_type, value, expected_name):
     assert quantity.m_proxy_value == value
     assert (
         quantity.m_proxy_type.target_section_def.name
-        == def_type.target_section_def.name
+        == def_type().target_section_def.name
     )
     assert quantity.m_proxy_section == section
     assert resolved_quantity.name == expected_name
@@ -443,6 +443,6 @@ def test_user_author(def_type, value, expected_name):
     assert deserialized_quantity.m_proxy_value == value
     assert (
         deserialized_quantity.m_proxy_type.target_section_def.name
-        == def_type.target_section_def.name
+        == def_type().target_section_def.name
     )
     assert resolved_deserialized_quantity.name == expected_name
