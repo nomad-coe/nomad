@@ -474,7 +474,24 @@ class Reference:
 
     @property
     def _proxy_type(self):
-        return self._definition.type if self._definition else SectionReference()
+        return SectionReference() if self._definition is None else self._definition.type
+
+    def _check_shape(self, value):
+        dimension: int = 0
+        target = value
+        while isinstance(target, list):
+            dimension += 1
+            if len(target) == 0:
+                break
+            # assuming consistent data
+            target = target[0]
+
+        if dimension != (
+            0 if self._definition is None else len(self._definition.shape)
+        ):
+            raise ValueError(f'Invalid shape for {value}.')
+
+        return value
 
     def serialize_self(self, section):
         if (context := section.m_root().m_context) is not None:
@@ -540,7 +557,7 @@ class Reference:
 
             return self._normalize_impl(section, _v)
 
-        return _convert(value)
+        return self._check_shape(_convert(value))
 
     def _serialize_impl(self, section, value):
         return _append_id(
