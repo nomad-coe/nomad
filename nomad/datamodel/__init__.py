@@ -19,7 +19,7 @@
 import sys
 
 from nomad.metainfo import Environment
-from .data import User, Author, user_reference, author_reference
+from .data import User, Author, UserReference, AuthorReference
 from .datamodel import (
     Dataset,
     EditableUserMetadata,

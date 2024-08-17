@@ -208,9 +208,6 @@ class UserReference(Reference):
         return value.user_id
 
 
-user_reference = UserReference
-
-
 class AuthorReference(Reference):
     def __init__(self):
         super().__init__(Author.m_def)
@@ -231,9 +228,6 @@ class AuthorReference(Reference):
             return value.m_to_dict()
 
         raise ValueError(f'Cannot serialize {value}.')
-
-
-author_reference = AuthorReference
 
 
 class Query(JSON):

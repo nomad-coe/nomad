@@ -95,8 +95,8 @@ from nomad.config import config
 from nomad.datamodel import (
     EntryArchive,
     EntryMetadata,
-    author_reference,
-    user_reference,
+    AuthorReference,
+    UserReference,
 )
 from nomad.groups import UserGroup
 from nomad.metainfo import Datetime, Package, Quantity
@@ -368,7 +368,7 @@ _entry_metadata_defaults = {
 _all_author_quantities = [
     quantity.name
     for quantity in EntryMetadata.m_def.all_quantities.values()
-    if quantity.type in [user_reference, author_reference]
+    if isinstance(quantity.type, (UserReference, AuthorReference))
 ]
 
 

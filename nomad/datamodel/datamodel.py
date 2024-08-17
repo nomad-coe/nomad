@@ -59,7 +59,7 @@ from ..metainfo.metainfo import Reference
 m_package = Package()
 
 from .results import Results  # noqa
-from .data import EntryData, ArchiveSection, User, user_reference, author_reference  # noqa
+from .data import EntryData, ArchiveSection, User, UserReference, AuthorReference  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.legacy_workflows import Workflow as LegacySimulationWorkflow  # noqa
 from .metainfo.workflow import Workflow  # noqa
@@ -184,7 +184,7 @@ class Dataset(MSection):
     entries = Quantity(type=str, shape=['*'], a_mongo=Mongo())
 
 
-class m_dataset_reference(Reference):
+class DatasetReference(Reference):
     def __init__(self):
         super().__init__(Dataset.m_def)
 
@@ -199,10 +199,6 @@ class m_dataset_reference(Reference):
             return value.m_proxy_value
 
         return value.dataset_id
-
-
-DatasetReference = m_dataset_reference
-dataset_reference = DatasetReference()
 
 
 class EditableUserMetadata(MCategory):
@@ -738,7 +734,7 @@ class EntryMetadata(MSection):
     )
 
     main_author = Quantity(
-        type=user_reference,
+        type=UserReference,
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The main author of the entry',
         a_auth_level=AuthLevel.admin,
@@ -747,7 +743,7 @@ class EntryMetadata(MSection):
 
     coauthors = Quantity(
         # Note: This attribute is not stored in ES
-        type=author_reference,
+        type=AuthorReference,
         shape=['0..*'],
         default=[],
         categories=[MongoUploadMetadata, EditableUserMetadata],
@@ -770,7 +766,7 @@ class EntryMetadata(MSection):
 
     entry_coauthors = Quantity(
         # Note: This attribute is not stored in ES
-        type=author_reference,
+        type=AuthorReference,
         shape=['0..*'],
         default=[],
         categories=[MongoEntryMetadata],
@@ -782,7 +778,7 @@ class EntryMetadata(MSection):
 
     reviewers = Quantity(
         # Note: This attribute is not stored in ES
-        type=user_reference,
+        type=UserReference,
         shape=['0..*'],
         default=[],
         categories=[MongoUploadMetadata, EditableUserMetadata],
@@ -804,7 +800,7 @@ class EntryMetadata(MSection):
     )
 
     authors = Quantity(
-        type=author_reference,
+        type=AuthorReference,
         shape=['0..*'],
         description='All authors (main author and co-authors)',
         derived=derive_authors,
@@ -814,7 +810,7 @@ class EntryMetadata(MSection):
     )
 
     writers = Quantity(
-        type=user_reference,
+        type=UserReference,
         shape=['0..*'],
         description='All writers (main author, upload coauthors)',
         derived=lambda entry: (
@@ -833,7 +829,7 @@ class EntryMetadata(MSection):
     )
 
     viewers = Quantity(
-        type=user_reference,
+        type=UserReference,
         shape=['0..*'],
         description='All viewers (main author, upload coauthors, and reviewers)',
         derived=lambda entry: (
@@ -853,7 +849,7 @@ class EntryMetadata(MSection):
     )
 
     datasets = Quantity(
-        type=dataset_reference,
+        type=DatasetReference(),
         shape=['0..*'],
         default=[],
         categories=[MongoEntryMetadata, EditableUserMetadata],
