@@ -20,7 +20,7 @@ from typing import cast
 import pytest
 import os.path
 
-from nomad.datamodel import user_reference, author_reference
+from nomad.datamodel import UserReference, AuthorReference
 from nomad.metainfo import (
     MSection,
     Quantity,
@@ -400,15 +400,15 @@ def test_parse_with_references(mainfile):
     'def_type, value, expected_name',
     [
         pytest.param(
-            user_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'
+            UserReference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'
         ),
         pytest.param(
-            author_reference,
+            AuthorReference,
             {'first_name': 'Mohammad', 'last_name': 'Nakhaee'},
             'Mohammad Nakhaee',
         ),
         pytest.param(
-            author_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'
+            AuthorReference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'
         ),
     ],
 )

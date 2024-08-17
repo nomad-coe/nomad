@@ -36,7 +36,7 @@ from nomad.datamodel.data import (
     ArchiveSection,
     BasicElnCategory,
     EntryData,
-    author_reference,
+    AuthorReference,
 )
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
@@ -123,7 +123,7 @@ m_package = Package(name='eln')
 
 class User(MSection):
     user = Quantity(
-        type=author_reference,
+        type=AuthorReference,
         description='The corresponding user for the activity.',
         a_eln=dict(component='AuthorEditQuantity'),
     )
