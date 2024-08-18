@@ -45,9 +45,9 @@ logger = get_logger(__name__)
 
 
 class ToolStateEnum(str, Enum):
-    running = ('running',)
-    starting = ('starting',)
-    stopping = ('stopping',)
+    running = 'running'
+    starting = 'starting'
+    stopping = 'stopping'
     stopped = 'stopped'
 
 

@@ -40,11 +40,11 @@ def url(*args, **kwargs):
 
 
 class Formats(str, Enum):
-    xml = ('xml',)
-    n3 = ('n3',)
-    turtle = ('turtle',)
-    nt = ('nt',)
-    pretty_xml = ('pretty-xml',)
+    xml = 'xml'
+    n3 = 'n3'
+    turtle = 'turtle'
+    nt = 'nt'
+    pretty_xml = 'pretty-xml'
     trig = 'trig'
 
 
