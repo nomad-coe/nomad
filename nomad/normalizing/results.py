@@ -1074,7 +1074,9 @@ class ResultsNormalizer(Normalizer):
                             )
                             msd.diffusion_constant_errors = (
                                 diffusion_constant.errors
-                                if isinstance(diffusion_constant.errors, list)
+                                if isinstance(
+                                    diffusion_constant.errors, (list, np.ndarray)
+                                )
                                 else [diffusion_constant.errors]
                             )
 
