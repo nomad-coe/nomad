@@ -1,4 +1,30 @@
 
+## 1.3.5 (2024-08-19)
+
+### Fixed (3 changes)
+
+- [Fix normalization of md errors](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/bb869beaf8f54c365b5fa36801c744f78c500dd2) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2038))
+- [Resolve "Bugfix: type conversion in PubChemPureSubstanceSection"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/89e811062c6fda4214e099c7bc131323cea44454) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1997))
+- [Fixed an issue with GUI access check not considering the viewer groups.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/330396f791b40728dceb0e46a7dc710ed652d14a) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1994))
+
+### Changed (8 changes)
+
+- [Add simulation workflow plugin](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/34f9b8c07e4e6ea578fb8fb3323baa054a19c97c) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2031))
+- [Changes the display nexus card logic to the new way a parser is loaded in and...](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/65155c5b4a4b6438a6a168d9322a6df7c3e4cbe9) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2026))
+- [Remove run submodule](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/b573fe26472520f4a4f463b4c91d632db67e0cd1) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2021))
+- [Move visible-for-all checkbox to upload overview](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/3f7f323456fa8be990ef8447d2c06660d8bea859) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2005))
+- [Keycloak js dependency update](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/aea9daf677d0b23aff62485434c1c6ce6cb56d1b) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2006))
+- [Migrate to Python311](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/ac33b51e5235cfb96e4c5a5d21eef5aaa51b38f1) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1918))
+- [Clean up prerelease python packages](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/86c8133aed50b1821252624ac416890f68e0b7b5) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1953))
+- [Resolve "Define a template for plots style"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/ad797a0817f1524714c7e52df205ca8590cbcb56) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1956))
+
+### Added (4 changes)
+
+- [Resolve "Preview plot from CLI parse"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7128244d6cde88eb259cbf41765cc5dd2cc81be0) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1773))
+- [Added new plugin entry point type for example uploads.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/05a7e2844d3fea33fa332c6d74998186cb650219) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1988))
+- [Resolve "Output of `QueryEditQuantity`"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/24441b348d8e90860780cc3bf37c0b9581e135f5) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1996))
+- [Added a new logarithmic scaling option for histograms and plot axes used in the search interface.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6f6bac344d1ad9d7471fa0124b0c4fecc71bcf3b) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1974))
+
 ## 1.3.4 (2024-07-11)
 
 ### Fixed (16 changes)
