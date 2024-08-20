@@ -242,7 +242,12 @@ async def start_tool(
         user_id=user.user_id, expires_in=config.north.nomad_access_token_expiry_time
     )
     body = {
-        'tool': {'image': tool.image, 'cmd': tool.cmd, 'privileged': tool.privileged},
+        'tool': {
+            'image': tool.image,
+            'cmd': tool.cmd,
+            'privileged': tool.privileged,
+            'default_url': tool.default_url,
+        },
         'environment': {
             'SUBFOLDER': f'{config.services.api_base_path.rstrip("/")}/north/user/{user.username}/',
             'JUPYTERHUB_CLIENT_API_URL': f'{config.north_url()}/hub/api',

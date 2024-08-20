@@ -46,12 +46,14 @@ if generate_profiles:
             )
         )
 
-        if tool.path_prefix:
-            profile['kubespawner_override']['default_url'] = tool.path_prefix
+        if tool.default_url:
+            profile['kubespawner_override']['default_url'] = tool.default_url
         if tool.cmd:
             profile['kubespawner_override']['cmd'] = tool.cmd
         if tool.privileged:
             profile['kubespawner_override']['privileged'] = tool.privileged
+            profile['kubespawner_override']['allow_privilege_escalation'] = True
+            profile['kubespawner_override']['uid'] = 0
 
 else:
     pre_puller = data.setdefault('jupyterhub', {}).setdefault('prePuller', {})
