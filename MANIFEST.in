@@ -20,17 +20,5 @@ include dependencies/parsers/electronic/README.md
 recursive-include dependencies/parsers/electronic/electronicparsers *.py *.json nomad_plugin.yaml
 include dependencies/parsers/workflow/README.md
 recursive-include dependencies/parsers/workflow/workflowparsers *.py nomad_plugin.yaml
-include dependencies/normalizers/simulation/workflow/README.md
-recursive-include dependencies/normalizers/simulation/workflow/simulationworkflownormalizer *.py nomad_plugin.yaml
-include dependencies/normalizers/simulation/dos/README.md
-recursive-include dependencies/normalizers/simulation/dos/dosnormalizer *.py nomad_plugin.yaml
-include dependencies/normalizers/simulation/band_structure/README.md
-recursive-include dependencies/normalizers/simulation/band_structure/bandstructurenormalizer *.py nomad_plugin.yaml
-include dependencies/normalizers/simulation/system/README.md
-recursive-include dependencies/normalizers/simulation/system/systemnormalizer *.py nomad_plugin.yaml
-include dependencies/normalizers/simulation/soap/README.md
-recursive-include dependencies/normalizers/simulation/soap/soapnormalizer *.py nomad_plugin.yaml
-include dependencies/normalizers/simulation/spectra/README.md
-recursive-include dependencies/normalizers/simulation/spectra/spectranormalizer *.py nomad_plugin.yaml
 include dependencies/parsers/simulation/README.md
 recursive-include dependencies/parsers/simulation/simulationparsers *.py

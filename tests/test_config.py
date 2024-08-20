@@ -181,26 +181,23 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
             {
                 'plugins': {
                     'options': {
-                        'normalizers/simulation/dos': {
+                        'dosnormalizer:dos_normalizer_entry_point': {
                             'name': 'yaml',
                         }
                     }
                 }
             },
-            {'plugins': {'include': ['normalizers/simulation/dos']}},
+            {'plugins': {'include': ['dosnormalizer:dos_normalizer_entry_point']}},
             {
                 'plugins': {
                     'entry_points': {
-                        'include': ['normalizers/simulation/dos'],
+                        'include': ['dosnormalizer:dos_normalizer_entry_point'],
                         'options': {
-                            'normalizers/simulation/dos': {
+                            'dosnormalizer:dos_normalizer_entry_point': {
                                 'name': 'yaml',
-                                'python_package': 'dosnormalizer',
-                                'description': 'This is the normalizer for DOS in NOMAD.\n',
-                                'plugin_documentation_url': None,
-                                'plugin_source_code_url': None,
-                                'normalizer_class_name': 'dosnormalizer.DosNormalizer',
-                                'plugin_type': 'normalizer',
+                                'plugin_package': 'dosnormalizer',
+                                'description': 'Normalizer for the DOS data.',
+                                'entry_point_type': 'normalizer',
                             }
                         },
                     }

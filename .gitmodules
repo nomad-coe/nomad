@@ -32,24 +32,6 @@
 [submodule "examples/plugins/normalizer"]
 	path = examples/plugins/normalizer
 	url = https://github.com/nomad-coe/nomad-normalizer-plugin-example.git
-[submodule "dependencies/normalizers/simulation/workflow"]
-	path = dependencies/normalizers/simulation/workflow
-	url = https://github.com/nomad-coe/nomad-normalizer-plugin-simulation-workflow.git
-[submodule "dependencies/normalizers/simulation/dos"]
-	path = dependencies/normalizers/simulation/dos
-	url = https://github.com/nomad-coe/nomad-normalizer-plugin-dos.git
-[submodule "dependencies/normalizers/simulation/band_structure"]
-	path = dependencies/normalizers/simulation/band_structure
-	url = https://github.com/nomad-coe/nomad-normalizer-plugin-bandstructure.git
-[submodule "dependencies/normalizers/simulation/system"]
-	path = dependencies/normalizers/simulation/system
-	url = https://github.com/nomad-coe/nomad-normalizer-plugin-system.git
-[submodule "dependencies/normalizers/simulation/soap"]
-	path = dependencies/normalizers/simulation/soap
-	url = https://github.com/nomad-coe/nomad-normalizer-plugin-soap.git
-[submodule "dependencies/normalizers/simulation/spectra"]
-	path = dependencies/normalizers/simulation/spectra
-	url = https://github.com/nomad-coe/nomad-normalizer-plugin-spectra.git
 [submodule "dependencies/parsers/simulation"]
 	path = dependencies/parsers/simulation
 	url = https://github.com/nomad-coe/simulation-parsers.git
