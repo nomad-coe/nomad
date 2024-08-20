@@ -17,7 +17,7 @@ async-property==0.2.2     # via python-keycloak, -r requirements.txt
 atpublic==5.0             # via aiosmtpd
 attrs==24.2.0             # via aiosmtpd, jsonschema, -r requirements.txt
 babel==2.16.0             # via mkdocs-git-revision-date-localized-plugin, mkdocs-material, sphinx, -r requirements.txt
-backports-tarfile==1.2.0 ; python_version < '3.12'  # via jaraco-context
+backports-tarfile==1.2.0 ; python_full_version < '3.12'  # via jaraco-context
 bagit==1.8.1              # via -r requirements.txt, nomad-lab (pyproject.toml)
 basicauth==0.4.1          # via -r requirements.txt, nomad-lab (pyproject.toml)
 beautifulsoup4==4.12.3    # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -26,7 +26,7 @@ biopython==1.84           # via mdanalysis, -r requirements.txt
 bitarray==2.9.2           # via -r requirements.txt, nomad-lab (pyproject.toml)
 blinker==1.8.2            # via flask, -r requirements.txt
 build==1.2.1              # via nomad-lab (pyproject.toml)
-cachetools==5.4.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
+cachetools==5.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 celery==5.4.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 certifi==2024.7.4         # via elasticsearch, httpcore, httpx, netcdf4, requests, -r requirements.txt
 certipy==0.1.3            # via jupyterhub, -r requirements.txt
@@ -68,9 +68,9 @@ fqdn==1.5.1               # via jsonschema, -r requirements.txt
 ghp-import==2.1.0         # via mkdocs
 gitdb==4.0.11             # via gitpython, -r requirements.txt
 gitpython==3.1.43         # via mkdocs-git-revision-date-localized-plugin, -r requirements.txt, nomad-lab (pyproject.toml)
-greenlet==3.0.3 ; (python_version < '3.13' and platform_machine == 'AMD64') or (python_version < '3.13' and platform_machine == 'WIN32') or (python_version < '3.13' and platform_machine == 'aarch64') or (python_version < '3.13' and platform_machine == 'amd64') or (python_version < '3.13' and platform_machine == 'ppc64le') or (python_version < '3.13' and platform_machine == 'win32') or (python_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy, -r requirements.txt
+greenlet==3.0.3 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy, -r requirements.txt
 griddataformats==1.0.2    # via mdanalysis, -r requirements.txt
-gsd==3.3.0                # via mdanalysis, -r requirements.txt
+gsd==3.3.1                # via mdanalysis, -r requirements.txt
 gunicorn==21.2.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 h11==0.14.0               # via httpcore, uvicorn, -r requirements.txt
 h5grove==1.3.0            # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -89,7 +89,7 @@ isodate==0.6.1            # via rdflib, -r requirements.txt
 isoduration==20.11.0      # via jsonschema, -r requirements.txt
 itsdangerous==2.2.0       # via flask, -r requirements.txt, nomad-lab (pyproject.toml)
 jaraco-classes==3.4.0     # via keyring
-jaraco-context==5.3.0     # via keyring
+jaraco-context==6.0.1     # via keyring
 jaraco-functools==4.0.2   # via keyring
 jeepney==0.8.0 ; sys_platform == 'linux'  # via keyring, secretstorage
 jinja2==3.1.4             # via flask, jupyterhub, mkdocs, mkdocs-macros-plugin, mkdocs-material, sphinx, -r requirements.txt
@@ -110,7 +110,7 @@ lxml==5.3.0               # via lxml-html-clean, -r requirements.txt, nomad-lab 
 lxml-html-clean==0.2.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 m2r==0.2.1                # via -r requirements.txt, nomad-lab (pyproject.toml)
 mako==1.3.5               # via alembic, -r requirements.txt
-markdown==3.6             # via mkdocs, mkdocs-click, mkdocs-material, pymdown-extensions
+markdown==3.7             # via mkdocs, mkdocs-click, mkdocs-material, pymdown-extensions
 markupsafe==2.1.5         # via jinja2, mako, mkdocs, werkzeug, -r requirements.txt, nomad-lab (pyproject.toml)
 matid==2.1.0              # via -r requirements.txt, nomad-lab (pyproject.toml)
 matplotlib==3.9.2         # via ase, asr, mdanalysis, phonopy, pymatgen, -r requirements.txt
@@ -121,10 +121,10 @@ mistune==3.0.2            # via m2r, -r requirements.txt
 mkdocs==1.6.0             # via mkdocs-git-revision-date-localized-plugin, mkdocs-macros-plugin, mkdocs-material, mkdocs-redirects, nomad-lab (pyproject.toml)
 mkdocs-click==0.8.1       # via nomad-lab (pyproject.toml)
 mkdocs-get-deps==0.2.0    # via mkdocs
-mkdocs-git-revision-date-localized-plugin==1.2.6  # via nomad-lab (pyproject.toml)
+mkdocs-git-revision-date-localized-plugin==1.2.7  # via nomad-lab (pyproject.toml)
 mkdocs-glightbox==0.4.0   # via nomad-lab (pyproject.toml)
 mkdocs-macros-plugin==1.0.5  # via nomad-lab (pyproject.toml)
-mkdocs-material==9.5.31   # via nomad-lab (pyproject.toml)
+mkdocs-material==9.5.32   # via nomad-lab (pyproject.toml)
 mkdocs-material-extensions==1.3.1  # via mkdocs-material, nomad-lab (pyproject.toml)
 mkdocs-redirects==1.2.1   # via nomad-lab (pyproject.toml)
 mmtf-python==1.1.3        # via mdanalysis, -r requirements.txt
@@ -153,7 +153,7 @@ packaging==24.1           # via build, deprecation, gunicorn, jupyterhub, matplo
 paginate==0.5.6           # via mkdocs-material
 palettable==3.3.3         # via pymatgen, -r requirements.txt
 pamela==1.2.0 ; sys_platform != 'win32'  # via jupyterhub, -r requirements.txt
-pandas==1.5.3             # via nomad-openbis, panedr, pymatgen, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
+pandas==2.2.2             # via nomad-openbis, panedr, pymatgen, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
 panedr==0.8.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 parmed==4.2.2             # via -r requirements.txt, nomad-lab (pyproject.toml)
 pathspec==0.12.1          # via mkdocs
@@ -216,8 +216,8 @@ rfc3986==2.0.0            # via twine
 rfc3987==1.3.8            # via jsonschema, -r requirements.txt
 rope==0.21.0              # via nomad-lab (pyproject.toml)
 ruamel-yaml==0.18.6       # via jupyter-telemetry, oauthenticator, pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
-ruamel-yaml-clib==0.2.8 ; python_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -r requirements.txt
-ruff==0.6.0               # via nomad-lab (pyproject.toml)
+ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -r requirements.txt
+ruff==0.6.1               # via nomad-lab (pyproject.toml)
 runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 scikit-learn==1.5.1       # via matid, -r requirements.txt, nomad-lab (pyproject.toml)
 scipy==1.14.0             # via ase, griddataformats, matid, mdanalysis, pymatgen, scikit-learn, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -256,14 +256,14 @@ typed-ast==1.5.5          # via nomad-lab (pyproject.toml)
 types-python-dateutil==2.9.0.20240316  # via arrow, -r requirements.txt
 typing-extensions==4.12.2  # via alembic, fastapi, jwcrypto, mypy, pydantic, sqlalchemy, -r requirements.txt
 typish==1.9.3             # via nptyping, -r requirements.txt
-tzdata==2024.1            # via celery, -r requirements.txt
+tzdata==2024.1            # via celery, pandas, -r requirements.txt
 uncertainties==3.2.2      # via pymatgen, -r requirements.txt
 unidecode==1.3.2          # via -r requirements.txt, nomad-lab (pyproject.toml)
 uri-template==1.3.0       # via jsonschema, -r requirements.txt
 urllib3==1.26.19          # via docker, elasticsearch, nomad-openbis, requests, -r requirements.txt
-uv==0.2.36                # via nomad-lab (pyproject.toml)
+uv==0.2.37                # via nomad-lab (pyproject.toml)
 uvicorn==0.30.6           # via h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
-uvloop==0.19.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn, -r requirements.txt
+uvloop==0.20.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn, -r requirements.txt
 validators==0.18.2        # via -r requirements.txt, nomad-lab (pyproject.toml)
 vine==5.1.0               # via amqp, celery, kombu, -r requirements.txt
 watchdog==4.0.2           # via mkdocs
@@ -274,6 +274,6 @@ webencodings==0.5.1       # via html5lib, -r requirements.txt
 websockets==12.0          # via uvicorn, -r requirements.txt
 werkzeug==3.0.3           # via flask, -r requirements.txt
 wrapt==1.16.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
-xarray==2024.3.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
+xarray==2024.7.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 zipp==3.20.0              # via importlib-metadata, -r requirements.txt
 zipstream-new==1.1.5      # via -r requirements.txt, nomad-lab (pyproject.toml)

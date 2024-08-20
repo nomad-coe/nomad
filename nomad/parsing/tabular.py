@@ -711,17 +711,16 @@ def parse_columns(pd_dataframe, section: MSection):
     data: pd.DataFrame = pd_dataframe
 
     mapping = _create_column_to_quantity_mapping(section.m_def)  # type: ignore
+    data_dict = data.to_dict()
     for column in mapping:
         if '/' in column:
             # extract the sheet & col names if there is a '/' in the 'name'
             sheet_name, col_name = column.split('/')
-            if sheet_name not in list(data):
+            if sheet_name not in list(data_dict[0]):
                 raise ValueError(
                     f"The sheet name {sheet_name} doesn't exist in the excel file"
                 )
-
-            df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
-
+            df = pd.DataFrame.from_dict(data_dict[0][sheet_name])
             # trimming the column names from leading/trailing white-spaces
             _strip_whitespaces_from_df_columns(df)
             mapping[column](section, df.loc[:, col_name])
@@ -744,8 +743,9 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     import pandas as pd
 
     data: pd.DataFrame = pd_dataframe
+    data_dict = data.to_dict()
     sections: List[MSection] = []
-    sheet_name = 0
+    sheet_name = list(data_dict[0])[0]
 
     mapping = _create_column_to_quantity_mapping(section_def)  # type: ignore
 
@@ -759,11 +759,8 @@ def parse_table(pd_dataframe, section_def: Section, logger):
         if '/' in column:
             sheet_name = column.split('/')[0]
 
-    df = pd.DataFrame.from_dict(
-        data.loc[0, sheet_name]
-        if isinstance(sheet_name, str)
-        else data.iloc[0, sheet_name]
-    )
+    logger.info(f'Reading data from the sheet {sheet_name}!')
+    df = pd.DataFrame.from_dict(data_dict[0][sheet_name])
 
     # trimming the column names from leading/trailing white-spaces
     _strip_whitespaces_from_df_columns(df)
@@ -896,8 +893,6 @@ def read_table_data(
 ):
     import pandas as pd
 
-    df = pd.DataFrame()
-
     if file_or_path is None:
         file_or_path = path
 
@@ -905,27 +900,32 @@ def read_table_data(
         excel_file: pd.ExcelFile = pd.ExcelFile(
             file_or_path if isinstance(file_or_path, str) else file_or_path.name
         )
-        for sheet_name in excel_file.sheet_names:
-            df.loc[0, sheet_name] = [
-                pd.read_excel(
+        data = {
+            0: {
+                sheet: pd.read_excel(
                     excel_file,
                     skiprows=skiprows,
-                    sheet_name=sheet_name,
+                    sheet_name=sheet,
                     comment=comment,
                 ).to_dict()
-            ]
+                for sheet in excel_file.sheet_names
+            }
+        }
     else:
-        df.loc[0, 0] = [
-            pd.read_csv(
-                file_or_path,
-                engine='python',
-                comment=comment,
-                sep=sep if sep else separator,
-                skiprows=skiprows,
-                skipinitialspace=True,
-            ).to_dict()
-        ]
+        data = {
+            0: {
+                0: pd.read_csv(
+                    file_or_path,
+                    engine='python',
+                    comment=comment,
+                    sep=sep if sep else separator,
+                    skiprows=skiprows,
+                    skipinitialspace=True,
+                ).to_dict()
+            }
+        }
 
+    df = pd.DataFrame(data)
     return df
 
 
