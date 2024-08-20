@@ -198,13 +198,6 @@ where = [
     "dependencies/parsers/electronic",
     "dependencies/parsers/workflow",
     "dependencies/parsers/simulation",
-    "dependencies/normalizers/simulation/workflow",
-    "dependencies/normalizers/simulation/dos",
-    "dependencies/normalizers/simulation/band_structure",
-    "dependencies/normalizers/simulation/system",
-    "dependencies/normalizers/simulation/dos",
-    "dependencies/normalizers/simulation/soap",
-    "dependencies/normalizers/simulation/spectra",
 ]
 exclude = ["tests*"]
 namespaces = false

@@ -1558,24 +1558,6 @@ plugins:
     exclude:
       - nomad_porous_materials.normalizers:porositynormalizer
     options:
-      normalizers/simulation/band_structure:
-        plugin_type: normalizer
-        python_package: bandstructurenormalizer
-      normalizers/simulation/dos:
-        plugin_type: normalizer
-        python_package: dosnormalizer
-      normalizers/simulation/soap:
-        plugin_type: normalizer
-        python_package: soapnormalizer
-      normalizers/simulation/spectra:
-        plugin_type: normalizer
-        python_package: spectranormalizer
-      normalizers/simulation/system:
-        plugin_type: normalizer
-        python_package: systemnormalizer
-      normalizers/simulation/workflow:
-        plugin_type: normalizer
-        python_package: simulationworkflownormalizer
       parsers/abacus:
         plugin_type: parser
         mainfile_contents_re: \s*\n\s*WELCOME TO ABACUS

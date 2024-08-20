@@ -104,7 +104,7 @@ class NormalizerInterfaceNew:
         if name == '__name__':
             return self.normalizer.__class__.__name__
         if name == 'normalizer_level':
-            return self.level
+            return self.normalizer.normalizer_level or self.level
         return getattr(self.normalizer, name, None)
 
 

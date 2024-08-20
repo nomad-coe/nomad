@@ -2647,6 +2647,20 @@ window.nomadEnv = {
         "parsers/vasp"
       ],
       "options": {
+        "bandstructurenormalizer:bandstructure_normalizer_entry_point": {
+          "id": "bandstructurenormalizer:bandstructure_normalizer_entry_point",
+          "entry_point_type": "normalizer",
+          "name": "BandStructureNormalizer",
+          "description": "Normalizer for the band structure data.",
+          "plugin_package": "bandstructurenormalizer"
+        },
+        "dosnormalizer:dos_normalizer_entry_point": {
+          "id": "dosnormalizer:dos_normalizer_entry_point",
+          "entry_point_type": "normalizer",
+          "name": "DosNormalizer",
+          "description": "Normalizer for the DOS data.",
+          "plugin_package": "dosnormalizer"
+        },
         "nomad_aitoolkit.apps:aitoolkit": {
           "id": "nomad_aitoolkit.apps:aitoolkit",
           "entry_point_type": "app",
@@ -3375,42 +3389,6 @@ window.nomadEnv = {
           "name": "NOMADSimulations",
           "description": "A NOMAD plugin for FAIR schemas for simulation data.",
           "plugin_package": "nomad_simulations"
-        },
-        "normalizers/simulation/band_structure": {
-          "plugin_type": "normalizer",
-          "id": "normalizers/simulation/band_structure",
-          "name": "bandstructurenormalizer",
-          "description": "This is the normalizer for band structure in NOMAD.\n"
-        },
-        "normalizers/simulation/dos": {
-          "plugin_type": "normalizer",
-          "id": "normalizers/simulation/dos",
-          "name": "dosnormalizer",
-          "description": "This is the normalizer for DOS in NOMAD.\n"
-        },
-        "normalizers/simulation/soap": {
-          "plugin_type": "normalizer",
-          "id": "normalizers/simulation/soap",
-          "name": "soapnormalizer",
-          "description": "This is the normalizer for SOAP in NOMAD.\n"
-        },
-        "normalizers/simulation/spectra": {
-          "plugin_type": "normalizer",
-          "id": "normalizers/simulation/spectra",
-          "name": "spectranormalizer",
-          "description": "This is the normalizer for spectra in NOMAD.\n"
-        },
-        "normalizers/simulation/system": {
-          "plugin_type": "normalizer",
-          "id": "normalizers/simulation/system",
-          "name": "systemnormalizer",
-          "description": "This is the normalizer for system in NOMAD.\n"
-        },
-        "normalizers/simulation/workflow": {
-          "plugin_type": "normalizer",
-          "id": "normalizers/simulation/workflow",
-          "name": "simulationworkflownormalizer",
-          "description": "This is the normalizer for simulation workflows in NOMAD.\n"
         },
         "parsers/abacus": {
           "plugin_type": "parser",
@@ -4561,16 +4539,66 @@ window.nomadEnv = {
           "description": "Schema for the nomad run section.",
           "plugin_package": "runschema"
         },
+        "simulationworkflownormalizer:simulationworkflow_normalizer_entry_point": {
+          "id": "simulationworkflownormalizer:simulationworkflow_normalizer_entry_point",
+          "entry_point_type": "normalizer",
+          "name": "SimulationWorkflowNormalizer",
+          "description": "Normalizer for the simulation workflow data.",
+          "plugin_package": "simulationworkflownormalizer"
+        },
         "simulationworkflowschema:simulationworkflow_schema_entry_point": {
           "id": "simulationworkflowschema:simulationworkflow_schema_entry_point",
           "entry_point_type": "schema_package",
           "name": "SimulationWorkflowSchema",
           "description": "Schema for the nomad simulation workflows.",
           "plugin_package": "simulationworkflowschema"
+        },
+        "soapnormalizer:soap_normalizer_entry_point": {
+          "id": "soapnormalizer:soap_normalizer_entry_point",
+          "entry_point_type": "normalizer",
+          "name": "SoapNormalizer",
+          "description": "Normalizer for the SOAP data.",
+          "plugin_package": "soapnormalizer"
+        },
+        "spectranormalizer:spectra_normalizer_entry_point": {
+          "id": "spectranormalizer:spectra_normalizer_entry_point",
+          "entry_point_type": "normalizer",
+          "name": "SpectraNormalizer",
+          "description": "Normalizer for the spectra data.",
+          "plugin_package": "spectranormalizer"
+        },
+        "systemnormalizer:system_normalizer_entry_point": {
+          "id": "systemnormalizer:system_normalizer_entry_point",
+          "entry_point_type": "normalizer",
+          "name": "SystemNormalizer",
+          "description": "Normalizer for the system data.",
+          "plugin_package": "systemnormalizer"
         }
       }
     },
     "plugin_packages": {
+      "bandstructurenormalizer": {
+        "description": "Band structure normalizer plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "bandstructurenormalizer:bandstructure_normalizer_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-bandstructure",
+        "name": "bandstructurenormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
+      "dosnormalizer": {
+        "description": "DOS normalizer plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "dosnormalizer:dos_normalizer_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-dos",
+        "name": "dosnormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
       "nomad_aitoolkit": {
         "description": "Schema and app for AI Toolkit notebooks.",
         "documentation": null,
@@ -4642,6 +4670,17 @@ window.nomadEnv = {
         "repository": null,
         "version": "1.0"
       },
+      "simulationworkflownormalizer": {
+        "description": "Simulation workflow nomad plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "simulationworkflownormalizer:simulationworkflow_normalizer_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-simulation-workflow",
+        "name": "simulationworkflownormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
       "simulationworkflowschema": {
         "description": "Simulation workflow schema plugin for NOMAD.",
         "documentation": null,
@@ -4650,6 +4689,39 @@ window.nomadEnv = {
         ],
         "homepage": "https://github.com/nomad-coe/nomad-schema-simulation-workflow-plugin",
         "name": "simulationworkflowschema",
+        "repository": null,
+        "version": "1.0"
+      },
+      "soapnormalizer": {
+        "description": "SOAP nomad plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "soapnormalizer:soap_normalizer_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-soap",
+        "name": "soapnormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
+      "spectranormalizer": {
+        "description": "Spectra normalizer plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "spectranormalizer:spectra_normalizer_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-spectra",
+        "name": "spectranormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
+      "systemnormalizer": {
+        "description": "System normalizer plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "systemnormalizer:system_normalizer_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-system",
+        "name": "systemnormalizer",
         "repository": null,
         "version": "1.0"
       }

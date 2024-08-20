@@ -89,6 +89,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     It assumes that the :class:`SystemNormalizer` was run before.
     """
 
+    normalizer_level = 1
+
     def __init__(self):
         super().__init__(only_representatives=True)
 

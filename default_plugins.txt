@@ -3,5 +3,11 @@ git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@795a53f35ffa52604
 git+https://github.com/FAIRmat-NFDI/nomad-aitoolkit.git@b203f8eb28dc4b6771a39d5c5b7ad3d9d8583ac8
 nomad-simulations==0.0.1
 pynxtools[convert]==0.5.0
-git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@f5d348fec5cef89e76021b42e48ff49b1832034b
-git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@decd6bc6f7df21513c56f276dc663977c44a22b1
+git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@169029274e282a54df3292f6aa0d7bfbeb95ef9c
+git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@ada9074f8362f8afa331ddc2433994af0ff93ee2
+git+https://github.com/nomad-coe/nomad-normalizer-plugin-bandstructure.git@669f2c899bc4013975b1b38ca8af630fe2e8a930
+git+https://github.com/nomad-coe/nomad-normalizer-plugin-dos.git@90c92ba6d520df52fe73a571ebd103f36e9975a8
+git+https://github.com/nomad-coe/nomad-normalizer-plugin-soap.git@898416e70b8bb26d87a7a5b0644f831beec4f631
+git+https://github.com/nomad-coe/nomad-normalizer-plugin-spectra.git@04ecd6544afc3dc6e88e60a25152a125f0c6a5ed
+git+https://github.com/nomad-coe/nomad-normalizer-plugin-system.git@c849c947707f617e434e3ac95249ab33a90b9415
+git+https://github.com/nomad-coe/nomad-normalizer-plugin-simulation-workflow.git@22af484c9ff6ff0d6c26be0bac9c66fa64200235
