@@ -65,11 +65,18 @@ class NORTHTool(BaseModel):
     privileged: bool = Field(
         False, description='Whether the tool needs to run in privileged mode.'
     )
+    default_url: str = Field(
+        None,
+        description=(
+            'An optional path prefix that is added to the container URL to '
+            'reach the tool, e.g. "/lab" for jupyterlab.'
+        ),
+    )
     path_prefix: str = Field(
         None,
         description=(
             'An optional path prefix that is added to the container URL to '
-            'reach the tool, e.g. "lab/tree" for jupyterlab.'
+            'reach the files, e.g. "lab/tree" for jupyterlab.'
         ),
     )
     with_path: bool = Field(

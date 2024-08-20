@@ -65259,18 +65259,19 @@ window.nomadArtifacts = {
   "northTools": {
     "jupyter": {
       "short_description": "Basic jupyter run with an empty notebook or on given notebook file.",
-      "description": "### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/jupyter:latest",
+      "description": "### **Jupyter Notebook**: The Classic Notebook Interface\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/jupyter:refactor",
       "cmd": null,
       "image_pull_policy": "Always",
       "privileged": false,
+      "default_url": "/lab",
       "path_prefix": "lab/tree",
       "with_path": true,
       "file_extensions": [
         "ipynb"
       ],
       "mount_path": "/home/jovyan",
-      "icon": "jupyter_logo.svg",
+      "icon": "logo/jupyter.svg",
       "maintainer": [
         {
           "name": "Markus Scheidgen",
@@ -65281,18 +65282,19 @@ window.nomadArtifacts = {
     },
     "pyiron": {
       "short_description": "Jupyterlab with pyiron installed.",
-      "description": "## Pyiron: Complex workflows made easy\n\nFrom rapid prototyping to high performance computing in material science. [Homepage](https://pyiron.org/).",
+      "description": "### **Pyiron**: Complex workflows made easy\nFrom rapid prototyping to high performance computing in materials science. [Homepage](https://pyiron.org/).",
       "image": "pyiron/pyiron:latest",
       "cmd": null,
       "image_pull_policy": "Always",
       "privileged": false,
+      "default_url": "/lab",
       "path_prefix": "lab/tree",
       "with_path": true,
       "file_extensions": [
         "ipynb"
       ],
       "mount_path": "/home/jovyan",
-      "icon": "pyiron_logo.png",
+      "icon": "logo/pyiron.png",
       "maintainer": [
         {
           "name": "Markus Scheidgen",
@@ -65302,17 +65304,26 @@ window.nomadArtifacts = {
       "external_mounts": []
     },
     "nionswift": {
-      "short_description": "Run NionSwift to analyze data as well as prepare focus series reconstructions",
-      "description": "Run Nion Swift to analyze data.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop",
+      "short_description": "Run Nion Swift to analyze data as well as prepare focus series reconstructions in NOMAD.",
+      "description": "### **Nion Swift**:\nNion Swift is a software package for electron microscopy data analysis and visualization. It is designed to be easy to use and to provide a high degree of interactivity. [Homepage](https://nionswift.readthedocs.io/en/stable/).",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/nionswift:refactor",
       "cmd": null,
       "image_pull_policy": "Always",
-      "privileged": true,
+      "privileged": false,
+      "default_url": "/desktop",
       "path_prefix": null,
       "with_path": false,
-      "file_extensions": [],
-      "mount_path": "/config",
-      "icon": null,
+      "file_extensions": [
+        "tiff",
+        "tif",
+        "dm3",
+        "dm4",
+        "hdf5",
+        "h5",
+        "nion"
+      ],
+      "mount_path": "/home/jovyan",
+      "icon": "logo/nionswift.png",
       "maintainer": [
         {
           "name": "Sherjeel Shabih",
@@ -65322,14 +65333,15 @@ window.nomadArtifacts = {
       "external_mounts": []
     },
     "nexustools": {
-      "short_description": null,
-      "description": "Includes multiple NeXus tools for visualization and analysis.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop",
+      "short_description": "Analyse your NeXus files in NOMAD with several NeXus-compatible tools.",
+      "description": "### **NeXus**:\nIncludes multiple NeXus tools for visualization and analysis.",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/nexus:weptop-replacement",
       "cmd": null,
       "image_pull_policy": "Always",
-      "privileged": true,
+      "privileged": false,
+      "default_url": "/lab",
       "path_prefix": null,
-      "with_path": false,
+      "with_path": true,
       "file_extensions": [
         "nxs",
         "nx",
@@ -65340,8 +65352,8 @@ window.nomadArtifacts = {
         "hdf",
         "ipynb"
       ],
-      "mount_path": "/config",
-      "icon": null,
+      "mount_path": "/home/jovyan",
+      "icon": "logo/nexus.png",
       "maintainer": [
         {
           "name": "Sandor Brockhauser",
@@ -65350,21 +65362,111 @@ window.nomadArtifacts = {
       ],
       "external_mounts": []
     },
-    "ellips": {
-      "short_description": "An example for analyzing ellipsometric data.",
-      "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data. It shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry) application definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter:latest",
+    "fiji": {
+      "short_description": "Use FIJI to analyze and visualize your images in your NOMAD files.",
+      "description": "### **FIJI** (Fiji Is Just ImageJ): Image processing package\nIt can be used for tasks such as image editing, image analysis, and image processing. [Homepage](https://fiji.sc/).",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/fiji:weptop-replacement",
       "cmd": null,
       "image_pull_policy": "Always",
       "privileged": false,
-      "path_prefix": "lab/tree",
+      "default_url": "/desktop",
+      "path_prefix": null,
       "with_path": false,
+      "file_extensions": [
+        "tif",
+        "tiff",
+        "jpeg",
+        "png",
+        "gif",
+        "bmp",
+        "avi"
+      ],
+      "mount_path": "/home/jovyan",
+      "icon": "logo/fiji.png",
+      "maintainer": [
+        {
+          "name": "Markus K\u00fchbach",
+          "email": "markus.kuehbach@physik.hu-berlin.de"
+        }
+      ],
+      "external_mounts": []
+    },
+    "vesta": {
+      "short_description": "Run VESTA to analyse and visualize your crystal structures in your NOMAD files.",
+      "description": "### **VESTA**: Visualization for Electronic and STructural Analysis\nVESTA is a software program used for visualizing and analyzing crystal structures, electron density maps, and other three-dimensional data related to materials science and crystallography. [Homepage](http://jp-minerals.org/vesta/en/).",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/abtem:refactor",
+      "cmd": null,
+      "image_pull_policy": "Always",
+      "privileged": false,
+      "default_url": "/desktop",
+      "path_prefix": null,
+      "with_path": false,
+      "file_extensions": [
+        "vesta",
+        "cif",
+        "res",
+        "vasp",
+        "xyz",
+        "pdb",
+        "mcif",
+        "fsf",
+        "fcf",
+        "shelx",
+        "stl",
+        "cgo",
+        "wrl",
+        "pov",
+        "spf"
+      ],
+      "mount_path": "/home/jovyan",
+      "icon": "logo/vesta.png",
+      "maintainer": [
+        {
+          "name": "Markus K\u00fchbach",
+          "email": "markus.kuehbach@physik.hu-berlin.de"
+        }
+      ],
+      "external_mounts": []
+    },
+    "abtem": {
+      "short_description": "Electronic structure supported image simulation for transmission electron microscopy.",
+      "description": "### **abTEM, GPAW and VESTA**:\nVESTA, GPAW, and abTEM configured in one container for simulating images and diffraction patterns in transmission electron microscopy.",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/abtem:refactor",
+      "cmd": null,
+      "image_pull_policy": "Always",
+      "privileged": false,
+      "default_url": "/lab",
+      "path_prefix": null,
+      "with_path": true,
+      "file_extensions": [
+        "ipynb"
+      ],
+      "mount_path": "/home/jovyan",
+      "icon": "logo/abtem.png",
+      "maintainer": [
+        {
+          "name": "Markus K\u00fchbach",
+          "email": "markus.kuehbach@physik.hu-berlin.de"
+        }
+      ],
+      "external_mounts": []
+    },
+    "ellips": {
+      "short_description": "An example for analyzing ellipsometric data.",
+      "description": "### **Ellipsometry**:\nThis example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data. It shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry) application definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips:refactor",
+      "cmd": null,
+      "image_pull_policy": "Always",
+      "privileged": false,
+      "default_url": "/lab",
+      "path_prefix": "lab/tree",
+      "with_path": true,
       "file_extensions": [
         "ipynb",
         "nxs"
       ],
       "mount_path": "/home/jovyan",
-      "icon": "jupyter_logo.svg",
+      "icon": "logo/jupyter.svg",
       "maintainer": [
         {
           "name": "Florian Dobener",
@@ -65377,40 +65479,16 @@ window.nomadArtifacts = {
       ],
       "external_mounts": []
     },
-    "mpes": {
-      "short_description": "An example for analyzing mpes data.",
-      "description": "This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:\n\n- Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format. There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.\n- Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.\n- An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/mpes/webtop",
-      "cmd": null,
-      "image_pull_policy": "Always",
-      "privileged": true,
-      "path_prefix": null,
-      "with_path": false,
-      "file_extensions": [
-        "ipynb",
-        "nxs",
-        "h5",
-        "hdf5"
-      ],
-      "mount_path": "/config",
-      "icon": null,
-      "maintainer": [
-        {
-          "name": "Florian Dobener",
-          "email": "florian.dobener@physik.hu-berlin.de"
-        }
-      ],
-      "external_mounts": []
-    },
     "xps": {
       "short_description": "An example for analyzing XPS data.",
-      "description": "Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS SLE files into NeXus.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps/jupyter:master",
+      "description": "### **XPES**: X-ray Photoelectron Spectroscopy\nIncludes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS SLE files into NeXus.",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps:refactor",
       "cmd": null,
       "image_pull_policy": "Always",
       "privileged": false,
+      "default_url": "/lab",
       "path_prefix": "lab/tree",
-      "with_path": false,
+      "with_path": true,
       "file_extensions": [
         "ipynb",
         "nxs",
@@ -65418,7 +65496,7 @@ window.nomadArtifacts = {
         "hdf5"
       ],
       "mount_path": "/home/jovyan",
-      "icon": "jupyter_logo.svg",
+      "icon": "logo/jupyter.svg",
       "maintainer": [
         {
           "name": "Florian Dobener",
@@ -65437,13 +65515,14 @@ window.nomadArtifacts = {
     },
     "sts": {
       "short_description": "An example for analyzing SPM (STM / STS) experiment.",
-      "description": "This example is for two types of experiments: Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can transform the data from files generated by a the nanonis software into the NeXus application definition NXsts. The example contains data files from the two specific nanonis software versions generic 5e and generic 4.5.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter",
+      "description": "### **STS**: Scanning Tunneling Spectroscopy\nThis example is for two types of experiments: Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can transform the data from files generated by a the nanonis software into the NeXus application definition NXsts. The example contains data files from the two specific nanonis software versions generic 5e and generic 4.5.",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/sts:refactor",
       "cmd": null,
       "image_pull_policy": "Always",
       "privileged": false,
+      "default_url": "/lab",
       "path_prefix": "lab/tree",
-      "with_path": false,
+      "with_path": true,
       "file_extensions": [
         "ipynb",
         "nxs",
@@ -65451,7 +65530,7 @@ window.nomadArtifacts = {
         "hdf5"
       ],
       "mount_path": "/home/jovyan",
-      "icon": "jupyter_logo.svg",
+      "icon": "logo/jupyter.svg",
       "maintainer": [
         {
           "name": "Rubel Mozumder",
@@ -65460,98 +65539,21 @@ window.nomadArtifacts = {
       ],
       "external_mounts": []
     },
-    "webtop": {
-      "short_description": null,
-      "description": "Baseline webtop image for test",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop",
-      "cmd": null,
-      "image_pull_policy": "Always",
-      "privileged": true,
-      "path_prefix": null,
-      "with_path": false,
-      "file_extensions": [],
-      "mount_path": "/config",
-      "icon": null,
-      "maintainer": [
-        {
-          "name": "Sherjeel Shabih",
-          "email": "sherjeel.shabih@hu-berlin.de"
-        }
-      ],
-      "external_mounts": []
-    },
     "apmtools": {
       "short_description": "An example for analyzing atom probe data.",
-      "description": "Miscellaneous tools from the atom probe community:\nCurrently APTyzer, paraprobe-toolbox, and APAV",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop",
+      "description": "### **APM tools**: Atom Probe Microscopy tools\nMiscellaneous tools from the atom probe community:\nCurrently APTyzer, paraprobe-toolbox, and APAV",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/apmtools:refactor",
       "cmd": null,
       "image_pull_policy": "Always",
-      "privileged": true,
+      "privileged": false,
+      "default_url": "/lab",
       "path_prefix": null,
-      "with_path": false,
-      "file_extensions": [],
-      "mount_path": "/config",
-      "icon": "jupyter_logo.svg",
-      "maintainer": [
-        {
-          "name": "Markus K\u00fchbach",
-          "email": "markus.kuehbach@physik.hu-berlin.de"
-        }
+      "with_path": true,
+      "file_extensions": [
+        "ipynb"
       ],
-      "external_mounts": []
-    },
-    "fiji": {
-      "short_description": "ImageJ and Fiji for image processing",
-      "description": "ImageJ and Fiji with amongst others several electron-microscopy specific plug-ins",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/fiji-webtop",
-      "cmd": null,
-      "image_pull_policy": "Always",
-      "privileged": true,
-      "path_prefix": null,
-      "with_path": false,
-      "file_extensions": [],
-      "mount_path": "/config",
-      "icon": "jupyter_logo.svg",
-      "maintainer": [
-        {
-          "name": "Markus K\u00fchbach",
-          "email": "markus.kuehbach@physik.hu-berlin.de"
-        }
-      ],
-      "external_mounts": []
-    },
-    "frwr": {
-      "short_description": "Inline electron holography by C. Koch",
-      "description": "FRWR3 in-line holography/focus series reconstruction code",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/frwr-webtop",
-      "cmd": null,
-      "image_pull_policy": "Always",
-      "privileged": true,
-      "path_prefix": null,
-      "with_path": false,
-      "file_extensions": [],
-      "mount_path": "/config",
-      "icon": "jupyter_logo.svg",
-      "maintainer": [
-        {
-          "name": "Markus K\u00fchbach",
-          "email": "markus.kuehbach@physik.hu-berlin.de"
-        }
-      ],
-      "external_mounts": []
-    },
-    "abtem": {
-      "short_description": "Electronic structure supported image simulation for transmission electron microscopy.",
-      "description": "VESTA, GPAW, and abTEM configured in one container for simulating images and diffraction patterns in transmission electron microscopy",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/abtem-webtop",
-      "cmd": null,
-      "image_pull_policy": "Always",
-      "privileged": true,
-      "path_prefix": null,
-      "with_path": false,
-      "file_extensions": [],
-      "mount_path": "/config",
-      "icon": "jupyter_logo.svg",
+      "mount_path": "/home/jovyan",
+      "icon": "logo/jupyter.svg",
       "maintainer": [
         {
           "name": "Markus K\u00fchbach",

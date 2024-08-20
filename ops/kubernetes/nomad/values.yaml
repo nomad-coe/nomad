@@ -524,6 +524,10 @@ jupyterhub:
                 spawner.image = tool.get('image')
                 spawner.cmd = tool.get('cmd')
 
+                # Workaround to have specific default_url for specific containers without using profiles
+                if tool.get('default_url'):
+                  spawner.default_url = tool.get('default_url')
+
                 # Workaround for webtop based images (no connection to jupyterhub itself)
                 if tool.get('privileged'):
                     spawner.privileged = True
@@ -549,43 +553,37 @@ jupyterhub:
     extraImages:
       jupyter:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/jupyter
-        tag: latest
+        tag: refactor
       pyiron:
         name: pyiron/pyiron
         tag: latest
       nionswift:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop
-        tag: latest
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/nionswift
+        tag: refactor
       nexustools:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop
-        tag: latest
-      ellips:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter
-        tag: latest
-      mpes:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/mpes/webtop
-        tag: latest
-      xps:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps/jupyter
-        tag: master
-      sts:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter
-        tag: latest
-      webtop:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop
-        tag: latest
-      apmtools:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop
-        tag: latest
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/nexus
+        tag: weptop-replacement
       fiji:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/fiji-webtop
-        tag: latest
-      frwr:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/frwr-webtop
-        tag: latest
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/fiji
+        tag: weptop-replacement
+      vesta:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/abtem
+        tag: refactor
       abtem:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/abtem-webtop
-        tag: latest
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/abtem
+        tag: refactor
+      ellips:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips
+        tag: refactor
+      xps:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps
+        tag: refactor
+      sts:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/sts
+        tag: refactor
+      apmtools:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/apmtools
+        tag: refactor
   scheduling:
     userScheduler:
       enabled: false

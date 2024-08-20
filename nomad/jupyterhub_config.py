@@ -73,6 +73,10 @@ def pre_spawn(spawner):
         spawner.image = tool.get('image')
         spawner.cmd = tool.get('cmd')
 
+        # Workaround to have specific default_url for specific containers without using profiles
+        if tool.get('default_url'):
+            spawner.default_url = tool.get('default_url')
+
 
 c.Spawner.pre_spawn_hook = pre_spawn
 
