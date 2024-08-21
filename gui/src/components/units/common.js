@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import {memoize, has} from 'lodash'
+import {memoize, has, isNil} from 'lodash'
 import {Unit} from './Unit'
 import { Unit as UnitMathJS } from 'mathjs'
 
@@ -53,7 +53,7 @@ export function parse(input, options) {
 
   try {
     const parseResults = parseInternal(input, options)
-    result.value = parseResults.value || undefined
+    result.value = isNil(parseResults.value) ? undefined : parseResults.value
     result.valueString = parseResults.valueString || undefined
     if (parseResults.unit?.units?.length) {
       result.unit = new Unit(parseResults.unit)

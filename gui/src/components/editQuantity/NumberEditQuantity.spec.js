@@ -45,11 +45,13 @@ describe('Test numberEditQuantity', () => {
     await waitFor(() => expect(numberFieldValueInput.value).toEqual('10'))
 
     await changeValue(numberFieldValueInput, '5')
+    await changeValue(numberFieldValueInput, '0')
     await changeValue(numberFieldValueInput, '')
 
-    await waitFor(() => expect(handleChange.mock.calls).toHaveLength(2))
+    await waitFor(() => expect(handleChange.mock.calls).toHaveLength(3))
     await waitFor(() => expect(handleChange.mock.calls[0][0]).toBe(5))
-    await waitFor(() => expect(handleChange.mock.calls[1][0]).toBe(undefined))
+    await waitFor(() => expect(handleChange.mock.calls[1][0]).toBe(0))
+    await waitFor(() => expect(handleChange.mock.calls[2][0]).toBe(undefined))
   })
 
   test.each([
