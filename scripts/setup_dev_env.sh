@@ -15,12 +15,17 @@ rm -rf nomad/app/static/docs
 rm -rf nomad/app/static/gui
 rm -rf site
 
+# Check if the 'uv' command is available
+if ! command -v uv &> /dev/null; then
+    pip install uv
+fi
+
 # Install nomad
-pip install -e ".[infrastructure,parsing,dev]" -c requirements-dev.txt
+uv pip install -e ".[infrastructure,parsing,dev]" -c requirements-dev.txt
 
 # Install "default" plugins. TODO: This can be removed once we have proper
 # distributions projects.
-pip install -r default_plugins.txt -c requirements-dev.txt
+uv pip install -r default_plugins.txt -c requirements-dev.txt
 
 # Build documentation
 sh scripts/generate_docs_artifacts.sh
