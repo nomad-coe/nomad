@@ -1142,15 +1142,20 @@ class Config(ConfigBaseModel):
 
             for key, plugin in _plugins['entry_points']['options'].items():
                 if key not in plugin_entry_point_ids:
-                    plugin_config = load_plugin_yaml(key, plugin)
-                    plugin_config['id'] = key
-                    plugin_class = {
-                        'parser': Parser,
-                        'normalizer': Normalizer,
-                        'schema': Schema,
-                    }.get(plugin_config['plugin_type'])
-                    _plugins['entry_points']['options'][key] = plugin_class.parse_obj(
-                        plugin_config
-                    )
+                    # Update information for old style plugins
+                    if plugin.get('plugin_type'):
+                        plugin_config = load_plugin_yaml(key, plugin)
+                        plugin_config['id'] = key
+                        plugin_class = {
+                            'parser': Parser,
+                            'normalizer': Normalizer,
+                            'schema': Schema,
+                        }.get(plugin_config['plugin_type'])
+                        _plugins['entry_points']['options'][key] = (
+                            plugin_class.parse_obj(plugin_config)
+                        )
+                    # Handle new style plugins that are declared directly in nomad.yaml
+                    elif not plugin.get('id'):
+                        plugin['id'] = key
 
             self.plugins = Plugins.parse_obj(_plugins)

@@ -109,12 +109,12 @@ export const DistributionInfo = React.memo(({data}) => {
         <li>version: {data.version}</li>
         {data?.plugin_packages?.length
           ? <li>{"plugin packages: "}
-            {data.plugin_packages.map(pluginPackage => <>
+            {data.plugin_packages.map((pluginPackage, i) => <>
               <Link key={pluginPackage.name} href="#" onClick={() => {
                 setSelected(pluginPackage)
                 setTitle('Plugin package')
               }}>{pluginPackage.name}</Link>
-              {", "}
+              {i !== data.plugin_packages.length - 1 ? ", " : null}
             </>)}
           </li>
           : null
@@ -125,12 +125,14 @@ export const DistributionInfo = React.memo(({data}) => {
           const entryPoints = categories[category]
           return <li key={category}>
             {`${pluralize(category, 2)}: `}
-            {entryPoints.map(entryPoint => <>
+            {entryPoints
+            .sort((a, b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0))
+            .map((entryPoint, i) => <>
               <Link key={entryPoint.id} href="#" onClick={() => {
                 setSelected(entryPoint)
                 setTitle('Plugin entry point')
               }}>{entryPoint.id}</Link>
-              {", "}
+              {i !== entryPoints.length - 1 ? ", " : null}
             </>)}
           </li>
       })}

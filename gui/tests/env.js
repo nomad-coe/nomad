@@ -2661,6 +2661,110 @@ window.nomadEnv = {
           "description": "Normalizer for the DOS data.",
           "plugin_package": "dosnormalizer"
         },
+        "example_uploads/1_basic_examples/1_theory": {
+          "id": "example_uploads/1_basic_examples/1_theory",
+          "entry_point_type": "example_upload",
+          "description": "This upload demonstrate the basic use of NOMAD's *parsers*. For many *electronic\nstructure codes* (VASP, etc.), NOMAD provides parsers. You simply upload\nthe *input and output files* of your simulations and NOMAD parsers are extracting\nall necessary metadata to produce a **FAIR** dataset.\n",
+          "category": "Basic examples",
+          "title": "Electronic structure code input and output files",
+          "local_path": "examples/data/uploads/theory.zip"
+        },
+        "example_uploads/1_basic_examples/2_eln": {
+          "id": "example_uploads/1_basic_examples/2_eln",
+          "entry_point_type": "example_upload",
+          "description": "This example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** and a few example *data* entries that use this schema.\nThe schema demonstrates the basic concepts behind a NOMAD ELN and can be a good\n**starting point** to create you own schemas that model **FAIR data** acquired in your lab.\n",
+          "category": "Basic examples",
+          "title": "Electronic Lab Notebook",
+          "local_path": "examples/data/uploads/eln.zip"
+        },
+        "example_uploads/1_basic_examples/3_tables": {
+          "id": "example_uploads/1_basic_examples/3_tables",
+          "entry_point_type": "example_upload",
+          "description": "This upload demonstrates the used of tabular data. In this example we use an *xlsx*\nfile in combination with a custom schema. The schema describes what the columns\nin the excel file mean and NOMAD can parse everything accordingly to\nproduce a **FAIR** dataset.\n",
+          "category": "Basic examples",
+          "title": "Tabular Data",
+          "local_path": "examples/data/uploads/tabular.zip"
+        },
+        "example_uploads/2_tutorials/1_rdm_tutorial": {
+          "id": "example_uploads/2_tutorials/1_rdm_tutorial",
+          "entry_point_type": "example_upload",
+          "description": "This notebook will teach you how you can build tailored research data\nmanagement (RDM) solutions using NOMAD. It uses existing thermally\nactivated delayed fluorescent (TADF) molecule data to teach you how we\ncan use the NOMAD to turn research data into datasets that are FAIR:\nFindable, Accessible, Interoperable and Reusable. The end-result can be\ndistributed as a NOMAD plugin: a self-contained Python package that can be\ninstalled on a NOMAD Oasis.\n",
+          "category": "Tutorials",
+          "title": "Tailored Research Data Management (RDM) with NOMAD",
+          "local_path": "examples/data/uploads/rdm_tutorial.zip"
+        },
+        "example_uploads/2_tutorials/2_cow_tutorial": {
+          "id": "example_uploads/2_tutorials/2_cow_tutorial",
+          "entry_point_type": "example_upload",
+          "description": "This upload provides a notebook as a tutorial that demonstrates how to use NOMAD\nfor managing custom data and file types. Based on a simple *Countries of the World*\ndataset, it shows how to model the data in a schema, do parsing and normalization,\nprocess data, access existing data with NOMAD's API for analysis, and how to\nadd visualization to your data.\n",
+          "category": "Tutorials",
+          "title": "NOMAD as a Data Management Framework Tutorial",
+          "local_path": "examples/data/uploads/cow_tutorial.zip"
+        },
+        "example_uploads/3_fairmat_examples/1_ellips": {
+          "id": "example_uploads/3_fairmat_examples/1_ellips",
+          "entry_point_type": "example_upload",
+          "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data.\nIt shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry)\napplication definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.\n",
+          "category": "FAIRmat examples",
+          "title": "Ellipsometry",
+          "local_path": "examples/data/uploads/ellips.zip"
+        },
+        "example_uploads/3_fairmat_examples/2_mpes": {
+          "id": "example_uploads/3_fairmat_examples/2_mpes",
+          "entry_point_type": "example_upload",
+          "description": "This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:\n\n  - Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format.\n    There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.\n  - Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.\n  - An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).\n",
+          "category": "FAIRmat examples",
+          "title": "Mpes",
+          "local_path": "examples/data/uploads/mpes.zip"
+        },
+        "example_uploads/3_fairmat_examples/3_xps": {
+          "id": "example_uploads/3_fairmat_examples/3_xps",
+          "entry_point_type": "example_upload",
+          "description": "This example presents the capabilities of the NOMAD platform to store and standardize XPS data.\nIt shows the generation of a NeXus file according to the\n[NXmpes](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes)\napplication definition and a successive analysis of an example data set.\n",
+          "category": "FAIRmat examples",
+          "title": "XPS",
+          "local_path": "examples/data/uploads/xps.zip"
+        },
+        "example_uploads/3_fairmat_examples/4_sts": {
+          "id": "example_uploads/3_fairmat_examples/4_sts",
+          "entry_point_type": "example_upload",
+          "description": "This example is for two types of experiments: Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy.\nIt can transform the data from files generated by a the nanonis software into the NeXus application definition NXsts.\nThe example contains data files from the two specific nanonis software versions generic 5e and generic 4.5.\n",
+          "category": "FAIRmat examples",
+          "title": "STS",
+          "local_path": "examples/data/uploads/sts.zip"
+        },
+        "example_uploads/3_fairmat_examples/5_stm": {
+          "id": "example_uploads/3_fairmat_examples/5_stm",
+          "entry_point_type": "example_upload",
+          "description": "This example is for two types of experiments: Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy.\nIt can transform the data from files generated by a the nanonis software into the NeXus application definition NXsts.\nThe example contains data files from the two specific nanonis software versions generic 5e and generic 4.5.\n",
+          "category": "FAIRmat examples",
+          "title": "STM",
+          "local_path": "examples/data/uploads/stm.zip"
+        },
+        "example_uploads/3_fairmat_examples/6_apm": {
+          "id": "example_uploads/3_fairmat_examples/6_apm",
+          "entry_point_type": "example_upload",
+          "description": "This example presents the capabilities of the NOMAD platform to store and standardize atom probe data.\nIt shows the generation of a NeXus file according to the\n[NXapm](https://fairmat-nfdi.github.io/nexus_definitions/classes/contributed_definitions/NXapm.html#nxapm)\napplication definition and a successive analysis of an example data set.\nThe example contains a small atom probe dataset from an experiment with a LEAP instrument to get you started\nand keep the size of your NOMAD installation small. Ones started, we recommend to change the respective\ninput file in the NOMAD Oasis ELN to run the example with your own datasets.\n",
+          "category": "FAIRmat examples",
+          "title": "Atom Probe Microscopy",
+          "local_path": "examples/data/uploads/apm.zip"
+        },
+        "example_uploads/3_fairmat_examples/7_em": {
+          "id": "example_uploads/3_fairmat_examples/7_em",
+          "entry_point_type": "example_upload",
+          "description": "This example presents the capabilities of the NOMAD platform to store and standardize electron microscopy.\nIt shows the generation of a NeXus file according to the\n[NXem](https://fairmat-nfdi.github.io/nexus_definitions/classes/contributed_definitions/NXem.html#nxem)\napplication definition.\nThe example contains a small set of electron microscopy datasets to get started and keep the size of your\nNOMAD installation small. Ones started, we recommend to change the respective input file in the NOMAD Oasis\nELN to run the example with your own datasets.\n",
+          "category": "FAIRmat examples",
+          "title": "Electron Microscopy",
+          "local_path": "examples/data/uploads/em.zip"
+        },
+        "example_uploads/3_fairmat_examples/8_iv_temp": {
+          "id": "example_uploads/3_fairmat_examples/8_iv_temp",
+          "entry_point_type": "example_upload",
+          "description": "This example shows users how to take data from a Python framework and map it out to a Nexus application definition for IV Temperature measurements, [NXiv_temp](https://fairmat-experimental.github.io/nexus-fairmat-proposal/1c3806dba40111f36a16d0205cc39a5b7d52ca2e/classes/contributed_definitions/NXiv_temp.html#nxiv-temp).\nWe use the Nexus ELN features of Nomad to generate a Nexus file.\n",
+          "category": "FAIRmat examples",
+          "title": "Sensor Scan - IV Temperature Curve",
+          "local_path": "examples/data/uploads/iv_temp.zip"
+        },
         "nomad_aitoolkit.apps:aitoolkit": {
           "id": "nomad_aitoolkit.apps:aitoolkit",
           "entry_point_type": "app",
