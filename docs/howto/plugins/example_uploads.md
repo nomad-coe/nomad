@@ -69,7 +69,7 @@ There are three main ways to include data in an example upload:
     myexampleupload = ExampleUploadEntryPoint(
         name = 'MyExampleUpload',
         description = 'My custom example upload.',
-        url='http://my_large_file_address.zip
+        url='http://my_large_file_address.zip'
     )
     ```
 

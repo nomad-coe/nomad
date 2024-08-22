@@ -81,8 +81,8 @@ def test_example_upload_entry_point_valid(config, expected_local_path, monkeypat
                 'description': 'test',
                 'category': 'test',
             },
-            'Provide either "path" or "url".',
-            id='no path or url given',
+            'Provide one of "path", "url" or "local_path".',
+            id='no path, url or local_path given',
         ),
         pytest.param(
             {

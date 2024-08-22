@@ -87,7 +87,6 @@ def get_gui_artifacts_js() -> str:
         'searchQuantities': _generate_search_quantities(),
         'metainfo': _generate_metainfo(all_metainfo_packages),
         'parserMetadata': code_metadata,
-        'exampleUploads': _generate_example_upload_metadata(),
         'northTools': {k: v.dict() for k, v in config.north.tools.filtered_items()},
         'unitList': unit_list_json,
         'unitPrefixes': prefixes_json,
@@ -270,32 +269,6 @@ def gui_env():
 @dev.command(help='Generates the GUI development config JS file based on NOMAD config.')
 def gui_config():
     print(get_gui_config())
-
-
-def _generate_example_upload_metadata():
-    import yaml
-
-    example_uploads_path = 'examples/data/uploads/example_uploads.yml'
-
-    if not os.path.exists(example_uploads_path):
-        example_uploads_path = os.path.join(
-            os.path.dirname(__file__),
-            '../../',
-            'examples/data/uploads/example_uploads.yml',
-        )
-
-    if not os.path.exists(example_uploads_path):
-        raise FileNotFoundError('Cannot find example_uploads.yml file')
-
-    with open(example_uploads_path, 'r') as infile:
-        return yaml.load(infile, Loader=yaml.SafeLoader)
-
-
-@dev.command(
-    help='Generates a JSON file from example-uploads metadata in the YAML file.'
-)
-def example_upload_metadata():
-    print(json.dumps(_generate_example_upload_metadata(), indent=2))
 
 
 @dev.command(
