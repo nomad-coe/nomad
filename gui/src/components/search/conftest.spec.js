@@ -19,7 +19,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { within, waitFor } from '@testing-library/dom'
+import { within, waitFor, waitForElementToBeRemoved } from '@testing-library/dom'
 import elementData from '../../elementData.json'
 import { screen, WrapperDefault } from '../conftest.spec'
 import { render } from '@testing-library/react'
@@ -68,15 +68,29 @@ export const renderSearchEntry = (ui, options) =>
 export async function expectFilterTitle(quantity, label, description, unit, disableUnit, root = screen) {
   const data = defaultFilterData[quantity]
   let finalLabel = label || data?.label
-  const finalDescription = description || data?.description
   if (!disableUnit) {
     const finalUnit = unit || (
       data?.unit && new Unit(data?.unit).toSystem(ui.unit_systems.options.Custom.units).label()
     )
     if (finalUnit) finalLabel = `${finalLabel} (${finalUnit})`
   }
-  await root.findAllByText(finalLabel)
-  expect(root.getAllByTooltip(finalDescription)[0]).toBeInTheDocument()
+  const labelElement = root.getAllByText(finalLabel)[0]
+
+  // Test that the tooltip appears after hover. The tooltip is only shown if the
+  // quantity is defined.
+  if (quantity) {
+    const finalDescription = description || data?.description
+    const options = {
+      name: new RegExp(String.raw`${finalDescription.substring(0, 20)}`)
+    }
+
+    await userEvent.hover(labelElement)
+    await waitFor(() => screen.getByRole('tooltip', options))
+
+    // We need to unhover and wait until tooltip disappears to not disturb other tests.
+    await userEvent.unhover(labelElement)
+    await waitForElementToBeRemoved(() => screen.getByRole('tooltip', options))
+  }
 }
 
 /**

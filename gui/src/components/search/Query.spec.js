@@ -18,14 +18,14 @@
 import React from 'react'
 import { ui } from '../../config'
 import { render, screen } from '../conftest.spec'
-import FilterSummary from './FilterSummary'
+import QueryChips from './Query'
 import { SearchContext } from './SearchContext'
 
 test.each([
-  ['integer', 'results.material.n_elements', 12, 'N elements', 'n_elements=12'],
+  ['integer', 'results.material.n_elements', 12, 'N elements', '12'],
   ['string', 'results.material.symmetry.crystal_system', 'cubic', 'Crystal system', 'cubic'],
-  ['float', 'results.method.simulation.precision.k_line_density', 12.3, 'k-line density (Å)', 'k_line_density=12.3'],
-  ['datetime', 'upload_create_time', 0, 'Upload create time', 'upload_create_time=01/01/1970'],
+  ['float', 'results.properties.electronic.band_gap.value', '12.3 eV', 'Value', '12.3 eV'],
+  ['datetime', 'upload_create_time', 0, 'Upload create time', '01/01/1970'],
   ['boolean', 'results.properties.electronic.dos_electronic.spin_polarized', 'false', 'Spin-polarized', 'false']
 ])('%s', async (name, quantity, input, title, output) => {
   const context = ui.apps.options.entries
@@ -41,7 +41,7 @@ test.each([
         initialFilterValues={{[quantity]: input}}
         initialSearchSyntaxes={context?.search_syntaxes}
     >
-      <FilterSummary quantities={new Set([quantity])}/>
+      <QueryChips/>
     </SearchContext>
   )
   expect(screen.getByText(title, {exact: false})).toBeInTheDocument()

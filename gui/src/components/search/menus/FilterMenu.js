@@ -32,18 +32,13 @@ import {
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
-import ClearIcon from '@material-ui/icons/Clear'
-import ReplayIcon from '@material-ui/icons/Replay'
 import MoreVert from '@material-ui/icons/MoreVert'
-import CodeIcon from '@material-ui/icons/Code'
 import Scrollable from '../../visualization/Scrollable'
-import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
 import { Actions, ActionHeader, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
 import { pluralize } from '../../../utils'
 import { isNil } from 'lodash'
-import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider, SourceJsonCode } from '../../buttons/SourceDialogButton'
 
 // The menu animations use a transition on the 'transform' property. Notice that
 // animating 'transform' instead of e.g. the 'left' property is much more
@@ -287,14 +282,11 @@ export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
-  const { useResetFilters, useRefresh, useApiData } = useSearchContext()
+  // const { useResetFilters, useRefresh, useApiData } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
-  const resetFilters = useResetFilters()
-  const refresh = useRefresh()
-  const apiData = useApiData()
 
   // Callbacks
   const openMenu = useCallback((event) => {
@@ -316,46 +308,6 @@ export const FilterMenuItems = React.memo(({
         <FilterMenuHeader
           title="Filters"
           actions={<>
-            <Action
-              tooltip="Refresh results"
-              onClick={() => refresh()}
-            >
-              <ReplayIcon fontSize="small"/>
-            </Action>
-            <Action
-              tooltip="Clear filters"
-              onClick={() => resetFilters()}
-            >
-              <ClearIcon fontSize="small"/>
-            </Action>
-            <Action
-              tooltip=""
-              ButtonComponent={SourceApiDialogButton}
-              ButtonProps={{
-                tooltip: "API",
-                maxWidth: "lg",
-                fullWidth: true,
-                icon: <CodeIcon fontSize="small"/>,
-                ButtonProps: {
-                  size: "small"
-                }
-              }}
-            >
-              <Typography>
-                NOMAD uses the same query format throughout its API. This is the query
-                based on the current filters:
-              </Typography>
-              <SourceJsonCode data={{owner: apiData?.body?.owner, query: apiData?.body?.query}}/>
-              <SourceDialogDivider/>
-              <Typography>
-                One application of the above query is this API call. This is what is currently
-                used to render this page and includes all displayed statistics data
-                (aggregations).
-              </Typography>
-              <SourceApiCall
-                {...apiData}
-              />
-            </Action>
             <Action
               tooltip={'Hide filter menu'}
               onClick={() => {
@@ -467,7 +419,6 @@ const useFilterMenuItemStyles = makeStyles(theme => {
 export const FilterMenuItem = React.memo(({
   id,
   label,
-  group,
   onClick,
   actions,
   disableButton,
@@ -475,8 +426,6 @@ export const FilterMenuItem = React.memo(({
 }) => {
   const styles = useFilterMenuItemStyles()
   const theme = useTheme()
-  const {filterGroups} = useSearchContext()
-  const groupFinal = group || filterGroups[id]
   const { selected, open, onChange } = useContext(filterMenuContext)
   const handleClick = disableButton ? undefined : (onClick || onChange)
   const opened = open && id === selected
@@ -508,7 +457,6 @@ export const FilterMenuItem = React.memo(({
     >
       {actions}
     </div>}
-    {groupFinal && <FilterSummary quantities={groupFinal}/>}
     <Divider className={styles.divider}/>
   </div>
 })
@@ -516,7 +464,6 @@ export const FilterMenuItem = React.memo(({
 FilterMenuItem.propTypes = {
   id: PropTypes.string,
   label: PropTypes.string,
-  group: PropTypes.string,
   onClick: PropTypes.func,
   actions: PropTypes.node,
   disableButton: PropTypes.bool,

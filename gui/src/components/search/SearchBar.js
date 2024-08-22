@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -25,7 +26,7 @@ import SearchIcon from '@material-ui/icons/Search'
 import HistoryIcon from '@material-ui/icons/History'
 import CloseIcon from '@material-ui/icons/Close'
 import { HelpButton } from '../../components/Help'
-import { Paper, Tooltip, Chip, List, ListSubheader, Typography, IconButton } from '@material-ui/core'
+import { Paper, Tooltip, Chip, List, ListSubheader, Typography, IconButton, Box } from '@material-ui/core'
 import { parseQuantityName, getSchemaAbbreviation } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext } from './SearchContext'
@@ -131,11 +132,29 @@ Suggestion.propTypes = {
   tooltip: PropTypes.string
 }
 
+const queryControlsHeight = 5.5
 export const useStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
     display: 'flex',
-    alignItems: 'center',
-    position: 'relative'
+    flexDirection: 'column'
+  },
+  paper: {
+    width: '100%'
+  },
+  offset: {
+    height: theme.spacing(queryControlsHeight),
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  queryContainer: {
+    minHeight: theme.spacing(queryControlsHeight),
+    marginTop: theme.spacing(0.5),
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'flex-start'
   },
   iconButton: {
     padding: 10
@@ -160,8 +179,12 @@ const SearchBar = React.memo(({
     usePushSearchSuggestion,
     useRemoveSearchSuggestion,
     useSetPagination,
-    searchSyntaxes
+    searchSyntaxes,
+    useResetFilters,
+    useRefresh,
+    useApiData
   } = useSearchContext()
+
   const includedFormats = Object
     .keys(SearchSyntaxes)
     .filter((key) => !searchSyntaxes?.exclude?.includes(key))
@@ -410,54 +433,56 @@ const SearchBar = React.memo(({
     setSuggestionInput(input)
   }, [quantitiesSuggestable, filterFullnames, getSuggestionsMatch, clearSuggestions])
 
-  return <Paper className={clsx(className, styles.root)}>
-    <InputText
-      value={inputValue || null}
-      onChange={handleInputChange}
-      onSelect={handleAccept}
-      onAccept={handleAccept}
-      onHighlight={handleHighlight}
-      suggestions={keys}
-      disableAcceptOnBlur
-      autoHighlight={inputValue?.trim() === suggestions[keys[0]]?.input?.trim()}
-      ListboxComponent={ListboxSuggestion}
-      TextFieldProps={{
-        variant: 'outlined',
-        placeholder: 'Type your query or keyword here',
-        label: error || undefined,
-        error: !!error,
-        InputLabelProps: { shrink: true },
-        size: "medium"
-      }}
-      InputProps={{
-        startAdornment: <SearchIcon className={styles.iconButton} color="action" />,
-        endAdornment: <Tooltip title="Search bar syntax help">
-          <HelpButton
-            IconProps={{fontSize: 'small'}}
-            maxWidth="md"
-            size="small"
-            heading="Search bar help"
-            text={`
-The search bar provides a fast way to start formulating queries.
-Once you start typing a keyword or a query, suggestions for queries
-and metainfo names are given based on your search history and the
-available data. This search bar supports the following syntaxes:
+  return <Box className={clsx(className, styles.root)}>
+    <Paper className={styles.paper}>
+      <InputText
+        value={inputValue || null}
+        onChange={handleInputChange}
+        onSelect={handleAccept}
+        onAccept={handleAccept}
+        onHighlight={handleHighlight}
+        suggestions={keys}
+        disableAcceptOnBlur
+        autoHighlight={inputValue?.trim() === suggestions[keys[0]]?.input?.trim()}
+        ListboxComponent={ListboxSuggestion}
+        TextFieldProps={{
+          variant: 'outlined',
+          placeholder: 'Type your query or keyword here',
+          label: error || undefined,
+          error: !!error,
+          InputLabelProps: { shrink: true },
+          size: "medium"
+        }}
+        InputProps={{
+          startAdornment: <SearchIcon className={styles.iconButton} color="action" />,
+          endAdornment: <Tooltip title="Search bar syntax help">
+            <HelpButton
+              IconProps={{fontSize: 'small'}}
+              maxWidth="md"
+              size="small"
+              heading="Search bar help"
+              text={`
+  The search bar provides a fast way to start formulating queries.
+  Once you start typing a keyword or a query, suggestions for queries
+  and metainfo names are given based on your search history and the
+  available data. This search bar supports the following syntaxes:
 
-${formatReadmeList}`}
-          />
-        </Tooltip>,
-        inputRef: inputRef
-      }}
-      getOptionLabel={option => option}
-      filterOptions={(options) => options}
-      loading={loading}
-      renderOption={(id) => <Suggestion
-        suggestion={suggestions[id]}
-        onDelete={() => removeSuggestion(suggestions[id].key)}
-        tooltip={suggestions[id].type === SuggestionType.Name ? filterData[suggestions[id].input]?.description : undefined}
-      />}
-    />
-  </Paper>
+  ${formatReadmeList}`}
+            />
+          </Tooltip>,
+          inputRef: inputRef
+        }}
+        getOptionLabel={option => option}
+        filterOptions={(options) => options}
+        loading={loading}
+        renderOption={(id) => <Suggestion
+          suggestion={suggestions[id]}
+          onDelete={() => removeSuggestion(suggestions[id].key)}
+          tooltip={suggestions[id].type === SuggestionType.Name ? filterData[suggestions[id].input]?.description : undefined}
+        />}
+      />
+    </Paper>
+  </Box>
 })
 
 SearchBar.propTypes = {

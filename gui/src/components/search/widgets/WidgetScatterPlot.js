@@ -377,7 +377,7 @@ export const WidgetScatterPlot = React.memo((
     <Widget
       id={id}
       title={title || "Scatter plot"}
-      description={description || 'Custom scatter plot'}
+      description={description}
       onEdit={handleEdit}
       actions={actions}
       className={styles.widget}
