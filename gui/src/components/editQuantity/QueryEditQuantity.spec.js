@@ -34,7 +34,7 @@ const quantityDef = {
 
 const testSearchDialogCancelButton = async () => {
   const dialog = screen.getByTestId('search-dialog')
-  await waitFor(() => expect(screen.queryByText('visibility=visible')).toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('visible')).toBeInTheDocument())
 
   // cancel the search
   await userEvent.click(within(dialog).getByRole('button', {name: /cancel/i}))
@@ -43,7 +43,7 @@ const testSearchDialogCancelButton = async () => {
 
 const testSearchDialogOkButton = async () => {
   const dialog = screen.getByTestId('search-dialog')
-  await waitFor(() => expect(screen.queryByText('visibility=visible')).toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('visible')).toBeInTheDocument())
 
   // accept the search
   await userEvent.click(within(dialog).getByTestId('search-dialog-ok'))

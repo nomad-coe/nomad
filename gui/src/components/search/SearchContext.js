@@ -37,6 +37,7 @@ import {
   isPlainObject,
   isNil,
   isSet,
+  isObject,
   isFunction,
   size,
   cloneDeep
@@ -616,7 +617,7 @@ export const SearchContextRaw = React.memo(({
         const query = {}
         for (const key of get(filterNamesState)) {
           const filter = get(queryFamily(key))
-          if (filter !== undefined) {
+          if (!isNil(filter) && (!isObject(filter) || !isEmpty(filter))) {
             query[key] = filter
           }
         }

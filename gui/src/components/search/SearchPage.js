@@ -23,6 +23,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
 import { collapsedMenuWidth } from './menus/FilterMenu'
 import SearchBar from './SearchBar'
+import Query from './Query.js'
 import { SearchResultsWithContext } from './SearchResults'
 import Dashboard from './widgets/Dashboard'
 import { useSearchContext } from './SearchContext'
@@ -52,12 +53,13 @@ const useStyles = makeStyles(theme => {
     center: {
       flexGrow: 1,
       height: '100%',
-      overflow: 'auto'
+      overflowY: 'scroll'
     },
     searchBar: {
       display: 'flex',
       flexGrow: 0,
-      zIndex: 1
+      zIndex: 1,
+      marginBottom: theme.spacing(0.3)
     },
     shadow: {
       pointerEvents: 'none',
@@ -103,12 +105,13 @@ const SearchPage = React.memo(({
       />
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
-      <Box margin={3} paddingBottom={3}>
+      <Box margin={2.5} paddingBottom={3}>
         <Box marginBottom={2}>
           {header}
         </Box>
-        <Box marginBottom={1}>
+        <Box marginBottom={0}>
           <SearchBar className={styles.searchBar} />
+          <Query/>
         </Box>
         <Box marginBottom={1} zIndex={0}>
           <Dashboard/>

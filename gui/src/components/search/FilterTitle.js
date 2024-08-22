@@ -24,6 +24,7 @@ import { useSearchContext } from './SearchContext'
 import { inputSectionContext } from './input/InputSection'
 import { Unit } from '../units/Unit'
 import { useUnitContext } from '../units/UnitContext'
+import Ellipsis from '../visualization/Ellipsis'
 
 /**
  * Title for a metainfo quantity or section that is used in a search context.
@@ -94,8 +95,18 @@ const FilterTitle = React.memo(({
 
   // Determine the final description
   const finalDescription = description || filterData[quantity]?.description || ''
+  let tooltip = ''
+  if (finalDescription && quantity) {
+    tooltip = (
+      <>
+        <Typography>{finalLabel}</Typography>
+        <b>Description: </b>{finalDescription}<br/>
+        <b>Path: </b>{quantity}
+      </>
+    )
+  }
 
-  return <Tooltip title={finalDescription} placement="bottom" {...(TooltipProps || {})}>
+  return <Tooltip title={tooltip} interactive enterDelay={400} enterNextDelay={400} {...(TooltipProps || {})}>
     <div className={clsx(className, styles.root,
       rotation === 'right' && styles.right,
       rotation === 'down' && styles.down,
@@ -108,7 +119,7 @@ const FilterTitle = React.memo(({
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
       >
-        {finalLabel}
+        <Ellipsis>{finalLabel}</Ellipsis>
       </Typography>
     </div>
   </Tooltip>
@@ -127,6 +138,7 @@ FilterTitle.propTypes = {
   TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
   onMouseDown: PropTypes.func,
   onMouseUp: PropTypes.func,
+  placement: PropTypes.string,
   noWrap: PropTypes.bool
 }
 

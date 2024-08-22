@@ -89,7 +89,6 @@ describe('displaying an initial widget and removing it', () => {
       {
         type: 'scatterplot',
         title: 'Test title',
-        description: 'Custom scatter plot',
         x: {quantity: 'results.properties.optoelectronic.solar_cell.open_circuit_voltage'},
         y: {quantity: 'results.properties.optoelectronic.solar_cell.efficiency'},
         markers: {color: {quantity: 'results.properties.optoelectronic.solar_cell.short_circuit_current_density'}},
