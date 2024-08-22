@@ -211,3 +211,6 @@ disable_error_code = "import, annotation-unchecked"
 
 
 [tool.setuptools_scm]
+
+[tool.uv]
+index-url = "https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple"

@@ -28,3 +28,9 @@ uv pip compile -U --universal -p 3.11 --annotation-style=line \
     requirements.txt \
     pyproject.toml
 
+uv pip compile --universal -p 3.11 --annotation-style=line \
+    --output-file=requirements-plugins.txt \
+    --unsafe-package nomad-lab \
+    -c requirements-dev.txt \
+    default_plugins.txt
+
