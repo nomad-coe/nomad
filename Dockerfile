@@ -196,8 +196,8 @@ RUN pip install nomad-lab-*.tar.gz
 
 # Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
-COPY default_plugins.txt .
-RUN uv pip install -r default_plugins.txt -c requirements.txt
+COPY requirements-plugins.txt .
+RUN uv pip install -r requirements-plugins.txt -c requirements.txt
 
 
 # ================================================================================

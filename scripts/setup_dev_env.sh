@@ -25,7 +25,7 @@ uv pip install -e ".[infrastructure,parsing,dev]" -c requirements-dev.txt
 
 # Install "default" plugins. TODO: This can be removed once we have proper
 # distributions projects.
-uv pip install -r default_plugins.txt -c requirements-dev.txt
+uv pip install -r requirements-plugins.txt # remove this after moving to distro
 
 # Build documentation
 sh scripts/generate_docs_artifacts.sh

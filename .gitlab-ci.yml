@@ -203,7 +203,7 @@ check python dependencies:
   before_script:
     - scripts/check_elastic.sh
     - uv pip install -e ".[dev]"
-    - uv pip install -r default_plugins.txt -c requirements-dev.txt # required until all legacy tests are removed
+    - uv pip install -r requirements-plugins.txt -c requirements-dev.txt # remove this after moving to distro
 
 generate pytest timings:
   extends: .base_test
@@ -314,7 +314,7 @@ check gui artifacts:
     GIT_SUBMODULE_PATHS: dependencies/*
   script:
     - uv pip install ".[dev,parsing,infrastructure]"
-    - uv pip install -r default_plugins.txt # remove this after moving to distro
+    - uv pip install -r requirements-plugins.txt -c requirements-dev.txt # remove this after moving to distro
     - scripts/check_gui_artifacts.sh
   after_script:
     - >
