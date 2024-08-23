@@ -159,24 +159,31 @@ and NOMAD itself.
     rm -rf site
     ```
 
-    All the requirements needed for development (including submodule requirements) are installed:
+    We use [uv](https://docs.astral.sh/uv/) to install the packages. You can install uv using `pip install uv`.
 
-    ```shell
-    pip install --prefer-binary -r requirements-dev.txt
-    ```
 
     Next we install the `nomad` package itself (including all extras). The `-e`
     option will install NOMAD with symbolic links that allow you to change
     the code without having to reinstall after each change.
 
+    The -c flag restricts the installation of dependencies to the versions specified in the provided requirements file, ensuring that only those versions are installed.
+
     ```shell
-    pip install -e .[parsing,infrastructure,dev]
+    uv pip install -e .[parsing,infrastructure,dev] -c requirements-dev.txt
     ```
 
-    If pip tries to use and compile sources that create errors, it can be told to prefer the binary version:
+    Install "default" plugins. TODO: This can be removed once we have proper proper distribution
+    ```shell
+    uv pip install -r requirements-plugins.txt
+    ```
+
+    Next we build the documentation.
 
     ```shell
-    pip install -e .[parsing,infrastructure,dev] --prefer-binary
+    sh scripts/generate_docs_artifacts.sh
+    mkdocs build
+    mkdir -p nomad/app/static/docs
+    cp -r site/* nomad/app/static/docs
     ```
 
     The NOMAD GUI requires a static `.env` file, which can be generated with:
