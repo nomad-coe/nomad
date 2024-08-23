@@ -4083,15 +4083,17 @@ class Package(Definition):
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
-        # register the package and all its aliases
-        if Package.registry.get(self.name, None) is not self:
-            for alias in self.aliases + [self.name]:
-                if alias in Package.registry and 'pytest' not in sys.modules:
-                    existing_package = Package.registry[alias]
-                    raise MetainfoError(
-                        f'Package {alias} is already registered for package {existing_package}.'
-                    )
-                Package.registry[alias] = self
+        # register the package and all its aliases for python packages
+        if self.name and re.match(r'^\w+(\.\w+)*$', self.name):
+            if Package.registry.get(self.name, None) is not self:
+                for alias in self.aliases + [self.name]:
+                    if alias in Package.registry and 'pytest' not in sys.modules:
+                        existing_package = Package.registry[alias]
+                        raise MetainfoError(
+                            f'Package {alias} is already registered for '
+                            f'package {existing_package}.'
+                        )
+                    Package.registry[alias] = self
 
         # access potential SectionProxies to resolve them
         for content in self.m_all_contents():
