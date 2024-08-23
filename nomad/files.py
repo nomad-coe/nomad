@@ -43,6 +43,8 @@ one entry based on the other, etc. In this case the other mainfile is an *aux fi
 original mainfile, and vice versa.
 """
 
+from __future__ import annotations
+
 from abc import ABCMeta
 from typing import (
     IO,
@@ -705,13 +707,12 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @staticmethod
-    def get(upload_id: str, create: bool = False) -> 'UploadFiles':
-        if StagingUploadFiles.exists_for(upload_id):
-            return StagingUploadFiles(upload_id, create)
-        elif PublicUploadFiles.exists_for(upload_id):
-            return PublicUploadFiles(upload_id, create)
-        else:
-            return None
+    def get(upload_id: str, create: bool = False) -> UploadFiles | None:
+        for class_type in (PublicUploadFiles, StagingUploadFiles):
+            if class_type.exists_for(upload_id):
+                return class_type(upload_id, create)
+
+        return None
 
     def is_empty(self) -> bool:
         """If this upload has no content yet."""
