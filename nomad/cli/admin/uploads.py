@@ -1429,11 +1429,13 @@ def only_v1(path: str):
 )
 @click.option(
     '--migrate',
+    '-m',
     is_flag=True,
     help='Only convert v1 archive files to v1.2 archive files.',
 )
 @click.option(
     '--force-repack',
+    '-f',
     is_flag=True,
     help='Force repacking existing archives that are already in the new format',
 )
@@ -1444,9 +1446,16 @@ def only_v1(path: str):
     default=os.cpu_count(),
     help='Number of processes to use for conversion. Default is os.cpu_count().',
 )
+@click.option(
+    '--size-limit',
+    '-s',
+    type=int,
+    default=4,
+    help='Limit archive size in GB. Default is 4GB.',
+)
 @click.pass_context
 def convert_archive(
-    ctx, uploads, overwrite, delete_old, migrate, force_repack, parallel
+    ctx, uploads, overwrite, delete_old, migrate, force_repack, parallel, size_limit
 ):
     _, selected = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
@@ -1461,6 +1470,7 @@ def convert_archive(
             if_include=only_v1,
             processes=parallel,
             force_repack=force_repack,
+            size_limit=size_limit,
         )
     else:
         convert_upload(
@@ -1469,4 +1479,5 @@ def convert_archive(
             delete_old=delete_old,
             processes=parallel,
             force_repack=force_repack,
+            size_limit=size_limit,
         )
