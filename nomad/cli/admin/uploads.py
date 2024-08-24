@@ -1450,8 +1450,8 @@ def only_v1(path: str):
     '--size-limit',
     '-s',
     type=int,
-    default=4,
-    help='Limit archive size in GB. Default is 4GB.',
+    default=-1,
+    help='Only handle archives under limited size in GB. Default is -1 (no limit).',
 )
 @click.pass_context
 def convert_archive(

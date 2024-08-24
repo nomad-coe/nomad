@@ -58,7 +58,7 @@ def convert_archive(
     delete_old: bool = False,
     counter: Counter = None,
     force_repack: bool = False,
-    size_limit: int = 4,
+    size_limit: int = -1,
 ):
     """
     Convert an archive of the old format to the new format.
@@ -84,7 +84,7 @@ def convert_archive(
         delete_old (bool, optional): Whether to delete the old file after conversion. Defaults to False.
         counter (Counter, optional): A counter to track the progress of the conversion. Defaults to None.
         force_repack (bool, optional): Force repacking the archive that is already in the new format. Defaults to False.
-        size_limit (int, optional): The size limit in GB for the archive. Defaults to 4.
+        size_limit (int, optional): The size limit in GB for the archive. Defaults to -1 (no limit).
     """
     prefix: str = counter.increment() if counter else ''
 
@@ -114,7 +114,7 @@ def convert_archive(
         return
 
     original_size = os.path.getsize(original_path)
-    if original_size > size_limit * 1024**3:
+    if size_limit > 0 and original_size > size_limit * 1024**3:
         flush(
             f'{prefix} [WARNING] File size exceeds limit {size_limit} GB: {original_path}'
         )
@@ -174,7 +174,7 @@ def convert_folder(
     overwrite: bool = False,
     delete_old: bool = False,
     force_repack: bool = False,
-    size_limit: int = 4,
+    size_limit: int = -1,
 ):
     """
     Convert archives in the specified folder to the new format using parallel processing.
@@ -191,7 +191,7 @@ def convert_folder(
         overwrite (bool): Whether to overwrite existing files (default is False).
         delete_old (bool): Whether to delete the old file after conversion (default is False).
         force_repack (bool): Force repacking the archive (default is False).
-        size_limit (int): Size limit in GB for the archive (default is 4).
+        size_limit (int): Size limit in GB for the archive (default is -1, no limit).
     """
     file_list: list = []
 
@@ -254,7 +254,7 @@ def convert_upload(
     overwrite: bool = False,
     delete_old: bool = False,
     force_repack: bool = False,
-    size_limit: int = 4,
+    size_limit: int = -1,
 ):
     """
     Function to convert an upload with the given upload_id to the new format.
@@ -271,7 +271,7 @@ def convert_upload(
         overwrite (bool, optional): Whether to overwrite existing files. Defaults to False.
         delete_old (bool, optional): Whether to delete the old file after conversion. Defaults to False.
         force_repack (bool, optional): Force repacking the existing archive (in new format). Defaults to False.
-        size_limit (int, optional): Size limit in GB for the archive. Defaults to 4.
+        size_limit (int, optional): Size limit in GB for the archive. Defaults to -1 (no limit).
     """
     if isinstance(uploads, (str, Upload)):
         uploads = [uploads]
