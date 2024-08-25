@@ -24,5 +24,5 @@ Use it from the command line with ``nomad --help`` or ``python -m nomad.cli --he
 more.
 """
 
-from . import dev, parse, client, admin  # noqa
+from . import dev, parse, client, admin, clean  # noqa
 from .cli import run_cli, cli  # noqa
