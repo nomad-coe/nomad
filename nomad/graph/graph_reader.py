@@ -2967,6 +2967,7 @@ class DefinitionReader(GeneralReader):
             return
 
         for name, unwrap in (
+            ('extending_sections', False),
             ('base_sections', False),
             ('sub_sections', True),
             ('quantities', False),
