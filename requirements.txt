@@ -32,7 +32,7 @@ click-plugins==1.1.1      # via celery
 click-repl==0.3.0         # via celery
 colorama==0.4.6 ; sys_platform == 'win32' or platform_system == 'Windows'  # via click, sphinx, tqdm, uvicorn
 commonmark==0.9.1         # via recommonmark
-contourpy==1.2.1          # via matplotlib
+contourpy==1.3.0          # via matplotlib
 cryptography==43.0.0      # via jwcrypto, pyjwt, pyopenssl, rfc3161ng
 cycler==0.12.1            # via matplotlib
 decorator==5.1.1          # via validators
@@ -65,8 +65,8 @@ hjson==3.1.0              # via nomad-lab (pyproject.toml)
 html5lib==1.1             # via nomad-lab (pyproject.toml)
 httpcore==1.0.5           # via httpx
 httptools==0.6.1          # via uvicorn
-httpx==0.27.0             # via python-keycloak, nomad-lab (pyproject.toml)
-idna==3.7                 # via anyio, email-validator, httpx, jsonschema, requests
+httpx==0.27.2             # via python-keycloak, nomad-lab (pyproject.toml)
+idna==3.8                 # via anyio, email-validator, httpx, jsonschema, requests
 imagesize==1.4.1          # via sphinx
 importlib-metadata==7.1.0  # via nomad-lab (pyproject.toml)
 inflection==0.5.1         # via nomad-lab (pyproject.toml)
@@ -91,13 +91,13 @@ lxml-html-clean==0.2.0    # via nomad-lab (pyproject.toml)
 m2r==0.2.1                # via nomad-lab (pyproject.toml)
 mako==1.3.5               # via alembic
 markupsafe==2.1.5         # via jinja2, mako, werkzeug
-matid==2.1.1              # via nomad-lab (pyproject.toml)
+matid==2.1.2              # via nomad-lab (pyproject.toml)
 matplotlib==3.9.2         # via ase, asr, mdanalysis, phonopy, pymatgen
 mda-xdrlib==0.2.0         # via mdanalysis, pyedr
 mdanalysis==2.7.0         # via nomad-lab (pyproject.toml)
 mistune==3.0.2            # via m2r
 mmtf-python==1.1.3        # via mdanalysis
-mongoengine==0.28.2       # via nomad-lab (pyproject.toml)
+mongoengine==0.29.0       # via nomad-lab (pyproject.toml)
 mongomock==4.1.2          # via optimade
 monty==2024.7.30          # via pymatgen
 mpmath==1.3.0             # via sympy
@@ -119,7 +119,7 @@ pamela==1.2.0 ; sys_platform != 'win32'  # via jupyterhub
 pandas==2.2.2             # via nomad-openbis, panedr, pymatgen, xarray, eelsdbconverter (dependencies/parsers/eelsdb/pyproject.toml), nomad-lab (pyproject.toml)
 panedr==0.8.0             # via nomad-lab (pyproject.toml)
 parmed==4.2.2             # via nomad-lab (pyproject.toml)
-phonopy==2.26.7           # via asr
+phonopy==2.27.0           # via asr
 pillow==10.4.0            # via matplotlib, rdkit
 pint==0.17                # via nomad-lab (pyproject.toml)
 plotly==5.23.0            # via asr, pymatgen
@@ -130,14 +130,14 @@ pyasn1==0.6.0             # via pyasn1-modules, rfc3161ng
 pyasn1-modules==0.4.0     # via rfc3161ng
 pybtex==0.24.0            # via pymatgen
 pycparser==2.22 ; platform_python_implementation != 'PyPy'  # via cffi
-pydantic==1.10.17         # via fastapi, optimade, nomad-lab (pyproject.toml)
+pydantic==1.10.18         # via fastapi, optimade, nomad-lab (pyproject.toml)
 pyedr==0.8.0              # via panedr
 pygments==2.18.0          # via sphinx
 pyjwt==2.6.0              # via nomad-lab (pyproject.toml)
 pymatgen==2024.5.1        # via asr, nomad-lab (pyproject.toml)
 pymongo==4.6.3            # via mongoengine, optimade, nomad-lab (pyproject.toml)
 pyopenssl==24.2.1         # via certipy
-pyparsing==3.1.2          # via matplotlib, rdflib
+pyparsing==3.1.4          # via matplotlib, rdflib
 pyrsistent==0.20.0        # via jsonschema
 python-dateutil==2.9.0.post0  # via arrow, celery, elasticsearch-dsl, jupyterhub, matplotlib, nomad-openbis, pandas, rfc3161ng
 python-dotenv==1.0.1      # via uvicorn
@@ -162,7 +162,7 @@ ruamel-yaml==0.18.6       # via jupyter-telemetry, oauthenticator, pymatgen
 ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml
 runstats==2.0.0           # via nomad-lab (pyproject.toml)
 scikit-learn==1.5.1       # via matid, nomad-lab (pyproject.toml)
-scipy==1.14.1             # via ase, griddataformats, matid, mdanalysis, pymatgen, scikit-learn, nomad-lab (pyproject.toml)
+scipy==1.14.1             # via ase, griddataformats, mdanalysis, pymatgen, scikit-learn, nomad-lab (pyproject.toml)
 sentinels==1.0.0          # via mongomock
 six==1.16.0               # via basicauth, elasticsearch-dsl, html5lib, isodate, pybtex, python-dateutil, rdflib, rfc3339-validator, validators
 smmap==5.0.1              # via gitdb
@@ -185,7 +185,7 @@ tabulate==0.8.9           # via nomad-openbis, pymatgen, nomad-lab (pyproject.to
 tenacity==9.0.0           # via plotly
 texttable==1.7.0          # via nomad-openbis
 threadpoolctl==3.5.0      # via mdanalysis, scikit-learn
-tifffile==2024.8.10       # via h5grove
+tifffile==2024.8.28       # via h5grove
 toposort==1.10            # via nomad-lab (pyproject.toml)
 tornado==6.4.1            # via jupyterhub
 tqdm==4.66.5              # via mdanalysis, pyedr, pymatgen
@@ -210,5 +210,5 @@ websockets==13.0          # via uvicorn
 werkzeug==3.0.4           # via flask
 wrapt==1.16.0             # via nomad-lab (pyproject.toml)
 xarray==2024.7.0          # via nomad-lab (pyproject.toml)
-zipp==3.20.0              # via importlib-metadata
+zipp==3.20.1              # via importlib-metadata
 zipstream-new==1.1.5      # via nomad-lab (pyproject.toml)
