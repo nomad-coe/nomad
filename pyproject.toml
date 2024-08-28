@@ -28,7 +28,7 @@ dependencies = [
     'jmespath>=0.10.0',
     'lxml>=5.2',
     'lxml-html-clean>=0.1.0',
-    'matid>=2.1.0',
+    'matid>=2.1.2',
     'mdanalysis==2.7.0',
     'networkx>=2.6.3',
     'nptyping~=1.4.4',
