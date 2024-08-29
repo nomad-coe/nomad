@@ -9,7 +9,7 @@ m_package = Package(name='Countries of the World')
 
 
 class Timeseries(MSection):
-    year = Quantity(type=np.int, shape=['*'])
+    year = Quantity(type=np.int32, shape=['*'])
     value = Quantity(type=np.float64, shape=['*'])
 
 

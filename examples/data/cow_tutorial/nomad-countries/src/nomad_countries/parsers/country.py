@@ -70,6 +70,6 @@ class CountryParser(MatchingParser):
             return None
 
         return Timeseries(
-            year=[year for year, _ in data[indicator]],
-            value=[value for _, value in data[indicator]],
+            year=[int(year) for year, _ in data[indicator]],
+            value=[float(value) for _, value in data[indicator]],
         )
