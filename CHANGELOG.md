@@ -1,4 +1,19 @@
 
+## 1.3.6 (2024-08-29)
+
+### Fixed (2 changes)
+
+- [Resolve "custom schema for tabular parser are failing to process"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/0ce8ec7ba72823cd9ddea6c93d73f2d7380aea06) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1993))
+- [Resolve "frontend float quantities validation"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/e842999ccfdcbf3c43fdb53d800b87e788aa8e79) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2039))
+
+### Added (1 change)
+
+- [Added new query visualization below the search bar.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/a571698c3ece95ff5b4e0f93c78f360bd29fc7c6) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2042))
+
+### Changed (1 change)
+
+- [Remove normalizers submodule](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1925aa71faa4455cd2f446038aed27eaf0c5bd6f) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2041))
+
 ## 1.3.5 (2024-08-19)
 
 ### Fixed (3 changes)
