@@ -247,6 +247,7 @@ for entry_point in enabled_entry_points:
         entry_point_name = entry_point.id
         instance = entry_point.load()
         instance.name = entry_point_name
+        instance.aliases = entry_point.aliases
         parsers.append(instance)
 
 parsers.extend([TabularDataParser(), ArchiveParser()])
@@ -290,6 +291,9 @@ parsers.append(BrokenParser())
 parser_dict: Dict[str, Parser] = {
     parser.name: parser for parser in parsers + empty_parsers
 }
+# Register also aliases
+parser_dict.update({alias: parser for parser in parsers for alias in parser.aliases})
+
 
 # renamed parsers
 _renames = {

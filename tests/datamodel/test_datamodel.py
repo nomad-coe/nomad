@@ -86,7 +86,7 @@ def test_common_metainfo():
 @pytest.mark.skipif(runschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_vasp_metainfo():
     from runschema.run import Run
-    from electronicparsers.vasp.metainfo import m_env  # pylint: disable=unused-import
+    from electronicparsers.vasp.metainfo import vasp  # pylint: disable=unused-import
 
     run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities

@@ -23,7 +23,7 @@ import yaml
 from pydantic import ValidationError
 
 from nomad.config import load_config
-from nomad.config.models.plugins import Parser, Schema
+from nomad.config.models.plugins import Parser, Schema, ParserEntryPoint
 from nomad.utils import flatten_dict
 
 from .utils import assert_log
@@ -287,9 +287,17 @@ def test_config_merge(conf_yaml, conf_env, conf_expected, mockopen, monkeypatch)
         pytest.param(
             {
                 'plugins': {
-                    'options': {'parsers/vasp': {'mainfile_name_re': 'a'}},
+                    'options': {
+                        'electronicparsers:vasp_parser_entry_point': {
+                            'mainfile_name_re': 'a'
+                        }
+                    },
                     'entry_points': {
-                        'options': {'parsers/vasp': {'mainfile_name_re': 'b'}}
+                        'options': {
+                            'electronicparsers:vasp_parser_entry_point': {
+                                'mainfile_name_re': 'b'
+                            }
+                        }
                     },
                 },
             },
@@ -297,9 +305,9 @@ def test_config_merge(conf_yaml, conf_env, conf_expected, mockopen, monkeypatch)
                 'plugins': {
                     'entry_points': {
                         'options': {
-                            'parsers/vasp': {
+                            'electronicparsers:vasp_parser_entry_point': {
                                 'mainfile_name_re': 'a',
-                                'python_package': 'electronicparsers.vasp',
+                                'plugin_package': 'electronicparsers',
                             }
                         }
                     }
@@ -323,9 +331,9 @@ def test_parser_plugins():
     parsers = [
         entry_point
         for entry_point in config.plugins.entry_points.options.values()
-        if isinstance(entry_point, Parser)
+        if isinstance(entry_point, (Parser, ParserEntryPoint))
     ]
-    assert len(parsers) == 70
+    assert len(parsers) == 71
 
 
 def test_plugin_polymorphism(mockopen, monkeypatch):

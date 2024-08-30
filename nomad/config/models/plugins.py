@@ -123,7 +123,7 @@ class ParserEntryPoint(EntryPoint, metaclass=ABCMeta):
         level will attempt to match raw files first.
     """,
     )
-
+    aliases: List[str] = Field([], description="""List of alternative parser names.""")
     mainfile_contents_re: Optional[str] = Field(
         description="""
         A regular expression that is applied the content of a potential mainfile.

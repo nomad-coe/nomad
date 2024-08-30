@@ -5596,6 +5596,346 @@ window.nomadArtifacts = {
       "repeats": false,
       "suggestion": true
     },
+    "data.name#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.inputs.name#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.outputs.name#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.tasks.name#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.tasks.inputs.name#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.tasks.outputs.name#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.results.n_calculations#simulationworkflowschema.general.SimulationWorkflow": {
+      "name": "n_calculations",
+      "description": "Number of calculations in workflow.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "int"
+      },
+      "shape": [],
+      "aggregatable": false,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.SimulationWorkflow"
+    },
+    "data.name#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.inputs.name#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.outputs.name#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.tasks.name#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.tasks.inputs.name#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.tasks.outputs.name#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.results.n_calculations#simulationworkflowschema.general.ParallelSimulation": {
+      "name": "n_calculations",
+      "description": "Number of calculations in workflow.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "int"
+      },
+      "shape": [],
+      "aggregatable": false,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.ParallelSimulation"
+    },
+    "data.name#simulationworkflowschema.general.SerialSimulation": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.inputs.name#simulationworkflowschema.general.SerialSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.outputs.name#simulationworkflowschema.general.SerialSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.tasks.name#simulationworkflowschema.general.SerialSimulation": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.tasks.inputs.name#simulationworkflowschema.general.SerialSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.tasks.outputs.name#simulationworkflowschema.general.SerialSimulation": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.results.n_calculations#simulationworkflowschema.general.SerialSimulation": {
+      "name": "n_calculations",
+      "description": "Number of calculations in workflow.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "int"
+      },
+      "shape": [],
+      "aggregatable": false,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.SerialSimulation"
+    },
+    "data.name#simulationworkflowschema.general.BeyondDFT": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
+    "data.inputs.name#simulationworkflowschema.general.BeyondDFT": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
+    "data.outputs.name#simulationworkflowschema.general.BeyondDFT": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
+    "data.tasks.name#simulationworkflowschema.general.BeyondDFT": {
+      "name": "name",
+      "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
+    "data.tasks.inputs.name#simulationworkflowschema.general.BeyondDFT": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
+    "data.tasks.outputs.name#simulationworkflowschema.general.BeyondDFT": {
+      "name": "name",
+      "description": "Name of the link. Will be used as a label for the input or output in workflow representations.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": true,
+      "repeats": true,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
+    "data.results.n_calculations#simulationworkflowschema.general.BeyondDFT": {
+      "name": "n_calculations",
+      "description": "Number of calculations in workflow.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "int"
+      },
+      "shape": [],
+      "aggregatable": false,
+      "dynamic": true,
+      "repeats": false,
+      "schema": "simulationworkflowschema.general.BeyondDFT"
+    },
     "results.material": {
       "name": "material",
       "description": "\n        Section containing information on the material composition and structure.\n        ",
