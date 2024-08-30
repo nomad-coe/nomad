@@ -15,7 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from io import StringIO
+from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 import os
 import os.path
@@ -26,6 +29,7 @@ import yaml
 from nomad.config import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.context import ClientContext
+from nomad.parsing.tabular import read_table_data
 from nomad.utils import generate_entry_id, strip
 from nomad.parsing.parser import ArchiveParser
 from tests.normalizing.conftest import run_normalize
@@ -959,3 +963,27 @@ def get_archives(context, mainfile, upload_id, keys=None):
         child_archives = None
 
     return main_archive, child_archives
+
+
+def test_read_table_data_excel():
+    expected_data = {
+        0: {
+            'sheet_4': {
+                'Header 1': {0: 1, 1: 2, 2: 3},
+                'Header 2': {0: 'a', 1: 'b', 2: 'c'},
+                'Header 3': {0: 'test1', 1: 'test2', 2: 'test3'},
+                'Header 4': {0: 'my_str1', 1: 'my_str2', 2: 'my_str3'},
+                'Header 5': {0: 11, 1: 12, 2: 13},
+                'Header 6': {0: 'test11', 1: 'test12', 2: 'test13'},
+            }
+        }
+    }
+    excel_file = os.path.join(
+        os.path.dirname(__file__), '../../tests/data/parsers/tabular/Test.xlsx'
+    )
+
+    result_df = read_table_data(excel_file, comment='#')
+
+    result_dict = result_df.to_dict()
+
+    assert result_dict[0]['sheet_4'] == expected_data[0]['sheet_4']

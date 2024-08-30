@@ -19,12 +19,13 @@
 import json
 import os
 from shutil import copyfile
+from unittest.mock import patch, MagicMock
 
 import pytest
 
 from nomad import files, utils
 from nomad.datamodel import EntryArchive
-from nomad.parsing import BrokenParser, MatchingParserInterface
+from nomad.parsing import BrokenParser, MatchingParserInterface, MatchingParser
 from nomad.parsing.parsers import match_parser, parser_dict, parsers, run_parser
 from nomad.utils import dump_json
 
@@ -319,6 +320,81 @@ def parser_in_dir(dir):
                     traceback.print_exc()
                 else:
                     print(file_path, parser, 'SUCCESS')
+
+
+@pytest.fixture
+def matching_parser():
+    return MatchingParser(
+        mainfile_mime_re=r'application/json|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        mainfile_name_re=r'.*\.(json|xlsx)',
+    )
+
+
+@pytest.mark.parametrize(
+    'mime, mocked_dict, file_content, expected_result',
+    [
+        pytest.param(
+            'application/json',
+            {'__has_all_keys': ['key1', 'key2']},
+            {'key1': 'value1', 'key2': 'value2'},
+            True,
+            id='json_content_match',
+        ),
+        pytest.param(
+            'application/json',
+            {'__has_all_keys': ['key1', 'key2']},
+            {'key1': 'value1', 'key3': 'value3'},
+            False,
+            id='json_content_no_match',
+        ),
+        pytest.param(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            {'Sheet1': {'__has_all_keys': ['col1', 'col2']}, '__comment_symbol': '#'},
+            {'Sheet1': {'col1': 'value1', 'col2': 'value2'}},
+            True,
+            id='excel_content_match',
+        ),
+        pytest.param(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            {'Sheet1': {'__has_all_keys': ['col1', 'col2']}, '__comment_symbol': '#'},
+            {'Sheet1': {'col1': 'value1', 'col3': 'value3'}},
+            False,
+            id='excel_content_no_match',
+        ),
+    ],
+)
+def test_is_mainfile_with_mocked_content(
+    matching_parser, mime, mocked_dict, file_content, expected_result
+):
+    """Test is_mainfile with mocked content (JSON, Excel)."""
+
+    matching_parser._mainfile_contents_dict = mocked_dict
+
+    with patch('builtins.open', new_callable=MagicMock) as mock_open:
+        if mime.startswith('application/json'):
+            with patch('json.load', return_value=file_content):
+                result = matching_parser.is_mainfile(
+                    filename='mocked_file.json',
+                    mime=mime,
+                    buffer=b'',
+                    decoded_buffer='',
+                )
+                assert result == expected_result
+
+        elif mime.startswith(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ):
+            with patch(
+                'nomad.parsing.tabular.read_table_data',
+                return_value=(MagicMock(to_dict=lambda: file_content),),
+            ):
+                result = matching_parser.is_mainfile(
+                    filename='mocked_file.xlsx',
+                    mime=mime,
+                    buffer=b'',
+                    decoded_buffer='',
+                )
+                assert result == expected_result
 
 
 if __name__ == '__main__':
