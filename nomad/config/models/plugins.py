@@ -471,7 +471,11 @@ class Parser(PythonPluginBase):
     )
     mainfile_contents_dict: Optional[dict] = Field(
         description="""
-        Is used to match structured data files like JSON or HDF5.
+        Is used to match structured data files like JSON, HDF5 or csv/excel files. In case of a csv/excel file
+        for example, in order to check if certain columns exist in a given sheet, one can set this attribute to
+        `{'<sheet name>': {'__has_all_keys': [<column names>]}}`. In case the csv/excel file contains comments that
+        are supposed to be ignored, use this reserved key-value pair
+        `'__comment_symbol': '<symbol>'` at the top level of the dict right next to the <sheet name>.
     """
     )
     supported_compressions: List[str] = Field(

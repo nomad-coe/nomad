@@ -340,7 +340,11 @@ class MatchingParser(Parser):
 
         if self._mainfile_contents_dict is not None:
             is_match = False
-            if mime.startswith('application/json') or mime.startswith('text/plain'):
+            if (
+                mime.startswith('application/json')
+                or mime.startswith('text/plain')
+                and not re.match(r'.+\.(?:csv|xlsx?)$', filename)
+            ):
                 try:
                     is_match = match(
                         self._mainfile_contents_dict, json.load(open(filename))
@@ -357,26 +361,10 @@ class MatchingParser(Parser):
                 from nomad.parsing.tabular import read_table_data
 
                 try:
-                    data: Dict[str, Any] = {}
-                    table_data = read_table_data(filename)
-                    for sheet_name in table_data:
-                        data.setdefault(sheet_name, {})
-                        nrow = 0
-                        for column_name in table_data[sheet_name][0].keys():
-                            column_values = list(
-                                table_data[sheet_name][0][column_name].values()
-                            )
-                            if not nrow:
-                                for n, row in enumerate(column_values):
-                                    if not str(row).strip().startswith('#'):
-                                        nrow = n
-                                        break
-                            if nrow:
-                                data[sheet_name][column_values[nrow]] = column_values[
-                                    nrow + 1 :
-                                ]
-                            else:
-                                data[column_name] = column_values
+                    comment = self._mainfile_contents_dict.get('__comment_symbol', None)
+                    self._mainfile_contents_dict.pop('__comment_symbol', None)
+                    table_data = read_table_data(filename, comment=comment)[0]
+                    data = table_data.to_dict()
 
                     is_match = match(self._mainfile_contents_dict, data)
                 except Exception:
