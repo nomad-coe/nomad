@@ -13,7 +13,7 @@ fs:
 plugins:
   entry_points:
     include:
-      - schema/simulation/run
-      - schema/simulation/workflow
-      - parsers/vasp
+      - runschema:run_schema_entry_point
+      - simulationworkflowschema:simulationworkflow_schema_entry_point
+      - electronicparsers:vasp_parser_entry_point
 

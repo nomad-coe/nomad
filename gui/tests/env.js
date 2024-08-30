@@ -2642,11 +2642,238 @@ window.nomadEnv = {
         "nomad_porous_materials.normalizers:porositynormalizer"
       ],
       "include": [
-        "schema/simulation/run",
-        "schema/simulation/workflow",
-        "parsers/vasp"
+        "runschema:run_schema_entry_point",
+        "simulationworkflowschema:simulationworkflow_schema_entry_point",
+        "electronicparsers:vasp_parser_entry_point"
       ],
       "options": {
+        "atomisticparsers:amber_parser_entry_point": {
+          "id": "atomisticparsers:amber_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/amber",
+          "description": "NOMAD parser for AMBER.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/amber"
+          ],
+          "mainfile_contents_re": "\\s*Amber\\s[0-9]+\\s[A-Z]+\\s*[0-9]+",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:asap_parser_entry_point": {
+          "id": "atomisticparsers:asap_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/asap",
+          "description": "NOMAD parser for ASAP.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/asap"
+          ],
+          "mainfile_name_re": ".*.traj$",
+          "mainfile_mime_re": "application/octet-stream",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:bopfox_parser_entry_point": {
+          "id": "atomisticparsers:bopfox_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/bopfox",
+          "description": "NOMAD parser for BOPFOX.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/bopfox"
+          ],
+          "mainfile_contents_re": "\\-+\\s+BOPfox \\(v",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:dftbplus_parser_entry_point": {
+          "id": "atomisticparsers:dftbplus_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/dftbplus",
+          "description": "NOMAD parser for DFTBPLUS.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/dftbplus"
+          ],
+          "mainfile_contents_re": "\\|  DFTB\\+",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "text/.*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:dlpoly_parser_entry_point": {
+          "id": "atomisticparsers:dlpoly_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/dl-poly",
+          "description": "NOMAD parser for DLPOLY.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/dl-poly"
+          ],
+          "mainfile_contents_re": "\\*\\*\\s+DL_POLY.+\\*\\*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:gromacs_parser_entry_point": {
+          "id": "atomisticparsers:gromacs_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/gromacs",
+          "description": "NOMAD parser for GROMACS.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/gromacs"
+          ],
+          "mainfile_contents_re": "gmx mdrun, (VERSION|version)[\\s\\S]*Input Parameters:",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:gromos_parser_entry_point": {
+          "id": "atomisticparsers:gromos_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/gromos",
+          "description": "NOMAD parser for GROMOS.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/gromos"
+          ],
+          "mainfile_contents_re": "Bugreports to http://www.gromos.net",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:gulp_parser_entry_point": {
+          "id": "atomisticparsers:gulp_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/gulp",
+          "description": "NOMAD parser for GULP.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/gulp"
+          ],
+          "mainfile_contents_re": "\\s*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\s*\\s*\\*\\s*GENERAL UTILITY LATTICE PROGRAM\\s*\\*\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:h5md_parser_entry_point": {
+          "id": "atomisticparsers:h5md_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/h5md",
+          "description": "NOMAD parser for H5MD.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/h5md"
+          ],
+          "mainfile_name_re": "^.*\\.(h5|hdf5)$",
+          "mainfile_mime_re": "(application/x-hdf)",
+          "mainfile_alternative": false,
+          "mainfile_contents_dict": {
+            "__has_all_keys": [
+              "h5md"
+            ]
+          },
+          "supported_compressions": []
+        },
+        "atomisticparsers:lammps_parser_entry_point": {
+          "id": "atomisticparsers:lammps_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/lammps",
+          "description": "NOMAD parser for LAMMPS.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/lammps"
+          ],
+          "mainfile_contents_re": "^LAMMPS\\s+\\(.+\\)",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:libatoms_parser_entry_point": {
+          "id": "atomisticparsers:libatoms_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/lib-atoms",
+          "description": "NOMAD parser for LIBATOMS.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/lib-atoms"
+          ],
+          "mainfile_contents_re": "\\s*<GAP_params\\s",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:namd_parser_entry_point": {
+          "id": "atomisticparsers:namd_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/namd",
+          "description": "NOMAD parser for NAMD.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/namd"
+          ],
+          "mainfile_contents_re": "\\s*Info:\\s*NAMD\\s*[0-9.]+\\s*for\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "text/.*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:tinker_parser_entry_point": {
+          "id": "atomisticparsers:tinker_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/tinker",
+          "description": "NOMAD parser for TINKER.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/tinker"
+          ],
+          "mainfile_contents_re": "TINKER  ---  Software Tools for Molecular Design",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "atomisticparsers:xtb_parser_entry_point": {
+          "id": "atomisticparsers:xtb_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/xtb",
+          "description": "NOMAD parser for XTB.",
+          "plugin_package": "atomisticparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/xtb"
+          ],
+          "mainfile_contents_re": "x T B\\s+\\|\\s+\\|\\s+=",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
         "bandstructurenormalizer:bandstructure_normalizer_entry_point": {
           "id": "bandstructurenormalizer:bandstructure_normalizer_entry_point",
           "entry_point_type": "normalizer",
@@ -2654,12 +2881,729 @@ window.nomadEnv = {
           "description": "Normalizer for the band structure data.",
           "plugin_package": "bandstructurenormalizer"
         },
+        "databaseparsers:openkim_parser_entry_point": {
+          "id": "databaseparsers:openkim_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/openkim",
+          "description": "NOMAD parser for OPENKIM.",
+          "plugin_package": "databaseparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/openkim"
+          ],
+          "mainfile_contents_re": "openkim|OPENKIM|OpenKIM",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "(application/json)|(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
         "dosnormalizer:dos_normalizer_entry_point": {
           "id": "dosnormalizer:dos_normalizer_entry_point",
           "entry_point_type": "normalizer",
           "name": "DosNormalizer",
           "description": "Normalizer for the DOS data.",
           "plugin_package": "dosnormalizer"
+        },
+        "electronicparsers:abacus_parser_entry_point": {
+          "id": "electronicparsers:abacus_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/abacus",
+          "description": "NOMAD parser for ABACUS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/abacus"
+          ],
+          "mainfile_contents_re": "\\s*\\n\\s*WELCOME TO ABACUS",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:abinit_parser_entry_point": {
+          "id": "electronicparsers:abinit_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/abinit",
+          "description": "NOMAD parser for ABINIT.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/abinit"
+          ],
+          "mainfile_contents_re": "^\\n*\\.Version\\s*[0-9.]*\\s*of ABINIT\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:ams_parser_entry_point": {
+          "id": "electronicparsers:ams_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/ams",
+          "description": "NOMAD parser for AMS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/ams"
+          ],
+          "mainfile_contents_re": "\\* +\\| +A M S +\\| +\\*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:atk_parser_entry_point": {
+          "id": "electronicparsers:atk_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/atk",
+          "description": "NOMAD parser for ATK.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/atk"
+          ],
+          "mainfile_name_re": "^.*\\.nc",
+          "mainfile_mime_re": "application/octet-stream",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:bigdft_parser_entry_point": {
+          "id": "electronicparsers:bigdft_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/bigdft",
+          "description": "NOMAD parser for BIGDFT.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/bigdft"
+          ],
+          "mainfile_contents_re": "\\|_____\\|__:__\\|__:__\\|_____\\|_____\\|___ BBBBB          i     g         g\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:castep_parser_entry_point": {
+          "id": "electronicparsers:castep_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/castep",
+          "description": "NOMAD parser for CASTEP.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/castep"
+          ],
+          "mainfile_contents_re": "\\s\\|\\s*CCC\\s*AA\\s*SSS\\s*TTTTT\\s*EEEEE\\s*PPPP\\s*\\|\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:charmm_parser_entry_point": {
+          "id": "electronicparsers:charmm_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/charmm",
+          "description": "NOMAD parser for CHARMM.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/charmm"
+          ],
+          "mainfile_contents_re": "\\s*Chemistry\\s*at\\s*HARvard\\s*Macromolecular\\s*Mechanics\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "text/.*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:cp2k_parser_entry_point": {
+          "id": "electronicparsers:cp2k_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/cp2k",
+          "description": "NOMAD parser for CP2K.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/cp2k"
+          ],
+          "mainfile_contents_re": "\\*\\*\\*\\* \\*\\*\\*\\* \\*\\*\\*\\*\\*\\*  \\*\\*  PROGRAM STARTED AT\\s.*\\n \\*\\*\\*\\*\\* \\*\\* \\*\\*\\*  \\*\\*\\* \\*\\*   PROGRAM STARTED ON\\s*.*\\n \\*\\*    \\*\\*\\*\\*   \\*\\*\\*\\*\\*\\*    PROGRAM STARTED BY .*\\n \\*\\*\\*\\*\\* \\*\\*    \\*\\* \\*\\* \\*\\*   PROGRAM PROCESS ID .*\\n  \\*\\*\\*\\* \\*\\*  \\*\\*\\*\\*\\*\\*\\*  \\*\\*  PROGRAM STARTED IN .*\\n",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:cpmd_parser_entry_point": {
+          "id": "electronicparsers:cpmd_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/cpmd",
+          "description": "NOMAD parser for CPMD.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/cpmd"
+          ],
+          "mainfile_contents_re": "\\*\\*\\*       \\*\\*   \\*\\*\\*  \\*\\* \\*\\*\\*\\* \\*\\*  \\*\\*   \\*\\*\\*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:crystal_parser_entry_point": {
+          "id": "electronicparsers:crystal_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/crystal",
+          "description": "NOMAD parser for CRYSTAL.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/crystal"
+          ],
+          "mainfile_contents_re": "(\\r?\\n \\*\\s+CRYSTAL[\\d]+\\s+\\*\\r?\\n \\*\\s*[a-zA-Z]+ : \\d+[\\.\\d+]*)",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:dmol3_parser_entry_point": {
+          "id": "electronicparsers:dmol3_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/dmol",
+          "description": "NOMAD parser for DMOL3.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/dmol"
+          ],
+          "mainfile_contents_re": "Materials Studio DMol\\^3",
+          "mainfile_name_re": ".*\\.outmol",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:edmft_parser_entry_point": {
+          "id": "electronicparsers:edmft_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/edmft",
+          "description": "NOMAD parser for EDMFT.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/edmft"
+          ],
+          "mainfile_contents_re": "\\-\\-\\-\\s*Preparing GF calculation\\s*\\-\\-\\-",
+          "mainfile_name_re": "^.*\\.(out)$",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:elk_parser_entry_point": {
+          "id": "electronicparsers:elk_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/elk",
+          "description": "NOMAD parser for ELK.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/elk"
+          ],
+          "mainfile_contents_re": "\\| Elk version [0-9.a-zA-Z]+ started \\|",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:exciting_parser_entry_point": {
+          "id": "electronicparsers:exciting_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/exciting",
+          "description": "NOMAD parser for EXCITING.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/exciting"
+          ],
+          "mainfile_contents_re": "EXCITING.*started[\\s\\S]+?All units are atomic ",
+          "mainfile_name_re": "^.*.OUT(\\.[^/]*)?$",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:fhiaims_parser_entry_point": {
+          "id": "electronicparsers:fhiaims_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/fhi-aims",
+          "description": "NOMAD parser for FHIAIMS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/fhi-aims"
+          ],
+          "mainfile_contents_re": "^(.*\\n)*?\\s*Invoking FHI-aims \\.\\.\\.",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:fleur_parser_entry_point": {
+          "id": "electronicparsers:fleur_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/fleur",
+          "description": "NOMAD parser for FLEUR.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/fleur"
+          ],
+          "mainfile_contents_re": "This output is generated by fleur.|\\<fleurOutput",
+          "mainfile_name_re": ".*[^/]*\\.xml[^/]*",
+          "mainfile_mime_re": "(application/.*)|(text/.*)",
+          "mainfile_alternative": true,
+          "supported_compressions": []
+        },
+        "electronicparsers:fplo_parser_entry_point": {
+          "id": "electronicparsers:fplo_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/fplo",
+          "description": "NOMAD parser for FPLO.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/fplo"
+          ],
+          "mainfile_contents_re": "\\s*\\|\\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE CODE\\s*\\|\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "text/.*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:gamess_parser_entry_point": {
+          "id": "electronicparsers:gamess_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/gamess",
+          "description": "NOMAD parser for GAMESS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/gamess"
+          ],
+          "mainfile_contents_re": "\\s*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\**\\s*\\s*\\*\\s*GAMESS VERSION =\\s*(.*)\\*\\s*\\s*\\*\\s*FROM IOWA STATE UNIVERSITY\\s*\\*\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:gaussian_parser_entry_point": {
+          "id": "electronicparsers:gaussian_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/gaussian",
+          "description": "NOMAD parser for GAUSSIAN.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/gaussian"
+          ],
+          "mainfile_contents_re": "\\s*Cite this work as:\\s*Gaussian [0-9]+, Revision [A-Za-z0-9\\.]*,",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:gpaw_parser_entry_point": {
+          "id": "electronicparsers:gpaw_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/gpaw",
+          "description": "NOMAD parser for GPAW.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/gpaw"
+          ],
+          "mainfile_name_re": "^.*\\.(gpw2|gpw)$",
+          "mainfile_mime_re": "application/(x-tar|octet-stream)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:magres_parser_entry_point": {
+          "id": "electronicparsers:magres_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/magres",
+          "description": "NOMAD parser for MAGRES.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/magres"
+          ],
+          "mainfile_contents_re": "\\$magres-abinitio-v(\\d\\.)+",
+          "mainfile_name_re": "^.*\\.magres",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:molcas_parser_entry_point": {
+          "id": "electronicparsers:molcas_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/molcas",
+          "description": "NOMAD parser for MOLCAS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/molcas"
+          ],
+          "mainfile_contents_re": "M O L C A S",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:mopac_parser_entry_point": {
+          "id": "electronicparsers:mopac_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/mopac",
+          "description": "NOMAD parser for MOPAC.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/mopac"
+          ],
+          "mainfile_contents_re": "\\s*\\*\\*\\s*MOPAC\\s*([0-9a-zA-Z\\.]*)\\s*\\*\\*\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "text/.*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:nwchem_parser_entry_point": {
+          "id": "electronicparsers:nwchem_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/nwchem",
+          "description": "NOMAD parser for NWCHEM.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/nwchem"
+          ],
+          "mainfile_contents_re": "Northwest Computational Chemistry Package \\(NWChem\\) (\\d+\\.)+\\d+",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:ocean_parser_entry_point": {
+          "id": "electronicparsers:ocean_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/ocean",
+          "description": "NOMAD parser for OCEAN.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/ocean"
+          ],
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "(application/.*)|(text/.*)",
+          "mainfile_alternative": false,
+          "mainfile_contents_dict": {
+            "__has_all_keys": [
+              "bse",
+              "structure",
+              "screen",
+              "calc"
+            ]
+          },
+          "supported_compressions": []
+        },
+        "electronicparsers:octopus_parser_entry_point": {
+          "id": "electronicparsers:octopus_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/octopus",
+          "description": "NOMAD parser for OCTOPUS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/octopus"
+          ],
+          "mainfile_contents_re": "\\|0\\) ~ \\(0\\) \\|",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:onetep_parser_entry_point": {
+          "id": "electronicparsers:onetep_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/onetep",
+          "description": "NOMAD parser for ONETEP.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/onetep"
+          ],
+          "mainfile_contents_re": "####### #     # ####### ####### ####### ######",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:openmx_parser_entry_point": {
+          "id": "electronicparsers:openmx_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/openmx",
+          "description": "NOMAD parser for OPENMX.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/openmx"
+          ],
+          "mainfile_contents_re": "^\\*{59}\\s+\\*{59}\\s+This calculation was performed by OpenMX",
+          "mainfile_name_re": ".*\\.out$",
+          "mainfile_mime_re": "(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:orca_parser_entry_point": {
+          "id": "electronicparsers:orca_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/orca",
+          "description": "NOMAD parser for ORCA.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/orca"
+          ],
+          "mainfile_contents_re": "\\s+\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\**\\s*\\s+\\* O   R   C   A \\*\\s*\\s+\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\*\\**\\s*\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:psi4_parser_entry_point": {
+          "id": "electronicparsers:psi4_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/psi4",
+          "description": "NOMAD parser for PSI4.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/psi4"
+          ],
+          "mainfile_contents_re": "Psi4: An Open-Source Ab Initio Electronic Structure Package",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:qball_parser_entry_point": {
+          "id": "electronicparsers:qball_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/qball",
+          "description": "NOMAD parser for QBALL.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/qball"
+          ],
+          "mainfile_contents_re": "qball",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": [
+            "gz",
+            "bz2",
+            "xz"
+          ]
+        },
+        "electronicparsers:qbox_parser_entry_point": {
+          "id": "electronicparsers:qbox_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/qbox",
+          "description": "NOMAD parser for QBOX.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/qbox"
+          ],
+          "mainfile_contents_re": "http://qboxcode.org",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "(application/xml)|(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:quantumespresso_parser_entry_point": {
+          "id": "electronicparsers:quantumespresso_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/quantumespresso",
+          "description": "NOMAD parser for QUANTUMESPRESSO.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/quantumespresso"
+          ],
+          "mainfile_contents_re": "(Program PWSCF.*starts)|(Current dimensions of program PWSCF are)",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": [
+            "gz",
+            "bz2",
+            "xz"
+          ]
+        },
+        "electronicparsers:siesta_parser_entry_point": {
+          "id": "electronicparsers:siesta_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/siesta",
+          "description": "NOMAD parser for SIESTA.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/siesta"
+          ],
+          "mainfile_contents_re": "(Siesta Version: siesta-|SIESTA [0-9]\\.[0-9]\\.[0-9])|(\\*\\s*WELCOME TO SIESTA\\s*\\*)",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:soliddmft_parser_entry_point": {
+          "id": "electronicparsers:soliddmft_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/soliddmft",
+          "description": "NOMAD parser for SOLIDDMFT.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/soliddmft"
+          ],
+          "mainfile_name_re": "^.*\\.(h5|hdf5)$",
+          "mainfile_mime_re": "(application/x-hdf)",
+          "mainfile_alternative": false,
+          "mainfile_contents_dict": {
+            "__has_all_keys": [
+              "dft_input",
+              "DMFT_input",
+              "DMFT_results"
+            ]
+          },
+          "supported_compressions": []
+        },
+        "electronicparsers:tbstudio_parser_entry_point": {
+          "id": "electronicparsers:tbstudio_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/tbstudio",
+          "description": "NOMAD parser for TBSTUDIO.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/tbstudio"
+          ],
+          "mainfile_contents_re": "\"ApplicationFullName\": \"Tight Binding Studio\"",
+          "mainfile_name_re": ".*\\.tbm",
+          "mainfile_mime_re": "(application/json)|(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:turbomole_parser_entry_point": {
+          "id": "electronicparsers:turbomole_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/turbomole",
+          "description": "NOMAD parser for TURBOMOLE.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/turbomole"
+          ],
+          "mainfile_contents_re": "Copyright \\(C\\) [0-9]+ TURBOMOLE GmbH, Karlsruhe",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:vasp_parser_entry_point": {
+          "id": "electronicparsers:vasp_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/vasp",
+          "description": "NOMAD parser for VASP.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/vasp"
+          ],
+          "mainfile_contents_re": "^\\s*<\\?xml version=\"1\\.0\" encoding=\"ISO-8859-1\"\\?>\\s*?\\s*<modeling>?\\s*<generator>?\\s*<i name=\"program\" type=\"string\">\\s*vasp\\s*</i>?|^\\svasp[\\.\\d]+.+?(?:\\(build|complex)[\\s\\S]+?executed on",
+          "mainfile_name_re": ".*[^/]*xml[^/]*",
+          "mainfile_mime_re": "(application/.*)|(text/.*)",
+          "mainfile_alternative": true,
+          "supported_compressions": [
+            "gz",
+            "bz2",
+            "xz"
+          ]
+        },
+        "electronicparsers:w2dynamics_parser_entry_point": {
+          "id": "electronicparsers:w2dynamics_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/w2dynamics",
+          "description": "NOMAD parser for W2DYNAMICS.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/w2dynamics"
+          ],
+          "mainfile_name_re": "^.*\\.(h5|hdf5)$",
+          "mainfile_mime_re": "(application/x-hdf)",
+          "mainfile_alternative": false,
+          "mainfile_contents_dict": {
+            "__has_all_keys": [
+              ".axes",
+              ".config",
+              ".quantities"
+            ]
+          },
+          "supported_compressions": []
+        },
+        "electronicparsers:wannier90_parser_entry_point": {
+          "id": "electronicparsers:wannier90_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/wannier90",
+          "description": "NOMAD parser for WANNIER90.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/wannier90"
+          ],
+          "mainfile_contents_re": "\\|\\s*WANNIER90\\s*\\|",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "electronicparsers:wien2k_parser_entry_point": {
+          "id": "electronicparsers:wien2k_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/wien2k",
+          "description": "NOMAD parser for WIEN2K.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/wien2k"
+          ],
+          "mainfile_contents_re": "\\s*---------\\s*:ITE[0-9]+:\\s*[0-9]+\\.\\s*ITERATION\\s*---------",
+          "mainfile_name_re": ".*\\.scf$",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": true,
+          "supported_compressions": []
+        },
+        "electronicparsers:yambo_parser_entry_point": {
+          "id": "electronicparsers:yambo_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/yambo",
+          "description": "NOMAD parser for YAMBO.",
+          "plugin_package": "electronicparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/yambo"
+          ],
+          "mainfile_contents_re": "Build.+\\s+http://www\\.yambo-code\\.org",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
         },
         "example_uploads/1_basic_examples/1_theory": {
           "id": "example_uploads/1_basic_examples/1_theory",
@@ -3494,130 +4438,10 @@ window.nomadEnv = {
           "description": "A NOMAD plugin for FAIR schemas for simulation data.",
           "plugin_package": "nomad_simulations"
         },
-        "parsers/abacus": {
-          "plugin_type": "parser",
-          "id": "parsers/abacus",
-          "name": "parsers/abacus",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/abacus"
-        },
-        "parsers/abinit": {
-          "plugin_type": "parser",
-          "id": "parsers/abinit",
-          "name": "parsers/abinit",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/abinit"
-        },
-        "parsers/aflow": {
-          "plugin_type": "parser",
-          "id": "parsers/aflow",
-          "name": "parsers/aflow",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/aflow"
-        },
-        "parsers/amber": {
-          "plugin_type": "parser",
-          "id": "parsers/amber",
-          "name": "parsers/amber",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/amber"
-        },
-        "parsers/ams": {
-          "plugin_type": "parser",
-          "id": "parsers/ams",
-          "name": "parsers/ams",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/ams"
-        },
-        "parsers/asap": {
-          "plugin_type": "parser",
-          "id": "parsers/asap",
-          "name": "parsers/asap",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/asap"
-        },
-        "parsers/asr": {
-          "plugin_type": "parser",
-          "id": "parsers/asr",
-          "name": "parsers/asr",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/asr"
-        },
-        "parsers/atk": {
-          "plugin_type": "parser",
-          "id": "parsers/atk",
-          "name": "parsers/atk",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/atk"
-        },
-        "parsers/atomate": {
-          "plugin_type": "parser",
-          "id": "parsers/atomate",
-          "name": "parsers/atomate",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/automate"
-        },
-        "parsers/bigdft": {
-          "plugin_type": "parser",
-          "id": "parsers/bigdft",
-          "name": "parsers/bigdft",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/bigdft"
-        },
-        "parsers/bopfox": {
-          "plugin_type": "parser",
-          "id": "parsers/bopfox",
-          "name": "parsers/bopfox",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/bobfox"
-        },
-        "parsers/castep": {
-          "plugin_type": "parser",
-          "id": "parsers/castep",
-          "name": "parsers/castep",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/castep"
-        },
-        "parsers/charmm": {
-          "plugin_type": "parser",
-          "id": "parsers/charmm",
-          "name": "parsers/charmm",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/charmm"
-        },
         "parsers/chemotion/chemotion": {
           "plugin_type": "parser",
           "id": "parsers/chemotion/chemotion",
           "name": "parsers/chemotion"
-        },
-        "parsers/cp2k": {
-          "plugin_type": "parser",
-          "id": "parsers/cp2k",
-          "name": "parsers/cp2k",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/cp2k"
-        },
-        "parsers/cpmd": {
-          "plugin_type": "parser",
-          "id": "parsers/cpmd",
-          "name": "parsers/cpmd",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/cpmd"
-        },
-        "parsers/crystal": {
-          "plugin_type": "parser",
-          "id": "parsers/crystal",
-          "name": "parsers/crystal",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/crystal"
-        },
-        "parsers/dftbplus": {
-          "plugin_type": "parser",
-          "id": "parsers/dftbplus",
-          "name": "parsers/dftbplus",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/dftplus"
-        },
-        "parsers/dlpoly": {
-          "plugin_type": "parser",
-          "id": "parsers/dlpoly",
-          "name": "parsers/dl-poly",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/dlpoly"
-        },
-        "parsers/dmol3": {
-          "plugin_type": "parser",
-          "id": "parsers/dmol3",
-          "name": "parsers/dmol",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/dmol3"
-        },
-        "parsers/edmft": {
-          "plugin_type": "parser",
-          "id": "parsers/edmft",
-          "name": "parsers/edmft",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/edmft"
         },
         "parsers/eelsdbparser": {
           "plugin_type": "parser",
@@ -3630,286 +4454,6 @@ window.nomadEnv = {
           "id": "parsers/elabftw/elabftw",
           "name": "parsers/elabftw",
           "plugin_source_code_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/develop/nomad/parsing/elabftw"
-        },
-        "parsers/elastic": {
-          "plugin_type": "parser",
-          "id": "parsers/elastic",
-          "name": "parsers/elastic",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/elastic"
-        },
-        "parsers/elk": {
-          "plugin_type": "parser",
-          "id": "parsers/elk",
-          "name": "parsers/elk",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/elk"
-        },
-        "parsers/exciting": {
-          "plugin_type": "parser",
-          "id": "parsers/exciting",
-          "name": "parsers/exciting",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/exciting"
-        },
-        "parsers/fhi-aims": {
-          "plugin_type": "parser",
-          "id": "parsers/fhi-aims",
-          "name": "parsers/fhi-aims",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/fhiaims"
-        },
-        "parsers/fhivibes": {
-          "plugin_type": "parser",
-          "id": "parsers/fhivibes",
-          "name": "parsers/fhi-vibes",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/fhivibes"
-        },
-        "parsers/fleur": {
-          "plugin_type": "parser",
-          "id": "parsers/fleur",
-          "name": "parsers/fleur",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/fleur"
-        },
-        "parsers/fplo": {
-          "plugin_type": "parser",
-          "id": "parsers/fplo",
-          "name": "parsers/fplo",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/fplo"
-        },
-        "parsers/gamess": {
-          "plugin_type": "parser",
-          "id": "parsers/gamess",
-          "name": "parsers/gamess",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/gamess"
-        },
-        "parsers/gaussian": {
-          "plugin_type": "parser",
-          "id": "parsers/gaussian",
-          "name": "parsers/gaussian",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/gaussian"
-        },
-        "parsers/gpaw": {
-          "plugin_type": "parser",
-          "id": "parsers/gpaw",
-          "name": "parsers/gpaw",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/gpaw"
-        },
-        "parsers/gromacs": {
-          "plugin_type": "parser",
-          "id": "parsers/gromacs",
-          "name": "parsers/gromacs",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gromacs"
-        },
-        "parsers/gromos": {
-          "plugin_type": "parser",
-          "id": "parsers/gromos",
-          "name": "parsers/gromos",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gromos"
-        },
-        "parsers/gulp": {
-          "plugin_type": "parser",
-          "id": "parsers/gulp",
-          "name": "parsers/gulp",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gulp"
-        },
-        "parsers/h5md": {
-          "plugin_type": "parser",
-          "id": "parsers/h5md",
-          "name": "parsers/h5md"
-        },
-        "parsers/lammps": {
-          "plugin_type": "parser",
-          "id": "parsers/lammps",
-          "name": "parsers/lammps",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/lammps"
-        },
-        "parsers/libatoms": {
-          "plugin_type": "parser",
-          "id": "parsers/libatoms",
-          "name": "parsers/lib-atoms",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/libatoms"
-        },
-        "parsers/lobster": {
-          "plugin_type": "parser",
-          "id": "parsers/lobster",
-          "name": "parsers/lobster",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/lobster"
-        },
-        "parsers/magres": {
-          "plugin_type": "parser",
-          "id": "parsers/magres",
-          "name": "parsers/magres",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/magres"
-        },
-        "parsers/molcas": {
-          "plugin_type": "parser",
-          "id": "parsers/molcas",
-          "name": "parsers/molcas",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/molcas"
-        },
-        "parsers/mopac": {
-          "plugin_type": "parser",
-          "id": "parsers/mopac",
-          "name": "parsers/mopac",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/mopac"
-        },
-        "parsers/namd": {
-          "plugin_type": "parser",
-          "id": "parsers/namd",
-          "name": "parsers/namd",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/namd"
-        },
-        "parsers/nwchem": {
-          "plugin_type": "parser",
-          "id": "parsers/nwchem",
-          "name": "parsers/nwchem",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/nwchem"
-        },
-        "parsers/ocean": {
-          "plugin_type": "parser",
-          "id": "parsers/ocean",
-          "name": "parsers/ocean",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/ocean"
-        },
-        "parsers/octopus": {
-          "plugin_type": "parser",
-          "id": "parsers/octopus",
-          "name": "parsers/octopus",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/octopus"
-        },
-        "parsers/onetep": {
-          "plugin_type": "parser",
-          "id": "parsers/onetep",
-          "name": "parsers/onetep",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/onetep"
-        },
-        "parsers/openkim": {
-          "plugin_type": "parser",
-          "id": "parsers/openkim",
-          "name": "parsers/openkim",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/databaseparsers/openkim"
-        },
-        "parsers/openmx": {
-          "plugin_type": "parser",
-          "id": "parsers/openmx",
-          "name": "parsers/openmx",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/openmx"
-        },
-        "parsers/orca": {
-          "plugin_type": "parser",
-          "id": "parsers/orca",
-          "name": "parsers/orca",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/orca"
-        },
-        "parsers/phonopy": {
-          "plugin_type": "parser",
-          "id": "parsers/phonopy",
-          "name": "parsers/phonopy",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/phonopy"
-        },
-        "parsers/psi4": {
-          "plugin_type": "parser",
-          "id": "parsers/psi4",
-          "name": "parsers/psi4",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/psi4"
-        },
-        "parsers/qball": {
-          "plugin_type": "parser",
-          "id": "parsers/qball",
-          "name": "parsers/qball",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/qball"
-        },
-        "parsers/qbox": {
-          "plugin_type": "parser",
-          "id": "parsers/qbox",
-          "name": "parsers/qbox",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/qbox"
-        },
-        "parsers/quantum_espresso_epw": {
-          "plugin_type": "parser",
-          "id": "parsers/quantum_espresso_epw",
-          "name": "parsers/quantumespressoepw",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/quantum_espresso_epw"
-        },
-        "parsers/quantum_espresso_phonon": {
-          "plugin_type": "parser",
-          "id": "parsers/quantum_espresso_phonon",
-          "name": "parsers/quantumespressophonon",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/quantum_espresso_phonon"
-        },
-        "parsers/quantum_espresso_xspectra": {
-          "plugin_type": "parser",
-          "id": "parsers/quantum_espresso_xspectra",
-          "name": "parsers/quantumespressoxspectra",
-          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/quantum_espresso_xpectra"
-        },
-        "parsers/quantumespresso": {
-          "plugin_type": "parser",
-          "id": "parsers/quantumespresso",
-          "name": "parsers/quantumespresso",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/quantumespresso"
-        },
-        "parsers/siesta": {
-          "plugin_type": "parser",
-          "id": "parsers/siesta",
-          "name": "parsers/siesta",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/siesta"
-        },
-        "parsers/soliddmft": {
-          "plugin_type": "parser",
-          "id": "parsers/soliddmft",
-          "name": "parsers/soliddmft",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/soliddmft"
-        },
-        "parsers/tbstudio": {
-          "plugin_type": "parser",
-          "id": "parsers/tbstudio",
-          "name": "parsers/tbstudio"
-        },
-        "parsers/tinker": {
-          "plugin_type": "parser",
-          "id": "parsers/tinker",
-          "name": "parsers/tinker",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/tinker"
-        },
-        "parsers/turbomole": {
-          "plugin_type": "parser",
-          "id": "parsers/turbomole",
-          "name": "parsers/turbomole",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/turbomole"
-        },
-        "parsers/vasp": {
-          "plugin_type": "parser",
-          "id": "parsers/vasp",
-          "name": "parsers/vasp",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/vasp"
-        },
-        "parsers/w2dynamics": {
-          "plugin_type": "parser",
-          "id": "parsers/w2dynamics",
-          "name": "parsers/w2dynamics",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/w2dynamics"
-        },
-        "parsers/wannier90": {
-          "plugin_type": "parser",
-          "id": "parsers/wannier90",
-          "name": "parsers/wannier90",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/wannier90"
-        },
-        "parsers/wien2k": {
-          "plugin_type": "parser",
-          "id": "parsers/wien2k",
-          "name": "parsers/wien2k",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/wien2k"
-        },
-        "parsers/xtb": {
-          "plugin_type": "parser",
-          "id": "parsers/xtb",
-          "name": "parsers/xtb",
-          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/xtb"
-        },
-        "parsers/yambo": {
-          "plugin_type": "parser",
-          "id": "parsers/yambo",
-          "name": "parsers/yambo",
-          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/yambo"
         },
         "perovskite_solar_cell_database.apps:solar_cells": {
           "id": "perovskite_solar_cell_database.apps:solar_cells",
@@ -4624,6 +5168,7 @@ window.nomadEnv = {
           "description": "A parser for nexus files.",
           "plugin_package": "pynxtools",
           "level": 0,
+          "aliases": [],
           "mainfile_name_re": ".*\\.nxs",
           "mainfile_mime_re": "application/x-hdf5",
           "mainfile_alternative": false,
@@ -4677,10 +5222,207 @@ window.nomadEnv = {
           "name": "SystemNormalizer",
           "description": "Normalizer for the system data.",
           "plugin_package": "systemnormalizer"
+        },
+        "workflowparsers:aflow_parser_entry_point": {
+          "id": "workflowparsers:aflow_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/aflow",
+          "description": "NOMAD parser for AFLOW.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/aflow"
+          ],
+          "mainfile_contents_re": "^\\s*\\[AFLOW\\] \\*+\\s*\\[AFLOW\\]\\s*\\[AFLOW\\]                     .o.        .o88o.oooo\\s*\\[AFLOW\\]                    .888.       888 `` `888\\s*\\[AFLOW\\]                   .8'888.     o888oo   888   .ooooo.  oooooooo    ooo\\s*\\[AFLOW\\]                  .8' `888.     888     888  d88' `88b  `88.`88.  .8'\\s*\\[AFLOW\\]                 .88ooo8888.    888     888  888   888   `88..]88..8'\\s*\\[AFLOW\\]                .8'     `888.   888     888  888   888    `888'`888'\\s*\\[AFLOW\\]               o88o     o8888oo888o   o888o `Y8bod8P'     `8'  `8'  .in|^\\s*\\{\\\"aurl\\\"\\:\\\"aflowlib\\.duke\\.edu\\:AFLOWDATA",
+          "mainfile_name_re": ".*aflowlib\\.json.*",
+          "mainfile_mime_re": "(application/json)|(text/.*)",
+          "mainfile_alternative": true,
+          "supported_compressions": [
+            "gz",
+            "bz2",
+            "xz"
+          ]
+        },
+        "workflowparsers:asr_parser_entry_point": {
+          "id": "workflowparsers:asr_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/asr",
+          "description": "NOMAD parser for ASR.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/asr"
+          ],
+          "mainfile_contents_re": "\"name\": \"ASR\"",
+          "mainfile_name_re": ".*archive_.*\\.json",
+          "mainfile_mime_re": "(application/json)|(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "workflowparsers:atomate_parser_entry_point": {
+          "id": "workflowparsers:atomate_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/atomate",
+          "description": "NOMAD parser for ATOMATE.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/atomate"
+          ],
+          "mainfile_contents_re": "\"pymatgen_version\":",
+          "mainfile_name_re": ".*mp.+materials\\.json",
+          "mainfile_mime_re": "(application/json)|(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "workflowparsers:elastic_parser_entry_point": {
+          "id": "workflowparsers:elastic_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/elastic",
+          "description": "NOMAD parser for ELASTIC.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/elastic"
+          ],
+          "mainfile_contents_re": "\\s*Order of elastic constants\\s*=\\s*[0-9]+\\s*",
+          "mainfile_name_re": ".*/INFO_ElaStic",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "workflowparsers:fhivibes_parser_entry_point": {
+          "id": "workflowparsers:fhivibes_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/fhivibes",
+          "description": "NOMAD parser for FHIVIBES.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/fhivibes"
+          ],
+          "mainfile_name_re": "^.*\\.(nc)$",
+          "mainfile_mime_re": "(application/x-hdf)",
+          "mainfile_alternative": false,
+          "mainfile_contents_dict": {
+            "__has_all_keys": [
+              "I",
+              "a",
+              "b"
+            ]
+          },
+          "supported_compressions": []
+        },
+        "workflowparsers:lobster_parser_entry_point": {
+          "id": "workflowparsers:lobster_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/lobster",
+          "description": "NOMAD parser for LOBSTER.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/lobster"
+          ],
+          "mainfile_contents_re": "^LOBSTER\\s*v[\\d\\.]+.*",
+          "mainfile_name_re": ".*lobsterout.*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": [
+            "gz",
+            "bz2",
+            "xz"
+          ]
+        },
+        "workflowparsers:phonopy_parser_entry_point": {
+          "id": "workflowparsers:phonopy_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/phonopy",
+          "description": "NOMAD parser for PHONOPY.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/phonopy"
+          ],
+          "mainfile_name_re": "(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon[^/]+yaml)",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "workflowparsers:quantum_espresso_epw_parser_entry_point": {
+          "id": "workflowparsers:quantum_espresso_epw_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/quantum_espresso_epw",
+          "description": "NOMAD parser for QUANTUM_ESPRESSO_EPW.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/quantum_espresso_epw"
+          ],
+          "mainfile_contents_re": "Program EPW.+\\s*This program is part of the open-source Quantum ESPRESSO suite",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "workflowparsers:quantum_espresso_phonon_parser_entry_point": {
+          "id": "workflowparsers:quantum_espresso_phonon_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/quantum_espresso_phonon",
+          "description": "NOMAD parser for QUANTUM_ESPRESSO_PHONON.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/quantum_espresso_phonon"
+          ],
+          "mainfile_contents_re": "Program PHONON.+\\s*This program is part of the open-source Quantum ESPRESSO suite",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "workflowparsers:quantum_espresso_xspectra_parser_entry_point": {
+          "id": "workflowparsers:quantum_espresso_xspectra_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/quantum_espresso_xspectra",
+          "description": "NOMAD parser for QUANTUM_ESPRESSO_XSPECTRA.",
+          "plugin_package": "workflowparsers",
+          "level": 0,
+          "aliases": [
+            "parsers/quantum_espresso_xspectra"
+          ],
+          "mainfile_contents_re": "\\s*Program XSpectra\\s*",
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": "(application/.*)|(text/.*)",
+          "mainfile_alternative": false,
+          "supported_compressions": []
         }
       }
     },
     "plugin_packages": {
+      "atomisticparsers": {
+        "description": "Collection of NOMAD parsers for atomistic codes.",
+        "documentation": null,
+        "entry_points": [
+          "atomisticparsers:amber_parser_entry_point",
+          "atomisticparsers:asap_parser_entry_point",
+          "atomisticparsers:bopfox_parser_entry_point",
+          "atomisticparsers:dftbplus_parser_entry_point",
+          "atomisticparsers:dlpoly_parser_entry_point",
+          "atomisticparsers:gromacs_parser_entry_point",
+          "atomisticparsers:gromos_parser_entry_point",
+          "atomisticparsers:gulp_parser_entry_point",
+          "atomisticparsers:h5md_parser_entry_point",
+          "atomisticparsers:lammps_parser_entry_point",
+          "atomisticparsers:libatoms_parser_entry_point",
+          "atomisticparsers:namd_parser_entry_point",
+          "atomisticparsers:tinker_parser_entry_point",
+          "atomisticparsers:xtb_parser_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/atomistic-parsers",
+        "name": "atomisticparsers",
+        "repository": null,
+        "version": "1.0"
+      },
       "bandstructurenormalizer": {
         "description": "Band structure normalizer plugin for NOMAD.",
         "documentation": null,
@@ -4689,6 +5431,17 @@ window.nomadEnv = {
         ],
         "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-bandstructure",
         "name": "bandstructurenormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
+      "databaseparsers": {
+        "description": "Collection of NOMAD parsers for databases.",
+        "documentation": null,
+        "entry_points": [
+          "databaseparsers:openkim_parser_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/database-parsers",
+        "name": "databaseparsers",
         "repository": null,
         "version": "1.0"
       },
@@ -4702,6 +5455,58 @@ window.nomadEnv = {
         "name": "dosnormalizer",
         "repository": null,
         "version": "1.0"
+      },
+      "electronicparsers": {
+        "description": "Collection of NOMAD parsers for electronic structure codes.",
+        "documentation": null,
+        "entry_points": [
+          "electronicparsers:abacus_parser_entry_point",
+          "electronicparsers:abinit_parser_entry_point",
+          "electronicparsers:ams_parser_entry_point",
+          "electronicparsers:atk_parser_entry_point",
+          "electronicparsers:bigdft_parser_entry_point",
+          "electronicparsers:castep_parser_entry_point",
+          "electronicparsers:charmm_parser_entry_point",
+          "electronicparsers:cp2k_parser_entry_point",
+          "electronicparsers:cpmd_parser_entry_point",
+          "electronicparsers:crystal_parser_entry_point",
+          "electronicparsers:dmol3_parser_entry_point",
+          "electronicparsers:edmft_parser_entry_point",
+          "electronicparsers:elk_parser_entry_point",
+          "electronicparsers:exciting_parser_entry_point",
+          "electronicparsers:fhiaims_parser_entry_point",
+          "electronicparsers:fleur_parser_entry_point",
+          "electronicparsers:fplo_parser_entry_point",
+          "electronicparsers:gamess_parser_entry_point",
+          "electronicparsers:gaussian_parser_entry_point",
+          "electronicparsers:gpaw_parser_entry_point",
+          "electronicparsers:magres_parser_entry_point",
+          "electronicparsers:molcas_parser_entry_point",
+          "electronicparsers:mopac_parser_entry_point",
+          "electronicparsers:nwchem_parser_entry_point",
+          "electronicparsers:ocean_parser_entry_point",
+          "electronicparsers:octopus_parser_entry_point",
+          "electronicparsers:onetep_parser_entry_point",
+          "electronicparsers:openmx_parser_entry_point",
+          "electronicparsers:orca_parser_entry_point",
+          "electronicparsers:psi4_parser_entry_point",
+          "electronicparsers:qball_parser_entry_point",
+          "electronicparsers:qbox_parser_entry_point",
+          "electronicparsers:quantumespresso_parser_entry_point",
+          "electronicparsers:siesta_parser_entry_point",
+          "electronicparsers:soliddmft_parser_entry_point",
+          "electronicparsers:tbstudio_parser_entry_point",
+          "electronicparsers:turbomole_parser_entry_point",
+          "electronicparsers:vasp_parser_entry_point",
+          "electronicparsers:w2dynamics_parser_entry_point",
+          "electronicparsers:wannier90_parser_entry_point",
+          "electronicparsers:wien2k_parser_entry_point",
+          "electronicparsers:yambo_parser_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/electronic-parsers",
+        "name": "electronicparsers",
+        "repository": null,
+        "version": "1.1"
       },
       "nomad_aitoolkit": {
         "description": "Schema and app for AI Toolkit notebooks.",
@@ -4826,6 +5631,26 @@ window.nomadEnv = {
         ],
         "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-system",
         "name": "systemnormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
+      "workflowparsers": {
+        "description": "Collection of NOMAD parsers for workflow engines.",
+        "documentation": null,
+        "entry_points": [
+          "workflowparsers:aflow_parser_entry_point",
+          "workflowparsers:asr_parser_entry_point",
+          "workflowparsers:atomate_parser_entry_point",
+          "workflowparsers:elastic_parser_entry_point",
+          "workflowparsers:fhivibes_parser_entry_point",
+          "workflowparsers:lobster_parser_entry_point",
+          "workflowparsers:phonopy_parser_entry_point",
+          "workflowparsers:quantum_espresso_epw_parser_entry_point",
+          "workflowparsers:quantum_espresso_phonon_parser_entry_point",
+          "workflowparsers:quantum_espresso_xspectra_parser_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/electronic-parsers",
+        "name": "workflowparsers",
         "repository": null,
         "version": "1.0"
       }

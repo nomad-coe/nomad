@@ -10,15 +10,5 @@ exclude nomad/app/static/gui/artifact.js
 
 include dependencies/nomad-dos-fingerprints/README.md
 recursive-include dependencies/nomad-dos-fingerprints/nomad_dos_fingerprints *.py
-include dependencies/parsers/atomistic/README.md
-recursive-include dependencies/parsers/atomistic/atomisticparsers *.py nomad_plugin.yaml
-include dependencies/parsers/database/README.md
-recursive-include dependencies/parsers/database/databaseparsers *.py nomad_plugin.yaml
 include dependencies/parsers/eelsdb/README.md
 recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py nomad_plugin.yaml
-include dependencies/parsers/electronic/README.md
-recursive-include dependencies/parsers/electronic/electronicparsers *.py *.json nomad_plugin.yaml
-include dependencies/parsers/workflow/README.md
-recursive-include dependencies/parsers/workflow/workflowparsers *.py nomad_plugin.yaml
-include dependencies/parsers/simulation/README.md
-recursive-include dependencies/parsers/simulation/simulationparsers *.py

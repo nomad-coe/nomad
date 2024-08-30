@@ -63,7 +63,6 @@ repository = 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR'
 
 [project.optional-dependencies]
 parsing = [
-    'asr==0.4.1',
     'h5py==3.11.0',
     'netCDF4==1.6.5',
     'nomad-openbis',
@@ -192,12 +191,7 @@ line-ending = "auto"
 where = [
     ".",
     "dependencies/nomad-dos-fingerprints",
-    "dependencies/parsers/atomistic",
-    "dependencies/parsers/database",
     "dependencies/parsers/eelsdb",
-    "dependencies/parsers/electronic",
-    "dependencies/parsers/workflow",
-    "dependencies/parsers/simulation",
 ]
 exclude = ["tests*"]
 namespaces = false

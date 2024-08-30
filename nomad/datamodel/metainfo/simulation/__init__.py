@@ -46,7 +46,8 @@ from . import system
 from . import workflow
 from . import legacy_workflows
 
-get_logger(__name__).warning('Schema is deprecated, use plugins.')
+# Disable warning as it is always imported.
+# get_logger(__name__).warning('Schema is deprecated, use plugins.')
 
 m_env = Environment()
 m_env.m_add_sub_section(Environment.packages, run.m_package)

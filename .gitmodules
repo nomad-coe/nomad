@@ -11,18 +11,6 @@
 [submodule "gui/crystcif-parse"]
 	path = gui/crystcif-parse
 	url = https://github.com/stur86/crystcif-parse.git
-[submodule "dependencies/parsers/electronic"]
-	path = dependencies/parsers/electronic
-	url = https://github.com/nomad-coe/electronic-parsers.git
-[submodule "dependencies/parsers/atomistic"]
-	path = dependencies/parsers/atomistic
-	url = https://github.com/nomad-coe/atomistic-parsers.git
-[submodule "dependencies/parsers/workflow"]
-	path = dependencies/parsers/workflow
-	url = https://github.com/nomad-coe/workflow-parsers.git
-[submodule "dependencies/parsers/database"]
-	path = dependencies/parsers/database
-	url = https://github.com/nomad-coe/database-parsers.git
 [submodule "examples/plugins/schema"]
 	path = examples/plugins/schema
 	url = https://github.com/nomad-coe/nomad-schema-plugin-example.git
@@ -32,9 +20,6 @@
 [submodule "examples/plugins/normalizer"]
 	path = examples/plugins/normalizer
 	url = https://github.com/nomad-coe/nomad-normalizer-plugin-example.git
-[submodule "dependencies/parsers/simulation"]
-	path = dependencies/parsers/simulation
-	url = https://github.com/nomad-coe/simulation-parsers.git
 [submodule "dependencies/parsers/example"]
 	path = dependencies/parsers/example
 	url = https://github.com/nomad-coe/nomad-parser-example.git
