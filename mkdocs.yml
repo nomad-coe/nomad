@@ -83,7 +83,7 @@ nav:
     - Data structure: explanation/data.md
     - Processing: explanation/processing.md
     - Architecture: explanation/architecture.md
-    - Why you need an Oasis: explanation/oasis.md
+    - Federation and Oasis: explanation/oasis.md
   - Reference:
     - reference/config.md
     - reference/annotations.md
