@@ -11,7 +11,7 @@ git+https://github.com/nomad-coe/nomad-normalizer-plugin-soap.git@develop
 git+https://github.com/nomad-coe/nomad-normalizer-plugin-spectra.git@develop
 git+https://github.com/nomad-coe/nomad-normalizer-plugin-system.git@develop
 git+https://github.com/nomad-coe/nomad-normalizer-plugin-simulation-workflow.git@develop
-git+https://github.com/nomad-coe/electronic-parsers.git@91bd91814eb3c663ac6dc64730f0fa1bee503ea9
-git+https://github.com/nomad-coe/atomistic-parsers.git@6e907aa4da0767d23450ff472118e63799101788
-git+https://github.com/nomad-coe/workflow-parsers.git@872eabb8dd53584278df26519a72d63652bad098
-git+https://github.com/nomad-coe/database-parsers.git@a82707377bd59f244739772803337c3a09615948
+git+https://github.com/nomad-coe/electronic-parsers.git@develop
+git+https://github.com/nomad-coe/atomistic-parsers.git@develop
+git+https://github.com/nomad-coe/workflow-parsers.git@master
+git+https://github.com/nomad-coe/database-parsers.git@master
