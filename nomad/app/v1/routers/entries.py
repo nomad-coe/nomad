@@ -329,6 +329,14 @@ class ArchiveChange(BaseModel):
     new_value: Any
     action: ArchiveChangeAction = ArchiveChangeAction.upsert
 
+    class Config:
+        @staticmethod
+        def schema_extra(schema, model) -> None:
+            # Removing the title from the Any typed new_value field
+            # makes this a proper JSON schema "any" instead of a named
+            # empty type.
+            del schema['properties']['new_value']['title']
+
 
 class EntryEdit(BaseModel):
     changes: List[ArchiveChange]
@@ -1485,9 +1493,10 @@ async def post_entry_edit(
     #   - no checks yet, we simply assume that the raw file and the changes
     #     agree on the schema
     #   - no handling of concurrent changes yet
-    for change in reversed(data.changes):
+    for change in data.changes:
         path = change.path.split('/')
         section_data = archive_data
+        next_key = to_key(path[0])
 
         for path_index, path_segment in enumerate(path[:-1]):
             # Usually all keys are str and indicate either a quantity or

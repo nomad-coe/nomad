@@ -52,6 +52,7 @@ import sys
 ref_prefix = '#/components/schemas'
 request_suffix = 'Request'
 response_suffix = 'Response'
+graph_model_export = False
 
 
 class _DictModel(BaseModel):
@@ -110,6 +111,14 @@ class _DictModel(BaseModel):
                 if value_type == Literal['*']:
                     types.append({'enum': ['*'], 'type': 'string'})
                 else:
+                    # This forces all model names to be unique. Pydandic
+                    # replaces non unique model names with qualified names.
+                    # We are just using the plain name here. Unfortunately,
+                    # there is no way to get the "long_model_name" map from pydantic
+                    # to put the right names here. Therefore, in the presence
+                    # of non-unique names, we are using the wrong referenes.
+                    # Things depending on the openapi schema will cause issues.
+                    # i.e. https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/issues/1958
                     types.append({'$ref': f'{ref_prefix}/{value_type.__name__}'})
 
             if 'properties' in schema:
@@ -196,6 +205,13 @@ def _generate_model(
 
     # We need to populate a forward ref for the model in the ns use it in recursion cases.
     result_model_name = f'{source_model.__name__}{suffix}'
+    if (
+        graph_model_export
+        and result_model_name.startswith('Graph')
+        and result_model_name not in ['GraphRequest', 'GraphResponse']
+    ):
+        result_model_name = result_model_name[5:]
+
     is_ns_origin = len(ns) == 0
     if result_model_name not in ns:
         ns[result_model_name] = ForwardRef(result_model_name)
@@ -307,6 +323,7 @@ def _generate_model(
     assert (
         getattr(sys.modules[source_model.__module__], result_model_name, result_model)
         == result_model
+        or graph_model_export
     ), f'Model class with name {result_model_name} already exists.'
     setattr(sys.modules[source_model.__module__], result_model_name, result_model)
 

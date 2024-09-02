@@ -184,6 +184,7 @@ class GraphUploads(BaseModel):
 
 class GraphEntryMetadata(BaseModel, extra=Extra.allow):
     entry: GraphEntry
+    m_children: Any
 
 
 class SearchRequestOptions(BaseModel):

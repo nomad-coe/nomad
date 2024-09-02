@@ -527,9 +527,11 @@ class ArchiveParser(MatchingParser):
 
         if metadata_data is not None:
             self.domain = metadata_data.get('domain')
-            # Setting metadata in this way is not supported (any more)
-            if entry_name := metadata_data.get('entry_name', None):
-                archive.metadata.entry_name = entry_name
+            for quantity_name in ['entry_name', 'references', 'comment']:
+                quantity = EntryMetadata.m_def.all_quantities[quantity_name]
+                if value := metadata_data.get(quantity_name, None):
+                    archive.metadata.m_set(quantity, value)
+
             del archive_data[EntryArchive.metadata.name]
 
         # ensure that definitions are parsed first to make them available for the

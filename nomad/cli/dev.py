@@ -78,6 +78,36 @@ def gui_qa(skip_tests: bool):
     sys.exit(ret_code)
 
 
+@dev.command(help='Export an API model in JSON schema.')
+@click.argument('model')
+def api_model(model):
+    import importlib
+
+    if model in [
+        'nomad.app.v1.models.graph.GraphRequest',
+        'nomad.app.v1.models.graph.GraphResponse',
+    ]:
+        from nomad.app.v1.models.graph.utils import (
+            generate_request_model,
+            generate_response_model,
+        )
+        from nomad.app.v1.models.graph.graph_models import Graph
+
+        sys.modules['nomad.app.v1.models.graph.utils'].ref_prefix = '#/definitions'
+        sys.modules['nomad.app.v1.models.graph.utils'].graph_model_export = True
+
+        if model == 'nomad.app.v1.models.graph.GraphRequest':
+            model = generate_request_model(Graph)
+        else:
+            model = generate_response_model(Graph)
+        print(model.schema_json(indent=2))
+    else:
+        pkg, cls = model.rsplit('.', 1)
+        importlib.import_module(pkg)
+        model = getattr(sys.modules[pkg], cls)
+        print(model.schema_json(indent=2))
+
+
 def get_gui_artifacts_js() -> str:
     from nomad.datamodel import all_metainfo_packages
     from nomad.parsing.parsers import code_metadata

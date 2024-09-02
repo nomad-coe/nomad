@@ -67,8 +67,8 @@ from tests.test_files import create_test_upload_files
         pytest.param(
             {
                 'changes': [
-                    {'path': 'data/sub', 'action': 'remove'},
                     {'path': 'data/sub/name', 'new_value': 'NewName'},
+                    {'path': 'data/sub', 'action': 'remove'},
                 ]
             },
             {
@@ -82,13 +82,39 @@ from tests.test_files import create_test_upload_files
         pytest.param(
             {
                 'changes': [
-                    {'path': 'data/sub/1', 'action': 'remove'},
                     {'path': 'data/sub/1/name', 'new_value': 'NewName'},
+                    {'path': 'data/sub/1', 'action': 'remove'},
                 ]
             },
             {'data': {'name': 'TestName', 'sub': [None]}},
             'user1',
             id='remove-repeated-sub-section',
+        ),
+        pytest.param(
+            {
+                'changes': [
+                    {'path': 'data/sub/0', 'action': 'upsert', 'new_value': {}},
+                    {
+                        'path': 'data/sub/0/name',
+                        'action': 'upsert',
+                        'new_value': 'NewName1',
+                    },
+                    {'path': 'data/sub/1', 'action': 'upsert', 'new_value': {}},
+                    {
+                        'path': 'data/sub/1/name',
+                        'action': 'upsert',
+                        'new_value': 'NewName2',
+                    },
+                ]
+            },
+            {
+                'data': {
+                    'name': 'TestName',
+                    'sub': [{'name': 'NewName1'}, {'name': 'NewName2'}],
+                }
+            },
+            'user1',
+            id='add-multiple-repeated-sub-section',
         ),
     ],
 )
