@@ -14,7 +14,7 @@ asteval==1.0.2            # via lmfit
 asttokens==2.4.1          # via stack-data, -c requirements-dev.txt
 async-lru==2.0.4          # via jupyterlab
 async-property==0.2.2     # via python-keycloak, -c requirements-dev.txt
-atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@6e907aa4da0767d23450ff472118e63799101788  # via -r default_plugins.txt
+atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@cedaf4191abe315001f6b55a9690dcd21116e9b7  # via -r default_plugins.txt
 attrs==24.2.0             # via jsonschema, -c requirements-dev.txt
 babel==2.16.0             # via jupyterlab-server, -c requirements-dev.txt
 beautifulsoup4==4.12.3    # via nbconvert, -c requirements-dev.txt
@@ -23,7 +23,7 @@ bleach==6.1.0             # via nbconvert
 blinker==1.8.2            # via flask
 blosc2==2.7.1             # via tables
 cachetools==5.5.0         # via nomad-lab, -c requirements-dev.txt
-certifi==2024.7.4         # via elasticsearch, httpcore, httpx, netcdf4, requests, -c requirements-dev.txt
+certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, requests, -c requirements-dev.txt
 cffi==1.17.0              # via argon2-cffi-bindings, cryptography, pyzmq, -c requirements-dev.txt
 cftime==1.6.4             # via netcdf4, -c requirements-dev.txt
 charset-normalizer==3.3.2  # via requests, -c requirements-dev.txt
@@ -36,7 +36,7 @@ contourpy==1.3.0          # via matplotlib, -c requirements-dev.txt
 cryptography==43.0.0      # via jwcrypto, rfc3161ng, -c requirements-dev.txt
 cycler==0.12.1            # via matplotlib, -c requirements-dev.txt
 dask==2024.8.1            # via hyperspy, kikuchipy, orix, pyxem, rosettasciio
-databaseparsers @ git+https://github.com/nomad-coe/database-parsers.git@a82707377bd59f244739772803337c3a09615948  # via -r default_plugins.txt
+databaseparsers @ git+https://github.com/nomad-coe/database-parsers.git@defb8c2604e55d9421e8dcc03e86f06752920874  # via -r default_plugins.txt
 debugpy==1.8.5            # via ipykernel
 decorator==5.1.1          # via ipyparallel, ipython, -c requirements-dev.txt
 defusedxml==0.7.1         # via nbconvert
@@ -47,10 +47,10 @@ dill==0.3.8               # via hyperspy, lmfit
 docstring-parser==0.16    # via nomad-lab, -c requirements-dev.txt
 elasticsearch==7.17.1     # via elasticsearch-dsl, -c requirements-dev.txt
 elasticsearch-dsl==7.4.0  # via nomad-lab, -c requirements-dev.txt
-electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@91bd91814eb3c663ac6dc64730f0fa1bee503ea9  # via -r default_plugins.txt
+electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@696b0e8d68a61c149c9da415f29b3662e96291f0  # via -r default_plugins.txt
 entrypoints==0.4          # via ipyparallel
 et-xmlfile==1.1.0         # via openpyxl, -c requirements-dev.txt
-executing==2.0.1          # via stack-data, -c requirements-dev.txt
+executing==2.1.0          # via stack-data, -c requirements-dev.txt
 fabio==2024.4.0           # via pyfai, silx
 fairmat-readers-xrd==0.0.6  # via pynxtools-xrd
 fasteners==0.19           # via mdanalysis, zarr, -c requirements-dev.txt
@@ -112,7 +112,7 @@ llvmlite==0.43.0          # via numba
 lmfit==1.3.2              # via pyxem
 locket==1.0.0             # via partd
 lxml==5.3.0               # via atomisticparsers, electronicparsers, fabio, lxml-html-clean, nomad-lab, pynxtools, workflowparsers, -c requirements-dev.txt
-lxml-html-clean==0.2.1    # via nomad-lab, perovskite-solar-cell-database, -c requirements-dev.txt
+lxml-html-clean==0.2.2    # via nomad-lab, perovskite-solar-cell-database, -c requirements-dev.txt
 markupsafe==2.1.5         # via jinja2, nbconvert, werkzeug, -c requirements-dev.txt
 matid==2.1.2              # via nomad-lab, nomad-simulations, -c requirements-dev.txt
 matplotlib==3.9.2         # via ase, asr, diffsims, hyperspy, kikuchipy, matplotlib-scalebar, mdanalysis, orix, phonopy, pyfai, pymatgen, pyxem, radioactivedecay, -c requirements-dev.txt
@@ -176,7 +176,7 @@ phonopy==2.11.0           # via asr, workflowparsers
 pillow==10.4.0            # via fabio, imageio, matplotlib, nionswift, rdkit, scikit-image, -c requirements-dev.txt
 pint==0.17                # via fairmat-readers-xrd, hyperspy, nomad-lab, pynxtools-xps, pynxtools-xrd, rosettasciio, -c requirements-dev.txt
 platformdirs==4.2.2       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
-plotly==5.23.0            # via asr, pymatgen, -c requirements-dev.txt
+plotly==5.24.0            # via asr, pymatgen, -c requirements-dev.txt
 pooch==1.8.2              # via kikuchipy, orix
 prettytable==3.11.0       # via hyperspy
 prometheus-client==0.20.0  # via jupyter-server, -c requirements-dev.txt
@@ -249,7 +249,7 @@ tabulate==0.8.9           # via pymatgen, -c requirements-dev.txt
 tenacity==9.0.0           # via plotly, -c requirements-dev.txt
 terminado==0.18.1         # via jupyter-server, jupyter-server-terminals
 threadpoolctl==3.5.0      # via mdanalysis, scikit-learn, -c requirements-dev.txt
-tifffile==2024.8.28       # via h5grove, hyperspy, scikit-image, -c requirements-dev.txt
+tifffile==2024.8.30       # via h5grove, hyperspy, scikit-image, -c requirements-dev.txt
 tinycss2==1.3.0           # via nbconvert
 toolz==0.12.1             # via dask, hyperspy, partd
 toposort==1.10            # via nomad-lab, -c requirements-dev.txt
@@ -266,14 +266,14 @@ tzlocal==5.2              # via nionswift, pynxtools-em
 uncertainties==3.2.2      # via lmfit, pymatgen, -c requirements-dev.txt
 unidecode==1.3.2          # via nomad-lab, -c requirements-dev.txt
 uri-template==1.3.0       # via jsonschema, -c requirements-dev.txt
-urllib3==1.26.19          # via elasticsearch, requests, -c requirements-dev.txt
+urllib3==1.26.20          # via elasticsearch, requests, -c requirements-dev.txt
 wcwidth==0.2.13           # via prettytable, prompt-toolkit, -c requirements-dev.txt
 webcolors==24.8.0         # via jsonschema, -c requirements-dev.txt
 webencodings==0.5.1       # via bleach, tinycss2, -c requirements-dev.txt
 websocket-client==1.8.0   # via jupyter-server
 werkzeug==3.0.4           # via flask
 widgetsnbextension==4.0.13  # via ipywidgets
-workflowparsers @ git+https://github.com/nomad-coe/workflow-parsers.git@872eabb8dd53584278df26519a72d63652bad098  # via -r default_plugins.txt
+workflowparsers @ git+https://github.com/nomad-coe/workflow-parsers.git@cb33c02468b1c38e9f94fd05a3180c121531902b  # via -r default_plugins.txt
 wrapt==1.16.0             # via nomad-lab, -c requirements-dev.txt
 xarray==2024.7.0          # via nomad-lab, pynxtools, pynxtools-mpes, pynxtools-xps, workflowparsers, -c requirements-dev.txt
 xmltodict==0.13.0         # via fairmat-readers-xrd, ifes-apt-tc-data-modeling, pynxtools-em, pynxtools-xrd
