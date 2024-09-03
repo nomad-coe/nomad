@@ -20,6 +20,7 @@ import gzip
 import bz2
 import lzma
 import tarfile
+from contextlib import contextmanager
 
 from nomad.metainfo import MSection, SubSection
 from nomad.utils import get_logger
@@ -96,6 +97,21 @@ class FileParser(ABC):
 
         return self._mainfile_obj
 
+    @contextmanager
+    def open_mainfile_obj(self):
+        """
+        Returns the mainfile object with a context.
+        """
+        try:
+            self._mainfile_obj = self.open(self._mainfile)
+            yield self._mainfile_obj
+        except Exception:
+            pass
+        finally:
+            if self._mainfile_obj is not None:
+                self._mainfile_obj.close()
+                self._mainfile_obj = None
+
     @property
     def mainfile(self):
         """
@@ -138,7 +154,11 @@ class FileParser(ABC):
                 open_file = tarfile.open
             else:
                 open_file = open
-        return open_file(mainfile)
+
+        try:
+            return open_file(mainfile)
+        except Exception:
+            pass
 
     def get(
         self,
@@ -222,6 +242,21 @@ class FileParser(ABC):
         if results:
             string += f'--> {len(results)} parsed quantities ({", ".join(results[:5])}{", ..." if len(results) > 5 else ""})'
         return string
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        if self._mainfile_obj:
+            self._mainfile_obj.close()
+        if self._file_handler is not None:
+            try:
+                self._file_handler.close()
+            except Exception:
+                pass
 
 
 class Parser(ABC):

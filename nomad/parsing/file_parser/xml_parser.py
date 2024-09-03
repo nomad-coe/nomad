@@ -58,21 +58,11 @@ class XMLParser(FileParser):
                     # I cannot use the lxml XMLParser directly because it is not compatible with
                     # the ElementTree implementation.
                     xml = etree.parse(
-                        self.mainfile_mainfile_obj, parser=etree.XMLParser(recover=True)
+                        self.mainfile_obj, parser=etree.XMLParser(recover=True)
                     )
                     self._file_handler = ElementTree.fromstring(etree.tostring(xml))
                 except Exception:
-                    pass
-
-                self.logger.error('failed to load xml file')
-                try:
-                    # I cannot use the lxml XMLParser directly because it is not compatible with
-                    # the ElementTree implementation.
-                    xml = etree.parse(
-                        self.open(self.mainfile), parser=etree.XMLParser(recover=True)
-                    )
-                    self._file_handler = ElementTree.fromstring(etree.tostring(xml))
-                except Exception:
+                    self.logger.error('failed to load xml file')
                     pass
             self.init_parameters()
 

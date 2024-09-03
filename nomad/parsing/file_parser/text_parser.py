@@ -559,14 +559,16 @@ class TextParser(FileParser):
                 if quantity.sub_parser is not None:
                     self._parse_quantity(quantity)
 
-            # free up memory
-            self._file_handler = b' '
-
         else:
             for quantity in self._quantities:
                 if quantity.name == key or key is None:
                     if quantity.name not in self._results:
                         self._parse_quantity(quantity)
+
+        # free up memory
+        if isinstance(self._file_handler, mmap.mmap) and self.findall:
+            self._file_handler.close()
+            self._file_handler = b' '
 
         return self
 
@@ -603,7 +605,8 @@ class DataTextParser(TextParser):
                     data = np.loadtxt(self.mainfile)
                 else:
                     if not self._mainfile_contents and self.mainfile_obj:
-                        self._mainfile_contents = self.mainfile_obj.read()
+                        with self.mainfile_obj as mainfile_obj:
+                            self._mainfile_contents = mainfile_obj.read()
                     if self._mainfile_contents:
                         buffer = self._mainfile_contents
                         if isinstance(buffer, str):
