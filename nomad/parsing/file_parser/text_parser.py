@@ -605,7 +605,7 @@ class DataTextParser(TextParser):
                     data = np.loadtxt(self.mainfile)
                 else:
                     if not self._mainfile_contents and self.mainfile_obj:
-                        with self.mainfile_obj as mainfile_obj:
+                        with self.open_mainfile_obj() as mainfile_obj:
                             self._mainfile_contents = mainfile_obj.read()
                     if self._mainfile_contents:
                         buffer = self._mainfile_contents
