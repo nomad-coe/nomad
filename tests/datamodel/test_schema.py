@@ -125,7 +125,7 @@ def test_eln_annotation_validation(eln_type, eln_component):
 
             assert isinstance(exception.value, MetainfoError)
             error_str = (
-                f'The component {eln_component} '
+                f'The component {eln_component.value} '
                 f'is not compatible with the quantity quantity_name of the type {type_name}. '
                 f'Accepted components: {", ".join(valid_eln_components[eln_type])}'
             )
