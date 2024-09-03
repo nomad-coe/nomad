@@ -4680,6 +4680,7 @@ class AnnotationModel(Annotation, BaseModel):
 
         validate_assignment = True
         arbitrary_types_allowed = True
+        use_enum_values = True
 
 
 AnnotationModel.update_forward_refs()
