@@ -22,9 +22,6 @@ nomad:
     north:
       enabled: false
 
-    archive:
-      use_new_writer: true
-
   image:
     tag: "prod"
 

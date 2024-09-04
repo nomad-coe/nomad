@@ -18,8 +18,8 @@
 from __future__ import annotations
 
 import struct
+from collections.abc import Generator, Iterable
 from io import BytesIO
-from typing import Generator
 
 import msgpack
 from bitarray import bitarray
@@ -373,7 +373,7 @@ class ArchiveWriter:
 
 
 def to_json(v):
-    return v.to_json() if isinstance(v, ArchiveItem) else v
+    return v.to_json() if hasattr(v, 'to_json') else v
 
 
 class ArchiveReadCounter:
@@ -842,9 +842,25 @@ class ArchiveReader(ArchiveItem):
         return self._full_cache
 
 
+def combine_archive(path: str, n_entries: int, data: Iterable[tuple]):
+    with ArchiveWriter(path, n_entries, toc_depth=config.archive.toc_depth) as writer:
+        for uuid, reader in data:
+            if not reader:
+                writer.add(uuid, {})
+            elif isinstance(reader, ArchiveReader):
+                toc, data = reader.get_raw(uuid)
+                writer.add_raw(uuid, toc, data)
+            else:
+                # rare case, old reader new writer, toc is not compatible, has to repack
+                writer.add(uuid, to_json(reader[uuid]))
+
+
 def write_archive(
-    path_or_file: str | BytesIO, data: list, toc_depth: int = config.archive.toc_depth
-):
-    with ArchiveWriter(path_or_file, len(data), toc_depth=toc_depth) as writer:
+    path_or_file: str | BytesIO,
+    n_entries: int,
+    data: Iterable[tuple],
+    entry_toc_depth: int = config.archive.toc_depth,
+) -> None:
+    with ArchiveWriter(path_or_file, n_entries, toc_depth=entry_toc_depth) as writer:
         for uuid, entry in data:
             writer.add(uuid, entry)

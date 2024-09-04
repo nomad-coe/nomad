@@ -879,7 +879,6 @@ class Archive(ConfigBaseModel):
         """,
     )
     toc_depth = Field(10, description='Depths of table of contents in the archive.')
-    use_new_writer = True  # todo: to be removed
     small_obj_optimization_threshold = Field(
         1 * 2**20,
         description="""

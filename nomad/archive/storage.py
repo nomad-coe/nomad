@@ -17,19 +17,15 @@
 #
 from __future__ import annotations
 
-from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast, Generator
+from typing import Any, Tuple, Dict, Union, cast, Generator
 from io import BytesIO, BufferedReader
 from collections.abc import Mapping, Sequence
 
 import msgpack
-from msgpack.fallback import Packer, StringIO
 import struct
-import json
 
 from nomad import utils
 from nomad.config import config
-
-__packer = msgpack.Packer(autoreset=True, use_bin_type=True)
 
 _toc_uuid_size = utils.default_hash_len + 1
 _toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
@@ -37,18 +33,8 @@ _entries_per_block = config.archive.block_size // _toc_item_size
 _bytes_per_block = _entries_per_block * _toc_item_size
 
 
-def packb(o):
-    return __packer.pack(o)
-
-
 def unpackb(o):
     return msgpack.unpackb(o, raw=False)
-
-
-def _encode(start: int, end: int) -> bytes:
-    return start.to_bytes(5, byteorder='little', signed=False) + end.to_bytes(
-        5, byteorder='little', signed=False
-    )
 
 
 def _decode(position: bytes) -> Tuple[int, int]:
@@ -75,208 +61,6 @@ class ArchiveError(Exception):
     """An error that indicates a broken archive."""
 
     pass
-
-
-class TOCPacker(Packer):
-    """
-    A special msgpack packer that records a TOC while packing.
-
-    Uses a combination of the pure python msgpack fallback packer and the "real"
-    c-based packing.
-    """
-
-    def __init__(self, toc_depth: int, *args, **kwargs):
-        self.toc_depth = toc_depth
-        # noinspection PyTypeChecker
-        self.toc: Dict[str, Any] = None
-        self._depth = 0
-
-        # Because we cannot change msgpacks interface of _pack, this _stack is used to
-        # transfer the result of _pack calls in terms of the TOC.
-        self._stack: List[Any] = []
-
-        super().__init__(*args, **kwargs)
-
-    def _pos(self):
-        return self._buffer.getbuffer().nbytes
-
-    def _pack_list(self, obj, *args, **kwargs):
-        pack_result = super()._pack(obj, *args, **kwargs)
-
-        toc_result = []
-        # same assumption and condition as above
-        if len(obj) > 0 and isinstance(obj[0], dict):
-            for _ in obj:
-                toc_result.append(self._stack.pop())
-
-            self._stack.append(list(reversed(toc_result)))
-
-        return pack_result
-
-    def _pack_dict(self, obj, *args, **kwargs):
-        toc_result = {}
-        start = self._pos()
-        if self._depth >= self.toc_depth:
-            pack_result = self._buffer.write(packb(obj))
-        else:
-            self._depth += 1
-            pack_result = super()._pack(obj, *args, **kwargs)
-            self._depth -= 1
-
-            toc = {}
-            for key, value in reversed(list(obj.items())):
-                if isinstance(value, dict) or (
-                    isinstance(value, (list, tuple))
-                    and len(value) > 0
-                    and isinstance(value[0], dict)
-                ):
-                    # assumes non emptiness and uniformity of array items
-                    toc[key] = self._stack.pop()
-
-            toc_result['toc'] = {
-                key: value for key, value in reversed(list(toc.items()))
-            }
-
-        end = self._pos()
-        toc_result['pos'] = [start, end]
-
-        self._stack.append(toc_result)
-
-        return pack_result
-
-    def _pack(self, obj, *args, **kwargs):
-        if isinstance(obj, dict):
-            return self._pack_dict(obj, *args, **kwargs)
-
-        if isinstance(obj, list):
-            return self._pack_list(obj, *args, **kwargs)
-
-        return self._buffer.write(packb(obj))
-
-    def pack(self, obj):
-        assert isinstance(obj, dict), f'TOC packer can only pack dicts, {obj.__class__}'
-        self._depth = 0
-        self._buffer = StringIO()
-        result = super().pack(obj)
-        self.toc = self._stack.pop()
-        assert len(self._stack) == 0
-        return result
-
-
-class ArchiveWriter:
-    def __init__(
-        self, file_or_path: Union[str, BytesIO], n_entries: int, entry_toc_depth: int
-    ):
-        self.file_or_path = file_or_path
-        self.n_entries = n_entries
-
-        self._pos = 0
-        # noinspection PyTypeChecker
-        self._toc_position: Tuple[int, int] = None
-        self._toc: Dict[str, Tuple[Tuple[int, int], Tuple[int, int]]] = {}
-        # noinspection PyTypeChecker
-        self._f: BinaryIO = None
-        self._toc_packer = TOCPacker(toc_depth=entry_toc_depth)
-
-    def __enter__(self):
-        if isinstance(self.file_or_path, str):
-            self._f = open(self.file_or_path, 'wb')
-        elif isinstance(self.file_or_path, BytesIO):
-            self._f = self.file_or_path
-            self._f.seek(0)
-        else:
-            raise ValueError('not a file or path')
-
-        # write empty placeholder header
-        self._write_map_header(3)
-        self._writeb('toc_pos')
-        self._writeb(_encode(0, 0))
-
-        self._writeb('toc')
-        toc_start, _ = self._write_map_header(self.n_entries)
-        _, toc_end = self._write(b'0' * _toc_item_size * self.n_entries)
-        self._toc_position = toc_start, toc_end
-
-        self._writeb('data')
-        self._write_map_header(self.n_entries)
-
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_val is not None:
-            raise exc_val
-
-        # go back and write the real TOC to the header
-        self._f.seek(0)
-        self._pos = 0
-
-        assert len(self._toc) == self.n_entries
-        toc_items = sorted(self._toc.items(), key=lambda item: item[0])
-        toc = {
-            uuid: [_encode(*positions[0]), _encode(*positions[1])]
-            for uuid, positions in toc_items
-        }
-
-        self._write_map_header(3)
-        self._writeb('toc_pos')
-        self._writeb(_encode(*self._toc_position))
-
-        self._writeb('toc')
-        toc_position = self._writeb(toc)
-        assert (
-            toc_position == self._toc_position
-        ), f'{toc_position} - {self._toc_position}'
-
-        if isinstance(self.file_or_path, str):
-            self._f.close()
-
-    def _write_map_header(self, n):
-        if n <= 0x0F:
-            return self._write(struct.pack('B', 0x80 + n))
-        if n <= 0xFFFF:
-            return self._write(struct.pack('>BH', 0xDE, n))
-        if n <= 0xFFFFFFFF:
-            return self._write(struct.pack('>BI', 0xDF, n))
-        raise ValueError('Dict is too large')
-
-    def _write(self, b: bytes) -> Tuple[int, int]:
-        start = self._pos
-        self._pos += self._f.write(b)
-        return start, self._pos
-
-    def _writeb(self, obj):
-        return self._write(packb(obj))
-
-    def _write_entry(self, uuid: str, toc: dict, packed: bytes | Generator):
-        uuid = utils.adjust_uuid_size(uuid)
-
-        self._writeb(uuid)
-        self._write_map_header(2)
-        self._writeb('toc')
-        toc_pos = self._writeb(toc)
-        self._writeb('data')
-
-        if isinstance(packed, bytes):
-            data_pos = self._write(packed)
-        elif isinstance(packed, Generator):
-            start = self._pos
-            for chunk in packed:
-                self._pos += self._f.write(chunk)
-            data_pos = start, self._pos
-        else:
-            raise ValueError('Invalid type for packed data.')
-
-        self._toc[uuid] = (toc_pos, data_pos)
-
-    def add(self, uuid: str, data: Any) -> None:
-        self._toc_packer.reset()
-        packed = self._toc_packer.pack(data)
-        toc = self._toc_packer.toc
-
-        self._write_entry(uuid, toc, packed)
-
-    def add_raw(self, uuid: str, toc: dict, packed: Generator) -> None:
-        self._write_entry(uuid, toc, packed)
 
 
 class ArchiveItem:
@@ -528,112 +312,6 @@ class ArchiveReader(ArchiveDict):
         return self._f.closed if isinstance(self._file_or_path, str) else True
 
 
-def combine_archive(path: str, n_entries: int, data: Iterable[Tuple[str, Any]]):
-    if config.archive.use_new_writer:
-        from .storage_v2 import (
-            ArchiveWriter as ArchiveWriterNew,
-            ArchiveReader as ArchiveReaderNew,
-        )
-
-        with ArchiveWriterNew(
-            path, n_entries, toc_depth=config.archive.toc_depth
-        ) as writer:
-            for uuid, reader in data:
-                if not reader:
-                    writer.add(uuid, {})
-                elif isinstance(reader, ArchiveReaderNew):
-                    toc, data = reader.get_raw(uuid)
-                    writer.add_raw(uuid, toc, data)
-                else:
-                    # rare case, old reader new writer, toc is not compatible, has to repack
-                    writer.add(uuid, to_json(reader[uuid]))
-    else:
-        with ArchiveWriter(path, n_entries, entry_toc_depth=2) as writer:
-            for uuid, reader in data:
-                if not reader:
-                    writer.add(uuid, {})
-                else:
-                    toc, data = reader.get_raw(uuid)
-                    writer.add_raw(uuid, toc, data)
-
-
-def write_archive(
-    path_or_file: Union[str, BytesIO],
-    n_entries: int,
-    data: Iterable[Tuple[str, Any]],
-    entry_toc_depth: int = 2,
-) -> None:
-    """
-    Writes a msgpack-based archive file. The file contents will be a valid msgpack-object.
-    The data will contain extra table-of-contents (TOC) objects that map some keys to
-    positions in the file. Data can be partially read from these positions and deserialized
-    with msgpack.
-
-    The data in the archive file will have the following layout:
-
-    .. code-block:: python
-
-        {
-            'toc_pos': b[start, end],
-            'toc': {
-                entry_uuid: [b[start, end], b[start, end]], ...
-            },
-            'data': {
-                entry_uuid: {
-                    'toc': {
-                        key: {
-                            'pos': [start, end],
-                            'toc': ...
-                        },
-                        key: [
-                            {
-                                'pos': [start, end]
-                                'toc': ...
-                            }, ...
-                        ],
-                        ...
-                    },
-                    'data': ...
-                }, ...
-            }
-        }
-
-
-    The top-level TOC will map entry_uuids to positions. The key 'toc_pos' holds the
-    position of the entry TOC, the second ('toc') the position of each entry. These positions
-    will be absolute positions in the file. The top-level TOC will be ordered by entry_uuid.
-    The top-level TOC positions are 2*5byte encoded integers. This will give the top-level TOC a
-    predictable layout and will allow to partially read this TOC.
-
-    The TOC of each entry will have the same structure than the data up to a certain
-    TOC depth. A TOC object will hold the position of the object it refers to (key 'pos')
-    and further deeper TOC data (key 'toc'). Only data objects (dict instances) will
-    have TOC objects and only object count towards the TOC depth. Positions in the entry
-    TOCs are regular msgpack encoded integers.
-
-    Arguments:
-        path_or_file: A file path or file-like to the archive file that should be written.
-        n_entries: The number of entries that will be added to the file.
-        data: The file contents as an iterator of entry id, data tuples.
-        entry_toc_depth: The depth of the table of contents in each entry. Only objects will
-            count for calculating the depth.
-    """
-    if config.archive.use_new_writer:
-        from .storage_v2 import ArchiveWriter as ArchiveWriterNew
-
-        with ArchiveWriterNew(
-            path_or_file, n_entries, toc_depth=entry_toc_depth
-        ) as writer:
-            for uuid, entry in data:
-                writer.add(uuid, entry)
-    else:
-        with ArchiveWriter(
-            path_or_file, n_entries, entry_toc_depth=entry_toc_depth
-        ) as writer:
-            for uuid, entry in data:
-                writer.add(uuid, entry)
-
-
 def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
     """
     Allows to read a msgpack-based archive.
@@ -676,57 +354,4 @@ def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
 
 
 if __name__ == '__main__':
-
-    def benchmark():
-        from time import time
-        import sys
-
-        with open('archive_test.json') as f:
-            example_data = json.load(f)
-
-        size = 5000 if len(sys.argv) == 1 else int(sys.argv[1])
-        access_every = 2
-        example_archive = [(utils.create_uuid(), example_data) for _ in range(0, size)]
-        example_uuid = example_archive[int(size / 2)][0]
-
-        # this impl
-        # create archive
-        start = time()
-        buffer = BytesIO()
-        write_archive(buffer, len(example_archive), example_archive, entry_toc_depth=2)
-        print('archive.py: create archive (1): ', time() - start)
-
-        # read single entry from archive
-        buffer = BytesIO(buffer.getbuffer())
-        for use_blocked_toc in [False, True]:
-            start = time()
-            for _ in range(0, 23):
-                read_archive(buffer, use_blocked_toc=use_blocked_toc)[example_uuid][
-                    'run'
-                ]['system']
-            print(
-                f'archive.py: access single entry system (23), blocked {use_blocked_toc:d}: ',
-                (time() - start) / 23,
-            )
-
-        # read every n-ed entry from archive
-        buffer = BytesIO(buffer.getbuffer())
-        for use_blocked_toc in [False, True]:
-            start = time()
-            for _ in range(0, 23):
-                with read_archive(buffer, use_blocked_toc=use_blocked_toc) as data:
-                    for i, entry in enumerate(example_archive):
-                        if i % access_every == 0:
-                            data[entry[0]]['run']['system']
-            print(
-                f'archive.py: access every {access_every:d}-ed entry single entry system (23), '
-                f'blocked {use_blocked_toc:d}: ',
-                (time() - start) / 23,
-            )
-
-        # just msgpack
-        start = time()
-        packb(example_archive)
-        print('msgpack: create archive (1): ', time() - start)
-
-    benchmark()
+    pass

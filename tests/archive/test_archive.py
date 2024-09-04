@@ -37,10 +37,9 @@ from nomad.metainfo import (
     MetainfoError,
     Context,
     MProxy,
-    Section,
 )
 from nomad.datamodel import EntryArchive, ClientContext
-from nomad.archive.storage import TOCPacker, _decode, _entries_per_block, to_json
+from nomad.archive.storage import _decode, _entries_per_block, to_json
 from nomad.archive import (
     write_archive,
     read_archive,
@@ -85,44 +84,14 @@ def example_entry():
 
 def _unpack(data, pos=None):
     f = BytesIO(data)
-    if config.archive.use_new_writer:
-        from nomad.archive.storage_v2 import ArchiveWriter
+    from nomad.archive.storage_v2 import ArchiveWriter
 
-        offset = ArchiveWriter.magic_len
-    else:
-        offset = 0
+    offset = ArchiveWriter.magic_len
     if pos is None:
         return msgpack.unpackb(f.read()[offset:], raw=False)
     else:
         f.seek(pos[0])
         return msgpack.unpackb(f.read(pos[1] - pos[0]), raw=False)
-
-
-def test_toc_packer(example_entry):
-    toc_packer = TOCPacker(toc_depth=2)
-
-    toc_packer.reset()
-    data = toc_packer.pack(example_entry)
-    toc = toc_packer.toc
-
-    assert toc is not None
-    assert 'pos' in toc
-    assert _unpack(data, toc['pos']) == example_entry
-
-    assert 'run' in toc['toc']
-    toc = toc['toc']['run']
-    assert _unpack(data, toc['pos']) == example_entry['run']
-
-    assert 'program_name' not in toc
-    assert 'system' in toc['toc']
-    toc = toc['toc']['system']
-    assert isinstance(toc, list)
-    assert 'pos' in toc[0]
-    assert 'toc' not in toc[0]
-    assert _unpack(data, toc[0]['pos']) == example_entry['run']['system'][0]
-
-    assert data is not None
-    assert msgpack.unpackb(data, raw=False) == example_entry
 
 
 def test_write_archive_empty():
@@ -141,10 +110,7 @@ def test_short_uuids():
         assert to_json(archive['0']) == {'archive': 'test'}
 
 
-@pytest.mark.parametrize('new_writer', [True, False])
-def test_write_file(monkeypatch, raw_files_function, example_uuid, new_writer):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
-
+def test_write_file(raw_files_function, example_uuid):
     path = os.path.join(config.fs.tmp, 'test.msg')
     write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
     with read_archive(path) as archive:
@@ -152,10 +118,7 @@ def test_write_file(monkeypatch, raw_files_function, example_uuid, new_writer):
         assert to_json(archive[example_uuid]) == {'archive': 'test'}
 
 
-@pytest.mark.parametrize('new_writer', [True, False])
-def test_write_archive_single(monkeypatch, example_uuid, example_entry, new_writer):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
-
+def test_write_archive_single(example_uuid, example_entry):
     f = BytesIO()
     write_archive(f, 1, [(example_uuid, example_entry)])
     packed_archive = f.getbuffer()
@@ -168,16 +131,10 @@ def test_write_archive_single(monkeypatch, example_uuid, example_entry, new_writ
     assert 'data' in archive['data'][example_uuid]
     assert archive['data'][example_uuid]['data'] == example_entry
 
-    if config.archive.use_new_writer:
-        from nomad.archive.storage_v2 import TOCPacker as TOCPackerNew
+    from nomad.archive.storage_v2 import TOCPacker as TOCPackerNew
 
-        toc_packer = TOCPackerNew(toc_depth=2)
-        _, global_toc = toc_packer.pack(example_entry)
-    else:
-        toc_packer = TOCPacker(toc_depth=2)
-        toc_packer.reset()
-        toc_packer.pack(example_entry)
-        global_toc = toc_packer.toc
+    toc_packer = TOCPackerNew(toc_depth=2)
+    _, global_toc = toc_packer.pack(example_entry)
 
     assert archive['data'][example_uuid]['toc'] == global_toc
     toc = _unpack(packed_archive, _decode(archive['toc_pos']))
@@ -186,10 +143,7 @@ def test_write_archive_single(monkeypatch, example_uuid, example_entry, new_writ
     assert _unpack(packed_archive, _decode(toc[example_uuid][1])) == example_entry
 
 
-@pytest.mark.parametrize('new_writer', [True, False])
-def test_write_archive_multi(monkeypatch, example_uuid, example_entry, new_writer):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
-
+def test_write_archive_multi(example_uuid, example_entry):
     f = BytesIO()
     example_uuids = create_example_uuid(0), create_example_uuid(1)
     write_archive(
@@ -211,13 +165,8 @@ def test_write_archive_multi(monkeypatch, example_uuid, example_entry, new_write
     assert example_uuid in toc
 
 
-@pytest.mark.parametrize('new_writer', [True, False])
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
-def test_read_archive_single(
-    monkeypatch, example_uuid, example_entry, use_blocked_toc, new_writer
-):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
-
+def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
     f = BytesIO()
     write_archive(f, 1, [(example_uuid, example_entry)])
     packed_archive = f.getbuffer()
@@ -240,12 +189,8 @@ def test_read_archive_single(
         data[example_uuid]['run']['system'][2]
 
 
-@pytest.mark.parametrize('new_writer', [True, False])
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
-def test_read_archive_multi(
-    monkeypatch, example_uuid, example_entry, use_blocked_toc, new_writer
-):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
+def test_read_archive_multi(monkeypatch, example_uuid, example_entry, use_blocked_toc):
     monkeypatch.setattr('nomad.config.archive.small_obj_optimization_threshold', 256)
 
     archive_size = _entries_per_block * 2 + 23
