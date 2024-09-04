@@ -30,7 +30,6 @@ from nomad.metainfo.metainfo import (
     MCategory,
     MSection,
     Quantity,
-    MProxy,
     Capitalized,
     Section,
     Datetime,
@@ -199,13 +198,24 @@ class UserReference(Reference):
         return {'type_kind': 'User', 'type_data': 'User'}
 
     def _normalize_impl(self, section, value):
-        # todo: need data validation
+        if isinstance(value, User):
+            return value
+
         if isinstance(value, str):
-            return MProxy(value, m_proxy_section=section, m_proxy_type=self._proxy_type)
-        return value
+            try:
+                return User.get(value)
+            except Exception as _exc:  # noqa
+                return value
+
+        raise ValueError(f'Cannot normalize {value}.')
 
     def _serialize_impl(self, section, value):
-        return value.user_id
+        if isinstance(value, str):
+            return value
+        if isinstance(value, User):
+            return value.user_id
+
+        raise ValueError(f'Cannot serialize {value}.')
 
 
 class AuthorReference(Reference):
@@ -216,12 +226,23 @@ class AuthorReference(Reference):
         return {'type_kind': 'Author', 'type_data': 'Author'}
 
     def _normalize_impl(self, section, value):
-        # todo: need data validation
-        if isinstance(value, (str, dict)):
-            return MProxy(value, m_proxy_section=section, m_proxy_type=self._proxy_type)
-        return value
+        if isinstance(value, Author):
+            return value
+
+        if isinstance(value, dict):
+            return Author.m_from_dict(value)
+
+        if isinstance(value, str):
+            try:
+                return User.get(value)
+            except Exception as _exc:  # noqa
+                return value
+
+        raise ValueError(f'Cannot normalize {value}.')
 
     def _serialize_impl(self, section, value):
+        if isinstance(value, str):
+            return value
         if isinstance(value, User):
             return value.user_id
         if isinstance(value, Author):

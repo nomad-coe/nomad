@@ -6598,8 +6598,7 @@ window.nomadArtifacts = {
             ],
             "constraints": [
               "dimensions",
-              "has_type",
-              "higher_shapes_require_dtype"
+              "has_type"
             ]
           },
           {
@@ -60799,8 +60798,7 @@ window.nomadArtifacts = {
             ],
             "constraints": [
               "dimensions",
-              "has_type",
-              "higher_shapes_require_dtype"
+              "has_type"
             ],
             "quantities": [
               {

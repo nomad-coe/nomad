@@ -40,6 +40,7 @@ from typing import (
     cast,
     ClassVar,
 )
+from urllib.parse import urlsplit, urlunsplit
 
 import docstring_parser
 import jmespath
@@ -65,6 +66,7 @@ from nomad.metainfo.data_type import (
     File as FileType,
     HDF5Reference as HDF5ReferenceType,
     Any as AnyType,
+    check_dimensionality,
 )
 from nomad.metainfo.util import (
     Annotation,
@@ -72,10 +74,7 @@ from nomad.metainfo.util import (
     MEnum,
     MQuantity,
     MSubSectionList,
-    MTypes,
-    ReferenceURL,
     SectionAnnotation,
-    check_dimensionality,
     convert_to,
     default_hash,
     dict_to_named_list,
@@ -184,7 +183,7 @@ class MProxy:
 
     def __init__(
         self,
-        m_proxy_value: Union[str, int, dict],
+        m_proxy_value: str | int,
         m_proxy_section: MSection = None,
         m_proxy_context: Context = None,
         m_proxy_type: Reference = None,
@@ -248,26 +247,17 @@ class MProxy:
         return context_section.m_resolve(fragment_with_id)
 
     def _resolve(self):
-        from nomad.datamodel.datamodel import Dataset, DatasetReference
-        from nomad.datamodel.data import UserReference, AuthorReference, User, Author
-
-        if isinstance(self.m_proxy_type, DatasetReference):
-            return Dataset.m_def.a_mongo.get(dataset_id=self.m_proxy_value)
-        if isinstance(self.m_proxy_type, UserReference):
-            return User.get(user_id=self.m_proxy_value)
-        if isinstance(self.m_proxy_type, AuthorReference):
-            if isinstance(self.m_proxy_value, str):
-                return User.get(user_id=self.m_proxy_value)
-            if isinstance(self.m_proxy_value, dict):
-                return Author.m_from_dict(self.m_proxy_value)
-
-            raise MetainfoReferenceError()
-
-        url = ReferenceURL(self.m_proxy_value)
+        url_parts = urlsplit(
+            self.m_proxy_value
+            if '#' in self.m_proxy_value
+            else f'#{self.m_proxy_value}'
+        )
+        archive_url: str = str(urlunsplit(url_parts[:4] + ('',)))
+        fragment = url_parts.fragment
         context_section = self.m_proxy_section
         if context_section is not None:
             context_section = context_section.m_root()
-        if url.archive_url or '@' in url.fragment:
+        if archive_url or '@' in fragment:
             context = self.m_proxy_context
             if context is None:
                 context = context_section.m_context
@@ -275,21 +265,19 @@ class MProxy:
                 raise MetainfoReferenceError(
                     'Proxy with archive url, but no context to resolve it.'
                 )
-            if '@' in url.fragment:
+            if '@' in fragment:
                 # It's a reference to a section definition
-                definition, definition_id = f'{url.archive_url}#{url.fragment}'.split(
-                    '@'
-                )
+                definition, definition_id = f'{archive_url}#{fragment}'.split('@')
                 return context.resolve_section_definition(
                     definition, definition_id
                 ).m_def
 
-            context_section = context.resolve_archive_url(url.archive_url)
+            context_section = context.resolve_archive_url(archive_url)
 
-        if isinstance(context_section, Package) and 'definitions' in url.fragment:
-            url.fragment = url.fragment.replace('/definitions', '')
+        if isinstance(context_section, Package) and 'definitions' in fragment:
+            fragment = fragment.replace('/definitions', '')
 
-        return self._resolve_fragment(context_section, url.fragment)
+        return self._resolve_fragment(context_section, fragment)
 
     def m_proxy_resolve(self):
         if not self.m_proxy_resolved:
@@ -448,7 +436,9 @@ class QuantityType(Datatype):
         if isinstance(value, Datatype):
             return value.serialize_self()
         if isinstance(value, Reference):
-            return value.serialize_self(kwargs.get('section'))
+            transform = kwargs.get('transform')
+            serialized = value.serialize_self(kwargs.get('section'))
+            return transform(serialized) if transform is not None else serialized
 
         raise MetainfoError(f'Type {value} is not a valid quantity type.')
 
@@ -567,12 +557,19 @@ class Reference:
             value,
         )
 
-    def serialize(self, section, value):
-        def _convert(_v):
-            if isinstance(_v, list):
-                return [_convert(v) for v in _v]
+    def serialize(self, value, *, section, transform=None):
+        def _convert(v, p=None):
+            if isinstance(v, list):
+                return [
+                    _convert(x, [i] if p is None else p + [i]) for i, x in enumerate(v)
+                ]
 
-            return self._serialize_impl(section, _v)
+            if isinstance(v, MProxy) and v.m_proxy_resolved is None:
+                intermediate = v.m_serialize_proxy_value()
+            else:
+                intermediate = self._serialize_impl(section, v)
+
+            return intermediate if transform is None else transform(intermediate, p)
 
         return _convert(value)
 
@@ -1769,171 +1766,93 @@ class MSection(
                     )
 
         def serialize_quantity(quantity, is_set, is_derived, path, target_value=None):
-            quantity_type = quantity.type
-
-            if resolve_references and isinstance(quantity_type, QuantityReference):
-                quantity_type = quantity_type.target_quantity_def.type
-
-            serialize: TypingCallable[[Any], Any]
-
-            # define serialization functions for all valid data types
-            is_reference = False
-            if isinstance(quantity_type, Reference):
-                is_reference = True
-
-                def serialize_reference(value, path_override):
-                    if resolve_references:
-                        assert not isinstance(quantity_type, QuantityReference)
-                        value = value.m_resolved()
-                        ref_kwargs = dict(kwargs)
-                        if kwargs['transform']:
-                            ref_kwargs['transform'] = lambda q, s, v, p: kwargs[
-                                'transform'
-                            ](q, s, v, path_override)
-                        return value.m_to_dict(**ref_kwargs)
-
-                    type_with_def = quantity_type.attach_definition(quantity)
-
-                    if isinstance(value, MProxy):
-                        if value.m_proxy_resolved is not None:
-                            return type_with_def.serialize(self, value)
-
-                        return value.m_serialize_proxy_value()
-
-                    return type_with_def.serialize(self, value)
-
-                serialize = serialize_reference
-
-            elif isinstance(quantity_type, Datatype):
-                serialize = None
-            else:
-                raise MetainfoError(
-                    f'Do not know how to serialize data with type {quantity_type} for quantity {quantity}'
-                )
-
-            quantity_type = quantity.type
-            if resolve_references and isinstance(quantity_type, QuantityReference):
-                serialize_before_reference_resolution = serialize
-
-                def serialize_reference_v2(value: Any):
-                    resolved = value.m_resolved()
-                    target_name = quantity_type.target_quantity_def.name
-                    try:
-                        # should not use the following line alone
-                        # to account for derived quantities
-                        value = resolved.__dict__[target_name]
-                    except KeyError:
-                        # should not use the following line directly as
-                        # it returns `pint.Quantity` for quantities with units
-                        # here we want to get the value of the quantity stored in memory
-                        value = getattr(resolved, target_name)
-
-                    if isinstance(quantity_type.target_quantity_def.type, Datatype):
-                        return quantity_type.target_quantity_def.type.serialize(value)
-
-                    return serialize_before_reference_resolution(value)
-
-                serialize = serialize_reference_v2
-
             # get the value to be serialized
-            # explicitly assigning the target value overrides the value from the section
+            # explicitly assigned the target value overrides the value from the section
             if target_value is None:
                 if is_set:
                     target_value = self.__dict__[quantity.name]
                 elif is_derived:
                     try:
                         target_value = quantity.derived(self)
-                    except Exception:
+                    except Exception:  # noqa
                         target_value = quantity.default
                 else:
                     target_value = quantity.default
 
-            if transform is not None:
-                serialize_before_transform = serialize
-
-                def serialize_and_transform(value: Any, path_override=None):
-                    if not is_reference:
-                        return transform(
-                            quantity,
-                            self,
-                            serialize_before_transform(value),
-                            path_override,
-                        )
-
-                    return transform(
-                        quantity,
-                        self,
-                        serialize_before_transform(value, path_override),
-                        path_override,
-                    )
-
-                serialize = serialize_and_transform
-
-            if isinstance(quantity_type, Datatype):
-                intermediate_value = quantity_type.serialize(target_value, section=self)
-                if transform is None:
-                    return intermediate_value
-                if isinstance(quantity_type, Number) or len(quantity.shape) == 0:
-                    return transform(
-                        quantity,
-                        self,
-                        intermediate_value,
-                        None,
-                    )
-
-                if len(quantity.shape) == 1:
-                    return [
-                        transform(
-                            quantity,
-                            self,
-                            x,
-                            None,
-                        )
-                        for x in intermediate_value
-                    ]
-
-                raise NotImplementedError('nOtSupporteD')
-
-            # serialization starts here
-            if len(quantity.shape) == 0:
+            def _transform_wrapper(_value, _stack=None):
+                _path = path
+                if _stack is not None:
+                    _path += '/' + '/'.join(str(i) for i in _stack)
                 return (
-                    serialize(target_value, path)
-                    if is_reference
-                    else serialize(target_value)
+                    _value
+                    if transform is None
+                    else transform(quantity, self, _value, _path)
                 )
 
-            if len(quantity.shape) == 1:
-                if not is_reference:
-                    return [serialize(item) for item in target_value]
+            quantity_type = quantity.type
 
-                return [
-                    serialize(item, f'{path}/{index}')
-                    for index, item in enumerate(target_value)
-                ]
+            if isinstance(quantity_type, Datatype) or not resolve_references:
+                return quantity_type.serialize(
+                    target_value, section=self, transform=_transform_wrapper
+                )
 
-            raise NotImplementedError(
-                f'Higher shapes ({quantity.shape}) not supported: {quantity}'
-            )
+            # need to resolve references
+            if isinstance(quantity_type, QuantityReference):
+                target_definition = quantity_type.target_quantity_def
+                target_name = target_definition.name
+                target_type = target_definition.type
 
-        def serialize_attribute(attribute: Attribute, value: Any) -> Any:
-            if isinstance(attribute.type, Datatype):
-                return attribute.type.serialize(value)
+                def _serialize_resolved(v, p=None):
+                    if isinstance(v, list):
+                        return [
+                            _serialize_resolved(x, [i] if p is None else p + [i])
+                            for i, x in enumerate(v)
+                        ]
 
-            if isinstance(attribute.type, Reference):
-                return attribute.type.attach_definition(None).serialize(self, value)
+                    resolved_section = v.m_resolved()
+                    try:
+                        # should not use the following line alone
+                        # to account for derived quantities
+                        resolved_value = resolved_section.__dict__[target_name]
+                    except KeyError:
+                        # should not use the following line directly as
+                        # it returns `pint.Quantity` for quantities with units
+                        # here we want to get the value of the quantity stored in memory
+                        resolved_value = getattr(resolved_section, target_name)
 
-            raise MetainfoError()
+                    return target_type.serialize(
+                        resolved_value,
+                        section=resolved_section,
+                        transform=_transform_wrapper,
+                    )
 
-        def collect_attributes(attr_map: dict, all_attr: dict):
+                return _serialize_resolved(target_value)
+
+            # other references
+            def _serialize_section(v, p):
+                if isinstance(v, list):
+                    return [_serialize_section(x, f'{p}/{i}') for i, x in enumerate(v)]
+
+                ref_kwargs = {k: v for k, v in kwargs.items() if k != 'transform'}
+                if transform:
+
+                    def _new_transform(_q, _s, _v, _):
+                        return transform(_q, _s, _v, p)
+
+                    ref_kwargs['transform'] = _new_transform
+
+                return v.m_resolved().m_to_dict(**ref_kwargs)
+
+            return _serialize_section(target_value, path)
+
+        def serialize_attributes(attr_map: dict, all_attr: dict):
             result: dict = {}
             for attr_key, attr_value in attr_map.items():
                 attr_def = resolve_variadic_name(all_attr, attr_key)
-                result[attr_key] = serialize_attribute(attr_def, attr_value)
+                result[attr_key] = attr_def.type.serialize(attr_value, section=self)
             return result
 
-        def serialize_full_quantity(
-            quantity_def: Quantity, values: Dict[str, MQuantity]
-        ):
+        def serialize_full(quantity_def: Quantity, values: dict[str, MQuantity]):
             result: dict = {}
             for m_quantity in values.values():
                 m_result: dict = {
@@ -1946,10 +1865,9 @@ class MSection(
                 if m_quantity.original_unit:
                     m_result['m_original_unit'] = str(m_quantity.original_unit)
                 if m_quantity.attributes:
-                    a_result: dict = collect_attributes(
+                    if a_result := serialize_attributes(
                         m_quantity.attributes, quantity_def.all_attributes
-                    )
-                    if a_result:
+                    ):
                         m_result['m_attributes'] = a_result
                 result[m_quantity.name] = m_result
 
@@ -1958,51 +1876,52 @@ class MSection(
         def serialize_annotation(annotation):
             if isinstance(annotation, Annotation):
                 return annotation.m_to_dict()
-            elif isinstance(annotation, Dict):
-                try:
-                    json.dumps(annotation)
-                    return annotation
-                except Exception:
-                    return str(annotation)
-            else:
+
+            if not isinstance(annotation, dict):
+                return str(annotation)
+
+            try:
+                json.dumps(annotation)
+                return annotation
+            except Exception:  # noqa
                 return str(annotation)
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
-            if with_meta:
+            if (
+                with_meta
+                or with_root_def
+                or (
+                    self.m_parent
+                    and self.m_parent_sub_section.sub_section != self.m_def
+                )
+            ):
                 yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
+
+            if with_meta:
                 if self.m_parent_index != -1:
                     yield 'm_parent_index', self.m_parent_index
                 if self.m_parent_sub_section is not None:
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
 
-            elif with_root_def:
-                yield 'm_def', self.m_def.definition_reference(self)
-                if with_def_id:
-                    yield 'm_def_id', self.m_def.definition_id
-            elif self.m_parent and self.m_parent_sub_section.sub_section != self.m_def:
-                # The subsection definition's section def is different from our
-                # own section def. We are probably a specialized derived section
-                # from the base section that was used in the subsection def. To allow
-                # clients to recognize the concrete section def, we force the export
-                # of the section def.
-                yield 'm_def', self.m_def.definition_reference(self)
-                if with_def_id:
-                    yield 'm_def_id', self.m_def.definition_id
-
-            annotations = {}
-            for annotation_name, annotation in self.m_annotations.items():
-                if isinstance(annotation, list):
-                    annotation_value = [
-                        serialize_annotation(item) for item in annotation
+            if len(self.m_annotations) > 0:
+                m_annotations: dict = {
+                    k: [
+                        serialize_annotation(item)
+                        for item in (v if isinstance(v, list) else [v])
                     ]
-                else:
-                    annotation_value = [serialize_annotation(annotation)]
-                annotations[annotation_name] = annotation_value
-            if len(annotations) > 0:
-                yield 'm_annotations', annotations
+                    for k, v in self.m_annotations.items()
+                }
+                yield 'm_annotations', m_annotations
+
+            # section attributes
+            if attributes := self.__dict__.get('m_attributes', {}):
+                yield (
+                    'm_attributes',
+                    serialize_attributes(attributes, self.m_def.all_attributes),
+                )
 
             # quantities
             sec_path = self.m_path()
@@ -2017,55 +1936,34 @@ class MSection(
                             yield name, serialize_quantity(quantity, False, True, path)
                         continue
 
-                    is_set = self.m_is_set(quantity)
-                    if not is_set:
-                        if not include_defaults or not quantity.m_is_set(
-                            Quantity.default
-                        ):
-                            continue
+                    if not (is_set := self.m_is_set(quantity)) and (
+                        not include_defaults or not quantity.m_is_set(Quantity.default)
+                    ):
+                        continue
 
-                    if not quantity.use_full_storage:
-                        yield name, serialize_quantity(quantity, is_set, False, path)
+                    if quantity.use_full_storage:
+                        yield name, serialize_full(quantity, self.__dict__[name])
                     else:
-                        yield (
-                            name,
-                            serialize_full_quantity(
-                                quantity, self.__dict__[quantity.name]
-                            ),
-                        )
+                        yield name, serialize_quantity(quantity, is_set, False, path)
 
                 except ValueError as e:
                     raise ValueError(f'Value error ({str(e)}) for {quantity}')
-
-            # section attributes
-            if 'm_attributes' in self.__dict__:
-                yield (
-                    'm_attributes',
-                    collect_attributes(
-                        self.__dict__['m_attributes'], self.m_def.all_attributes
-                    ),
-                )
 
             # subsections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
                 if exclude(sub_section_def, self):
                     continue
 
-                is_set = False
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
-                        is_set = True
                         subsections = self.m_get_sub_sections(sub_section_def)
                         if subsection_as_dict:
-                            subsection_keys: list = [
+                            all_keys: list = [
                                 item.m_key
                                 for item in subsections
                                 if item and item.m_key
                             ]
-                            has_dup: bool = (
-                                0 < len(subsection_keys) != len(set(subsection_keys))
-                            )
-                            if not has_dup:
+                            if not (0 < len(all_keys) != len(set(all_keys))):
                                 serialised_dict: dict = {}
                                 for index, item in enumerate(subsections):
                                     if item is None:
@@ -2073,92 +1971,74 @@ class MSection(
                                     item_key = item.m_key if item.m_key else index
                                     serialised_dict[item_key] = item.m_to_dict(**kwargs)
                                 yield name, serialised_dict
-                            else:
-                                yield (
-                                    name,
-                                    [
-                                        None
-                                        if item is None
-                                        else item.m_to_dict(**kwargs)
-                                        for item in subsections
-                                    ],
-                                )
-                        else:
-                            yield (
-                                name,
-                                [
-                                    None if item is None else item.m_to_dict(**kwargs)
-                                    for item in subsections
-                                ],
-                            )
-                else:
-                    sub_section = self.m_get_sub_section(sub_section_def, -1)
-                    if sub_section is not None:
-                        is_set = True
-                        yield name, sub_section.m_to_dict(**kwargs)
+                                continue
 
-                # attributes are disabled for subsections
-                # if is_set:
-                #     yield from collect_attributes(sub_section_def.all_attributes)
+                        serialised_list: list = [
+                            None if item is None else item.m_to_dict(**kwargs)
+                            for item in subsections
+                        ]
+                        yield name, serialised_list
+                elif (
+                    sub_section := self.m_get_sub_section(sub_section_def, -1)
+                ) is not None:
+                    yield name, sub_section.m_to_dict(**kwargs)
 
         return {key: value for key, value in items()}
 
-    def m_update_from_dict(self, dct: Dict[str, Any]) -> None:
+    def m_update_from_dict(self, data: dict) -> None:
         """
         Updates this section with the serialized data from the given dict, e.g. data
         produced by :func:`m_to_dict`.
         """
-        section_def = self.m_def
-        section = self
         m_context = self.m_context if self.m_context else self
 
-        if 'definitions' in dct:
-            definition_def = section_def.all_aliases['definitions']
+        if 'definitions' in data:
+            definition_def = self.m_def.all_aliases['definitions']
             definition_cls = definition_def.sub_section.section_cls
             definition_section = definition_cls.m_from_dict(
-                dct['definitions'], m_parent=self, m_context=m_context
+                data['definitions'], m_parent=self, m_context=m_context
             )
-            section.m_add_sub_section(definition_def, definition_section)
+            self.m_add_sub_section(definition_def, definition_section)
 
-        for name, property_def in section_def.all_aliases.items():
-            if name not in dct or name == 'definitions':
+        for name, property_def in self.m_def.all_aliases.items():
+            if name not in data or name == 'definitions':
                 continue
+
+            target_value = data.get(name)
 
             if isinstance(property_def, SubSection):
                 sub_section_def = property_def
-                sub_section_value = dct.get(name)
                 sub_section_cls = sub_section_def.sub_section.section_cls
+
+                def _append(value=None):
+                    sub_section = None
+                    if value is not None:
+                        sub_section = sub_section_cls.m_from_dict(
+                            value, m_parent=self, m_context=m_context
+                        )
+                    self.m_add_sub_section(sub_section_def, sub_section)
+
                 if sub_section_def.repeats:
                     for sub_section_dct in (
-                        sub_section_value
-                        if isinstance(sub_section_value, list)
-                        else sub_section_value.values()
+                        target_value
+                        if isinstance(target_value, list)
+                        else target_value.values()
                     ):
-                        sub_section = None
-                        if sub_section_dct is not None:
-                            sub_section = sub_section_cls.m_from_dict(
-                                sub_section_dct, m_parent=self, m_context=m_context
-                            )
-                        section.m_add_sub_section(sub_section_def, sub_section)
+                        _append(sub_section_dct)
                 else:
-                    sub_section = sub_section_cls.m_from_dict(
-                        sub_section_value, m_parent=self, m_context=m_context
-                    )
-                    section.m_add_sub_section(sub_section_def, sub_section)
+                    _append(target_value)
 
-            if isinstance(property_def, Quantity):
+            elif isinstance(property_def, Quantity):
                 quantity_def = property_def
-                quantity_value = dct[name]
 
                 if quantity_def.virtual:
-                    # We silently ignore this, similar to how we ignore additional values.
                     continue
 
                 if quantity_def.use_full_storage:
-                    if not isinstance(quantity_value, dict):
+                    if not isinstance(target_value, dict):
                         raise MetainfoError('Full storage quantity must be a dict')
 
-                    for each_name, each_quantity in quantity_value.items():
+                    for each_name, each_quantity in target_value.items():
                         m_quantity = MQuantity(each_name, each_quantity['m_value'])
                         if 'm_unit' in each_quantity:
                             m_quantity.unit = units.parse_units(each_quantity['m_unit'])
@@ -2169,16 +2049,15 @@ class MSection(
                         if 'm_attributes' in each_quantity:
                             m_quantity.attributes = each_quantity['m_attributes']
 
-                        section.m_set(quantity_def, m_quantity)
+                        self.m_set(quantity_def, m_quantity)
                 else:
                     # todo: setting None has different implications
-                    section.__dict__[property_def.name] = quantity_def.type.normalize(
-                        quantity_value, section=section
+                    self.__dict__[property_def.name] = quantity_def.type.normalize(
+                        target_value, section=self
                     )
 
-        if 'm_attributes' in dct:
-            for attr_key, attr_value in dct['m_attributes'].items():
-                section.m_set_section_attribute(attr_key, attr_value)
+        for attr_key, attr_value in data.get('m_attributes', {}).items():
+            self.m_set_section_attribute(attr_key, attr_value)
 
     @classmethod
     def m_from_dict(
@@ -3234,19 +3113,6 @@ class Quantity(Property):
         if self.derived is not None:
             self.virtual = True  # type: ignore
 
-        # replace the quantity implementation with an optimized version for the most
-        # primitive quantities if applicable
-        is_primitive = not self.derived and not self.use_full_storage
-        is_primitive = is_primitive and len(self.shape) <= 1
-        is_primitive = is_primitive and self.type in [str, bool, float, int]
-        is_primitive = is_primitive and self.type not in MTypes.num_numpy
-        if is_primitive:
-            self._default = self.default
-            self._name = self.name
-            self._type = self.type
-            self._list = len(self.shape) == 1
-            self.__class__ = PrimitiveQuantity
-
         check_dimensionality(self, self.unit)
 
     def __get__(self, obj, cls):
@@ -3367,13 +3233,6 @@ class Quantity(Property):
                 f'and int ({dim_quantity.type}) typed.'
             )
 
-    @constraint(warning=True)
-    def higher_shapes_require_dtype(self):
-        if len(self.shape) > 1:
-            assert (
-                self.type in MTypes.numpy
-            ), f'Higher dimensional quantities ({self}) need a dtype and will be treated as numpy arrays.'
-
     def _hash_seed(self) -> str:
         """
         Generate a unique representation for this quantity.
@@ -3457,73 +3316,6 @@ class DirectQuantity(Quantity):
         # object (instance) case
         obj.m_mod_count += 1
         obj.__dict__[self._name] = ensure_complete_type(value, obj)
-
-
-class PrimitiveQuantity(Quantity):
-    """An optimized replacement for Quantity suitable for primitive properties."""
-
-    def __get__(self, obj, cls):
-        try:
-            value = obj.__dict__[self._name]
-        except KeyError:
-            value = self._default
-        except AttributeError:
-            return self
-        if value is not None and self.unit is not None and self.type in MTypes.num:
-            return value * self.unit  # type: ignore
-        return value
-
-    def __set__(self, obj, value):
-        obj.m_mod_count += 1
-
-        if value is None:
-            obj.__dict__.pop(self.name, None)
-            return
-
-        # Handle pint quantities. Conversion is done automatically between
-        # units. Notice that currently converting from float to int or vice
-        # versa is not allowed for primitive types.
-        if isinstance(value, pint.Quantity):
-            if self.unit is None:
-                if value.units.dimensionless:
-                    value = value.magnitude
-                else:
-                    raise TypeError(
-                        f'The quantity {self} does not have a unit, but value {value} has.'
-                    )
-            elif self.type in MTypes.int:
-                raise TypeError(
-                    f'Cannot save data with unit conversion into the quantity {self} '
-                    'with integer data type due to possible precision loss.'
-                )
-            else:
-                value = value.to(self.unit).magnitude
-
-        if self._list:
-            if not isinstance(value, list):
-                if hasattr(value, 'tolist'):
-                    value = value.tolist()
-                else:
-                    raise TypeError(
-                        f'The value {value} for quantity {self} has no shape {self.shape}'
-                    )
-
-            if any(v is not None and type(v) is not self._type for v in value):
-                raise TypeError(
-                    f'The value {value} with type {type(value)} for quantity {self} is not of type {self.type}'
-                )
-
-        elif type(value) is not self._type:
-            raise TypeError(
-                f'The value {value} with type {type(value)} for quantity {self} is not of type {self.type}'
-            )
-
-        try:
-            obj.__dict__[self._name] = value
-        except AttributeError:
-            raise KeyError(
-                'Cannot overwrite quantity definition. Only values can be set.'
-            )
 
 
 class SubSection(Property):

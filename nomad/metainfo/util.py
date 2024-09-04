@@ -18,63 +18,15 @@
 
 import hashlib
 import re
-from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Any, Dict, Optional, Tuple, Union
-from urllib.parse import SplitResult, urlsplit, urlunsplit
 
-import numpy as np
 import pint
 
 from nomad.metainfo.data_type import Enum
 from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
-
-
-@dataclass(frozen=True)
-class MTypes:
-    # todo: account for bytes which cannot be naturally serialized to JSON
-    primitive = {
-        str: lambda v: None if v is None else str(v),
-        int: lambda v: None if v is None else int(v),
-        float: lambda v: None if v is None else float(v),
-        complex: lambda v: None if v is None else complex(v),
-        bool: lambda v: None if v is None else bool(v),
-        np.bool_: lambda v: None if v is None else bool(v),
-    }
-
-    primitive_name = {v.__name__: v for v in primitive} | {
-        'string': str,
-        'boolean': bool,
-    }
-
-    int_numpy = {
-        np.int8,
-        np.int16,
-        np.int32,
-        np.int64,
-        np.uint8,
-        np.uint16,
-        np.uint32,
-        np.uint64,
-    }
-    int_python = {int}
-    int = int_python | int_numpy
-    float_numpy = {np.float16, np.float32, np.float64}
-    complex_numpy = {np.complex64, np.complex128}
-    float_python = {float}
-    complex_python = {complex}
-    float = float_python | float_numpy
-    complex = complex_python | complex_numpy
-    num_numpy = int_numpy | float_numpy | complex_numpy
-    num_python = int_python | float_python | complex_python
-    num = num_python | num_numpy
-    str_numpy = {np.str_}
-    bool_numpy = {np.bool_}
-    bool = {bool, np.bool_}
-    numpy = num_numpy | str_numpy | bool_numpy
-    str = {str} | str_numpy
 
 
 MEnum = Enum  # type: ignore
@@ -215,22 +167,6 @@ class MSubSectionList(list):
         for old_value in old_values:
             # noinspection PyProtectedMember
             self.section._on_remove_sub_section(self.sub_section_def, old_value)
-
-
-@dataclass
-class ReferenceURL:
-    fragment: str
-    archive_url: str
-    url_parts: SplitResult
-
-    def __init__(self, url: str):
-        if '#' not in url:
-            url = f'#{url}'
-
-        self.url_parts = urlsplit(url)
-        archive_url = urlunsplit(self.url_parts[0:4] + ('',))
-        self.archive_url = None if archive_url is None else archive_url
-        self.fragment = self.url_parts.fragment
 
 
 class Annotation:
@@ -452,28 +388,6 @@ def split_python_definition(definition_with_id: str) -> Tuple[list, Optional[str
 
     definition_names, definition_id = definition_with_id.split('@')
     return __split(definition_names), definition_id
-
-
-def check_dimensionality(quantity_def, unit: Optional[pint.Unit]) -> None:
-    if quantity_def is None or unit is None:
-        return
-
-    dimensionality = getattr(quantity_def, 'dimensionality', None)
-
-    if dimensionality is None:  # not set, do not validate
-        return
-
-    if dimensionality in ('dimensionless', '1') and unit.dimensionless:  # dimensionless
-        return
-
-    if dimensionality == 'transformation':
-        # todo: check transformation dimensionality
-        return
-
-    if ureg.Quantity(1 * unit).check(dimensionality):  # dimensional
-        return
-
-    raise TypeError(f'Dimensionality {dimensionality} is not met by unit {unit}')
 
 
 def dict_to_named_list(data) -> list:

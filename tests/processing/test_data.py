@@ -1160,7 +1160,7 @@ def test_read_metadata_from_file(proc_infra, user1, user2, tmp):
         assert entry_metadata.comment == comment[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
-        coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
+        coauthors = entry_metadata.coauthors
         assert len(coauthors) == len(expected_coauthors)
         for j in range(len(coauthors)):
             assert coauthors[j].user_id == expected_coauthors[j].user_id

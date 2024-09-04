@@ -41,7 +41,6 @@ from nomad.metainfo.metainfo import (
     Context,
     DefinitionAnnotation,
     derived,
-    MTypes,
 )
 from nomad.metainfo.example import (
     Run,
@@ -56,6 +55,7 @@ from nomad import utils
 from nomad.units import ureg
 
 from tests import utils as test_utils
+from tests.metainfo import MTypes
 
 
 def assert_section_def(section_def: Section):

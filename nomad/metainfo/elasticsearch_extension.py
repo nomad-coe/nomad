@@ -285,7 +285,7 @@ class DocumentType:
                             suggestion_value = value
                         section_path = section.m_path()[len(root.m_path()) :]
                         name = elasticsearch_annotation.property_name
-                        if path:
+                        if not isinstance(quantity.type, Datatype):
                             suggestion_path = f'{section_path}/{path}/{name}'
                         else:
                             suggestion_path = f'{section_path}/{name}'
