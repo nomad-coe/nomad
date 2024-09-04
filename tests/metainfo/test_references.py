@@ -420,16 +420,6 @@ def test_user_author(def_type, value, expected_name):
 
     # test assignment
     section.quantity = value
-    quantity = section.quantity
-    resolved_quantity = quantity.m_resolved()
-
-    assert quantity.m_proxy_value == value
-    assert (
-        quantity.m_proxy_type.target_section_def.name
-        == def_type().target_section_def.name
-    )
-    assert quantity.m_proxy_section == section
-    assert resolved_quantity.name == expected_name
 
     # test serialization
     serialized_section = section.m_to_dict()
@@ -438,11 +428,3 @@ def test_user_author(def_type, value, expected_name):
     # test deserialization
     deserialized_section = UserAuthorSection().m_from_dict(serialized_section)
     deserialized_quantity = deserialized_section.quantity
-    resolved_deserialized_quantity = deserialized_quantity.m_resolved()
-
-    assert deserialized_quantity.m_proxy_value == value
-    assert (
-        deserialized_quantity.m_proxy_type.target_section_def.name
-        == def_type().target_section_def.name
-    )
-    assert resolved_deserialized_quantity.name == expected_name

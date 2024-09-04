@@ -40,13 +40,11 @@ from ..metainfo import (
     Bytes,
     Package,
     Definition,
-    MProxy,
     MSection,
     MCategory,
     Section,
     SubSection,
     Quantity,
-    Reference,
     MEnum,
     Datetime,
     JSON,
@@ -189,14 +187,19 @@ class DatasetReference(Reference):
         super().__init__(Dataset.m_def)
 
     def _normalize_impl(self, section, value):
-        # todo: need data validation
+        if isinstance(value, Dataset):
+            return value
+
         if isinstance(value, str):
-            return MProxy(value, m_proxy_section=section, m_proxy_type=self._proxy_type)
-        return value
+            if (target := Dataset.m_def.a_mongo.get(dataset_id=value)) is not None:
+                return target
+            return value
+
+        raise ValueError(f'Cannot normalize {value}.')
 
     def _serialize_impl(self, section, value):
-        if isinstance(value, MProxy):
-            return value.m_proxy_value
+        if isinstance(value, str):
+            return value
 
         return value.dataset_id
 

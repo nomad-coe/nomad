@@ -30,12 +30,12 @@ from nomad.metainfo.metainfo import (
     Dimension,
     JSON,
     MSection,
-    MTypes,
     Quantity,
     URL,
     Unit,
     units,
 )
+from tests.metainfo import MTypes
 
 
 @pytest.mark.parametrize(

@@ -20,6 +20,7 @@ from __future__ import annotations
 import builtins
 import importlib
 import re
+import typing
 from base64 import b64decode, b64encode
 from datetime import datetime, date
 from functools import reduce
@@ -165,6 +166,19 @@ class Datatype:
         The given value is the actual value stored in the corresponding section.
 
         This method shall return an object that is JSON serializable.
+
+        Optional keyword arguments:
+            section: the section object that the value belongs to
+            transform: a function that transforms the value, this function will apply to each element of the value
+                if the value is an array, or a nested array.
+
+                The function shall have the following signature:
+                    ```python
+                    def transform(value, path):
+                        pass
+                    ```
+                The value is the actual value, or the element in the array.
+                The path shall be None if the value is a scalar, or a list of indices if the value is an array.
         """
         raise NotImplementedError()
 
@@ -351,13 +365,24 @@ class Primitive(Datatype):
         """
         This handles both scalar and array like values.
         """
+
+        transform: typing.Callable | None = kwargs.get('transform', None)
+
+        def _convert(v, p=None):
+            if isinstance(v, list):
+                return [
+                    _convert(x, [i] if p is None else p + [i]) for i, x in enumerate(v)
+                ]
+
+            return v if transform is None else transform(v, p)
+
         if isinstance(value, np.ndarray):
-            return value.tolist()
+            return _convert(value.tolist())
 
         if isinstance(value, np.generic):
-            return value.item()
+            return _convert(value.item())
 
-        return value
+        return _convert(value)
 
 
 class Number(Primitive):
@@ -738,11 +763,17 @@ class NonPrimitive(Datatype):
         Transparently return the given value.
         """
 
-        def _convert(v):
-            if isinstance(v, list):
-                return [_convert(x) for x in v]
+        transform: typing.Callable | None = kwargs.get('transform', None)
 
-            return self._serialize_impl(v, **kwargs)
+        def _convert(v, p=None):
+            if isinstance(v, list):
+                return [
+                    _convert(x, [i] if p is None else p + [i]) for i, x in enumerate(v)
+                ]
+
+            intermediate = self._serialize_impl(v, **kwargs)
+
+            return intermediate if transform is None else transform(intermediate, p)
 
         return _convert(value)
 
@@ -894,7 +925,7 @@ class Unit(NonPrimitive):
         else:
             raise TypeError('Units must be given as str or pint.Unit instances.')
 
-        _check_dimensionality(self._definition, unit_obj)
+        check_dimensionality(self._definition, unit_obj)
 
         return unit_obj
 
@@ -1400,7 +1431,7 @@ def _normalize_complex(value, complex_type, to_unit: str | ureg.Unit | None):
     raise ValueError(f'Cannot convert {value} to complex number.')
 
 
-def _check_dimensionality(quantity_def, unit: pint.Unit | None) -> None:
+def check_dimensionality(quantity_def, unit: pint.Unit | None) -> None:
     if quantity_def is None or unit is None:
         return
 
@@ -1420,34 +1451,6 @@ def _check_dimensionality(quantity_def, unit: pint.Unit | None) -> None:
         return
 
     raise TypeError(f'Dimensionality {dimensionality} is not met by unit {unit}.')
-
-
-def _split_python_definition(definition_with_id: str) -> tuple[list, str | None]:
-    """
-    Split a Python type name into names and an optional ID.
-
-    Example:
-        my_package.my_section            ==> (['my_package', 'my_section'], None)
-        my_package.my_section@my_id      ==> (['my_package', 'my_section'], 'my_id')
-        my_package/section_definitions/0 ==> (['my_package', 'section_definitions/0'], None)
-    """
-
-    def __split(name: str):
-        # The definition name must contain at least one dot which comes from the module name.
-        # The actual definition could be either a path (e.g., my_package/section_definitions/0)
-        # or a name (e.g., my_section).
-        # If it is a path (e.g., a.b.c/section_definitions/0), after splitting at '.', the last segment
-        # (c/section_definitions/0) contains the package name (c). It needs to be relocated.
-        segments: list = name.split('.')
-        if '/' in segments[-1]:
-            segments.extend(segments.pop().split('/', 1))
-        return segments
-
-    if '@' not in definition_with_id:
-        return __split(definition_with_id), None
-
-    definition_names, definition_id = definition_with_id.split('@')
-    return __split(definition_names), definition_id
 
 
 if __name__ == '__main__':

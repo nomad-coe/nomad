@@ -24,7 +24,7 @@ import re
 from pydantic.main import BaseModel
 
 from nomad.utils import strip
-from nomad.metainfo import AnnotationModel, MEnum, MTypes, Datetime, Reference, Quantity
+from nomad.metainfo import AnnotationModel, MEnum, Datetime, Reference, Quantity
 from .plot import PlotlyError
 from ..data import Query
 from ...metainfo.data_type import Datatype
