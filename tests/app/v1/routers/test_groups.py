@@ -61,10 +61,27 @@ def test_get_groups(
 @pytest.mark.parametrize(
     'filters, ref_group_labels',
     [
-        pytest.param({'group_id': ['group1']}, ['group1'], id='id'),
+        # group_id
+        pytest.param({'group_id': ['group1']}, ['group1'], id='group1'),
         pytest.param(
-            {'group_id': ['group1', 'group2']}, ['group1', 'group2'], id='ids'
+            {'group_id': ['group1', 'group2']}, ['group1', 'group2'], id='group1+2'
         ),
+        # user_id
+        pytest.param(
+            {'user_id': 'user1'},
+            [f'group{n}' for n in (1, 14, 15, 18, 19, 123)],
+            id='user1',
+        ),
+        pytest.param({'user_id': 'user2'}, ['group2', 'group123'], id='user2'),
+        pytest.param({'user_id': 'user3'}, ['group3', 'group123'], id='user3'),
+        pytest.param({'user_id': 'user4'}, ['group14'], id='user4'),
+        pytest.param({'user_id': 'user5'}, ['group15'], id='user5'),
+        pytest.param({'user_id': 'user6'}, ['group6'], id='user6'),
+        pytest.param({'user_id': 'user7'}, [], id='user7'),
+        pytest.param({'user_id': 'user8'}, ['group8', 'group18'], id='user8'),
+        pytest.param({'user_id': 'user9'}, ['group9', 'group19'], id='user9'),
+        pytest.param({'user_id': 'invalid'}, [], id='invalid-user'),
+        # search_terms
         pytest.param({'search_terms': 'Uniq'}, ['uniq'], id='uniq'),
         pytest.param({'search_terms': 'iq'}, ['uniq'], id='uniq-partial'),
         pytest.param({'search_terms': 'Twin'}, ['twin1', 'twin2'], id='twins'),
@@ -81,18 +98,18 @@ def test_get_groups(
 def test_get_filtered_groups(
     auth_headers,
     client,
-    convert_group_labels_to_ids,
+    convert_agent_labels_to_ids,
     groups_module,
     filters,
     ref_group_labels,
 ):
-    filters = convert_group_labels_to_ids(filters)
+    filters = convert_agent_labels_to_ids(filters)
     response = perform_get(client, base_url, auth_headers['user1'], **filters)
     assert_response(response, 200)
 
     response_groups = UserGroups.parse_raw(response.content)
     response_ids = [group.group_id for group in response_groups.data]
-    ref_group_ids = convert_group_labels_to_ids(ref_group_labels)
+    ref_group_ids = convert_agent_labels_to_ids(ref_group_labels)
     assert_unordered_lists(response_ids, ref_group_ids)
 
     for response_group in response_groups.data:
