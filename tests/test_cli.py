@@ -419,22 +419,17 @@ class TestAdminUploads:
         assert ('test_upload' in result.output) != indexed
 
     @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
-    @pytest.mark.parametrize('new_writer', [True, False])
     def test_integrity_archive(
         self,
-        monkeypatch,
         user1,
         mongo_function,
         elastic_function,
-        new_writer,
         all_entries,
     ):
-        with monkeypatch.context() as m:
-            m.setattr('nomad.config.archive.use_new_writer', new_writer)
-            data = ExampleData(main_author=user1)
-            data.create_upload(upload_id='test_upload')
-            data.create_entry(upload_id='test_upload')
-            data.save(with_es=True, with_files=True)
+        data = ExampleData(main_author=user1)
+        data.create_upload(upload_id='test_upload')
+        data.create_entry(upload_id='test_upload')
+        data.save(with_es=True, with_files=True)
 
         result = invoke_cli(
             cli,
@@ -443,7 +438,7 @@ class TestAdminUploads:
         )
 
         assert result.exit_code == 0
-        assert ('test_upload' in result.output) != new_writer
+        assert 'test_upload' not in result.output
 
     @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
     @pytest.mark.parametrize('es_nomad_version', ['1', '2'])

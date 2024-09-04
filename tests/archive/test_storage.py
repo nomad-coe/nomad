@@ -82,7 +82,6 @@ def to_path(container, path):
 
 @pytest.mark.skip
 def test_generate_random_json(monkeypatch, tmp):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', True)
     monkeypatch.setattr('nomad.config.archive.read_buffer_size', 4096)
     monkeypatch.setattr('nomad.config.archive.small_obj_optimization_threshold', 1024)
 
@@ -155,7 +154,6 @@ def test_folder_access(monkeypatch):
         for path in paths:
             f.write(','.join([str(v) for v in path]) + ',\n')
 
-    from nomad.archive.storage_v2 import write_archive as write_archive_v2
     from nomad.config import config
 
     for j in threshold:
@@ -167,7 +165,7 @@ def test_folder_access(monkeypatch):
                 f'archive-{i}-{config.archive.small_obj_optimization_threshold}.msg'
             )
             file_path = f'{parent_folder}{file_name}'
-            write_archive_v2(file_path, [(f'id', archive)], i)
+            write_archive(file_path, 1, [(f'id', archive)], i)
 
 
 def measure(small_obj, toc_depth, paths):

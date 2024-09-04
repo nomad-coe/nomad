@@ -470,7 +470,6 @@ def test_process_non_existing(proc_infra, user1, with_error):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-@pytest.mark.parametrize('new_writer', [True, False])
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(
     published: Upload,
@@ -478,10 +477,7 @@ def test_re_processing(
     monkeypatch,
     tmp,
     with_failure,
-    new_writer,
 ):
-    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
-
     if with_failure == 'not-matched':
         monkeypatch.setattr('nomad.config.reprocess.use_original_parser', True)
 

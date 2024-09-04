@@ -35,15 +35,14 @@ section annotations/categories.
 
 from .storage import (
     to_json,
-    write_archive,
     read_archive,
     ArchiveError,
     ArchiveReader,
-    ArchiveWriter,
     ArchiveDict,
     ArchiveList,
     ArchiveItem,
 )
+from .storage_v2 import write_archive
 from .query import query_archive, filter_archive, ArchiveQueryError
 from .partial import (
     read_partial_archive_from_mongo,

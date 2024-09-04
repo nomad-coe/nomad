@@ -30,6 +30,7 @@ import bs4
 import time
 import os.path
 
+import nomad.archive.storage_v2
 from nomad import archive
 from nomad.config import config
 from nomad.archive import read_archive
@@ -244,7 +245,7 @@ def update_springer(max_n_query: int = 10, retry_time: int = 120):
 
         page += 1
 
-    archive.write_archive(
+    nomad.archive.storage_v2.write_archive(
         config.normalize.springer_db_path,
         len(sp_data),
         sp_data.items(),
