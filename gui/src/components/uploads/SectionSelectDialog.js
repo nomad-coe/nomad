@@ -57,6 +57,7 @@ const useStyles = makeStyles(theme => ({
     minHeight: 400
   },
   dialogContent: {
+    overflowY: 'hidden'
   },
   resultsTable: {
     overflowY: 'scroll',
