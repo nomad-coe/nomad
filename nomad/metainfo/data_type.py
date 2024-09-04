@@ -273,10 +273,19 @@ class Primitive(Datatype):
         if value is None:
             return value
 
-        if isinstance(value, pint.Quantity):
+        def extract_magnitude(v):
+            if isinstance(v, (list, tuple)):
+                return [extract_magnitude(x) for x in v]
+
+            if not isinstance(v, pint.Quantity):
+                return v
+
             if self.unit is not None:
-                value = value.to(self.unit)
-            value = value.magnitude
+                v = v.to(self.unit)
+
+            return v.magnitude
+
+        value = extract_magnitude(value)
 
         if self.is_scalar:
             given_type = type(value)
