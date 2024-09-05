@@ -1,9 +1,3 @@
-[submodule "dependencies/materia"]
-	path = gui/materia
-	url = https://github.com/nomad-coe/materia
-[submodule "gui/crystcif-parse"]
-	path = gui/crystcif-parse
-	url = https://github.com/stur86/crystcif-parse.git
 [submodule "examples/plugins/schema"]
 	path = examples/plugins/schema
 	url = https://github.com/nomad-coe/nomad-schema-plugin-example.git

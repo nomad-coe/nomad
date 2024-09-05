@@ -113,15 +113,13 @@ ENV NODE_OPTIONS "--max_old_space_size=4096 --openssl-legacy-provider"
 
 # Fetch and cache all (but only) the dependencies
 COPY gui/yarn.lock gui/package.json ./
-COPY gui/materia ./materia
-COPY gui/crystcif-parse ./crystcif-parse
 
 RUN yarn --network-timeout 1200000
 
 # Artifact for running the tests
 COPY tests/states/archives/dft.json  /app/tests/states/archives/dft.json
 
-# Copy and build the applicaion itself
+# Copy and build the application itself
 COPY gui .
 RUN echo "REACT_APP_BACKEND_URL=/fairdi/nomad/latest" > .env
 
