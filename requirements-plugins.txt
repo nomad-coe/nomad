@@ -18,7 +18,7 @@ atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@cedaf4
 attrs==24.2.0             # via jsonschema, -c requirements-dev.txt
 babel==2.16.0             # via jupyterlab-server, -c requirements-dev.txt
 beautifulsoup4==4.12.3    # via nbconvert, -c requirements-dev.txt
-bitarray==2.9.2           # via nomad-lab, -c requirements-dev.txt
+bitarray==2.9.2           # via nomad-dos-fingerprints, nomad-lab, -c requirements-dev.txt
 bleach==6.1.0             # via nbconvert
 blinker==1.8.2            # via flask
 blosc2==2.7.1             # via tables
@@ -33,7 +33,7 @@ cloudpickle==3.0.0        # via dask
 colorama==0.4.6 ; sys_platform == 'win32' or platform_system == 'Windows'  # via click, ipython, tqdm, -c requirements-dev.txt
 comm==0.2.2               # via ipykernel, ipywidgets
 contourpy==1.3.0          # via matplotlib, -c requirements-dev.txt
-cryptography==43.0.0      # via jwcrypto, rfc3161ng, -c requirements-dev.txt
+cryptography==43.0.1      # via jwcrypto, rfc3161ng, -c requirements-dev.txt
 cycler==0.12.1            # via matplotlib, -c requirements-dev.txt
 dask==2024.8.1            # via hyperspy, kikuchipy, orix, pyxem, rosettasciio
 databaseparsers @ git+https://github.com/nomad-coe/database-parsers.git@defb8c2604e55d9421e8dcc03e86f06752920874  # via -r default_plugins.txt
@@ -45,9 +45,10 @@ diffpy-structure==3.2.0   # via diffsims, kikuchipy, orix
 diffsims==0.6.0           # via kikuchipy, pyxem
 dill==0.3.8               # via hyperspy, lmfit
 docstring-parser==0.16    # via nomad-lab, -c requirements-dev.txt
+eelsdbconverter @ git+https://github.com/nomad-coe/nomad-parser-eelsdb.git@788eb03dc71ef9b164e2a5ccb9c0209b546f5c38  # via -r default_plugins.txt
 elasticsearch==7.17.1     # via elasticsearch-dsl, -c requirements-dev.txt
 elasticsearch-dsl==7.4.0  # via nomad-lab, -c requirements-dev.txt
-electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@696b0e8d68a61c149c9da415f29b3662e96291f0  # via -r default_plugins.txt
+electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@637a5d67fe84f8e4f1b18fdb2dd2df7ba199d1a9  # via -r default_plugins.txt
 entrypoints==0.4          # via ipyparallel
 et-xmlfile==1.1.0         # via openpyxl, -c requirements-dev.txt
 executing==2.1.0          # via stack-data, -c requirements-dev.txt
@@ -105,7 +106,7 @@ jupyterlab-widgets==3.0.13  # via ipywidgets
 jwcrypto==1.5.6           # via python-keycloak, -c requirements-dev.txt
 kaleido==0.2.1            # via nomad-lab, -c requirements-dev.txt
 kikuchipy==0.9.0          # via pynxtools-em
-kiwisolver==1.4.5         # via matplotlib, -c requirements-dev.txt
+kiwisolver==1.4.7         # via matplotlib, -c requirements-dev.txt
 latexcodec==3.0.0         # via pybtex, -c requirements-dev.txt
 lazy-loader==0.4          # via scikit-image
 llvmlite==0.43.0          # via numba
@@ -141,8 +142,9 @@ nionswift-io==15.2.1      # via nionswift
 nionui==7.1.1             # via nionswift
 nionutils==4.11.0         # via niondata, nionswift, nionswift-io, nionui
 nomad-aitoolkit @ git+https://github.com/FAIRmat-NFDI/nomad-aitoolkit.git@b203f8eb28dc4b6771a39d5c5b7ad3d9d8583ac8  # via -r default_plugins.txt
+nomad-dos-fingerprints @ git+https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints@6e8720a1c02cb553adfaeb5b0d81b5037dbd8054  # via nomad-normalizer-plugin-dos
 nomad-normalizer-plugin-bandstructure @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-bandstructure.git@6521a2bba848db8891a02576262eba8dcd4d9374  # via -r default_plugins.txt
-nomad-normalizer-plugin-dos @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-dos.git@dad7e2b6e74bcedc73a4d86604e4beafd336c8b8  # via -r default_plugins.txt
+nomad-normalizer-plugin-dos @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-dos.git@30dcfd0797d8197d933e215cb15857d26a53b918  # via -r default_plugins.txt
 nomad-normalizer-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-simulation-workflow.git@22af484c9ff6ff0d6c26be0bac9c66fa64200235  # via -r default_plugins.txt
 nomad-normalizer-plugin-soap @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-soap.git@1b0e60e6bb7a75b9d7b53d6b077adf5aec7ec952  # via -r default_plugins.txt
 nomad-normalizer-plugin-spectra @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-spectra.git@ec147326b3485ca9c324aca8a8dea520eb01e7dc  # via -r default_plugins.txt
@@ -157,14 +159,14 @@ nptyping==1.4.4           # via nomad-lab, -c requirements-dev.txt
 numba==0.60.0             # via diffsims, hyperspy, kikuchipy, orix, pyxem, sparse
 numcodecs==0.13.0 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via zarr
 numexpr==2.10.1           # via blosc2, hyperspy, pyfai, pyxem, tables
-numpy==1.26.4             # via ase, blosc2, cftime, contourpy, dask, diffsims, fabio, fairmat-readers-xrd, findiff, griddataformats, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, igor2, imageio, kikuchipy, lmfit, matid, matplotlib, mdanalysis, mrcfile, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-lab, nptyping, numba, numcodecs, numexpr, numpy-quaternion, orix, pandas, phonopy, pyedr, pyfai, pymatgen, pynxtools, pynxtools-xps, pyxem, radioactivedecay, rdkit, rosettasciio, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tables, tifffile, transforms3d, xarray, xraydb, zarr, -c requirements-dev.txt
+numpy==1.26.4             # via ase, blosc2, cftime, contourpy, dask, diffsims, fabio, fairmat-readers-xrd, findiff, griddataformats, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, igor2, imageio, kikuchipy, lmfit, matid, matplotlib, mdanalysis, mrcfile, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-dos-fingerprints, nomad-lab, nptyping, numba, numcodecs, numexpr, numpy-quaternion, orix, pandas, phonopy, pyedr, pyfai, pymatgen, pynxtools, pynxtools-xps, pyxem, radioactivedecay, rdkit, rosettasciio, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tables, tifffile, transforms3d, xarray, xraydb, zarr, -c requirements-dev.txt
 numpy-quaternion==2023.0.4  # via orix
 openpyxl==3.1.5           # via nomad-lab, perovskite-solar-cell-database, -c requirements-dev.txt
 orix==0.12.1.post0        # via diffsims, kikuchipy, pyxem
 orjson==3.10.7            # via h5grove, nomad-lab, -c requirements-dev.txt
 packaging==24.1           # via dask, deprecation, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, lazy-loader, matplotlib, mdanalysis, nbconvert, pint, plotly, pooch, qtconsole, qtpy, scikit-image, silx, tables, xarray, xraydb, -c requirements-dev.txt
 palettable==3.3.3         # via pymatgen, -c requirements-dev.txt
-pandas==2.2.2             # via ifes-apt-tc-data-modeling, nomad-lab, panedr, pymatgen, pynxtools, radioactivedecay, xarray, -c requirements-dev.txt
+pandas==2.2.2             # via eelsdbconverter, ifes-apt-tc-data-modeling, nomad-lab, panedr, pymatgen, pynxtools, radioactivedecay, xarray, -c requirements-dev.txt
 pandocfilters==1.5.1      # via nbconvert
 panedr==0.8.0             # via atomisticparsers, nomad-lab, -c requirements-dev.txt
 parmed==4.2.2             # via nomad-lab, -c requirements-dev.txt
@@ -221,7 +223,7 @@ qtconsole==5.5.2          # via jupyter
 qtpy==2.4.1               # via qtconsole
 radioactivedecay==0.5.1   # via ifes-apt-tc-data-modeling
 rdkit==2023.9.5           # via perovskite-solar-cell-database, -c requirements-dev.txt
-requests==2.31.0          # via hyperspy, jupyterlab-server, nomad-lab, pooch, pymatgen, python-keycloak, requests-toolbelt, rfc3161ng, -c requirements-dev.txt
+requests==2.31.0          # via eelsdbconverter, hyperspy, jupyterlab-server, nomad-lab, pooch, pymatgen, python-keycloak, requests-toolbelt, rfc3161ng, -c requirements-dev.txt
 requests-toolbelt==1.0.0  # via python-keycloak, -c requirements-dev.txt
 rfc3161ng==2.1.3          # via nomad-lab, -c requirements-dev.txt
 rfc3339-validator==0.1.4  # via jsonschema, -c requirements-dev.txt
@@ -241,7 +243,7 @@ sniffio==1.3.1            # via anyio, httpx, -c requirements-dev.txt
 soupsieve==2.6            # via beautifulsoup4, -c requirements-dev.txt
 sparse==0.15.4            # via hyperspy
 spglib==2.5.0             # via asr, matid, phonopy, pymatgen, -c requirements-dev.txt
-sqlalchemy==2.0.32        # via xraydb, -c requirements-dev.txt
+sqlalchemy==2.0.34        # via xraydb, -c requirements-dev.txt
 stack-data==0.6.3         # via ipython
 sympy==1.13.2             # via findiff, hyperspy, pymatgen, radioactivedecay, -c requirements-dev.txt
 tables==3.10.1            # via ifes-apt-tc-data-modeling

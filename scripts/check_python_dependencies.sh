@@ -24,8 +24,6 @@ cp requirements-dev.txt requirements-dev.txt.tmp
 uv pip compile -q --universal -p 3.11 --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
-    dependencies/nomad-dos-fingerprints/pyproject.toml \
-    dependencies/parsers/eelsdb/pyproject.toml \
     pyproject.toml
 
 diff requirements.txt.tmp requirements.txt

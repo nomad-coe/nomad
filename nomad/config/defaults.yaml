@@ -1403,12 +1403,6 @@ plugins:
         plugin_type: parser
         python_package: nomad.parsing.chemotion
         parser_as_interface: true
-      parsers/eelsdbparser:
-        plugin_type: parser
-        python_package: eelsdbparser
-        mainfile_contents_re: https://eelsdb.eu/spectra
-        mainfile_mime_re: application/json
-        name: parsers/eels
       parsers/elabftw/elabftw:
         plugin_type: parser
         python_package: nomad.parsing.elabftw

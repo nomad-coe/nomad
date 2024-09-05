@@ -15,3 +15,4 @@ git+https://github.com/nomad-coe/electronic-parsers.git@develop
 git+https://github.com/nomad-coe/atomistic-parsers.git@develop
 git+https://github.com/nomad-coe/workflow-parsers.git@master
 git+https://github.com/nomad-coe/database-parsers.git@master
+git+https://github.com/nomad-coe/nomad-parser-eelsdb.git@entry-point

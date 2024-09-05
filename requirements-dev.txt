@@ -38,7 +38,7 @@ colorama==0.4.6           # via build, click, mkdocs, mkdocs-material, pytest, s
 commonmark==0.9.1         # via recommonmark, -r requirements.txt
 contourpy==1.3.0          # via matplotlib, -r requirements.txt
 coverage==7.6.1           # via pytest-cov
-cryptography==43.0.0      # via jwcrypto, pyjwt, pyopenssl, rfc3161ng, secretstorage, -r requirements.txt
+cryptography==43.0.1      # via jwcrypto, pyjwt, pyopenssl, rfc3161ng, secretstorage, -r requirements.txt
 cycler==0.12.1            # via matplotlib, -r requirements.txt
 decorator==5.1.1          # via validators, -r requirements.txt
 deprecation==2.1.0        # via python-keycloak, -r requirements.txt
@@ -97,7 +97,7 @@ jupyterhub==4.0.2         # via dockerspawner, oauthenticator, -r requirements.t
 jwcrypto==1.5.6           # via python-keycloak, -r requirements.txt
 kaleido==0.2.1            # via -r requirements.txt, nomad-lab (pyproject.toml)
 keyring==25.3.0           # via twine
-kiwisolver==1.4.5         # via matplotlib, -r requirements.txt
+kiwisolver==1.4.7         # via matplotlib, -r requirements.txt
 kombu==5.4.0              # via celery, -r requirements.txt
 lark==1.2.2               # via optimade, -r requirements.txt
 latexcodec==3.0.0         # via pybtex, -r requirements.txt
@@ -230,7 +230,7 @@ sphinxcontrib-htmlhelp==2.1.0  # via sphinx, -r requirements.txt
 sphinxcontrib-jsmath==1.0.1  # via sphinx, -r requirements.txt
 sphinxcontrib-qthelp==2.0.0  # via sphinx, -r requirements.txt
 sphinxcontrib-serializinghtml==2.0.0  # via sphinx, -r requirements.txt
-sqlalchemy==2.0.32        # via alembic, jupyterhub, -r requirements.txt
+sqlalchemy==2.0.34        # via alembic, jupyterhub, -r requirements.txt
 starlette==0.27.0         # via fastapi, -r requirements.txt
 structlog==24.4.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 sympy==1.13.2             # via pymatgen, -r requirements.txt
@@ -255,12 +255,12 @@ uncertainties==3.2.2      # via pymatgen, -r requirements.txt
 unidecode==1.3.2          # via -r requirements.txt, nomad-lab (pyproject.toml)
 uri-template==1.3.0       # via jsonschema, -r requirements.txt
 urllib3==1.26.20          # via docker, elasticsearch, nomad-openbis, requests, -r requirements.txt
-uv==0.4.2                 # via nomad-lab (pyproject.toml)
+uv==0.4.4                 # via nomad-lab (pyproject.toml)
 uvicorn==0.30.6           # via h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
 uvloop==0.20.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn, -r requirements.txt
 validators==0.18.2        # via -r requirements.txt, nomad-lab (pyproject.toml)
 vine==5.1.0               # via amqp, celery, kombu, -r requirements.txt
-watchdog==5.0.0           # via mkdocs
+watchdog==5.0.2           # via mkdocs
 watchfiles==0.24.0        # via uvicorn, -r requirements.txt
 wcwidth==0.2.13           # via prompt-toolkit, -r requirements.txt
 webcolors==24.8.0         # via jsonschema, -r requirements.txt

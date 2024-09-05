@@ -1881,6 +1881,21 @@ window.nomadEnv = {
           "description": "Normalizer for the DOS data.",
           "plugin_package": "dosnormalizer"
         },
+        "eelsdbparser:eelsdb_parser_entry_point": {
+          "id": "eelsdbparser:eelsdb_parser_entry_point",
+          "entry_point_type": "parser",
+          "name": "parsers/eels",
+          "description": "NOMAD parser for EELSDB.",
+          "plugin_package": "eelsdbparser",
+          "level": 0,
+          "aliases": [
+            "parsers/eels"
+          ],
+          "mainfile_name_re": ".*",
+          "mainfile_mime_re": ".*",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
         "electronicparsers:abacus_parser_entry_point": {
           "id": "electronicparsers:abacus_parser_entry_point",
           "entry_point_type": "parser",
@@ -3420,12 +3435,6 @@ window.nomadEnv = {
           "id": "parsers/chemotion/chemotion",
           "name": "parsers/chemotion"
         },
-        "parsers/eelsdbparser": {
-          "plugin_type": "parser",
-          "id": "parsers/eelsdbparser",
-          "name": "parsers/eels",
-          "plugin_source_code_url": "https://github.com/nomad-coe/nomad-parser-eelsdb"
-        },
         "parsers/elabftw/elabftw": {
           "plugin_type": "parser",
           "id": "parsers/elabftw/elabftw",
@@ -4430,6 +4439,17 @@ window.nomadEnv = {
         ],
         "homepage": "https://github.com/nomad-coe/nomad-normalizer-plugin-dos",
         "name": "dosnormalizer",
+        "repository": null,
+        "version": "1.0"
+      },
+      "eelsdbparser": {
+        "description": "NOMAD converter/parser for metadata from EELS database.",
+        "documentation": null,
+        "entry_points": [
+          "eelsdbparser:eelsdb_parser_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-parser-eelsdb",
+        "name": "eelsdbparser",
         "repository": null,
         "version": "1.0"
       },

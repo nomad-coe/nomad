@@ -18,8 +18,6 @@ cd $project_dir
 uv pip compile -U --universal -p 3.11 --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
-    dependencies/nomad-dos-fingerprints/pyproject.toml \
-    dependencies/parsers/eelsdb/pyproject.toml \
     pyproject.toml
 
 uv pip compile -U --universal -p 3.11 --annotation-style=line \

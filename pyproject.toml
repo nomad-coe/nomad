@@ -190,8 +190,6 @@ line-ending = "auto"
 [tool.setuptools.packages.find]
 where = [
     ".",
-    "dependencies/nomad-dos-fingerprints",
-    "dependencies/parsers/eelsdb",
 ]
 exclude = ["tests*"]
 namespaces = false

@@ -1,13 +1,6 @@
 [submodule "dependencies/materia"]
 	path = gui/materia
 	url = https://github.com/nomad-coe/materia
-[submodule "dependencies/nomad-dos-fingerprints"]
-	path = dependencies/nomad-dos-fingerprints
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints.git
-[submodule "dependencies/parsers/eelsdb"]
-	path = dependencies/parsers/eelsdb
-	url = https://github.com/nomad-coe/nomad-parser-eelsdb.git
-	branch = master
 [submodule "gui/crystcif-parse"]
 	path = gui/crystcif-parse
 	url = https://github.com/stur86/crystcif-parse.git
@@ -20,6 +13,3 @@
 [submodule "examples/plugins/normalizer"]
 	path = examples/plugins/normalizer
 	url = https://github.com/nomad-coe/nomad-normalizer-plugin-example.git
-[submodule "dependencies/parsers/example"]
-	path = dependencies/parsers/example
-	url = https://github.com/nomad-coe/nomad-parser-example.git
