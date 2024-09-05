@@ -133,7 +133,6 @@ FROM dev_python as dev_package
 
 WORKDIR /app
 
-COPY dependencies ./dependencies
 COPY docs ./docs
 COPY examples ./examples
 COPY nomad ./nomad

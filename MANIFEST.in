@@ -7,8 +7,3 @@ include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requ
 graft nomad/app/static
 exclude nomad/app/static/gui/env.js
 exclude nomad/app/static/gui/artifact.js
-
-include dependencies/nomad-dos-fingerprints/README.md
-recursive-include dependencies/nomad-dos-fingerprints/nomad_dos_fingerprints *.py
-include dependencies/parsers/eelsdb/README.md
-recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py nomad_plugin.yaml

@@ -161,7 +161,6 @@ check python dependencies:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: dependencies/*
   before_script:
     - pip install --upgrade uv
   script:
@@ -190,7 +189,6 @@ check python dependencies:
     GIT_SUBMODULE_STRATEGY: recursive
     GIT_SUBMODULE_DEPTH: 1
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: dependencies/*
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
     RABBITMQ_DEFAULT_USER: rabbitmq
     RABBITMQ_DEFAULT_PASS: rabbitmq
@@ -311,7 +309,6 @@ check gui artifacts:
     GIT_SUBMODULE_STRATEGY: recursive
     GIT_SUBMODULE_DEPTH: 1
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: dependencies/*
   script:
     - uv pip install ".[dev,parsing,infrastructure]"
     - uv pip install -r requirements-plugins.txt -c requirements-dev.txt # remove this after moving to distro
