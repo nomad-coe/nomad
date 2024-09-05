@@ -95,7 +95,15 @@ def all_metainfo_packages():
     global _all_metainfo_environment
     if not _all_metainfo_environment:
         _all_metainfo_environment = Environment()
+
+        # The registry dictionary will also contain all aliases. To not repeat
+        # all of the aliases, we check that only unique values are added.
+        unique_packages = set()
         for package in Package.registry.values():
-            _all_metainfo_environment.m_add_sub_section(Environment.packages, package)
+            if package not in unique_packages:
+                _all_metainfo_environment.m_add_sub_section(
+                    Environment.packages, package
+                )
+                unique_packages.add(package)
 
     return _all_metainfo_environment
