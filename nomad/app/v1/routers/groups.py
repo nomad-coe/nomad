@@ -117,19 +117,24 @@ async def get_user_groups(
     group_id: Optional[List[str]] = Query(
         None, description='Search groups by their full id.'
     ),
+    user_id: Optional[str] = Query(
+        None, description='Search groups by their owner or members ids.'
+    ),
     search_terms: Optional[str] = Query(
         None, description='Search groups by parts of their name.'
     ),
 ):
     """Get data about user groups."""
-    if group_id is not None and search_terms is not None:
+    if sum(param is not None for param in (group_id, user_id, search_terms)) > 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Only one of group_id or search_terms may be used at a time.',
+            detail='Only one of (group_id, user_id, search_terms) may be used at a time.',
         )
 
     if group_id is not None:
         user_groups = MongoUserGroup.get_by_ids(group_id)
+    elif user_id is not None:
+        user_groups = MongoUserGroup.get_by_user_id(user_id)
     elif search_terms is not None:
         user_groups = MongoUserGroup.get_by_search_terms(search_terms)
     else:
