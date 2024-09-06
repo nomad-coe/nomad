@@ -82,28 +82,19 @@ See also the [documentation part](./code.md#documentation) in our code navigatio
 
 Also read the guide on [how to develop, publish, and distribute plugins](../plugins/plugins.md).
 
-### Built-in plugins (and submodules)
+### Built-in plugins
 
 Most plugins that are maintained by the NOMAD team are built-in plugins (e.g. all the
 parsers). These plugins are also available on the public NOMAD service.
 
-These plugins are tied to the main project's source code via submodules. They are included
-in the build and therefore automatically distributed as part of the NOMAD docker images
-and Python package.
+These plugins are tied to the main project's source code via dependencies.
 
 To contribute to these plugins, use the respective GitHub projects. See also the
 list of [parsers](../../reference/parsers.md) and the list of
-[built-in plugins](../../reference/plugins.md). The same rules apply there. A merge request
-to the main project will also be required to update the submodule.
-
-All these submodules are placed in the `dependencies` directory. After merging or
-checking out, you have to make sure that the modules are updated to not accidentally
-commit old submodule commits again. Usually you do the following to check if you really
-have a clean working directory:
+[built-in plugins](../../reference/plugins.md). The same rules apply there. 
 
 ```shell
 git checkout something-with-changes
-git submodule update --init --recursive
 git status
 ```
 

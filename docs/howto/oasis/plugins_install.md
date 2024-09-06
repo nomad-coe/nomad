@@ -104,27 +104,4 @@ export COMPOSE_FILE=docker-compose.yaml:docker-compose.plugins.yaml
 docker compose up -d
 ```
 
-Here is a complete Oasis setup [nomad-oasis-with-plugins.zip](../../assets/nomad-oasis-with-plugins.zip). Simply download, extract, and start like any other Oasis:
-
-```sh
-unzip nomad-oasis-with-plugins.zip
-cd nomad-oasis-with-plugins
-sudo chown -R 1000 .volumes
-sudo chown -R 1000 nomad-schema-plugin-example
-sudo chown -R 1000 nomad-parser-plugin-example
-sudo chown -R 1000 nomad-normalizer-plugin-example
-export COMPOSE_FILE=docker-compose.yaml:docker-compose.plugins.yaml
-docker compose pull
-docker compose up -d
-curl localhost/nomad-oasis/alive
-```
-
-!!! warning "Attention"
-    It is important to set up the correct user rights for your volumes and
-    plugins. Our default `docker-compose` setup uses the user `1000` in group
-    `1000` to run the services, this is the reason for the `chown` commands
-    above that ensure that the processes have access to the data stored in
-    volumes and in the plugins. If you use another user/group to run the docker
-    services, update the commands accordingly.
-
 Read the [Oasis install guide](install.md) for more details.
