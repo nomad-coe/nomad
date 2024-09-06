@@ -45,15 +45,6 @@ git checkout -b <my-branch-name>
 
 This branch can be pushed to the repo, and then later may be merged to the relevant branch.
 
-### Install submodules
-
-Parts of the NOMAD software, such as parsers, are maintained in separate Git repositories.
-These are then connected to the main repository as Git submodules. To clone and initialize
-these submodules, run:
-
-```shell
-git submodule update --init
-```
 
 ## Installation
 
@@ -135,8 +126,7 @@ python -c "import magic"
 
 ### Install NOMAD
 
-The following command can be used to install all dependencies of all submodules
-and NOMAD itself.
+The following command can be used to install NOMAD.
 
 ```shell
 ./scripts/setup_dev_env.sh
@@ -144,12 +134,6 @@ and NOMAD itself.
 
 ??? note "Installation details"
     Here is more detailed rundown of the installation steps.
-
-    First we ensure that all submodules are up-to-date:
-
-    ```shell
-    git submodule update --init --recursive
-    ```
 
     Previous build is cleaned:
 

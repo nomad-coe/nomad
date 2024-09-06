@@ -72,9 +72,6 @@ build gui:
   stage: build
   extends: .build_image
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: gui/*
     TARGET: dev_node
     DESTINATION: "${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}"
 
@@ -92,9 +89,6 @@ build python:
   stage: build
   extends: .build_image
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: gui/*
     TARGET: dev_python
     DESTINATION: "${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}"
 
@@ -128,8 +122,6 @@ check helm chart:
 python linting:
   stage: test
   image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
   script:
     - ruff check nomad tests
     - ruff format nomad tests --check
@@ -158,9 +150,6 @@ python package clean up:
 check python dependencies:
   stage: test
   image: python:3.9
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
   before_script:
     - pip install --upgrade uv
   script:
@@ -186,9 +175,6 @@ check python dependencies:
     - name: mongo:5.0.6
       alias: mongo
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
     RABBITMQ_DEFAULT_USER: rabbitmq
     RABBITMQ_DEFAULT_PASS: rabbitmq
@@ -305,10 +291,6 @@ gui tests:
 check gui artifacts:
   stage: test
   image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
   script:
     - uv pip install ".[dev,parsing,infrastructure]"
     - uv pip install -r requirements-plugins.txt -c requirements-dev.txt # remove this after moving to distro
@@ -327,9 +309,6 @@ check gui artifacts:
 build python package:
   stage: test
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
     SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
   extends: .build_image
   script:
@@ -356,9 +335,6 @@ build final image:
   stage: test
   needs: ["build python package", "update_scm_pretend_version"]
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
     SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
     TARGET: final
     DESTINATION: "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}"

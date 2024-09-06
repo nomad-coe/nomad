@@ -7,9 +7,6 @@ project_dir=$(dirname $(dirname $(realpath $0)))
 
 cd $project_dir
 
-# Initialise all of the submodules
-git submodule update --init --recursive
-
 # Clean up any previous build
 rm -rf nomad/app/static/docs
 rm -rf nomad/app/static/gui
