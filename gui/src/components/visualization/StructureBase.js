@@ -314,7 +314,7 @@ const StructureBase = React.memo(({
 })
 
 StructureBase.propTypes = {
-  wrapMode: PropTypes.bool,
+  wrapMode: PropTypes.string,
   onWrapModeChange: PropTypes.func,
   disableWrapMode: PropTypes.bool,
   showLatticeConstants: PropTypes.bool,

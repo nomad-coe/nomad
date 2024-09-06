@@ -168,7 +168,7 @@ const Topology = React.memo(({topologyTrees, topologyMap, selected, onSelect}) =
       defaultExpandIcon={<ChevronRightIcon />}
     >
       {topologyTrees.map(topologyTree =>
-        <TopologyItem key={topologyTree.id} node={topologyTree} level={0} selected={selected}/>
+        <TopologyItem key={topologyTree.system_id} node={topologyTree} level={0} selected={selected}/>
       )}
     </TreeView>
     <div className={styles.spacer} />
@@ -179,7 +179,7 @@ const Topology = React.memo(({topologyTrees, topologyMap, selected, onSelect}) =
   </div>
 })
 Topology.propTypes = {
-  topologyTrees: PropTypes.list,
+  topologyTrees: PropTypes.array,
   topologyMap: PropTypes.object,
   selected: PropTypes.string,
   onSelect: PropTypes.func

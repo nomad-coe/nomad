@@ -18,7 +18,7 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { set, get, isNil, isEqual, isArray, has, capitalize, isPlainObject} from 'lodash'
+import { set, get, isNil, isArray, isPlainObject, has, capitalize} from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../plotting/Plot'
 import { PropertyItem, PropertySubGrid } from '../entry/properties/PropertyCard'
@@ -50,7 +50,7 @@ const RadiusOfGyration = React.memo(({
   const {units} = useUnitContext()
 
   // Check that the data is valid. Otherwise raise an exception.
-  assert(isPlainObject(rg), 'Invalid rg data provided.')
+  assert(isPlainObject(rg), 'Invalid radius of gyration data provided.')
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff within useEffect (instead of e.g. useMemo),
@@ -202,7 +202,6 @@ const rgShape = PropTypes.objectOf(rgLabelShape)
 
 RadiusOfGyration.propTypes = {
   rg: rgShape,
-  methodology: PropTypes.object,
   className: PropTypes.string,
   'data-testid': PropTypes.string
 }
@@ -222,55 +221,40 @@ const RadiiOfGyrationRaw = React.memo(({
   archive
 }) => {
   const fromEntry = useCallback((index, archive) => {
-    const data = {
-      rg: false,
-      methodology: false
-    }
+    let rgAll = {}
     const urlPrefix = `${getLocation()}/data`
     const rgIndex = get(index, rgPath)
 
     // No data
-    if (!rgIndex) {
-      return data
-    }
+    if (!rgIndex) return rgAll
 
-    // Load the basic information from the index. If clashing methodologies are
-    // found, an error is raised for now. In the future several methodologies
-    // could be supported by plotting them separately.
+    // Load the basic information from the index.
     rgIndex.forEach((rg, i) => {
-      if (rg.methodology) {
-        if (data.methodology && !isEqual(data.methodology, rg.methodology)) {
-          throw Error('Multiple methodologies for Rg not yet supported.')
-        }
-        data.methodology = rg.methodology
-      }
-      set(data.rg, [rg.kind], undefined)
+      set(rgAll, [rg.kind], undefined)
     })
 
     // Still loading archive but the amount of plots is already known
-    if (!archive) {
-      return data
-    }
+    if (!archive) return rgAll
 
     // Full data ready
-    data.rg = {}
+    rgAll = {}
     rgIndex.forEach((rg, i) => {
       const kind = rg.kind
-      if (!has(data.rg, kind)) {
-        data.rg[kind] = []
+      if (!has(rgAll, kind)) {
+        rgAll[kind] = []
       }
       const rgArchive = get(archive, rgPath)?.[i]
-      data.rg[kind].push({
+      rgAll[kind].push({
         ...rg,
         ...rgArchive,
         archiveUrl: `${urlPrefix}/${rgPath.join('/')}:${i}`
       })
     })
-    return data
+    return rgAll
   }, [])
-  const data = fromEntry(index, archive)
+  const rg = fromEntry(index, archive)
 
-  return <RadiusOfGyration {...data} />
+  return <RadiusOfGyration rg={rg} />
 })
 
 RadiiOfGyrationRaw.propTypes = {

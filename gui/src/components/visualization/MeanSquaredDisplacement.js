@@ -104,16 +104,23 @@ const MeanSquaredDisplacement = React.memo(({
         assert(isArray(value?.value), `Mean squared displacement was expecting an array of values, but instead got: ${msd?.value}`)
         const t = new Quantity(value?.times, timeUnit).toSystem(units).value()
         const val = new Quantity(value?.value, distanceUnitSquared).toSystem(units).value()
-        const diffusionConstant = new Quantity(value?.diffusion_constant_value, diffusionUnit).toSystem(units)
-        const D = formatNumber(diffusionConstant.value(), DType.Float, 'scientific', 2)
-        const D_label = diffusionConstant.label()
-        const diffusionConstantError = new Quantity(value?.diffusion_constant_errors, diffusionUnit)
-        const R = formatNumber(diffusionConstantError.value(), DType.Float, 'standard', 2)
+        let name = value?.label
+        if (!isNil(value?.diffusion_constant_value)) {
+          const diffusionConstant = new Quantity(value.diffusion_constant_value, diffusionUnit).toSystem(units)
+          const D = formatNumber(diffusionConstant.value(), DType.Float, 'scientific', 2)
+          const D_label = diffusionConstant.label()
+          name = `${name}: D=${D} ${D_label}`
+        }
+        if (!isNil(value?.diffusion_constant_errors)) {
+          const diffusionConstantError = new Quantity(value.diffusion_constant_errors, diffusionUnit)
+          const R = formatNumber(diffusionConstantError.value(), DType.Float, 'standard', 2)
+          name = `${name}; R=${R}`
+        }
 
         traces.push({
           x: t,
           y: val,
-          name: `${value?.label}: D=${D} ${D_label}; R=${R}`,
+          name: name,
           type: 'scatter',
           showlegend: true,
           line: lineStyles[i]
@@ -122,7 +129,6 @@ const MeanSquaredDisplacement = React.memo(({
       }
       set(tracesAll, path, traces)
       set(layoutAll, path, layout)
-      // }
     }
     setFinalData(tracesAll)
     setFinalLayout(layoutAll)
