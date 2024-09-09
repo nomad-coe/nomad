@@ -29,7 +29,7 @@
         "ellipsometry_experiment_type": "NIR-Vis-UV spectroscopic ellipsometry",
         "plot_name": "Psi and Delta",
         "start_time": "2022-01-27T03:35:00+00:00",
-        "User": {
+        "user": {
             "name": "Name Surname",
             "affiliation": "Humboldt-Universität zu Berlin",
             "address": "Zum Großen Windkanal 2, 12489 Berlin, Germany",
@@ -40,7 +40,7 @@
             "identifier": "exp-ID",
             "is_persistent": "false"
         },
-        "Instrument": {
+        "instrument": {
             "software_RC2": "CompleteEASE",
             "software_RC2/@version": "6.37",
             "software_RC2/@url": "https://www.jawoollam.com/ellipsometry-software/completeease",
@@ -49,7 +49,7 @@
             "light_source": {
                 "source_type": "arc lamp"
             },
-            "Detector": {
+            "detector": {
                 "detector_type": "CCD",
                 "detector_channel_type": "multichannel",
                 "count_time": 1
@@ -79,7 +79,7 @@
                 "model": "RC2 (Vers. 0.0.1)"
             }
         },
-        "Sample": {
+        "sample": {
             "atom_types": "Si, O",
             "chemical_formula": "SiO2",
             "layer_structure": "2nm SiO2 on Si",

@@ -40,7 +40,8 @@ sample:
   environment:
     sample_medium: air
   history:
-    notes: Commercially purchased sample
+    notes:
+      description: Commercially purchased sample
   layer_structure: 2nm SiO2 on Si
   physical_form: multi layer
   sample_name: 2nm SiO2 on Si

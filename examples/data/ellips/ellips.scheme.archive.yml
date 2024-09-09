@@ -101,7 +101,7 @@ definitions:
             eln:
               component: DateTimeEditQuantity
       sub_sections:
-        User:
+        user:
           section:
             m_annotations:
               eln:
@@ -143,7 +143,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-        Instrument:
+        instrument:
           section:
             m_annotations:
               eln:
@@ -193,7 +193,7 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-              Detector:
+              detector:
                 section:
                   quantities:
                     detector_type:
@@ -296,7 +296,7 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-        Sample:
+        sample:
           section:
             m_annotations:
               eln:
