@@ -52,6 +52,8 @@ This branch can be pushed to the repo, and then later may be merged to the relev
 
 The NOMAD code currently requires Python 3.11. You should work in a Python virtual environment.
 
+For developers using VSCode, in case you encounter any issues with breakpoints not [triggering](https://github.com/microsoft/debugpy/issues/1284), consider upgrading to py3.12.
+
 #### Pyenv
 
 If your host machine has an older version installed,
