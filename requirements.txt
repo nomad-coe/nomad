@@ -21,7 +21,7 @@ cachetools==5.5.0         # via nomad-lab (pyproject.toml)
 celery==5.4.0             # via nomad-lab (pyproject.toml)
 certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, requests
 certipy==0.1.3            # via jupyterhub
-cffi==1.17.0 ; platform_python_implementation != 'PyPy'  # via cryptography
+cffi==1.17.1 ; platform_python_implementation != 'PyPy'  # via cryptography
 cftime==1.6.4             # via netcdf4
 charset-normalizer==3.3.2  # via requests
 click==8.1.7              # via celery, click-didyoumean, click-plugins, click-repl, uvicorn, nomad-lab (pyproject.toml)
@@ -46,14 +46,12 @@ email-validator==1.3.1    # via optimade
 escapism==1.0.1           # via dockerspawner
 et-xmlfile==1.1.0         # via openpyxl
 fastapi==0.99.1           # via h5grove, nomad-lab (pyproject.toml)
-fasteners==0.19           # via mdanalysis
 filelock==3.3.1           # via nomad-lab (pyproject.toml)
 fonttools==4.53.1         # via matplotlib
 fqdn==1.5.1               # via jsonschema
 gitdb==4.0.11             # via gitpython
 gitpython==3.1.43         # via nomad-lab (pyproject.toml)
 greenlet==3.0.3 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy
-griddataformats==1.0.2    # via mdanalysis
 gunicorn==21.2.0          # via nomad-lab (pyproject.toml)
 h11==0.14.0               # via httpcore, uvicorn
 h5grove==1.3.0            # via nomad-lab (pyproject.toml)
@@ -72,7 +70,7 @@ isoduration==20.11.0      # via jsonschema
 itsdangerous==2.2.0       # via nomad-lab (pyproject.toml)
 jinja2==3.1.4             # via jupyterhub, sphinx
 jmespath==1.0.1           # via nomad-lab (pyproject.toml)
-joblib==1.4.2             # via mdanalysis, pymatgen, scikit-learn
+joblib==1.4.2             # via pymatgen, scikit-learn
 jsonpointer==3.0.0        # via jsonschema
 jsonschema==4.17.3        # via jupyter-telemetry, oauthenticator, nomad-lab (pyproject.toml)
 jupyter-telemetry==0.1.0  # via jupyterhub
@@ -89,28 +87,25 @@ m2r==0.2.1                # via nomad-lab (pyproject.toml)
 mako==1.3.5               # via alembic
 markupsafe==2.1.5         # via jinja2, mako
 matid==2.1.2              # via nomad-lab (pyproject.toml)
-matplotlib==3.9.2         # via ase, mdanalysis, pymatgen
-mda-xdrlib==0.2.0         # via mdanalysis, pyedr
-mdanalysis==2.7.0         # via nomad-lab (pyproject.toml)
+matplotlib==3.9.2         # via ase, pymatgen
+mda-xdrlib==0.2.0         # via pyedr
 mistune==3.0.2            # via m2r
-mmtf-python==1.1.3        # via mdanalysis
 mongoengine==0.29.0       # via nomad-lab (pyproject.toml)
 mongomock==4.1.2          # via optimade
 monty==2024.7.30          # via pymatgen
 mpmath==1.3.0             # via sympy
-mrcfile==1.5.3            # via griddataformats
-msgpack==1.0.8            # via mmtf-python, nomad-lab (pyproject.toml)
+msgpack==1.1.0            # via nomad-lab (pyproject.toml)
 netcdf4==1.6.5            # via nomad-lab (pyproject.toml)
-networkx==3.3             # via matid, pymatgen, nomad-lab (pyproject.toml)
+networkx==3.3             # via matid, pymatgen
 nomad-openbis==1.0.0      # via nomad-lab (pyproject.toml)
 nptyping==1.4.4           # via nomad-lab (pyproject.toml)
-numpy==1.26.4             # via ase, cftime, contourpy, griddataformats, h5grove, h5py, matid, matplotlib, mdanalysis, mrcfile, netcdf4, nptyping, pandas, pyedr, pymatgen, rdkit, scikit-learn, scipy, spglib, tifffile, xarray, nomad-lab (pyproject.toml)
+numpy==1.26.4             # via ase, cftime, contourpy, h5grove, h5py, matid, matplotlib, netcdf4, nptyping, pandas, pyedr, pymatgen, rdkit, scikit-learn, scipy, spglib, tifffile, xarray, nomad-lab (pyproject.toml)
 oauthenticator==15.1.0    # via nomad-lab (pyproject.toml)
 oauthlib==3.2.2           # via jupyterhub
 openpyxl==3.1.5           # via nomad-lab (pyproject.toml)
 optimade==0.22.1          # via nomad-lab (pyproject.toml)
 orjson==3.10.7            # via h5grove, nomad-lab (pyproject.toml)
-packaging==24.1           # via deprecation, gunicorn, jupyterhub, matplotlib, mdanalysis, mongomock, pint, plotly, sphinx, xarray
+packaging==24.1           # via deprecation, gunicorn, jupyterhub, matplotlib, mongomock, pint, plotly, sphinx, xarray
 palettable==3.3.3         # via pymatgen
 pamela==1.2.0 ; sys_platform != 'win32'  # via jupyterhub
 pandas==2.2.2             # via nomad-openbis, panedr, pymatgen, xarray, nomad-lab (pyproject.toml)
@@ -158,7 +153,7 @@ ruamel-yaml==0.18.6       # via jupyter-telemetry, oauthenticator, pymatgen
 ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml
 runstats==2.0.0           # via nomad-lab (pyproject.toml)
 scikit-learn==1.5.1       # via matid, nomad-lab (pyproject.toml)
-scipy==1.14.1             # via ase, griddataformats, mdanalysis, pymatgen, scikit-learn, nomad-lab (pyproject.toml)
+scipy==1.14.1             # via ase, pymatgen, scikit-learn, nomad-lab (pyproject.toml)
 sentinels==1.0.0          # via mongomock
 six==1.16.0               # via basicauth, elasticsearch-dsl, html5lib, isodate, pybtex, python-dateutil, rdflib, rfc3339-validator, validators
 smmap==5.0.1              # via gitdb
@@ -180,13 +175,13 @@ sympy==1.13.2             # via pymatgen
 tabulate==0.8.9           # via nomad-openbis, pymatgen, nomad-lab (pyproject.toml)
 tenacity==9.0.0           # via plotly
 texttable==1.7.0          # via nomad-openbis
-threadpoolctl==3.5.0      # via mdanalysis, scikit-learn
+threadpoolctl==3.5.0      # via scikit-learn
 tifffile==2024.8.30       # via h5grove
 toposort==1.10            # via nomad-lab (pyproject.toml)
 tornado==6.4.1            # via jupyterhub
-tqdm==4.66.5              # via mdanalysis, pyedr, pymatgen
+tqdm==4.66.5              # via pyedr, pymatgen
 traitlets==5.14.3         # via jupyter-telemetry, jupyterhub
-types-python-dateutil==2.9.0.20240821  # via arrow
+types-python-dateutil==2.9.0.20240906  # via arrow
 typing-extensions==4.12.2  # via alembic, fastapi, jwcrypto, pydantic, sqlalchemy
 typish==1.9.3             # via nptyping
 tzdata==2024.1            # via celery, pandas

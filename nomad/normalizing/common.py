@@ -20,7 +20,6 @@ from math import isnan
 from ase import Atoms
 from typing import List, Set, Any, Optional, Dict, Union
 from nptyping import NDArray
-import MDAnalysis as mda
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
 from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID  # pylint: disable=import-error
 import matid.geometry  # pylint: disable=import-error
@@ -271,46 +270,6 @@ def ase_atoms_from_structure(system: Structure) -> Atoms:
         cell=system.lattice_vectors.to(ureg.angstrom).magnitude,
         pbc=np.array(system.dimension_types, dtype=bool),
     )
-
-
-def mda_universe_from_nomad_atoms(system: Atoms, logger=None) -> mda.Universe:
-    """Returns an instance of mda.Universe from a NOMAD Atoms-section.
-
-    Args:
-        system: The atoms to transform
-
-    Returns:
-        A new mda.Universe created from the given data.
-    """
-    n_atoms = len(system.positions)
-    n_residues = 1
-    atom_resindex = [0] * n_atoms
-    residue_segindex = [0]
-
-    universe = mda.Universe.empty(
-        n_atoms,
-        n_residues=n_residues,
-        atom_resindex=atom_resindex,
-        residue_segindex=residue_segindex,
-        trajectory=True,
-    )
-
-    # Add positions
-    universe.atoms.positions = system.positions.to(ureg.angstrom).magnitude
-
-    # Add atom attributes
-    atom_names = system.labels
-    universe.add_TopologyAttr('name', atom_names)
-    universe.add_TopologyAttr('type', atom_names)
-    universe.add_TopologyAttr('element', atom_names)
-
-    # Add the box dimensions
-    if system.lattice_vectors is not None:
-        universe.atoms.dimensions = atomutils.cell_to_cellpar(
-            system.lattice_vectors.to(ureg.angstrom).magnitude, degrees=True
-        )
-
-    return universe
 
 
 def structures_2d(original_atoms, logger=None):

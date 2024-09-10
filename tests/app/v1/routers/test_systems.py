@@ -225,10 +225,11 @@ REMARK 285  A: 5.000, 0.000, 0.000
 REMARK 285  B: 0.000, 5.000, 0.000
 REMARK 285  C: 0.000, 0.000, 5.000
 REMARK 285 PBC (A, B, C): TRUE, TRUE, TRUE
-CRYST1    5.000    5.000    5.000  90.00  90.00  90.00 P 1           1
-ATOM      1  C   UNK X   1       0.000   0.000   0.000  1.00  0.00           C
-ATOM      2  H   UNK X   1       1.000   1.000   1.000  1.00  0.00           H
-END
+CRYST1    5.000    5.000    5.000  90.00  90.00  90.00 P 1
+MODEL     1
+ATOM      1    C MOL     1       0.000   0.000   0.000  1.00  0.00           C
+ATOM      2    H MOL     1       1.000   1.000   1.000  1.00  0.00           H
+ENDMDL
 """,
             'CH.pdb',
             id='pdb',
@@ -308,13 +309,10 @@ def test_formats_with_cell(
         pytest.param(
             'pdb',
             """TITLE     NOMAD ENTRY ID: systems_entry_1
-REMARK 285 UNITARY VALUES FOR THE UNIT CELL SET BECAUSE UNIT CELL INFORMATION
-REMARK 285 WAS MISSING. PROTEIN DATA BANK CONVENTIONS REQUIRE THAT CRYST1
-REMARK 285 RECORD IS INCLUDED, BUT THE VALUES ON THIS RECORD ARE MEANINGLESS.
-CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1
-ATOM      1  N   UNK X   1       0.000   0.000   0.000  1.00  0.00           N
-ATOM      2  O   UNK X   1       1.000   1.000   1.000  1.00  0.00           O
-END
+MODEL     1
+ATOM      1    N MOL     1       0.000   0.000   0.000  1.00  0.00           N
+ATOM      2    O MOL     1       1.000   1.000   1.000  1.00  0.00           O
+ENDMDL
 """,
             'NO.pdb',
             id='pdb',
