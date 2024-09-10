@@ -29,8 +29,6 @@ dependencies = [
     'lxml>=5.2',
     'lxml-html-clean>=0.1.0',
     'matid>=2.1.2',
-    'mdanalysis==2.7.0',
-    'networkx>=2.6.3',
     'nptyping~=1.4.4',
     'numpy>=1.22.4,<2.0.0',
     'openpyxl>=3.0.0',

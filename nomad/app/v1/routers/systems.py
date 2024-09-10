@@ -26,15 +26,12 @@ from fastapi import APIRouter, Depends, Path, Query, status, HTTPException
 from fastapi.responses import Response
 import ase.io
 import ase.build
-from MDAnalysis.lib.util import NamedStream
-from MDAnalysis.coordinates.PDB import PDBWriter
 
 from nomad.units import ureg
 from nomad.utils import strip, deep_get, query_list_to_dict
 from nomad.atomutils import Formula, wrap_positions, unwrap_positions
 from nomad.normalizing.common import (
     ase_atoms_from_nomad_atoms,
-    mda_universe_from_nomad_atoms,
 )
 from nomad.datamodel.metainfo.system import Atoms as NOMADAtoms
 from .entries import answer_entry_archive_request
@@ -72,36 +69,16 @@ def write_pdb(atoms: NOMADAtoms, entry_id: str = None, formula: str = None) -> s
         lines.append(
             f'REMARK 285  C: {cell[2, 0]:.3f}, {cell[2, 1]:.3f}, {cell[2, 2]:.3f}\n'
         )
-    else:
-        lines.append(
-            'REMARK 285 UNITARY VALUES FOR THE UNIT CELL SET BECAUSE UNIT CELL INFORMATION\n'
-        )
-        lines.append(
-            'REMARK 285 WAS MISSING. PROTEIN DATA BANK CONVENTIONS REQUIRE THAT CRYST1\n'
-        )
-        lines.append(
-            'REMARK 285 RECORD IS INCLUDED, BUT THE VALUES ON THIS RECORD ARE MEANINGLESS.\n'
-        )
     if pbc is not None:
         pbc = ['TRUE' if x else 'FALSE' for x in pbc]
         lines.append(f'REMARK 285 PBC (A, B, C): {pbc[0]}, {pbc[1]}, {pbc[2]}\n')
 
-    mda_string_stream = StringIO()
-    mda_named_stream = NamedStream(
-        mda_string_stream, f'temp.{format}', close=False, reset=False
-    )
-    writer = PDBWriter(mda_named_stream, remarks='')
-    universe = mda_universe_from_nomad_atoms(atoms)
-    writer.write(universe)
-    writer.close()
-
-    # We skip the title line that is written by MDA (cannot be disabled otherwise)
-    mda_string_stream.seek(0)
-    for line in mda_string_stream.readlines():
-        if not line.startswith(('REMARK', 'TITLE')):
-            lines.append(line)
-
+    stream = StringIO()
+    atoms = ase_atoms_from_nomad_atoms(atoms)
+    ase.io.write(stream, atoms, format='proteindatabank')
+    stream.seek(0)
     content = ''.join(lines)
+    content += stream.read()
     return content
 
 

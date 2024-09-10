@@ -14,7 +14,7 @@ asteval==1.0.2            # via lmfit
 asttokens==2.4.1          # via stack-data, -c requirements-dev.txt
 async-lru==2.0.4          # via jupyterlab
 async-property==0.2.2     # via python-keycloak, -c requirements-dev.txt
-atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@cedaf4191abe315001f6b55a9690dcd21116e9b7  # via -r default_plugins.txt
+atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@eebca28ebe83b3c945e922910b18a16ec36e8122  # via -r default_plugins.txt
 attrs==24.2.0             # via jsonschema, -c requirements-dev.txt
 babel==2.16.0             # via jupyterlab-server, -c requirements-dev.txt
 beautifulsoup4==4.12.3    # via nbconvert, -c requirements-dev.txt
@@ -24,7 +24,8 @@ blinker==1.8.2            # via flask
 blosc2==2.7.1             # via tables
 cachetools==5.5.0         # via nomad-lab, -c requirements-dev.txt
 certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, requests, -c requirements-dev.txt
-cffi==1.17.0              # via argon2-cffi-bindings, cryptography, pyzmq, -c requirements-dev.txt
+cffi==1.17.0 ; platform_python_implementation == 'PyPy'  # via argon2-cffi-bindings, pyzmq, -c requirements-dev.txt
+cffi==1.17.1 ; platform_python_implementation != 'PyPy'  # via argon2-cffi-bindings, cryptography, pyzmq, -c requirements-dev.txt
 cftime==1.6.4             # via netcdf4, -c requirements-dev.txt
 charset-normalizer==3.3.2  # via requests, -c requirements-dev.txt
 click==8.1.7              # via asr, click-default-group, dask, flask, nomad-lab, pynxtools, -c requirements-dev.txt
@@ -48,13 +49,13 @@ docstring-parser==0.16    # via nomad-lab, -c requirements-dev.txt
 eelsdbconverter @ git+https://github.com/nomad-coe/nomad-parser-eelsdb.git@788eb03dc71ef9b164e2a5ccb9c0209b546f5c38  # via -r default_plugins.txt
 elasticsearch==7.17.1     # via elasticsearch-dsl, -c requirements-dev.txt
 elasticsearch-dsl==7.4.0  # via nomad-lab, -c requirements-dev.txt
-electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@637a5d67fe84f8e4f1b18fdb2dd2df7ba199d1a9  # via -r default_plugins.txt
+electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@8d4ba60e1893afad1ad43df1bf0a0911f17bffc0  # via -r default_plugins.txt
 entrypoints==0.4          # via ipyparallel
 et-xmlfile==1.1.0         # via openpyxl, -c requirements-dev.txt
 executing==2.1.0          # via stack-data, -c requirements-dev.txt
 fabio==2024.4.0           # via pyfai, silx
 fairmat-readers-xrd==0.0.6  # via pynxtools-xrd
-fasteners==0.19           # via mdanalysis, zarr, -c requirements-dev.txt
+fasteners==0.19           # via mdanalysis, zarr
 fastjsonschema==2.20.0    # via nbformat
 findiff==0.10.0           # via pynxtools-stm
 flask==3.0.3              # via asr
@@ -63,7 +64,7 @@ fonttools==4.53.1         # via matplotlib, -c requirements-dev.txt
 fqdn==1.5.1               # via jsonschema, -c requirements-dev.txt
 fsspec==2024.6.1          # via dask, hyperspy
 greenlet==3.0.3 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy, -c requirements-dev.txt
-griddataformats==1.0.2    # via mdanalysis, -c requirements-dev.txt
+griddataformats==1.0.2    # via mdanalysis
 h11==0.14.0               # via httpcore, -c requirements-dev.txt
 h5grove==1.3.0            # via jupyterlab-h5web, -c requirements-dev.txt
 h5py==3.11.0              # via electronicparsers, fabio, h5grove, hdf5plugin, hyperspy, ifes-apt-tc-data-modeling, jupyterlab-h5web, kikuchipy, nionswift, nomad-lab, orix, phonopy, pyfai, pynxtools, pynxtools-mpes, pynxtools-xps, pyxem, silx, workflowparsers, -c requirements-dev.txt
@@ -120,14 +121,14 @@ matplotlib==3.9.2         # via ase, asr, diffsims, hyperspy, kikuchipy, matplot
 matplotlib-inline==0.1.7  # via ipykernel, ipython
 matplotlib-scalebar==0.8.1  # via orix
 mda-xdrlib==0.2.0         # via mdanalysis, pyedr, -c requirements-dev.txt
-mdanalysis==2.7.0         # via atomisticparsers, nomad-lab, -c requirements-dev.txt
+mdanalysis==2.7.0         # via atomisticparsers, nomad-lab, nomad-schema-plugin-simulation-workflow
 mergedeep==1.3.4          # via pynxtools, -c requirements-dev.txt
 mistune==3.0.2            # via nbconvert, -c requirements-dev.txt
-mmtf-python==1.1.3        # via mdanalysis, -c requirements-dev.txt
+mmtf-python==1.1.3        # via mdanalysis
 monty==2024.7.30          # via pymatgen, -c requirements-dev.txt
 mpmath==1.3.0             # via sympy, -c requirements-dev.txt
-mrcfile==1.5.3            # via griddataformats, -c requirements-dev.txt
-msgpack==1.0.8            # via blosc2, mmtf-python, -c requirements-dev.txt
+mrcfile==1.5.3            # via griddataformats
+msgpack==1.1.0            # via blosc2, mmtf-python, -c requirements-dev.txt
 natsort==8.4.0            # via hyperspy
 nbclient==0.10.0          # via nbconvert
 nbconvert==7.16.4         # via jupyter, jupyter-server
@@ -135,7 +136,7 @@ nbformat==5.10.4          # via jupyter-server, nbclient, nbconvert
 ndindex==1.8              # via blosc2
 nest-asyncio==1.6.0       # via ipykernel
 netcdf4==1.6.5            # via electronicparsers, -c requirements-dev.txt
-networkx==3.3             # via matid, nomad-lab, pymatgen, radioactivedecay, scikit-image, -c requirements-dev.txt
+networkx==3.3             # via matid, nomad-lab, nomad-schema-plugin-simulation-workflow, pymatgen, radioactivedecay, scikit-image, -c requirements-dev.txt
 niondata==15.6.3          # via nionswift, nionswift-io
 nionswift==16.11.0        # via pynxtools-em
 nionswift-io==15.2.1      # via nionswift
@@ -151,7 +152,7 @@ nomad-normalizer-plugin-spectra @ git+https://github.com/nomad-coe/nomad-normali
 nomad-normalizer-plugin-system @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-system.git@01523ddbc85676a40af40f4747f5f13676f34c0f  # via -r default_plugins.txt
 nomad-porous-materials @ git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@522f4a3208077f534f1c5e886527ee2104283d0b  # via -r default_plugins.txt
 nomad-schema-plugin-run @ git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@92d120dc4c5f7f4bcd94990ed009f8ac0019acec  # via atomisticparsers, databaseparsers, electronicparsers, nomad-schema-plugin-simulation-workflow, simulationparsers, workflowparsers, -r default_plugins.txt
-nomad-schema-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@c9bd20c0447aaf22a6477cb39bdf03dea4c597f8  # via atomisticparsers, databaseparsers, electronicparsers, nomad-normalizer-plugin-simulation-workflow, workflowparsers, -r default_plugins.txt
+nomad-schema-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@5631278b983072a6e7cb6fea40c4b3ca49b7b804  # via atomisticparsers, databaseparsers, electronicparsers, nomad-normalizer-plugin-simulation-workflow, workflowparsers, -r default_plugins.txt
 nomad-simulations==0.0.1  # via -r default_plugins.txt
 notebook==7.1.3           # via jupyter
 notebook-shim==0.2.4      # via jupyterlab, notebook
@@ -177,7 +178,7 @@ pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'  # via
 phonopy==2.11.0           # via asr, workflowparsers
 pillow==10.4.0            # via fabio, imageio, matplotlib, nionswift, rdkit, scikit-image, -c requirements-dev.txt
 pint==0.17                # via fairmat-readers-xrd, hyperspy, nomad-lab, pynxtools-xps, pynxtools-xrd, rosettasciio, -c requirements-dev.txt
-platformdirs==4.2.2       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
+platformdirs==4.3.2       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
 plotly==5.24.0            # via asr, pymatgen, -c requirements-dev.txt
 pooch==1.8.2              # via kikuchipy, orix
 prettytable==3.11.0       # via hyperspy
@@ -233,7 +234,7 @@ ruamel-yaml==0.18.6       # via pymatgen, -c requirements-dev.txt
 ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -c requirements-dev.txt
 scikit-image==0.22.0      # via hyperspy, kikuchipy, pyxem
 scikit-learn==1.5.1       # via kikuchipy, matid, nomad-lab, pyxem, -c requirements-dev.txt
-scipy==1.14.1             # via ase, atomisticparsers, diffsims, findiff, griddataformats, hyperspy, kikuchipy, lmfit, mdanalysis, niondata, nionswift, nomad-lab, orix, pyfai, pymatgen, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse, xraydb, -c requirements-dev.txt
+scipy==1.14.1             # via ase, atomisticparsers, diffsims, findiff, griddataformats, hyperspy, kikuchipy, lmfit, mdanalysis, niondata, nionswift, nomad-lab, nomad-schema-plugin-simulation-workflow, orix, pyfai, pymatgen, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse, xraydb, -c requirements-dev.txt
 send2trash==1.8.3         # via jupyter-server
 setuptools==73.0.1        # via pynxtools-xps, radioactivedecay
 silx==2.1.1               # via pyfai
@@ -260,7 +261,7 @@ tqdm==4.66.5              # via diffsims, hyperspy, ipyparallel, kikuchipy, mdan
 traitlets==5.14.3         # via comm, ipykernel, ipyparallel, ipython, ipywidgets, jupyter-client, jupyter-console, jupyter-core, jupyter-events, jupyter-server, jupyterlab, matplotlib-inline, nbclient, nbconvert, nbformat, qtconsole, -c requirements-dev.txt
 traits==6.4.3             # via hyperspy, pyxem
 transforms3d==0.4.2       # via diffsims, pyxem
-types-python-dateutil==2.9.0.20240821  # via arrow, -c requirements-dev.txt
+types-python-dateutil==2.9.0.20240906  # via arrow, -c requirements-dev.txt
 typing-extensions==4.12.2  # via ipython, jwcrypto, pydantic, sqlalchemy, tables, -c requirements-dev.txt
 typish==1.9.3             # via nptyping, -c requirements-dev.txt
 tzdata==2024.1            # via pandas, tzlocal, -c requirements-dev.txt

@@ -66,12 +66,6 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation,
     EnergyEntry,
 )
-from nomad.atomutils import archive_to_universe
-from nomad.atomutils import (
-    calc_molecular_rdf,
-    calc_molecular_mean_squared_displacements,
-    calc_molecular_radius_of_gyration,
-)
 
 
 # TODO remove this after reprocessing with the new schema defined in
@@ -2208,7 +2202,18 @@ class MolecularDynamicsResults(ThermodynamicsResults):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        universe = archive_to_universe(archive)
+        try:
+            from simulationworkflowschema.molecular_dynamics import archive_to_universe
+            from simulationworkflowschema.molecular_dynamics import (
+                calc_molecular_rdf,
+                calc_molecular_mean_squared_displacements,
+                calc_molecular_radius_of_gyration,
+            )
+
+            universe = archive_to_universe(archive)
+        except Exception:
+            universe = None
+
         if universe is None:
             return
 

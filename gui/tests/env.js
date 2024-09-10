@@ -2077,7 +2077,7 @@ window.nomadEnv = {
           "name": "parsers/edmft",
           "description": "NOMAD parser for EDMFT.",
           "plugin_package": "electronicparsers",
-          "level": 0,
+          "level": 2,
           "aliases": [
             "parsers/edmft"
           ],
@@ -2220,7 +2220,7 @@ window.nomadEnv = {
           "name": "parsers/magres",
           "description": "NOMAD parser for MAGRES.",
           "plugin_package": "electronicparsers",
-          "level": 0,
+          "level": 1,
           "aliases": [
             "parsers/magres"
           ],
@@ -2481,7 +2481,7 @@ window.nomadEnv = {
           "name": "parsers/tbstudio",
           "description": "NOMAD parser for TBSTUDIO.",
           "plugin_package": "electronicparsers",
-          "level": 0,
+          "level": 1,
           "aliases": [
             "parsers/tbstudio"
           ],
@@ -2533,7 +2533,7 @@ window.nomadEnv = {
           "name": "parsers/w2dynamics",
           "description": "NOMAD parser for W2DYNAMICS.",
           "plugin_package": "electronicparsers",
-          "level": 0,
+          "level": 2,
           "aliases": [
             "parsers/w2dynamics"
           ],
@@ -2555,7 +2555,7 @@ window.nomadEnv = {
           "name": "parsers/wannier90",
           "description": "NOMAD parser for WANNIER90.",
           "plugin_package": "electronicparsers",
-          "level": 0,
+          "level": 1,
           "aliases": [
             "parsers/wannier90"
           ],
