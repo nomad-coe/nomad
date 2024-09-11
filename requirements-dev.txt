@@ -96,7 +96,7 @@ jwcrypto==1.5.6           # via python-keycloak, -r requirements.txt
 kaleido==0.2.1            # via -r requirements.txt, nomad-lab (pyproject.toml)
 keyring==25.3.0           # via twine
 kiwisolver==1.4.7         # via matplotlib, -r requirements.txt
-kombu==5.4.0              # via celery, -r requirements.txt
+kombu==5.4.1              # via celery, -r requirements.txt
 lark==1.2.2               # via optimade, -r requirements.txt
 latexcodec==3.0.0         # via pybtex, -r requirements.txt
 lxml==5.3.0               # via lxml-html-clean, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -235,7 +235,7 @@ termcolor==2.4.0          # via mkdocs-macros-plugin
 texttable==1.7.0          # via nomad-openbis, -r requirements.txt
 threadpoolctl==3.5.0      # via scikit-learn, -r requirements.txt
 tifffile==2024.8.30       # via h5grove, -r requirements.txt
-tomli==2.0.1 ; python_full_version == '3.11'  # via coverage
+tomli==2.0.1 ; python_full_version <= '3.11'  # via coverage
 toposort==1.10            # via -r requirements.txt, nomad-lab (pyproject.toml)
 tornado==6.4.1            # via jupyterhub, -r requirements.txt
 tqdm==4.66.5              # via pyedr, pymatgen, twine, -r requirements.txt

@@ -4596,7 +4596,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/nomad-schema-simulation-workflow-plugin",
         "name": "simulationworkflowschema",
         "repository": null,
-        "version": "1.0"
+        "version": "1.0.1"
       },
       "soapnormalizer": {
         "description": "SOAP nomad plugin for NOMAD.",
