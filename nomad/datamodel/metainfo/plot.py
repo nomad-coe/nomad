@@ -44,7 +44,10 @@ def get_figure_layout(annotation):
     index = annotation.get('index', None)
     if index is not None:
         annotation.pop('index')
-    return label, index
+    figure_open = annotation.get('open', None)
+    if figure_open is not None:
+        annotation.pop('open')
+    return label, index, figure_open
 
 
 def resolve_plot_references(annotations, archive, logger):
@@ -130,6 +133,10 @@ m_package = Package()
 class Figure(MSection):
     label = Quantity(type=str, description='Label shown in the plot selection.')
     index = Quantity(type=int, description='Index of figure in the plot selection.')
+    open = Quantity(
+        type=bool,
+        description='Determines whether the figure is initially open or closed.',
+    )
 
 
 class PlotlyFigureQuantity(Quantity):
@@ -242,7 +249,9 @@ class PlotSection(ArchiveSection):
         if plotly_graph_object_annotations:
             for plotly_graph_object_annotation in plotly_graph_object_annotations:
                 figure = {}
-                label, figure_index = get_figure_layout(plotly_graph_object_annotation)
+                label, figure_index, figure_open = get_figure_layout(
+                    plotly_graph_object_annotation
+                )
                 if 'data' in plotly_graph_object_annotation:
                     figure['data'] = plotly_graph_object_annotation['data']
                 if 'layout' in plotly_graph_object_annotation:
@@ -250,13 +259,20 @@ class PlotSection(ArchiveSection):
                 if 'config' in plotly_graph_object_annotation:
                     figure['config'] = plotly_graph_object_annotation['config']
                 all_figures.append(
-                    {'label': label, 'index': figure_index, 'graph_object': figure}
+                    {
+                        'label': label,
+                        'index': figure_index,
+                        'open': figure_open,
+                        'graph_object': figure,
+                    }
                 )
 
         if plotly_express_annotations:
             for plotly_express_annotation in plotly_express_annotations:
                 try:
-                    label, figure_index = get_figure_layout(plotly_express_annotation)
+                    label, figure_index, figure_open = get_figure_layout(
+                        plotly_express_annotation
+                    )
                     fig, layout, traces = express_do_plot(
                         plotly_express_annotation, archive, logger
                     )
@@ -285,6 +301,7 @@ class PlotSection(ArchiveSection):
                         {
                             'label': label,
                             'index': figure_index,
+                            'open': figure_open,
                             'graph_object': plotly_graph_object,
                         }
                     )
@@ -298,7 +315,9 @@ class PlotSection(ArchiveSection):
         if plotly_subplots_annotations:
             for plotly_subplots_annotation in plotly_subplots_annotations:
                 try:
-                    label, figure_index = get_figure_layout(plotly_subplots_annotation)
+                    label, figure_index, figure_open = get_figure_layout(
+                        plotly_subplots_annotation
+                    )
                     parameters = plotly_subplots_annotation.get('parameters', None)
                     if parameters:
                         rows = parameters.get('rows', None)
@@ -389,6 +408,7 @@ class PlotSection(ArchiveSection):
                                 {
                                     'label': label,
                                     'index': figure_index,
+                                    'open': figure_open,
                                     'graph_object': plotly_graph_object,
                                 }
                             )
@@ -412,6 +432,7 @@ class PlotSection(ArchiveSection):
                 PlotlyFigure(
                     label=figure['label'],
                     index=figure['index'],
+                    open=figure['open'],
                     figure=figure['graph_object'],
                 )
             )

@@ -202,7 +202,7 @@ test('eln overview as a reviewer', async () => {
   expect(screen.queryByTitle('Delete entry')).not.toBeInTheDocument()
 
   const sectionCards = screen.queryAllByTestId('property-card')
-  expect(sectionCards.length).toBe(4)
+  expect(sectionCards.length).toBe(5)
 
   const cardSample = sectionCards[0]
   const cardPvdEvaporation = sectionCards[1]
@@ -222,10 +222,17 @@ test('eln overview as a reviewer', async () => {
   expect(within(cardPvdEvaporation).getByText('PvdEvaporation')).toBeVisible()
   expectQuantityToBe('data_file', 'Data file', 'PVDProcess.csv', within(cardPvdEvaporation))
 
-  // Test if the plot is there
-  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
-  expect(within(cardPvdEvaporation).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
-  expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
+  // Test if the open plots are there
+  const plotlyFigures = within(cardPvdEvaporation).getAllByTestId('plotly-figure')
+  expect(plotlyFigures.length).toBe(2)
+
+  expect(within(plotlyFigures[0]).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
+  expect(within(plotlyFigures[0]).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
+  expect(within(plotlyFigures[0]).getByText(/Time \(fs\)/)).toBeVisible()
+
+  expect(within(plotlyFigures[1]).queryByText(/Chamber Pressure \(GPa\)/)).not.toBeInTheDocument()
+  expect(within(plotlyFigures[1]).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
+  expect(within(plotlyFigures[1]).getByText(/Time \(fs\)/)).toBeVisible()
 
   expect(within(cardHotplateAnnealing).getByText('HotplateAnnealing')).toBeVisible()
   expectQuantityToBe('instrument', 'Instrument', undefined, within(cardHotplateAnnealing))
@@ -287,7 +294,7 @@ test.each([
   expect(deleteButton).toBeEnabled()
 
   const sectionCards = screen.queryAllByTestId('property-card')
-  expect(sectionCards.length).toBe(4)
+  expect(sectionCards.length).toBe(5)
 
   const cardSample = sectionCards[0]
   const cardPvdEvaporation = sectionCards[1]
@@ -298,10 +305,17 @@ test.each([
   let numberFieldUnit = within(cardSample).queryAllByTestId('number-edit-quantity-unit')
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '', 'Å')
 
-  // Test if the plot is there
-  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
-  expect(within(cardPvdEvaporation).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
-  expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
+  // Test if the open plots are there
+  const plotlyFigures = within(cardPvdEvaporation).getAllByTestId('plotly-figure')
+  expect(plotlyFigures.length).toBe(2)
+
+  expect(within(plotlyFigures[0]).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
+  expect(within(plotlyFigures[0]).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
+  expect(within(plotlyFigures[0]).getByText(/Time \(fs\)/)).toBeVisible()
+
+  expect(within(plotlyFigures[1]).queryByText(/Chamber Pressure \(GPa\)/)).not.toBeInTheDocument()
+  expect(within(plotlyFigures[1]).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
+  expect(within(plotlyFigures[1]).getByText(/Time \(fs\)/)).toBeVisible()
 
   numberFieldValue = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-value')
   numberFieldUnit = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-unit')

@@ -14,7 +14,7 @@ asteval==1.0.2            # via lmfit
 asttokens==2.4.1          # via stack-data, -c requirements-dev.txt
 async-lru==2.0.4          # via jupyterlab
 async-property==0.2.2     # via python-keycloak, -c requirements-dev.txt
-atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@eebca28ebe83b3c945e922910b18a16ec36e8122  # via -r default_plugins.txt
+atomisticparsers @ git+https://github.com/nomad-coe/atomistic-parsers.git@52080e68b284279dcfdbc7980f3874b46a61c0af  # via -r default_plugins.txt
 attrs==24.2.0             # via jsonschema, -c requirements-dev.txt
 babel==2.16.0             # via jupyterlab-server, -c requirements-dev.txt
 beautifulsoup4==4.12.3    # via nbconvert, -c requirements-dev.txt
@@ -49,7 +49,7 @@ docstring-parser==0.16    # via nomad-lab, -c requirements-dev.txt
 eelsdbconverter @ git+https://github.com/nomad-coe/nomad-parser-eelsdb.git@788eb03dc71ef9b164e2a5ccb9c0209b546f5c38  # via -r default_plugins.txt
 elasticsearch==7.17.1     # via elasticsearch-dsl, -c requirements-dev.txt
 elasticsearch-dsl==7.4.0  # via nomad-lab, -c requirements-dev.txt
-electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@8d4ba60e1893afad1ad43df1bf0a0911f17bffc0  # via -r default_plugins.txt
+electronicparsers @ git+https://github.com/nomad-coe/electronic-parsers.git@807b9fceaa079c1cc787658585f576d57d548e3e  # via -r default_plugins.txt
 entrypoints==0.4          # via ipyparallel
 et-xmlfile==1.1.0         # via openpyxl, -c requirements-dev.txt
 executing==2.1.0          # via stack-data, -c requirements-dev.txt
@@ -63,7 +63,7 @@ flatdict==4.0.1           # via ifes-apt-tc-data-modeling, pynxtools-em
 fonttools==4.53.1         # via matplotlib, -c requirements-dev.txt
 fqdn==1.5.1               # via jsonschema, -c requirements-dev.txt
 fsspec==2024.6.1          # via dask, hyperspy
-greenlet==3.0.3 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy, -c requirements-dev.txt
+greenlet==3.1.0 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy, -c requirements-dev.txt
 griddataformats==1.0.2    # via mdanalysis
 h11==0.14.0               # via httpcore, -c requirements-dev.txt
 h5grove==1.3.0            # via jupyterlab-h5web, -c requirements-dev.txt
@@ -121,7 +121,7 @@ matplotlib==3.9.2         # via ase, asr, diffsims, hyperspy, kikuchipy, matplot
 matplotlib-inline==0.1.7  # via ipykernel, ipython
 matplotlib-scalebar==0.8.1  # via orix
 mda-xdrlib==0.2.0         # via mdanalysis, pyedr, -c requirements-dev.txt
-mdanalysis==2.7.0         # via atomisticparsers, nomad-lab, nomad-schema-plugin-simulation-workflow
+mdanalysis==2.7.0         # via atomisticparsers, nomad-schema-plugin-simulation-workflow
 mergedeep==1.3.4          # via pynxtools, -c requirements-dev.txt
 mistune==3.0.2            # via nbconvert, -c requirements-dev.txt
 mmtf-python==1.1.3        # via mdanalysis
@@ -136,7 +136,7 @@ nbformat==5.10.4          # via jupyter-server, nbclient, nbconvert
 ndindex==1.8              # via blosc2
 nest-asyncio==1.6.0       # via ipykernel
 netcdf4==1.6.5            # via electronicparsers, -c requirements-dev.txt
-networkx==3.3             # via matid, nomad-lab, nomad-schema-plugin-simulation-workflow, pymatgen, radioactivedecay, scikit-image, -c requirements-dev.txt
+networkx==3.3             # via matid, nomad-schema-plugin-simulation-workflow, pymatgen, radioactivedecay, scikit-image, -c requirements-dev.txt
 niondata==15.6.3          # via nionswift, nionswift-io
 nionswift==16.11.0        # via pynxtools-em
 nionswift-io==15.2.1      # via nionswift
@@ -151,8 +151,8 @@ nomad-normalizer-plugin-soap @ git+https://github.com/nomad-coe/nomad-normalizer
 nomad-normalizer-plugin-spectra @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-spectra.git@ec147326b3485ca9c324aca8a8dea520eb01e7dc  # via -r default_plugins.txt
 nomad-normalizer-plugin-system @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-system.git@01523ddbc85676a40af40f4747f5f13676f34c0f  # via -r default_plugins.txt
 nomad-porous-materials @ git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@522f4a3208077f534f1c5e886527ee2104283d0b  # via -r default_plugins.txt
-nomad-schema-plugin-run @ git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@92d120dc4c5f7f4bcd94990ed009f8ac0019acec  # via atomisticparsers, databaseparsers, electronicparsers, nomad-schema-plugin-simulation-workflow, simulationparsers, workflowparsers, -r default_plugins.txt
-nomad-schema-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@5631278b983072a6e7cb6fea40c4b3ca49b7b804  # via atomisticparsers, databaseparsers, electronicparsers, nomad-normalizer-plugin-simulation-workflow, workflowparsers, -r default_plugins.txt
+nomad-schema-plugin-run @ git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@439a61c8edf01606af6d56dfe22e99d37eced127  # via atomisticparsers, databaseparsers, electronicparsers, nomad-schema-plugin-simulation-workflow, simulationparsers, workflowparsers, -r default_plugins.txt
+nomad-schema-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@5c2164cae7197943fafc95225a2b282b5906a50e  # via atomisticparsers, databaseparsers, electronicparsers, nomad-normalizer-plugin-simulation-workflow, workflowparsers, -r default_plugins.txt
 nomad-simulations==0.0.1  # via -r default_plugins.txt
 notebook==7.1.3           # via jupyter
 notebook-shim==0.2.4      # via jupyterlab, notebook
@@ -188,8 +188,8 @@ psutil==6.0.0             # via diffsims, ipykernel, ipyparallel, pyxem, -c requ
 ptyprocess==0.7.0 ; os_name != 'nt' or (sys_platform != 'emscripten' and sys_platform != 'win32')  # via pexpect, terminado
 pure-eval==0.2.3          # via stack-data
 py-cpuinfo==9.0.0         # via blosc2, tables
-pyasn1==0.6.0             # via pyasn1-modules, rfc3161ng, -c requirements-dev.txt
-pyasn1-modules==0.4.0     # via rfc3161ng, -c requirements-dev.txt
+pyasn1==0.6.1             # via pyasn1-modules, rfc3161ng, -c requirements-dev.txt
+pyasn1-modules==0.4.1     # via rfc3161ng, -c requirements-dev.txt
 pybtex==0.24.0            # via pymatgen, -c requirements-dev.txt
 pycparser==2.22           # via cffi, -c requirements-dev.txt
 pydantic==1.10.18         # via atomisticparsers, databaseparsers, electronicparsers, nomad-lab, nomad-porous-materials, workflowparsers, -c requirements-dev.txt
@@ -213,7 +213,7 @@ python-dateutil==2.9.0.post0  # via arrow, elasticsearch-dsl, hyperspy, ipyparal
 python-json-logger==2.0.2  # via jupyter-events, -c requirements-dev.txt
 python-keycloak==4.3.0    # via nomad-lab, -c requirements-dev.txt
 python-magic==0.4.24      # via nomad-lab, -c requirements-dev.txt
-pytz==2024.1              # via nionswift, nomad-lab, pandas, -c requirements-dev.txt
+pytz==2024.2              # via nionswift, nomad-lab, pandas, -c requirements-dev.txt
 pywin32==306 ; platform_python_implementation != 'PyPy' and sys_platform == 'win32'  # via jupyter-core, -c requirements-dev.txt
 pywinpty==2.0.13 ; os_name == 'nt'  # via jupyter-server, jupyter-server-terminals, terminado
 pyxem==0.16.0             # via pynxtools-em
@@ -276,7 +276,7 @@ webencodings==0.5.1       # via bleach, tinycss2, -c requirements-dev.txt
 websocket-client==1.8.0   # via jupyter-server
 werkzeug==3.0.4           # via flask
 widgetsnbextension==4.0.13  # via ipywidgets
-workflowparsers @ git+https://github.com/nomad-coe/workflow-parsers.git@cb33c02468b1c38e9f94fd05a3180c121531902b  # via -r default_plugins.txt
+workflowparsers @ git+https://github.com/nomad-coe/workflow-parsers.git@d903cf5f93a7ad2edcc2f6071246c50d498dd50e  # via -r default_plugins.txt
 wrapt==1.16.0             # via nomad-lab, -c requirements-dev.txt
 xarray==2024.7.0          # via nomad-lab, pynxtools, pynxtools-mpes, pynxtools-xps, workflowparsers, -c requirements-dev.txt
 xmltodict==0.13.0         # via fairmat-readers-xrd, ifes-apt-tc-data-modeling, pynxtools-em, pynxtools-xrd

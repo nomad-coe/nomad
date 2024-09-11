@@ -6585,6 +6585,17 @@ window.nomadArtifacts = {
                   "type_kind": "python",
                   "type_data": "int"
                 }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "open",
+                "description": "Determines whether the figure is initially open or closed.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "bool"
+                }
               }
             ]
           },

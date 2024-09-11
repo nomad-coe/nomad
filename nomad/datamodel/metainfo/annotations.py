@@ -695,6 +695,7 @@ class PlotlyExpressAnnotation(PlotlyExpressTraceAnnotation):
               y: '#yArr'
               label: 'Example Express Plot'
               index: 0
+              open: true
               layout:
                 title:
                   text: 'Example Express Plot'
@@ -738,6 +739,7 @@ class PlotlyGraphObjectAnnotation(BaseModel):
                   text: 'Plotly Graph Object'
               label: 'Plotly Graph Object'
               index: 1
+              open: true
     ```
     """
 
