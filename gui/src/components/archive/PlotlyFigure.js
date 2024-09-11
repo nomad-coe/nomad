@@ -240,6 +240,7 @@ const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef
       fixedMargins={true}
       config={plotlyGraphObj.config}
       metaInfoLink={metaInfoLink}
+      data-testid={'plotly-figure'}
     />
   </Box>
 })

@@ -153,9 +153,11 @@ definitions:
                     - data:
                         x: "#time"
                         y: "#chamber_pressure"
+                      open: false
                     - data:
                         x: "#time"
                         y: "#substrate_temperature"
+                      open: true
                   quantities:
                     data_file:
                       type: str

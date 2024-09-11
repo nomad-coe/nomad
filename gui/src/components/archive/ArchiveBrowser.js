@@ -1477,17 +1477,21 @@ FoldableList.defaultProps = ({
 })
 
 export const SectionPlots = React.memo(function SectionPlots({section, sectionDef, uploadId, entryId}) {
-  let sortedFigures
+  const [selected, setSelected] = useState([])
   const annotationPlot = sectionDef?.m_annotations?.plot && sectionDef.m_annotations?.plot
-  if (section?.figures) {
-    section?.figures.forEach((figure, index) => {
-      figure.pathIndex = index
-    })
-    const [indexedFigures, otherFigures] = section.figures && partition(section.figures, figure => figure?.index !== undefined)
-    sortedFigures = indexedFigures.sort((a, b) => a.index - b.index)
-    sortedFigures = [...sortedFigures, ...otherFigures]
-  }
-  const [selected, setSelected] = useState([0])
+
+  const sortedFigures = useMemo(() => {
+    let sortedFigures
+    if (section?.figures) {
+      section?.figures.forEach((figure, index) => {
+        figure.pathIndex = index
+      })
+      const [indexedFigures, otherFigures] = section.figures && partition(section.figures, figure => figure?.index !== undefined)
+      sortedFigures = indexedFigures.sort((a, b) => a.index - b.index)
+      sortedFigures = [...sortedFigures, ...otherFigures]
+    }
+    return sortedFigures
+  }, [section.figures])
 
   const plots = useMemo(() => {
     const validPlots = []
@@ -1514,8 +1518,13 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
   }, [annotationPlot, sortedFigures])
 
   useEffect(() => {
-    setSelected([0])
-  }, [plots.length])
+    setSelected(sortedFigures && Array.isArray(sortedFigures) ? sortedFigures.reduce((indices, figure, index) => {
+      if (figure?.open === undefined || figure?.open) {
+        indices.push(index)
+      }
+      return indices
+    }, []) : [0])
+  }, [plots.length, sortedFigures])
 
   if (plots.length < 1 || selected.find(index => index >= plots.length)) {
     return null
