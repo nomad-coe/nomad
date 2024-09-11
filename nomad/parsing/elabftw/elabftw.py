@@ -19,6 +19,7 @@ import os
 from typing import Union, Iterable
 import json
 import re
+import copy
 
 from nomad.datamodel import EntryArchive, EntryData, Results
 from nomad.datamodel.data import ElnIntegrationCategory, ArchiveSection
@@ -27,6 +28,7 @@ from nomad.metainfo import (
     Package,
     Quantity,
     JSON,
+    MEnum,
     MSection,
     Datetime,
     SubSection,
@@ -40,6 +42,8 @@ m_package = Package(name='elabftw')
 
 
 def _remove_at_sign_from_keys(obj):
+    obj = copy.deepcopy(obj)
+
     for k, v in list(obj.items()):
         if k.startswith('@'):
             obj[k.lstrip('@')] = v
@@ -51,7 +55,22 @@ def _remove_at_sign_from_keys(obj):
             for i, item in enumerate(v):
                 if isinstance(item, dict):
                     obj[k][i] = _remove_at_sign_from_keys(item)
+
     return obj
+
+
+def _map_response_to_dict(data: list) -> dict:
+    mapped_dict: dict = {}
+    cleaned_data = _remove_at_sign_from_keys(data)
+    for item in cleaned_data['graph']:
+        id = item['id']
+        if id not in mapped_dict:
+            mapped_dict[id] = item
+        else:
+            num = int(id.split('__internal_')[1])
+            id_internal = f'{id}__internal_{num + 1}'
+            mapped_dict[id_internal] = item
+    return mapped_dict
 
 
 def _create_file_section(file, graph, parent_folder_raw_path, logger=None):
@@ -290,7 +309,7 @@ class ELabFTW(EntryData):
     title is used as an identifier for the GUI to differentiate between the parsed entries and the original file.
     """
 
-    m_def = Section(label='ElabFTW Project Import', categories=[ElnIntegrationCategory])
+    m_def = Section(label='ELabFTW Project Import', categories=[ElnIntegrationCategory])
 
     id = Quantity(
         type=str,
@@ -304,8 +323,18 @@ class ELabFTW(EntryData):
         description='Publisher information',
         a_browser=dict(value_component='JsonValue'),
     )
+
     author = Quantity(type=str, description="Full name of the experiment's author")
     project_id = Quantity(type=str, description='Project ID')
+    status = Quantity(
+        type=MEnum(
+            'Not set', 'Running', 'Waiting', 'Success', 'Need to be redone', 'Fail'
+        ),
+        description='Status of the Experiment',
+    )
+    keywords = Quantity(
+        type=str, shape=['*'], description='Keywords associated with the Experiment'
+    )
 
     experiment_data = SubSection(sub_section=ELabFTWExperimentData)
     experiment_files = SubSection(sub_section=ELabFTWBaseSection, repeats=True)
@@ -349,9 +378,16 @@ class ELabFTWParser(MatchingParser):
         except Exception:
             return False
 
-        # The last item of the @graph array is assumed to be a Dataset and contain the experiments info
         try:
-            no_of_experiments = len(data['@graph'][-2]['hasPart'])
+            if any(
+                item.get('@type') == 'SoftwareApplication' for item in data['@graph']
+            ):
+                root_experiment = next(
+                    (item for item in data['@graph'] if item.get('@id') == './')
+                )
+                no_of_experiments = len(root_experiment['hasPart'])
+            else:
+                no_of_experiments = len(data['@graph'][-2]['hasPart'])
         except (KeyError, IndexError, TypeError):
             return False
 
@@ -372,126 +408,235 @@ class ELabFTWParser(MatchingParser):
         snake_case_data = camel_case_to_snake_case(data)
         clean_data = _remove_at_sign_from_keys(snake_case_data)
         graph = {item['id']: item for item in clean_data['graph']}
-
         experiments = graph['./']
+
         for index, experiment in enumerate(experiments['has_part']):
             exp_id = experiment['id']
             raw_experiment, exp_archive = graph[exp_id], child_archives[str(index)]
 
-            elabftw_experiment = ELabFTW()
-            try:
-                del graph['ro-crate-metadata.json']['type']
-            except Exception:
-                pass
-            elabftw_experiment.m_update_from_dict(graph['ro-crate-metadata.json'])
-
-            try:
-                exp_external_id = raw_experiment['url'].split('&id=')[1]
-                if match := re.search(r'.*/([^/]+)\.php', raw_experiment['url']):
-                    elabftw_entity_type = match.group(1)
-                exp_archive.metadata.external_id = str(exp_external_id)
-                elabftw_experiment.project_id = exp_external_id
-            except Exception:
-                logger.error(
-                    'Could not set the the external_id from the experiment url'
+            # hook for matching the older .eln files from Elabftw exported files
+            if not any(
+                item.get('type') == 'SoftwareApplication'
+                for item in clean_data['graph']
+            ):
+                elabftw_experiment = _parse_legacy(
+                    graph,
+                    raw_experiment,
+                    exp_archive,
+                    data,
+                    mainfile,
+                    exp_id,
+                    title_pattern,
+                    lab_ids,
+                    archive,
+                    logger,
                 )
 
-            try:
-                author_full_name = ' '.join(
-                    [
-                        data['graph'][-1]['given_name'],
-                        data['graph'][-1]['family_name'],
-                    ]
-                )
-                elabftw_experiment.post_process(full_name=author_full_name)
-            except Exception:
-                logger.error('Could not extract the author name')
+                if not archive.results:
+                    archive.results = Results()
+                    archive.results.eln = Results.eln.sub_section.section_cls()
+                    archive.results.eln.lab_ids = [str(lab_id[1]) for lab_id in lab_ids]
+                    archive.results.eln.tags = [lab_id[0] for lab_id in lab_ids]
 
-            mainfile_raw_path = os.path.dirname(mainfile)
-            parent_folder_raw_path = mainfile.split('/')[-2]
-
-            matched_title = exp_id.split('/')
-            if len(matched_title) > 1:
-                extracted_title = matched_title[1]
-                archive.metadata.m_update_from_dict(dict(entry_name='ElabFTW Schema'))
-                exp_archive.metadata.m_update_from_dict(
-                    dict(entry_name=extracted_title)
-                )
             else:
-                logger.warning(f"Couldn't extract the title from {exp_id}")
-                extracted_title = None
-
-            matched = title_pattern.findall(extracted_title)
-            if matched:
-                title = matched[0]
-            else:
-                title = extracted_title
-            elabftw_experiment.title = title
-
-            path_to_export_json = os.path.join(
-                mainfile_raw_path, exp_id, 'export-elabftw.json'
-            )
-            try:
-                with open(path_to_export_json, 'rt') as f:
-                    export_data = json.load(f)
-            except FileNotFoundError:
-                raise ELabFTWParserError(f"Couldn't find export-elabftw.json file.")
-
-            def clean_nones(value):
-                if isinstance(value, list):
-                    return [
-                        clean_nones(x) for x in value
-                    ]  # ??? what to do if this list has None values
-                if isinstance(value, dict):
-                    return {
-                        k: clean_nones(v) for k, v in value.items() if v is not None
-                    }
-
-                return value
-
-            experiment_data = ELabFTWExperimentData()
-            try:
-                experiment_data.m_update_from_dict(clean_nones(export_data[0]))
-            except (IndexError, KeyError, TypeError):
-                logger.warning(
-                    f"Couldn't read and parse the data from export-elabftw.json file"
+                elabftw_experiment = _parse_latest(
+                    graph,
+                    raw_experiment,
+                    exp_archive,
+                    mainfile,
+                    exp_id,
+                    archive,
+                    logger,
                 )
-            try:
-                experiment_data.extra_fields = export_data[0]['metadata'][
-                    'extra_fields'
-                ]
-            except Exception:
-                pass
-            elabftw_experiment.experiment_data = experiment_data
-
-            try:
-                exp_archive.metadata.comment = elabftw_entity_type
-
-                lab_ids.extend(
-                    ('experiment_link', experiment_link['itemid'])
-                    for experiment_link in export_data[0]['experiments_links']
-                )
-                lab_ids.extend(
-                    ('item_link', experiment_link['itemid'])
-                    for experiment_link in export_data[0]['items_links']
-                )
-            except Exception:
-                pass
-            for file_id in raw_experiment['has_part']:
-                file_section = _create_file_section(
-                    graph[file_id['id']], graph, parent_folder_raw_path, logger
-                )
-                elabftw_experiment.experiment_files.append(file_section)
-
-            if not archive.results:
-                archive.results = Results()
-                archive.results.eln = Results.eln.sub_section.section_cls()
-                archive.results.eln.lab_ids = [str(lab_id[1]) for lab_id in lab_ids]
-                archive.results.eln.tags = [lab_id[0] for lab_id in lab_ids]
 
             exp_archive.data = elabftw_experiment
 
         logger.info('eln parsed successfully')
+
+
+def _parse_legacy(
+    graph,
+    raw_experiment,
+    exp_archive,
+    data,
+    mainfile,
+    exp_id,
+    title_pattern,
+    lab_ids,
+    archive,
+    logger,
+) -> ELabFTW:
+    elabftw_experiment = ELabFTW()
+    try:
+        del graph['ro-crate-metadata.json']['type']
+    except Exception:
+        pass
+    elabftw_experiment.m_update_from_dict(graph['ro-crate-metadata.json'])
+    elabftw_entity_type = _set_experiment_metadata(
+        raw_experiment, exp_archive, elabftw_experiment, logger
+    )
+
+    try:
+        author_full_name = ' '.join(
+            [
+                data['graph'][-1]['given_name'],
+                data['graph'][-1]['family_name'],
+            ]
+        )
+        elabftw_experiment.post_process(full_name=author_full_name)
+    except Exception:
+        logger.error('Could not extract the author name')
+
+    mainfile_raw_path = os.path.dirname(mainfile)
+    parent_folder_raw_path = mainfile.split('/')[-2]
+
+    extracted_title = _set_child_entry_name(exp_id, exp_archive, archive, logger)
+
+    matched = title_pattern.findall(extracted_title)
+    if matched:
+        title = matched[0]
+    else:
+        title = extracted_title
+    elabftw_experiment.title = title
+
+    path_to_export_json = os.path.join(mainfile_raw_path, exp_id, 'export-elabftw.json')
+    try:
+        with open(path_to_export_json, 'rt') as f:
+            export_data = json.load(f)
+    except FileNotFoundError:
+        raise ELabFTWParserError(f"Couldn't find export-elabftw.json file.")
+
+    def clean_nones(value):
+        if isinstance(value, list):
+            return [
+                clean_nones(x) for x in value
+            ]  # ??? what to do if this list has None values
+        if isinstance(value, dict):
+            return {k: clean_nones(v) for k, v in value.items() if v is not None}
+
+        return value
+
+    experiment_data = ELabFTWExperimentData()
+    try:
+        experiment_data.m_update_from_dict(clean_nones(export_data[0]))
+    except (IndexError, KeyError, TypeError):
+        logger.warning(
+            f"Couldn't read and parse the data from export-elabftw.json file"
+        )
+    try:
+        experiment_data.extra_fields = export_data[0]['metadata']['extra_fields']
+    except Exception:
+        pass
+    elabftw_experiment.experiment_data = experiment_data
+
+    try:
+        exp_archive.metadata.comment = elabftw_entity_type
+
+        lab_ids.extend(
+            ('experiment_link', experiment_link['itemid'])
+            for experiment_link in export_data[0]['experiments_links']
+        )
+        lab_ids.extend(
+            ('item_link', experiment_link['itemid'])
+            for experiment_link in export_data[0]['items_links']
+        )
+    except Exception:
+        pass
+    for file_id in raw_experiment['has_part']:
+        file_section = _create_file_section(
+            graph[file_id['id']], graph, parent_folder_raw_path, logger
+        )
+        elabftw_experiment.experiment_files.append(file_section)
+
+    return elabftw_experiment
+
+
+def _set_child_entry_name(exp_id, child_archive, archive, logger):
+    matched_title = exp_id.split('/')
+    if len(matched_title) > 1:
+        extracted_title = matched_title[1]
+        archive.metadata.m_update_from_dict(dict(entry_name='ELabFTW Schema'))
+        child_archive.metadata.m_update_from_dict(dict(entry_name=extracted_title))
+    else:
+        logger.warning(f"Couldn't extract the title from {exp_id}")
+        extracted_title = None
+    return extracted_title
+
+
+def _set_experiment_metadata(raw_experiment, exp_archive, elab_instance, logger):
+    try:
+        exp_external_id = raw_experiment['url'].split('&id=')[1]
+        if match := re.search(r'.*/([^/]+)\.php', raw_experiment['url']):
+            elabftw_entity_type = match.group(1)
+        exp_archive.metadata.external_id = str(exp_external_id)
+        elab_instance.project_id = exp_external_id
+    except Exception:
+        logger.error('Could not set the the external_id from the experiment url')
+        elabftw_entity_type = None
+    return elabftw_entity_type
+
+
+def _parse_latest(
+    graph,
+    raw_experiment,
+    exp_archive,
+    mainfile,
+    exp_id,
+    archive,
+    logger,
+) -> ELabFTW:
+    latest_elab_instance = ELabFTW(
+        author=raw_experiment.get('author').get('id'),
+        title=raw_experiment.get('name', None),
+        keywords=raw_experiment.get('keywords', '').split(','),
+        id=raw_experiment.get('id', ''),
+        status=raw_experiment.get('creative_work_status', 'Not set'),
+    )
+
+    _ = _set_experiment_metadata(
+        raw_experiment, exp_archive, latest_elab_instance, logger
+    )
+    data_section = ELabFTWExperimentData(
+        body=raw_experiment.get('text', None),
+        created_at=raw_experiment.get('date_created', None),
+        extra_fields={
+            i: value
+            for i, value in enumerate(raw_experiment.get('variable_measured', []))
+        },
+    )
+    data_section.steps.extend(
+        [
+            ELabFTWSteps(
+                ordering=step.get('position', None),
+                deadline=step.get('expires', None),
+                finished=step.get('creative_work_status', None) == 'finished',
+                body=step.get('item_list_element', [{'text': None}])[0]['text'],
+            )
+            for step in raw_experiment.get('step', [])
+        ]
+    )
+
+    data_section.experiments_links.extend(
+        [
+            ELabFTWExperimentLink(title=exp_link.get('id', None))
+            for exp_link in raw_experiment.get('mentions', [])
+        ]
+    )
+
+    parent_folder_raw_path = mainfile.split('/')[-2]
+    for file_id in raw_experiment.get('has_part', []):
+        file_section = _create_file_section(
+            graph[file_id['id']], graph, parent_folder_raw_path, logger
+        )
+        latest_elab_instance.experiment_files.append(file_section)
+
+    latest_elab_instance.m_add_sub_section(
+        latest_elab_instance.m_def.all_sub_sections['experiment_data'], data_section
+    )
+
+    _ = _set_child_entry_name(exp_id, exp_archive, archive, logger)
+
+    return latest_elab_instance
 
 
 m_package.__init_metainfo__()

@@ -78,7 +78,7 @@ jupyterhub==4.0.2         # via dockerspawner, oauthenticator, nomad-lab (pyproj
 jwcrypto==1.5.6           # via python-keycloak
 kaleido==0.2.1            # via nomad-lab (pyproject.toml)
 kiwisolver==1.4.7         # via matplotlib
-kombu==5.4.0              # via celery
+kombu==5.4.1              # via celery
 lark==1.2.2               # via optimade
 latexcodec==3.0.0         # via pybtex
 lxml==5.3.0               # via lxml-html-clean, nomad-lab (pyproject.toml)

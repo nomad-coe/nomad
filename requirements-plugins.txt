@@ -152,7 +152,7 @@ nomad-normalizer-plugin-spectra @ git+https://github.com/nomad-coe/nomad-normali
 nomad-normalizer-plugin-system @ git+https://github.com/nomad-coe/nomad-normalizer-plugin-system.git@01523ddbc85676a40af40f4747f5f13676f34c0f  # via -r default_plugins.txt
 nomad-porous-materials @ git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@522f4a3208077f534f1c5e886527ee2104283d0b  # via -r default_plugins.txt
 nomad-schema-plugin-run @ git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@439a61c8edf01606af6d56dfe22e99d37eced127  # via atomisticparsers, databaseparsers, electronicparsers, nomad-schema-plugin-simulation-workflow, simulationparsers, workflowparsers, -r default_plugins.txt
-nomad-schema-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@5c2164cae7197943fafc95225a2b282b5906a50e  # via atomisticparsers, databaseparsers, electronicparsers, nomad-normalizer-plugin-simulation-workflow, workflowparsers, -r default_plugins.txt
+nomad-schema-plugin-simulation-workflow @ git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@cfc98d52fd814200beaed75abb6c01de9c0bada5  # via atomisticparsers, databaseparsers, electronicparsers, nomad-normalizer-plugin-simulation-workflow, workflowparsers, -r default_plugins.txt
 nomad-simulations==0.0.1  # via -r default_plugins.txt
 notebook==7.1.3           # via jupyter
 notebook-shim==0.2.4      # via jupyterlab, notebook
