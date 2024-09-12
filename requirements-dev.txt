@@ -120,7 +120,7 @@ mkdocs-material==9.5.34   # via nomad-lab (pyproject.toml)
 mkdocs-material-extensions==1.3.1  # via mkdocs-material, nomad-lab (pyproject.toml)
 mkdocs-redirects==1.2.1   # via nomad-lab (pyproject.toml)
 mongoengine==0.29.0       # via -r requirements.txt, nomad-lab (pyproject.toml)
-mongomock==4.1.2          # via optimade, -r requirements.txt
+mongomock==4.2.0.post1    # via optimade, -r requirements.txt
 monty==2024.7.30          # via pymatgen, -r requirements.txt
 more-itertools==10.5.0    # via jaraco-classes, jaraco-functools
 mpmath==1.3.0             # via sympy, -r requirements.txt
@@ -187,7 +187,7 @@ python-logstash==0.4.6    # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-magic==0.4.24      # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-magic-bin==0.4.14 ; sys_platform == 'win32'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-multipart==0.0.9   # via -r requirements.txt, nomad-lab (pyproject.toml)
-pytz==2024.2              # via mkdocs-git-revision-date-localized-plugin, pandas, -r requirements.txt, nomad-lab (pyproject.toml)
+pytz==2024.2              # via mkdocs-git-revision-date-localized-plugin, mongomock, pandas, -r requirements.txt, nomad-lab (pyproject.toml)
 pywin32==306 ; sys_platform == 'win32'  # via docker, -r requirements.txt
 pywin32-ctypes==0.2.3 ; sys_platform == 'win32'  # via keyring
 pyyaml==6.0.2             # via mkdocs, mkdocs-get-deps, mkdocs-macros-plugin, pybtex, pymdown-extensions, pyyaml-env-tag, uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -208,7 +208,7 @@ ruamel-yaml==0.18.6       # via jupyter-telemetry, oauthenticator, pymatgen, -r 
 ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -r requirements.txt
 ruff==0.6.4               # via nomad-lab (pyproject.toml)
 runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
-scikit-learn==1.5.1       # via matid, -r requirements.txt, nomad-lab (pyproject.toml)
+scikit-learn==1.5.2       # via matid, -r requirements.txt, nomad-lab (pyproject.toml)
 scipy==1.14.1             # via ase, pymatgen, scikit-learn, -r requirements.txt, nomad-lab (pyproject.toml)
 secretstorage==3.3.3 ; sys_platform == 'linux'  # via keyring
 sentinels==1.0.0          # via mongomock, -r requirements.txt

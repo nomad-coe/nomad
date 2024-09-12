@@ -4503,7 +4503,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/electronic-parsers",
         "name": "electronicparsers",
         "repository": null,
-        "version": "1.1"
+        "version": "1.0"
       },
       "nomad_aitoolkit": {
         "description": "Schema and app for AI Toolkit notebooks.",
