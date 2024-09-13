@@ -20,12 +20,12 @@ the web interface and should provide everything you need.
 There are different tools and libraries to use the NOMAD API that come with different
 trade-offs between expressiveness, learning curve, and convenience.
 
-<h4>You can use your browser</h4>
+#### You can use your browser
 
 For example to see the metadata for all entries with elements *Ti* and *O* go here:
 [{{ nomad_url() }}/v1/entries?elements=Ti&elements=O]({{ nomad_url() }}/v1/entries?elements=Ti&elements=O)
 
-<h4>Use *curl* or *wget*</h4>
+#### Use *curl* or *wget*
 
 REST API's use resources located via URLs. You access URLs with *curl* or *wget*. Same
 *Ti*, *O* example as before:
@@ -33,18 +33,18 @@ REST API's use resources located via URLs. You access URLs with *curl* or *wget*
 curl "{{ nomad_url() }}/v1/entries?results.material.elements=Ti&results.material.elements=O" | python -m json.tool
 ```
 
-<h4> Use Python and requests</h4>
+####  Use Python and requests
 
 Requests is a popular Python library to use the internets HTTP protocol that is used to
 communicate with REST APIs. Install with `pip install requests`.
 See [the initial example](#using-request).
 
-<h4>Use our dashboard</h4>
+#### Use our dashboard
 
 The NOMAD API has an [OpenAPI dashboard]({{ nomad_url() }}/v1). This is an interactive documentation of all
 API functions that allows you to try these functions in the browser.
 
-<h4>Use NOMAD's Python package</h4>
+#### Use NOMAD's Python package
 
 Install the [NOMAD Python client library](./pythonlib.md) and use it's `ArchiveQuery`
 functionality for a more convenient query based access of archive data following the
@@ -483,3 +483,41 @@ If you get responses in the 400 range, e.g. **422 Unprocessable Content** or **4
 you might hit an api limit. Those responses are typically accompanied by an error message
 in the response body that will inform you about the limit, e.g. the maximum allowed
 page size.
+
+## User Groups
+
+You can create a user group and add other users to that group via the API. These groups
+can be used as [upload members](../manage/upload.md#visibility-and-access) to make it
+easier to give viewing or editing rights for an upload to multiple users at once, e.g.
+a working group.
+
+To create a group, send an authenticated POST request to `/groups` including the
+`group_name` and a list of user IDs in the `members` field:
+
+```json
+// POST /groups
+{
+  "group_name": "The Three Musketeers",
+  "members": [
+    "00000000-0000-0000-0000-004174686f73",
+    "00000000-0000-0000-0050-6f7274686f73",
+    "00000000-0000-0000-0000-4172616d6973"
+  ]
+}
+```
+
+Editing is similar but at another endpoint. The `members` field accepts for convenience
+`add` and `remove` keys followed by a string or a list of strings, so you don't have
+to repeat all members (otherwise use `set` or just the full list):
+
+```json
+// POST /groups/{group-id}/edit
+{
+  "members": {
+    "add": "00000000-64e2-8099-4172-7461676e616e"
+  }
+}
+```
+
+See the [OpenAPI dashboard]({{ nomad_url() }}/v1/extensions/docs#/groups) for a concise
+summary of the endpoints.

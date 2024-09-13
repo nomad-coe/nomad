@@ -1,4 +1,45 @@
 {
+  "5b6de70afbfeec4bd1993514d31f8629": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/groups?user_id=54cb1f64-f84e-4815-9ade-440ce0b5430f",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODYwNDEsImlhdCI6MTcyNTY1MDA1NiwianRpIjoiOGRjMjQxZWItMmY4NS00YTIzLWExYWItMmQ5MzVjMzIzY2NjIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiNDQyNjIyYjMtMjU2Yy00NjNhLTgwOGYtNWMyZjMwYmM4ZjI5IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiI0NDI2MjJiMy0yNTZjLTQ2M2EtODA4Zi01YzJmMzBiYzhmMjkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.TJMA05xFFnO8pm3rENji5yxJ_CpmcYA2_Qu2O1MQkNO3pyGIiPuqAvqyGecdES68eaJJ7Dk8wwIHzyOt7yLXNpbcAocV30YCIjiFs7cjFUfub_rUgsrH8GzkAR2g81b-cxubmMBr29q44girj1yV3VFL6VWg3gCfCJpi-ngzhsu52cjUyiO4I162SNTzu1ZprpNyk67Sew3x0pvc536XcaMHKwN6PND87EOKeNvLh79AvNUslADcdqCmx5jqdQJHrqRNzMdU0TgoSdBVGOxBJcC0_sn1FaUqhS7ayrH3PJLRFP2fjQaVv8SbbW8dD11DSmr6tHNDuyAgtj1iXocksQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "group_id": "group3",
+              "group_name": "Group Tester",
+              "owner": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+              "members": []
+            },
+            {
+              "group_id": "group23",
+              "group_name": "Group 23",
+              "owner": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+              "members": [
+                "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+              ]
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "373",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
   "ff95b7af4ca8739b8ba0065e4de2b8d7": [
     {
       "request": {
@@ -7,7 +48,31 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNTUyNDZkOC01ZjQ1LTRhOTMtYTg4OS0wZmJkYTNiOWFjMzUiLCJleHAiOjE2ODEzMTcxNTcsIm5iZiI6MCwiaWF0IjoxNjgxMjgxMTg4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdmYWEyM2E3LWExM2EtNGM0NS1iY2ViLTBjMTQxODNjYmYyMiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.bLe5nAvoz9jHor8FwLZyUMvFsI62OjoPZ949Myk-IZ5Bi2gpmDCPttLmPExQ83pNAoxTAQE-Mte1SBv-HqbW-f_4vq6E6EvaqIGqNUdisqoYbpwV_uYWhQ3_4XC3zYkKYUbc0cSlp4C5Mt2dRy3mec7amdC9b_wCY1n1qnY9aCGN7PFvdwI0o_DsmGcOV09EEq76sjmIT15gAtYTKOrNj7O2SAdisIPBdDozhTJ_HjdR4oT0Yjq5-baT72HpuPhCe2mD42ELrWojETnHOZnEiAjUthL9FwG_7xqcm0LEXDn9X6ykWKxUfgUA5VcBo0aDVAZPFELZOU1iJ3P2pYnPaQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODYwNDEsImlhdCI6MTcyNTY1MDA1NiwianRpIjoiNjFhZGY2ZWYtOTg1MC00NzhlLTlhYTEtYzhjYTc3YTkyY2Y0IiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiNDQyNjIyYjMtMjU2Yy00NjNhLTgwOGYtNWMyZjMwYmM4ZjI5IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiI0NDI2MjJiMy0yNTZjLTQ2M2EtODA4Zi01YzJmMzBiYzhmMjkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.UO6a0m2ypPsMSGztYNLtYxIIfgx8_xS6i00XBPiA7xNgDjTkvACi1LHEaBAtVpCIb_ngCW8gdWxh9Se7wGen4YjRVxIILhLPCamlgSlXlAhtUeDpu0h2nbrrUTKEZUxmPL3ON9qlPbY3Rg3CKOmtZ3MpeE8D-xA5JwtSwWvfG_oDLXNd2RQPc5o31TftSGjRDbGgKQn7il290RmXceUHKWrnf6nnlmTA99EHRXbr9eeWlb8t_ewX2OElF91GC-PfFfksU-pzoe0ou5W5onoet2ZYCay7iUYzlG4vQ4WkBV7TTcByXnFfYi69dkZ7eh9Q2S6LLsSh8-sHAqOo0SMsdg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "Not found. Invalid path?"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "37",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODYwNDEsImlhdCI6MTcyNTY1MDA1NiwianRpIjoiNTM3N2FiMTUtNmRmYy00YjRhLTk0YmEtMmViNTc3ZGNjMWNhIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiNDQyNjIyYjMtMjU2Yy00NjNhLTgwOGYtNWMyZjMwYmM4ZjI5IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiI0NDI2MjJiMy0yNTZjLTQ2M2EtODA4Zi01YzJmMzBiYzhmMjkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.QfCXDejUusWlGL-0YK2ggSlwFB7rzcvbLE-G2twv9JKmCJ3GrlCv338WGxx4Z01zuhNCqCuExPvhrDOdyXYzf15hCvQQCw3ru8z6aAOL4mSKF3LBNJ6VVgtgA2grQgZ2eTX4b3XgH_1geUxZl1uClOLzjWDbDfQmqCW7hzbJzFk9fDOMaB-MuCznydscdsPpleejmf23iYF7aXhnMJ_lJX-p1d4ZI2zcqvgeCzdPpXj5hQB7vfUl2kyxt0riLlNq75C4zFOue9Budg64YLMDULr4C_NRRsErZDlFE7TmrrPBQNYFzstuuxE5hmuSlIBf2WpFspNiINgv_sJBkDXfow",
           "cookie": null
         }
       },
@@ -33,7 +98,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNTUyNDZkOC01ZjQ1LTRhOTMtYTg4OS0wZmJkYTNiOWFjMzUiLCJleHAiOjE2ODEzMTcxNTcsIm5iZiI6MCwiaWF0IjoxNjgxMjgxMTg4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdmYWEyM2E3LWExM2EtNGM0NS1iY2ViLTBjMTQxODNjYmYyMiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.bLe5nAvoz9jHor8FwLZyUMvFsI62OjoPZ949Myk-IZ5Bi2gpmDCPttLmPExQ83pNAoxTAQE-Mte1SBv-HqbW-f_4vq6E6EvaqIGqNUdisqoYbpwV_uYWhQ3_4XC3zYkKYUbc0cSlp4C5Mt2dRy3mec7amdC9b_wCY1n1qnY9aCGN7PFvdwI0o_DsmGcOV09EEq76sjmIT15gAtYTKOrNj7O2SAdisIPBdDozhTJ_HjdR4oT0Yjq5-baT72HpuPhCe2mD42ELrWojETnHOZnEiAjUthL9FwG_7xqcm0LEXDn9X6ykWKxUfgUA5VcBo0aDVAZPFELZOU1iJ3P2pYnPaQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODYwNDEsImlhdCI6MTcyNTY1MDA1NiwianRpIjoiNjFhZGY2ZWYtOTg1MC00NzhlLTlhYTEtYzhjYTc3YTkyY2Y0IiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiNDQyNjIyYjMtMjU2Yy00NjNhLTgwOGYtNWMyZjMwYmM4ZjI5IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiI0NDI2MjJiMy0yNTZjLTQ2M2EtODA4Zi01YzJmMzBiYzhmMjkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.UO6a0m2ypPsMSGztYNLtYxIIfgx8_xS6i00XBPiA7xNgDjTkvACi1LHEaBAtVpCIb_ngCW8gdWxh9Se7wGen4YjRVxIILhLPCamlgSlXlAhtUeDpu0h2nbrrUTKEZUxmPL3ON9qlPbY3Rg3CKOmtZ3MpeE8D-xA5JwtSwWvfG_oDLXNd2RQPc5o31TftSGjRDbGgKQn7il290RmXceUHKWrnf6nnlmTA99EHRXbr9eeWlb8t_ewX2OElF91GC-PfFfksU-pzoe0ou5W5onoet2ZYCay7iUYzlG4vQ4WkBV7TTcByXnFfYi69dkZ7eh9Q2S6LLsSh8-sHAqOo0SMsdg",
           "cookie": null
         }
       },
@@ -57,28 +122,41 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2023-04-12T06:32:58.700000",
+            "complete_time": "2024-09-06T19:14:10.946000",
             "upload_id": "dft_upload",
-            "upload_create_time": "2023-04-12T06:32:58.699000",
+            "upload_create_time": "2024-09-06T19:14:10.945000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
             ],
+            "coauthor_groups": [
+              "group2"
+            ],
             "reviewers": [
               "54cb1f64-f84e-4815-9ade-440ce0b5430f"
             ],
-            "viewers": [
-              "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
-              "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+            "reviewer_groups": [
+              "group3"
             ],
             "writers": [
-              "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
+              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+              "68878af7-6845-46c0-b2c1-250d4d8eb470"
+            ],
+            "writer_groups": [
+              "group2"
+            ],
+            "viewers": [
+              "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+              "68878af7-6845-46c0-b2c1-250d4d8eb470"
+            ],
+            "viewer_groups": [
+              "group2",
+              "group3"
             ],
             "published": true,
             "published_to": [],
-            "publish_time": "2023-04-12T06:32:58.702000",
+            "publish_time": "2024-09-06T19:14:10.948000",
             "with_embargo": false,
             "embargo_length": 0,
             "license": "CC BY 4.0",
@@ -91,7 +169,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk",
-              "entry_create_time": "2023-04-12T06:32:58.703000",
+              "entry_create_time": "2024-09-06T19:14:10.949000",
               "mainfile": "vasp.xml",
               "upload_id": "dft_upload",
               "parser_name": "parsers/vasp",
@@ -104,9 +182,9 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2023-04-12T06:32:58.699378+00:00",
+                "upload_create_time": "2024-09-06T19:14:10.945671+00:00",
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2023-04-12T06:32:58.702378+00:00",
+                "publish_time": "2024-09-06T19:14:10.948671+00:00",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -143,23 +221,25 @@
                           "GGA_X_PBE"
                         ],
                         "van_der_Waals_method": "G06",
-                        "relativity_method": "scalar_relativistic_atomic_ZORA",
-                        "basis_set_name": "STO-3G"
+                        "jacobs_ladder": "not processed",
+                        "relativity_method": "scalar_relativistic_atomic_ZORA"
                       },
+                      "program_version_internal": "not processed",
                       "program_name": "VASP"
                     }
                   },
                   "properties": {
                     "available_properties": [
-                      "dos_electronic",
                       "band_structure_electronic",
-                      "dos_phonon",
                       "band_structure_phonon",
-                      "heat_capacity_constant_volume",
-                      "energy_free_helmholtz",
                       "bulk_modulus",
-                      "shear_modulus",
+                      "dos_electronic",
+                      "dos_phonon",
+                      "electronic.band_structure_electronic.band_gap",
+                      "energy_free_helmholtz",
                       "energy_volume_curve",
+                      "heat_capacity_constant_volume",
+                      "shear_modulus",
                       "trajectory"
                     ],
                     "structures": {
@@ -227,13 +307,7 @@
                             "pressure",
                             "temperature",
                             "volume"
-                          ],
-                          "methodology": {
-                            "molecular_dynamics": {
-                              "time_step": 1e-15,
-                              "ensemble_type": "NVT"
-                            }
-                          }
+                          ]
                         }
                       ]
                     },
@@ -272,6 +346,9 @@
                     "name": "Sheldon Cooper"
                   }
                 ],
+                "writer_groups": [
+                  "group2"
+                ],
                 "processed": true,
                 "mainfile": "vasp.xml",
                 "main_author": {
@@ -292,7 +369,11 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2023-04-12T06:32:58.703378+00:00",
+                "viewer_groups": [
+                  "group2",
+                  "group3"
+                ],
+                "entry_create_time": "2024-09-06T19:14:10.949671+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -314,7 +395,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8467",
+          "content-length": "8720",
           "content-type": "application/json",
           "server": "uvicorn"
         }

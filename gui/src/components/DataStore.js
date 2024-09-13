@@ -168,6 +168,32 @@ const DataStore = React.memo(({children}) => {
     return function unsubscriber() { removeSubscription(uploadStore.current, uploadId, cb) }
   }
 
+  function updateUserDependentAttributes(storeObj, user) {
+    const viewers = storeObj.upload?.viewers
+    const writers = storeObj.upload?.writers
+    const viewer_groups = storeObj.upload?.viewer_groups
+    const writer_groups = storeObj.upload?.writer_groups
+    storeObj.isViewer = !!(user && (
+      viewers?.includes(user.sub) || viewer_groups?.some(g => user?.groups?.includes(g))
+    ))
+    storeObj.isWriter = !!(user && (
+      writers?.includes(user.sub) || writer_groups?.some(g => user?.groups?.includes(g))
+    ))
+    storeObj.isMainAuthor = user && storeObj.upload?.main_author === user.sub
+    storeObj.isEditable = storeObj.isWriter && !storeObj.upload.published
+    storeObj.isVisibleForAll = isUploadVisibleForAll(storeObj.upload)
+  }
+
+  function notifySubscribers(oldStoreObj, newStoreObj) {
+    for (const cb of newStoreObj._subscriptions) {
+      try {
+        cb(oldStoreObj, newStoreObj)
+      } catch (error) {
+        console.error('DataStore: failed to notify subscriber: ' + error.message)
+      }
+    }
+  }
+
   /**
    * Updates the store upload with the specified data and notifies all subscribers.
    */
@@ -176,7 +202,6 @@ const DataStore = React.memo(({children}) => {
     const oldStoreObj = getUpload(deploymentUrl, uploadId)
     const newStoreObj = {...oldStoreObj, ...dataToUpdate}
     // Compute derived values
-    const user = userRef.current
     newStoreObj.hasUpload = !!newStoreObj.upload
     newStoreObj.isProcessing = !!newStoreObj.upload?.process_running
     if (dataToUpdate.upload || dataToUpdate.entries) {
@@ -185,25 +210,10 @@ const DataStore = React.memo(({children}) => {
     if (dataToUpdate?.upload?.current_process === 'delete_upload') {
       newStoreObj.deletionRequested = true // Will treat subsequent 404 errors
     }
-    const viewers = newStoreObj.upload?.viewers
-    const writers = newStoreObj.upload?.writers
-    newStoreObj.isViewer = !!(user && viewers?.includes(user.sub))
-    newStoreObj.isWriter = !!(user && writers?.includes(user.sub))
-    newStoreObj.isMainAuthor = user && newStoreObj.upload?.main_author === user.sub
-    newStoreObj.isEditable = newStoreObj.isWriter && !newStoreObj.upload.published
-    newStoreObj.isVisibleForAll = isUploadVisibleForAll(newStoreObj.upload)
-
+    updateUserDependentAttributes(newStoreObj, userRef.current)
     // Update the store
     uploadStore.current[uploadId] = newStoreObj
-
-    // Notify subscribers
-    for (const cb of newStoreObj._subscriptions) {
-      try {
-        cb(oldStoreObj, newStoreObj)
-      } catch (error) {
-        console.error('DataStore: failed to notify subscriber: ' + error.message)
-      }
-    }
+    notifySubscribers(oldStoreObj, newStoreObj)
     // Report any unexpected api errors to the user
     if (newStoreObj.error && (!oldStoreObj.error || oldStoreObj.error?.apiMessage !== newStoreObj.error?.apiMessage)) {
       if (newStoreObj.error instanceof DoesNotExist && newStoreObj.deletionRequested) {
@@ -422,7 +432,10 @@ const DataStore = React.memo(({children}) => {
         const metadata = metadataApiData?.response?.data
         const uploadId = metadata?.upload_id
         const user = userRef.current
-        const isWriter = user && metadata?.writers && metadata.writers.find(u => u.user_id === user.sub)
+        const isWriter = !!(user && (
+          metadata.writers?.some(u => u.user_id === user.sub) ||
+          metadata.writer_groups?.some(g => user.groups?.includes(g))
+        ))
         const isEditableArchive = metadata && !metadata.published && metadata.quantities && metadata.quantities.includes('data')
         const editable = isWriter && isEditableArchive && selectedEntry.current === `${deploymentUrl}:${entryId}`
         const isProcessing = !!metadata?.process_running
@@ -755,6 +768,15 @@ const DataStore = React.memo(({children}) => {
     metainfoDataStore.current = {}
     externalInheritanceCache.current = {}
   }
+
+  useEffect(() => {
+    for (const uploadId in uploadStore.current) {
+      const newUploadObj = {...uploadStore.current[uploadId]}
+      updateUserDependentAttributes(newUploadObj, user)
+      notifySubscribers(uploadStore.current[uploadId], newUploadObj)
+      uploadStore.current[uploadId] = newUploadObj
+    }
+  }, [user])
 
   const contextValue = {
     getUpload,

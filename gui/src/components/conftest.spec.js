@@ -109,7 +109,7 @@ export const WrapperDefault = ({children}) => {
             <UnitProvider
               initialUnitSystems={ui?.unit_systems?.options}
               initialSelected={ui?.unit_systems?.selected}
-              >
+            >
               <DataStore>
                 <GlobalMetainfo>
                   <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
@@ -539,6 +539,15 @@ async function mockKeycloak(username, password) {
   }
 
   const testUsers = {
+    'admin': {
+      'sub': 'c97facc2-92ec-4fa6-80cf-a08ed957255b',
+      'email_verified': true,
+      'name': 'Admin Administrator',
+      'preferred_username': 'admin',
+      'given_name': 'Admin',
+      'family_name': 'Administrator',
+      'email': 'markus.scheidgen@physik.hu-berlin.de'
+    },
     'test': {
       'sub': '68878af7-6845-46c0-b2c1-250d4d8eb470',
       'email_verified': true,
@@ -565,15 +574,6 @@ async function mockKeycloak(username, password) {
       'given_name': 'Test',
       'family_name': 'Tester',
       'email': 'test@nomad-coe.eu'
-    },
-    'admin': {
-      'sub': 'c97facc2-92ec-4fa6-80cf-a08ed957255b',
-      'email_verified': true,
-      'name': 'Admin Administrator',
-      'preferred_username': 'admin',
-      'given_name': 'Admin',
-      'family_name': 'Administrator',
-      'email': 'markus.scheidgen@physik.hu-berlin.de'
     }
   }
 

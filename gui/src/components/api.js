@@ -97,7 +97,8 @@ class ResourcesApi {
     this.api = api
     this.apiKey = null
     this.axios = axios.create({
-      baseURL: `${appBase}/resources`
+      baseURL: `${appBase}/resources`,
+      paramsSerializer: {indexes: null}
     })
   }
 
@@ -113,7 +114,8 @@ class Api {
     this.setLoading = setLoading
     this.baseURL = `${apiBase}/v1`
     this.axios = axios.create({
-      baseURL: this.baseURL
+      baseURL: this.baseURL,
+      paramsSerializer: {indexes: null}
     })
 
     this.nLoading = 0
@@ -316,6 +318,11 @@ class Api {
     }
   }
 
+  async getGroups(query) {
+    // no loading indicator, because this is only used in the background of the edit dialog
+    return this.get('groups', query, {noLoading: true}).then(response => response.data)
+  }
+
   async getUsers(query) {
     // no loading indicator, because this is only used in the background of the edit dialog
     return this.get('users', query, {noLoading: true}).then(response => response.data)
@@ -389,12 +396,23 @@ export const APIProvider = React.memo(({
 
   // Update user whenever keycloak instance changes
   useEffect(() => {
-    if (keycloak.authenticated) {
-      keycloak.loadUserInfo().then(response => {
-        setUser(response)
-      })
+    if (!keycloak.authenticated) {
+      setUser(null)
+      return
     }
-  }, [keycloak, setUser])
+
+    keycloak.loadUserInfo().then(async userInfo => {
+      api.getGroups({user_id: userInfo.sub}).then(groups => {
+        userInfo.groups = groups.map(group => group.group_id)
+        setUser(userInfo)
+      }).catch(() => {
+        userInfo.groups = []
+        setUser(userInfo)
+      })
+    }).catch(() => {
+      setUser(null)
+    })
+  }, [api, keycloak, setUser])
 
   const value = useMemo(() => ({
     api: api,

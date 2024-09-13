@@ -204,6 +204,10 @@ class Services(ConfigBaseModel):
         resources.
     """,
     )
+    upload_members_group_search_enabled = Field(
+        False,
+        description='If true, the GUI will show a search for groups as upload members.',
+    )
 
     # Validators
     _console_log_level = validator('console_log_level', allow_reuse=True)(

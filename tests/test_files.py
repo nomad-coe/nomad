@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Generator, Any, Dict, Tuple, Iterable, List
+from typing import Generator, Any, Dict, Optional, Tuple, Iterable, List, Union
 from datetime import datetime
 import os
 import os.path
@@ -677,8 +677,8 @@ def assert_upload_files(
 
 
 def create_test_upload_files(
-    upload_id: str,
-    archives: List[datamodel.EntryArchive] = None,
+    upload_id: Union[str, None],
+    archives: Union[List[datamodel.EntryArchive], None] = None,
     published: bool = True,
     embargo_length: int = 0,
     raw_files: str = None,
@@ -722,8 +722,6 @@ def create_test_upload_files(
     upload_raw_files = upload_files.join_dir('raw')
     source = upload_raw_files.join_dir(os.path.dirname(template_mainfile)).os_path
 
-    if archives is None:
-        archives = []
     for archive in archives:
         # create a copy of the given template files for each archive
         mainfile = archive.metadata.mainfile
