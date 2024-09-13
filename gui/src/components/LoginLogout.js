@@ -59,6 +59,7 @@ const LoginLogout = React.memo(function LoginLogout(props) {
           variant={variant} color={color}
           onClick={() => keycloak.logout()}
           startIcon={<LoginIcon/>}
+          data-testid='logout-button'
         >Logout</Button>
       </div>
     )

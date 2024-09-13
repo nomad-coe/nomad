@@ -16,17 +16,12 @@
  * limitations under the License.
  */
 
-import React from 'react'
-import {
-  render,
-  screen,
-  waitForGUI,
-  startAPI,
-  closeAPI
-} from '../conftest.spec'
-import UploadPage from './UploadPage'
-import {fireEvent, waitFor, within, act} from '@testing-library/react'
+import { act, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import React from 'react'
+import { closeAPI, render, screen, startAPI, waitForGUI } from '../conftest.spec'
+import LoginLogout from '../LoginLogout'
+import UploadPage from './UploadPage'
 
 afterEach(() => closeAPI())
 
@@ -64,6 +59,7 @@ const testShownColumnsAction = async () => {
 }
 
 const testPublishedWritePermissions = async () => {
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -83,6 +79,7 @@ const testPublishedWritePermissions = async () => {
 }
 
 const testUnpublishedWritePermissions = async () => {
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -104,6 +101,7 @@ const testUnpublishedWritePermissions = async () => {
 }
 
 const testEmbargoedPublishesWritePermissions = async () => {
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -122,7 +120,8 @@ const testEmbargoedPublishesWritePermissions = async () => {
   expect(queryVisibleForAllCheckbox()).toBeDisabled()
 }
 
-const testReadOnlyPermissions = async () => {
+const testReadOnlyPermissions = async (isLoggedIn) => {
+  await screen.findByTestId(isLoggedIn ? 'logout-button' : 'login-register-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -159,10 +158,24 @@ test.each([
     'dft_upload',
     'scooper',
     'password'
+  ], [
+    'Published and logged in as coauthor group owner',
+    'tests.states.uploads.published_coauthor_group',
+    'tests/data/uploads/uploadpage-published-coauthor-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Published and logged in as coauthor group member',
+    'tests.states.uploads.published_coauthor_group',
+    'tests/data/uploads/uploadpage-published-coauthor-group-member',
+    'dft_upload',
+    'ttester',
+    'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<UploadPage uploadId={uploadId}/>)
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
   await testPublishedWritePermissions()
   await testShownColumnsAction()
 })
@@ -172,6 +185,20 @@ test.each([
     'Published and logged in as reviewer',
     'tests.states.uploads.published',
     'tests/data/uploads/uploadpage-published-reviewer',
+    'dft_upload',
+    'ttester',
+    'password'
+  ], [
+    'Published and logged in as reviewer group owner',
+    'tests.states.uploads.published_reviewer_group',
+    'tests/data/uploads/uploadpage-published-reviewer-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Published and logged in as reviewer group member',
+    'tests.states.uploads.published_reviewer_group',
+    'tests/data/uploads/uploadpage-published-reviewer-group-member',
     'dft_upload',
     'ttester',
     'password'
@@ -197,17 +224,46 @@ test.each([
     'ttester',
     'password'
   ], [
+    'Unpublished and logged in as reviewer group owner',
+    'tests.states.uploads.unpublished_reviewer_group',
+    'tests/data/uploads/uploadpage-unpublished-reviewer-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Unpublished and logged in as reviewer group member',
+    'tests.states.uploads.unpublished_reviewer_group',
+    'tests/data/uploads/uploadpage-unpublished-reviewer-group-member',
+    'dft_upload',
+    'ttester',
+    'password'
+  ], [
     'Published with embargo and logged in as reviewer',
     'tests.states.uploads.published_with_embargo',
     'tests/data/uploads/uploadpage-published-with-embargo-reviewer',
     'dft_upload',
     'ttester',
     'password'
+  ], [
+    'Published with embargo and logged in as reviewer group owner',
+    'tests.states.uploads.published_with_embargo_reviewer_group',
+    'tests/data/uploads/uploadpage-published-with-embargo-reviewer-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Published with embargo and logged in as reviewer group member',
+    'tests.states.uploads.published_with_embargo_reviewer_group',
+    'tests/data/uploads/uploadpage-published-with-embargo-reviewer-group-member',
+    'dft_upload',
+    'ttester',
+    'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<UploadPage uploadId={uploadId}/>)
-  await testReadOnlyPermissions()
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
+  const isLoggedIn = username !== ''
+  await testReadOnlyPermissions(isLoggedIn)
   await testShownColumnsAction()
 })
 
@@ -226,10 +282,24 @@ test.each([
     'dft_upload',
     'scooper',
     'password'
+  ], [
+    'Unpublished and logged in as coauthor group owner',
+    'tests.states.uploads.unpublished_coauthor_group',
+    'tests/data/uploads/uploadpage-unpublished-coauthor-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Unpublished and logged in as coauthor group member',
+    'tests.states.uploads.unpublished_coauthor_group',
+    'tests/data/uploads/uploadpage-unpublished-coauthor-group-member',
+    'dft_upload',
+    'ttester',
+    'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<UploadPage uploadId={uploadId}/>)
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
   await testUnpublishedWritePermissions()
   await testShownColumnsAction()
 })
@@ -245,8 +315,9 @@ const expectEntriesOrder = (list) => {
 
 test('Render upload page: multiple entries', async () => {
   await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries', 'test', 'password')
-  render(<UploadPage uploadId="dft_upload_1"/>)
+  render(<><LoginLogout/><UploadPage uploadId="dft_upload_1"/></>)
 
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -279,8 +350,9 @@ test('Render upload page: multiple entries', async () => {
 
 test('Delete selected entries from table', async () => {
   await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/delete_entries_from_table', 'test', 'password')
-  render(<UploadPage uploadId="dft_upload_1"/>)
+  render(<><LoginLogout/><UploadPage uploadId="dft_upload_1"/></>)
 
+  await screen.findByTestId('logout-button')
   // Wait for the page to load, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -365,10 +437,24 @@ test.each([
     'dft_upload',
     'scooper',
     'password'
+  ], [
+    'Published with embargo and logged in as coauthor group owner',
+    'tests.states.uploads.published_with_embargo_coauthor_group',
+    'tests/data/uploads/uploadpage-published-with-embargo-coauthor-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Published with embargo and logged in as coauthor group member',
+    'tests.states.uploads.published_with_embargo_coauthor_group',
+    'tests/data/uploads/uploadpage-published-with-embargo-coauthor-group-member',
+    'dft_upload',
+    'ttester',
+    'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<UploadPage uploadId={uploadId}/>)
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
   await testEmbargoedPublishesWritePermissions()
   await testShownColumnsAction()
 })
@@ -393,7 +479,8 @@ test('Toggle visible for all checkbox; check embargo, icon', async () => {
     await waitFor(() => expect(checkbox.checked).toEqual(!initialState))
   }
 
-  render(<UploadPage uploadId='dft_upload'/>)
+  render(<><LoginLogout/><UploadPage uploadId='dft_upload'/></>)
+  await screen.findByTestId('logout-button')
 
   // set embargo to value
   const embargoLabel = await screen.findByText('Embargo period', { selector: 'label' })

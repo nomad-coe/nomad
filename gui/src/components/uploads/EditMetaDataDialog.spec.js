@@ -16,18 +16,15 @@
  * limitations under the License.
  */
 
-import React from 'react'
-import {
-  render,
-  screen,
-  startAPI,
-  closeAPI
-} from '../conftest.spec'
 import { within } from '@testing-library/dom'
+import { fireEvent, waitFor } from '@testing-library/react'
+import React from 'react'
+import { closeAPI, render, screen, startAPI } from '../conftest.spec'
+import LoginLogout from '../LoginLogout'
 import UploadPage from './UploadPage'
-import {fireEvent, waitFor} from '@testing-library/react'
 
 const testComment = async () => {
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -47,6 +44,7 @@ const testComment = async () => {
 }
 
 const testReferences = async () => {
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -98,6 +96,7 @@ const testReferences = async () => {
 }
 
 const testDatasetForPublished = async () => {
+  await screen.findByTestId('logout-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -129,7 +128,8 @@ const testDatasetForPublished = async () => {
   expect(screen.queryByText('Submit')).toBeEnabled()
 }
 
-const testReadOnlyPermissions = async () => {
+const testReadOnlyPermissions = async (isLoggedIn) => {
+  await screen.findByTestId(isLoggedIn ? 'logout-button' : 'login-register-button')
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -183,7 +183,7 @@ test.each([
   ]
 ])('Metadata dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<UploadPage uploadId={uploadId}/>)
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
   await testComment()
   await testReferences()
   await testDatasetForPublished()
@@ -229,7 +229,8 @@ test.each([
   ]
 ])('Metadata dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<UploadPage uploadId={uploadId}/>)
-  await testReadOnlyPermissions()
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
+  const isLoggedIn = username !== ''
+  await testReadOnlyPermissions(isLoggedIn)
   closeAPI()
 })

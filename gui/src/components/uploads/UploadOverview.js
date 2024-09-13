@@ -381,7 +381,8 @@ function UploadOverview(props) {
   const {raiseError} = useErrors()
   const {
     uploadId, upload, entries, apiData, hasUpload, isProcessing, error, isVisibleForAll,
-    isWriter, pagination, deleteRequested, updateUpload, requestRefreshUpload, isMainAuthor} = useUploadPageContext()
+    isWriter, pagination, deleteRequested, updateUpload, requestRefreshUpload,
+    isMainAuthor} = useUploadPageContext()
   const [uploading, setUploading] = useState(null)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
   const [readme, setReadme] = useState(null)

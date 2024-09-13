@@ -111,6 +111,7 @@ export const encyclopediaBase = window.nomadEnv.encyclopediaBase
 export const oasis = window.nomadEnv.oasis || false
 export const globalLoginRequired = window.nomadEnv.globalLoginRequired || false
 export const appTokenMaxExpiresIn = window.nomadEnv.appTokenMaxExpiresIn || "2023-10-25"
+export const uploadMembersGroupSearchEnabled = window.nomadEnv.uploadMembersGroupSearchEnabled || false
 export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
 export const schemaSeparator = '#'

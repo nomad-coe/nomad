@@ -19,7 +19,6 @@ button. This will bring you to the upload page.
 
 Before you start, make sure that the size of your data does not exceed the [upload limits](#upload-limits). If it does, please contact us.
 
-
 You can drop your files on (or click) the `CLICK OR DROP FILES` button. On top you will
 see a list of supported file formats and details on the files to upload.
 You can also go to the `FILES` tab. Here you can create directories and drop files into directories.
@@ -38,8 +37,6 @@ However, all files that are associated to a recognized *mainfile* by being in th
 same directory are displayed as **auxiliary** files next to the entry represented
 by the **mainfile**.
 
-
-
 !!! note
     **A note for VASP users**.
     On the handling of **POTCAR** files: NOMAD takes care of it; you don't
@@ -49,17 +46,36 @@ by the **mainfile**.
     `POTCAR.stripped`. These files can be accessed and downloaded by anyone, while the original
     POTCAR files are automatically removed.
 
+## Visibility and access
+
+You can edit who has access to your upload. Click on the *Edit upload members* button to
+open the corresponding dialog. There you can search for users (or groups, see below) and
+add them to the list as reviewers, who can view your upload before it is published.
+
+The table below the search field shows who has been added and their role. In each row you
+can remove the member or change their role from Reviewer to Co-author, who may also edit
+the upload. You must confirm the dialog for the changes to take effect.
+
+You can also make the upload visible for everyone, even not logged in users, by using
+the checkbox in the same upload step. Note that you cannot use this feature if the upload
+is published with embargo and vice versa.
+
+!!! note
+    Instead of single users you may also give access via user groups. Switch the search
+    type from *User* to *Group*, search for the group name, and optionally change their
+    role. This feature must be enabled in the config file `nomad.yaml`.
+
+    See [API](../programmatic/api.md#user-groups) on how to create and edit user groups.
 
 ## Add user metadata
 
 NOMAD automatically extracts as much information as possible from your files but you
 can still specify additional metadata. This is what we call *user metadata*. This includes
-you and your co-authors (use the *edit members* function on the *upload page*) as well
-as comments, additional web-references, and datasets (use the *edit metadata* function on
+comments, additional web-references, and datasets (use the *edit metadata* function on
 the *upload page*).
 
-User metadata can also be provided in an uploaded file. This can be a `.json` or
-`.yaml` file. It has to be named `nomad.json` or `nomad.yaml`. Here is a JSON example:
+User metadata can also be provided in an uploaded file, either named `nomad.json` or
+`nomad.yaml`. Here is a JSON example:
 
 ```json
 {
@@ -93,13 +109,11 @@ Go to `PUBLISH` / `Datasets` in the menu to see all your datasets. Here you can 
 a DOI to created *datasets*. For a *dataset* with DOI, you can only add more entries, but
 not remove entries.
 
-
 ## Upload limits
 
 - One upload cannot exceed **32 GB** in size.
 - Only **10 non published uploads** are allowed per user.
 - Only uploads with at least one recognized entry can be published. See also [supported codes/formats](../../reference/parsers.md) below.
-
 
 ## Strategies for large amounts of data
 
@@ -129,7 +143,7 @@ smaller test uploads, you should consider skipping our staging and publish the u
 right away. This can save you some time and additional API calls. The upload endpoint
 has a parameter `publish_directly`. You can modify the upload command you get on the upload page as follows:
 
-```
+```shell
 curl "http://nomad-lab.eu/prod/v1/uploads/?token=<your-token>&publish_directly=true" -T <local_file>
 ```
 
@@ -139,6 +153,6 @@ a separate manual file transfer to our servers. We will put your prepared upload
 files (.zip or .tag.gz) on a predefined path on the NOMAD servers. NOMAD allows to *"upload"*
 files directly from its servers via an additional `local_path` parameter:
 
-```
+```shell
 curl -X PUT "http://nomad-lab.eu/prod/v1/api/uploads/?token=<your-token>&local_path=<path-to-upload-file>"
 ```

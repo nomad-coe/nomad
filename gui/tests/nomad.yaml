@@ -16,4 +16,5 @@ plugins:
       - runschema:run_schema_entry_point
       - simulationworkflowschema:simulationworkflow_schema_entry_point
       - electronicparsers:vasp_parser_entry_point
-
+services:
+  upload_members_group_search_enabled: true

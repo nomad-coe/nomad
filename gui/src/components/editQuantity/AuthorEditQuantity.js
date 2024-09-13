@@ -21,7 +21,7 @@ import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
 import {Box, CircularProgress, FormLabel, InputAdornment, makeStyles, Typography} from '@material-ui/core'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import {debounce} from 'lodash'
-import {fetchUsers} from '../uploads/EditMembersDialog'
+import {fetchUsersByNamePrefix} from '../utils/apiUtils'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
 import {getDisplayLabel} from "../../utils"
@@ -56,14 +56,20 @@ export const AuthorEditQuantity = React.memo((props) => {
 
   const searchUsers = useCallback((value) => {
     const newQuery = value.toLowerCase()
-    if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
-      fetchUsers(api, query, newQuery)
-        .then(setSuggestions)
-        .catch(err => {
-          raiseError(err)
-          setSuggestions([])
-        })
+    const oldQuery = query
+
+    if (oldQuery !== '' && newQuery.startsWith(oldQuery) && suggestions.length === 0) {
+      setQuery(newQuery)
+      return
     }
+
+    fetchUsersByNamePrefix(api, newQuery)
+      .then(setSuggestions)
+      .catch(err => {
+        raiseError(err)
+        setSuggestions([])
+      })
+
     setQuery(newQuery)
     setSearching(false)
   }, [api, raiseError, query, suggestions])

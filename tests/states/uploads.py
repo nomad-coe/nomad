@@ -20,6 +20,63 @@ from nomad import infrastructure, files
 from nomad.processing import Upload
 from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
+from .groups import init_gui_test_groups
+
+default_access = {'coauthors': ['scooper'], 'reviewers': ['ttester']}
+twin_access = {
+    'coauthors': ['scooper'],
+    'reviewers': ['ttester'],
+    'coauthor_groups': ['group2'],
+    'reviewer_groups': ['group3'],
+}
+
+
+def _build_example_data(
+    main_author='test',
+    coauthors=None,
+    reviewers=None,
+    coauthor_groups=None,
+    reviewer_groups=None,
+):
+    """
+    Helper function to set access fields for example data
+    """
+    get_user = infrastructure.user_management.get_user
+    main_author = get_user(username=main_author)
+    coauthors = [get_user(username=name).user_id for name in coauthors or []]
+    reviewers = [get_user(username=name).user_id for name in reviewers or []]
+
+    groups = init_gui_test_groups()
+    coauthor_groups = coauthor_groups or []
+    reviewer_groups = reviewer_groups or []
+    if len(coauthor_groups) + len(reviewer_groups) > 0:
+        coauthor_groups = [groups[label].group_id for label in coauthor_groups]
+        reviewer_groups = [groups[label].group_id for label in reviewer_groups]
+
+    data = ExampleData(
+        main_author=main_author,
+        coauthors=coauthors,
+        reviewers=reviewers,
+        coauthor_groups=coauthor_groups,
+        reviewer_groups=reviewer_groups,
+    )
+    return data
+
+
+def _create_vasp_upload(*, access, published, embargo_length):
+    infrastructure.setup()
+    data = _build_example_data(**access)
+    upload_id = 'dft_upload'
+    data.create_upload(
+        upload_id=upload_id, published=published, embargo_length=embargo_length
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id='dft_bulk',
+        mainfile='vasp.xml',
+        entry_archive=archive_dft_bulk(),
+    )
+    data.save()
 
 
 def empty():
@@ -27,85 +84,93 @@ def empty():
     State published upload containing one entry
     """
     infrastructure.setup()
-    main_author = infrastructure.user_management.get_user(username='test')
-    data = ExampleData(main_author=main_author)
-
+    data = _build_example_data()
     data.save()
 
 
 def published():
     """
-    State published upload containing one entry
+    1 upload, published, 1 entry, 1 coauthor, 1 reviewer
     """
-    infrastructure.setup()
-    main_author = infrastructure.user_management.get_user(username='test')
-    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(
-        main_author=main_author, coauthors=coauthors, reviewers=reviewers
-    )
+    _create_vasp_upload(access=default_access, published=True, embargo_length=0)
 
-    upload_id = 'dft_upload'
-    data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
-    entry_id = 'dft_bulk'
-    data.create_entry(
-        upload_id=upload_id,
-        entry_id=entry_id,
-        mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk(),
-    )
 
-    data.save()
+def published_twin_access():
+    """
+    1 upload, published, 1 entry,
+    1 coauthor = 1 coauthor group, 1 reviewer = 1 reviewer group
+    """
+    _create_vasp_upload(access=twin_access, published=True, embargo_length=0)
+
+
+def published_coauthor_group():
+    """
+    1 upload, published, 1 entry, 1 coauthor group
+    """
+    access = {'coauthor_groups': ['group23']}
+    _create_vasp_upload(access=access, published=True, embargo_length=0)
+
+
+def published_reviewer_group():
+    """
+    1 upload, published, 1 entry, 1 reviewer group
+    """
+    access = {'reviewer_groups': ['group23']}
+    _create_vasp_upload(access=access, published=True, embargo_length=0)
 
 
 def published_with_embargo():
     """
-    State published upload but under 3 months embargo
+    1 upload, published, embargo, 1 coauthor, 1 reviewer
     """
-    infrastructure.setup()
-    main_author = infrastructure.user_management.get_user(username='test')
-    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(
-        main_author=main_author, coauthors=coauthors, reviewers=reviewers
-    )
+    _create_vasp_upload(access=default_access, published=True, embargo_length=3)
 
-    upload_id = 'dft_upload'
-    data.create_upload(upload_id=upload_id, published=True, embargo_length=3)
-    entry_id = 'dft_bulk'
-    data.create_entry(
-        upload_id=upload_id,
-        entry_id=entry_id,
-        mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk(),
-    )
 
-    data.save()
+def published_with_embargo_coauthor_group():
+    """
+    1 upload, published, 1 entry, embargo, 1 coauthor group
+    """
+    access = {'coauthor_groups': ['group23']}
+    _create_vasp_upload(access=access, published=True, embargo_length=3)
+
+
+def published_with_embargo_reviewer_group():
+    """
+    1 upload, published, 1 entry, embargo, 1 reviewer group
+    """
+    access = {'reviewer_groups': ['group23']}
+    _create_vasp_upload(access=access, published=True, embargo_length=3)
 
 
 def unpublished():
     """
-    State unpublished upload containing one entry
+    1 upload, unpublished, 1 entry, 1 coauthor, 1 reviewer
     """
-    infrastructure.setup()
-    main_author = infrastructure.user_management.get_user(username='test')
-    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(
-        main_author=main_author, coauthors=coauthors, reviewers=reviewers
-    )
+    _create_vasp_upload(access=default_access, published=False, embargo_length=0)
 
-    upload_id = 'dft_upload'
-    data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
-    entry_id = 'dft_bulk'
-    data.create_entry(
-        upload_id=upload_id,
-        entry_id=entry_id,
-        mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk(),
-    )
 
-    data.save()
+def unpublished_twin_access():
+    """
+    1 upload, published, embargo,
+    1 coauthor = 1 coauthor group, 1 reviewer = 1 reviewer group
+    """
+    _create_vasp_upload(access=twin_access, published=False, embargo_length=0)
+
+
+def unpublished_coauthor_group():
+    """
+    1 upload, unpublished, 1 entry, 1 coauthor group
+    """
+    access = {'coauthor_groups': ['group23']}
+    _create_vasp_upload(access=access, published=False, embargo_length=0)
+
+
+def unpublished_reviewer_group():
+    """
+    1 upload, unpublished, 1 entry, 1 reviewer group
+    """
+    access = {'reviewer_groups': ['group23']}
+    _create_vasp_upload(access=access, published=False, embargo_length=0)
 
 
 def multiple_entries():
@@ -120,14 +185,12 @@ def multiple_entries():
     data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
 
     for i in range(1, 7):
-        entry_id = f'dft_bulk_{i}'
         data.create_entry(
             upload_id=upload_id,
-            entry_id=entry_id,
+            entry_id=f'dft_bulk_{i}',
             mainfile=f'vasp_{i}.xml',
             entry_archive=archive_dft_bulk(),
         )
-
     data.save()
 
 
@@ -144,14 +207,12 @@ def multiple_uploads():
         data.create_upload(
             upload_id=upload_id, published=(i % 2 == 0), embargo_length=0
         )
-        entry_id = f'dft_bulk_{i}'
         data.create_entry(
             upload_id=upload_id,
-            entry_id=entry_id,
-            mainfile=f'vasp.xml',
+            entry_id=f'dft_bulk_{i}',
+            mainfile='vasp.xml',
             entry_archive=archive_dft_bulk(),
         )
-
     data.save()
 
 
@@ -166,34 +227,26 @@ def maximum_unpublished():
     for i in range(1, 11):
         upload_id = f'dft_upload_{i}'
         data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
-        entry_id = f'dft_bulk_{i}'
         data.create_entry(
             upload_id=upload_id,
-            entry_id=entry_id,
-            mainfile=f'vasp.xml',
+            entry_id=f'dft_bulk_{i}',
+            mainfile='vasp.xml',
             entry_archive=archive_dft_bulk(),
         )
-
     data.save()
 
 
 def _browser_test(published: bool):
     infrastructure.setup()
-    main_author = infrastructure.user_management.get_user(username='test')
-    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(
-        main_author=main_author, coauthors=coauthors, reviewers=reviewers
-    )
-
+    access = {'coauthors': ['scooper'], 'reviewers': ['ttester']}
+    data = _build_example_data(**access)
     upload_id = 'browser_test'
     data.create_upload(
         upload_id=upload_id, published=published, embargo_length=12 if published else 0
     )
-    entry_id = 'dft_bulk'
     data.create_entry(
         upload_id=upload_id,
-        entry_id=entry_id,
+        entry_id='dft_bulk',
         mainfile='test_entry/vasp.xml',
         entry_archive=archive_dft_bulk(),
     )

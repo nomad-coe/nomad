@@ -1,4 +1,280 @@
 {
+  "8aead418eab335225c1ae546e062aaec": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/groups?user_id=68878af7-6845-46c0-b2c1-250d4d8eb470",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODcxNTcsImlhdCI6MTcyNTY1MTE3MCwianRpIjoiZDQ4NmE2YWItZmRkZS00MTFjLWFiZDQtZmVhMDUwYzgyYmU2IiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZjZmYzEwMTMtZjc5Ni00MjgwLThiNDYtYjM0MGJhOGI5YWNiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJmNmZjMTAxMy1mNzk2LTQyODAtOGI0Ni1iMzQwYmE4YjlhY2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.eRKn58vHUNI3lRQeAgYg4RXtExMRlm0kayATQiA8pTx9_FkCjGbmRXMQN2Etgx5OkTCpNCpay-cPqHufzntVkfJzMxXu1JPnxuhcHHvfywSuxs3EyVOPBWE8oN-00hD-4TZ_oSp0rIa9L6es9q3ywIOc1zzUDrrKljVQo0HWGRl3HmE0zep382aaw3VGedUyRLUTXaIWgXRWVI4RHq8Tr3WDJhNmTRhRW0J1FfF9Nmj93Hy55odLjICF7VNPKaG3I2zB8tJeX-wgfeIdbVQaDuOEE6flAgbMWjC_0waClUDTYnhMzTdObZTo728kjAYNQxhlveCjTSYsgLIuclR3KA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "7ad322e63849f68a11b7fe5f6a53a1e1": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/command-examples",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODcxNTcsImlhdCI6MTcyNTY1MTE3MCwianRpIjoiNTBjNjNhYzEtM2ExOS00N2I5LWExNWYtNGI1NWZhNjk1MThhIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZjZmYzEwMTMtZjc5Ni00MjgwLThiNDYtYjM0MGJhOGI5YWNiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJmNmZjMTAxMy1mNzk2LTQyODAtOGI0Ni1iMzQwYmE4YjlhY2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.TAR2I5I2yVCYwOWIwS0AAzYItHRgNID4NppfHjaidXPVHOySpq7_uESZCR1eglMPdBmhai-7j6b-NBXy_xU7C_tLO9b95SQ_xWFX0l0a4GdlB7fcRsePtDX7ES8ciwUR1rcGPefCpaYnjcPOeZQqJ60Wr8hSM8xCvxERwp_0AWNq0-eIDT8lmg8wddxrVIqvlsy-q3HbM8SjbCsFjuoct2tzvVRkTfLlcTo2TLsrGDR0PG6LkgdhKrGJmNyULRyR6dxJj_EMKmjTcK3xHJSsdOliyl4s8V2B01IdRSjXaC0nD-OcfDDsVo4-jVv2gf66Z8kOo2G8QQubwlcfXkHMBA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "upload_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8",
+          "upload_command": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -T <local_file>",
+          "upload_command_with_name": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8&upload_name=<name>' -T <local_file>",
+          "upload_progress_command": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -T <local_file> | xargs echo",
+          "upload_command_form": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -F file=@<local_file>",
+          "upload_tar_command": "tar -cf - <local_folder> | curl -# 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -X POST -T - | xargs echo"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1073",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "c947b037fa5130f3c4885a9712d127bf": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=desc&order_by=upload_create_time&page_size=10000&roles=main_author",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODcxNTcsImlhdCI6MTcyNTY1MTE3MCwianRpIjoiNTBjNjNhYzEtM2ExOS00N2I5LWExNWYtNGI1NWZhNjk1MThhIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZjZmYzEwMTMtZjc5Ni00MjgwLThiNDYtYjM0MGJhOGI5YWNiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJmNmZjMTAxMy1mNzk2LTQyODAtOGI0Ni1iMzQwYmE4YjlhY2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.TAR2I5I2yVCYwOWIwS0AAzYItHRgNID4NppfHjaidXPVHOySpq7_uESZCR1eglMPdBmhai-7j6b-NBXy_xU7C_tLO9b95SQ_xWFX0l0a4GdlB7fcRsePtDX7ES8ciwUR1rcGPefCpaYnjcPOeZQqJ60Wr8hSM8xCvxERwp_0AWNq0-eIDT8lmg8wddxrVIqvlsy-q3HbM8SjbCsFjuoct2tzvVRkTfLlcTo2TLsrGDR0PG6LkgdhKrGJmNyULRyR6dxJj_EMKmjTcK3xHJSsdOliyl4s8V2B01IdRSjXaC0nD-OcfDDsVo4-jVv2gf66Z8kOo2G8QQubwlcfXkHMBA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "query": {
+            "is_published": false
+          },
+          "pagination": {
+            "page_size": 10000,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page": 1,
+            "total": 6,
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=desc&order_by=upload_create_time&page_size=10000&roles=main_author",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=desc&order_by=upload_create_time&page_size=10000&roles=main_author"
+          },
+          "data": [
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.689000",
+              "upload_id": "dft_upload_11",
+              "upload_create_time": "2024-09-06T19:32:41.688000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_11"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.680000",
+              "upload_id": "dft_upload_9",
+              "upload_create_time": "2024-09-06T19:32:41.679000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_9"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.671000",
+              "upload_id": "dft_upload_7",
+              "upload_create_time": "2024-09-06T19:32:41.670000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_7"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.662000",
+              "upload_id": "dft_upload_5",
+              "upload_create_time": "2024-09-06T19:32:41.661000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_5"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.653000",
+              "upload_id": "dft_upload_3",
+              "upload_create_time": "2024-09-06T19:32:41.652000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_3"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.644000",
+              "upload_id": "dft_upload_1",
+              "upload_create_time": "2024-09-06T19:32:41.643000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_1"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "6248",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
   "2ef05789bc7f32c9f64a5f2da73c7d4f": [
     {
       "request": {
@@ -7,7 +283,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwZTc0MjZkMi05NDQ0LTQxZGUtOGQyZS0zODhlMzY1MzIxOGEiLCJleHAiOjE2ODEyNjMxMzAsIm5iZiI6MCwiaWF0IjoxNjgxMjI3MTUxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjljZjk4NDZhLTUzNWYtNDdmYy1iMzY0LTZiNjRhNmQ2NjFhMyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.D6EqiaIkEodUaY-vopV-bU4KvVhoU9Wg65dEVQdgOdbaEDV57OwCVr_gaE9YvPS0VtGsd4NHh2nq_8E8yPd6BYI1aS_e00wVqiEmE8p3QVMmZowC6Vh8NHDK9mR91H7g-sXxsC0byOuaId5rYcLej_pZt_AEIvlrL-PUNHo4B3y0dtIksQTf3NHZB5lnaYcPaExKLvk2J_9-8H3Z9YbSlrnknYeTQ762kogeUVD5Q-dsLvkpF0TcTxnL15y2bISwqu6mvPgtHEzuD_1KhomdFNimRkVE_2aJUP-RP8GziFepf2SqlenKKB0-bbQmZYf_IQ24ibYwl1G3VMlkfH4lxQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODcxNTcsImlhdCI6MTcyNTY1MTE3MCwianRpIjoiNTBjNjNhYzEtM2ExOS00N2I5LWExNWYtNGI1NWZhNjk1MThhIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZjZmYzEwMTMtZjc5Ni00MjgwLThiNDYtYjM0MGJhOGI5YWNiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJmNmZjMTAxMy1mNzk2LTQyODAtOGI0Ni1iMzQwYmE4YjlhY2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.TAR2I5I2yVCYwOWIwS0AAzYItHRgNID4NppfHjaidXPVHOySpq7_uESZCR1eglMPdBmhai-7j6b-NBXy_xU7C_tLO9b95SQ_xWFX0l0a4GdlB7fcRsePtDX7ES8ciwUR1rcGPefCpaYnjcPOeZQqJ60Wr8hSM8xCvxERwp_0AWNq0-eIDT8lmg8wddxrVIqvlsy-q3HbM8SjbCsFjuoct2tzvVRkTfLlcTo2TLsrGDR0PG6LkgdhKrGJmNyULRyR6dxJj_EMKmjTcK3xHJSsdOliyl4s8V2B01IdRSjXaC0nD-OcfDDsVo4-jVv2gf66Z8kOo2G8QQubwlcfXkHMBA",
           "cookie": null
         }
       },
@@ -33,25 +309,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.518000",
+              "complete_time": "2024-09-06T19:32:41.689000",
               "upload_id": "dft_upload_11",
-              "upload_create_time": "2023-04-11T15:32:23.517000",
+              "upload_create_time": "2024-09-06T19:32:41.688000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_11"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_11"
             },
             {
               "process_running": false,
@@ -59,21 +339,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.513000",
+              "complete_time": "2024-09-06T19:32:41.684000",
               "upload_id": "dft_upload_10",
-              "upload_create_time": "2023-04-11T15:32:23.512000",
+              "upload_create_time": "2024-09-06T19:32:41.683000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.515000",
+              "publish_time": "2024-09-06T19:32:41.686000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -85,25 +369,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.509000",
+              "complete_time": "2024-09-06T19:32:41.680000",
               "upload_id": "dft_upload_9",
-              "upload_create_time": "2023-04-11T15:32:23.508000",
+              "upload_create_time": "2024-09-06T19:32:41.679000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_9"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_9"
             },
             {
               "process_running": false,
@@ -111,21 +399,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.504000",
+              "complete_time": "2024-09-06T19:32:41.675000",
               "upload_id": "dft_upload_8",
-              "upload_create_time": "2023-04-11T15:32:23.503000",
+              "upload_create_time": "2024-09-06T19:32:41.674000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.506000",
+              "publish_time": "2024-09-06T19:32:41.677000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -137,25 +429,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.500000",
+              "complete_time": "2024-09-06T19:32:41.671000",
               "upload_id": "dft_upload_7",
-              "upload_create_time": "2023-04-11T15:32:23.499000",
+              "upload_create_time": "2024-09-06T19:32:41.670000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_7"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_7"
             },
             {
               "process_running": false,
@@ -163,21 +459,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.495000",
+              "complete_time": "2024-09-06T19:32:41.666000",
               "upload_id": "dft_upload_6",
-              "upload_create_time": "2023-04-11T15:32:23.494000",
+              "upload_create_time": "2024-09-06T19:32:41.665000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.497000",
+              "publish_time": "2024-09-06T19:32:41.668000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -189,25 +489,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.491000",
+              "complete_time": "2024-09-06T19:32:41.662000",
               "upload_id": "dft_upload_5",
-              "upload_create_time": "2023-04-11T15:32:23.490000",
+              "upload_create_time": "2024-09-06T19:32:41.661000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_5"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_5"
             },
             {
               "process_running": false,
@@ -215,21 +519,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.486000",
+              "complete_time": "2024-09-06T19:32:41.657000",
               "upload_id": "dft_upload_4",
-              "upload_create_time": "2023-04-11T15:32:23.485000",
+              "upload_create_time": "2024-09-06T19:32:41.656000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.488000",
+              "publish_time": "2024-09-06T19:32:41.659000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -241,25 +549,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.482000",
+              "complete_time": "2024-09-06T19:32:41.653000",
               "upload_id": "dft_upload_3",
-              "upload_create_time": "2023-04-11T15:32:23.481000",
+              "upload_create_time": "2024-09-06T19:32:41.652000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_3"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_3"
             },
             {
               "process_running": false,
@@ -267,21 +579,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.477000",
+              "complete_time": "2024-09-06T19:32:41.648000",
               "upload_id": "dft_upload_2",
-              "upload_create_time": "2023-04-11T15:32:23.476000",
+              "upload_create_time": "2024-09-06T19:32:41.647000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.479000",
+              "publish_time": "2024-09-06T19:32:41.650000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -291,53 +607,22 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8520",
+          "content-length": "9820",
           "content-type": "application/json",
           "server": "uvicorn"
         }
       }
     }
   ],
-  "7ad322e63849f68a11b7fe5f6a53a1e1": [
+  "c6e728888f69260dae296e90c2d74663": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/command-examples",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=asc&order_by=upload_name&page_size=10000&roles=main_author",
         "method": "GET",
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwZTc0MjZkMi05NDQ0LTQxZGUtOGQyZS0zODhlMzY1MzIxOGEiLCJleHAiOjE2ODEyNjMxMzAsIm5iZiI6MCwiaWF0IjoxNjgxMjI3MTUxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjljZjk4NDZhLTUzNWYtNDdmYy1iMzY0LTZiNjRhNmQ2NjFhMyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.D6EqiaIkEodUaY-vopV-bU4KvVhoU9Wg65dEVQdgOdbaEDV57OwCVr_gaE9YvPS0VtGsd4NHh2nq_8E8yPd6BYI1aS_e00wVqiEmE8p3QVMmZowC6Vh8NHDK9mR91H7g-sXxsC0byOuaId5rYcLej_pZt_AEIvlrL-PUNHo4B3y0dtIksQTf3NHZB5lnaYcPaExKLvk2J_9-8H3Z9YbSlrnknYeTQ762kogeUVD5Q-dsLvkpF0TcTxnL15y2bISwqu6mvPgtHEzuD_1KhomdFNimRkVE_2aJUP-RP8GziFepf2SqlenKKB0-bbQmZYf_IQ24ibYwl1G3VMlkfH4lxQ",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "upload_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8",
-          "upload_command": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -T <local_file>",
-          "upload_command_with_name": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8&upload_name=<name>' -T <local_file>",
-          "upload_progress_command": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -T <local_file> | xargs echo",
-          "upload_command_form": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -F file=@<local_file>",
-          "upload_tar_command": "tar -cf - <local_folder> | curl -# 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -X POST -T - | xargs echo"
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "1073",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "9409ff923cff760eca9ffadc6e9e6f9d": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=desc&order_by=upload_create_time&page_size=10000",
-        "method": "GET",
-        "body": "",
-        "headers": {
-          "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwZTc0MjZkMi05NDQ0LTQxZGUtOGQyZS0zODhlMzY1MzIxOGEiLCJleHAiOjE2ODEyNjMxMzAsIm5iZiI6MCwiaWF0IjoxNjgxMjI3MTUxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjljZjk4NDZhLTUzNWYtNDdmYy1iMzY0LTZiNjRhNmQ2NjFhMyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.D6EqiaIkEodUaY-vopV-bU4KvVhoU9Wg65dEVQdgOdbaEDV57OwCVr_gaE9YvPS0VtGsd4NHh2nq_8E8yPd6BYI1aS_e00wVqiEmE8p3QVMmZowC6Vh8NHDK9mR91H7g-sXxsC0byOuaId5rYcLej_pZt_AEIvlrL-PUNHo4B3y0dtIksQTf3NHZB5lnaYcPaExKLvk2J_9-8H3Z9YbSlrnknYeTQ762kogeUVD5Q-dsLvkpF0TcTxnL15y2bISwqu6mvPgtHEzuD_1KhomdFNimRkVE_2aJUP-RP8GziFepf2SqlenKKB0-bbQmZYf_IQ24ibYwl1G3VMlkfH4lxQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODcxNTcsImlhdCI6MTcyNTY1MTE3MSwianRpIjoiZDZmNmUwNzctZWRiZi00NzNlLTkxZWEtYjFlZmMwZWM1ODUzIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZjZmYzEwMTMtZjc5Ni00MjgwLThiNDYtYjM0MGJhOGI5YWNiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJmNmZjMTAxMy1mNzk2LTQyODAtOGI0Ni1iMzQwYmE4YjlhY2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.CQdtu-9tcNPpegCEG9rKq32UP2zwQuYVUH9q-sGopvWxJSWQC5zoLFR1d7soIV7diHwBPG3vQmv3VOZGzDxbHvCkVlqrJCNqLoe-pRS8eyg0cDm2VgrUvF4bM2S8QAfKi8YUkaMAom3zt5G-HBA9QNOqwBxrRuURp6JFa3kB-7jwdTnUU44RsraUpGh4gWlSRgAZomGeXNTonfW01zJtv8Dzv-3htVrGgDnAm-d4zM7Vz3xcHncccOEdKkVkGgP-61qoa2HvC8oI8jXQMGDeNtA2XN88Hxr6z57PsI4YG1Y0iZnou1c6c73g-ebadninTOstkYgzxyOR8ibFh8SPng",
           "cookie": null
         }
       },
@@ -349,12 +634,12 @@
           },
           "pagination": {
             "page_size": 10000,
-            "order_by": "upload_create_time",
-            "order": "desc",
+            "order_by": "upload_name",
+            "order": "asc",
             "page": 1,
             "total": 6,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=desc&order_by=upload_create_time&page_size=10000",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=desc&order_by=upload_create_time&page_size=10000"
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=asc&order_by=upload_name&page_size=10000&roles=main_author",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=asc&order_by=upload_name&page_size=10000&roles=main_author"
           },
           "data": [
             {
@@ -363,161 +648,185 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.518000",
-              "upload_id": "dft_upload_11",
-              "upload_create_time": "2023-04-11T15:32:23.517000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_11"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.509000",
-              "upload_id": "dft_upload_9",
-              "upload_create_time": "2023-04-11T15:32:23.508000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_9"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.500000",
-              "upload_id": "dft_upload_7",
-              "upload_create_time": "2023-04-11T15:32:23.499000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_7"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.491000",
-              "upload_id": "dft_upload_5",
-              "upload_create_time": "2023-04-11T15:32:23.490000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_5"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.482000",
-              "upload_id": "dft_upload_3",
-              "upload_create_time": "2023-04-11T15:32:23.481000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_3"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.473000",
+              "complete_time": "2024-09-06T19:32:41.644000",
               "upload_id": "dft_upload_1",
-              "upload_create_time": "2023-04-11T15:32:23.472000",
+              "upload_create_time": "2024-09-06T19:32:41.643000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_1"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_1"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.653000",
+              "upload_id": "dft_upload_3",
+              "upload_create_time": "2024-09-06T19:32:41.652000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_3"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.662000",
+              "upload_id": "dft_upload_5",
+              "upload_create_time": "2024-09-06T19:32:41.661000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_5"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.671000",
+              "upload_id": "dft_upload_7",
+              "upload_create_time": "2024-09-06T19:32:41.670000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_7"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.680000",
+              "upload_id": "dft_upload_9",
+              "upload_create_time": "2024-09-06T19:32:41.679000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_9"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2024-09-06T19:32:41.689000",
+              "upload_id": "dft_upload_11",
+              "upload_create_time": "2024-09-06T19:32:41.688000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "coauthor_groups": [],
+              "reviewers": [],
+              "reviewer_groups": [],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_11"
             }
           ]
         },
         "headers": {
           "connection": "close",
-          "content-length": "5324",
+          "content-length": "6224",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -532,7 +841,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxZmE4OGUyZi1kOWNiLTRiMzYtYWMzYi0zMDkzOTlhMTVhY2IiLCJleHAiOjE2ODEyNjMxMzAsIm5iZiI6MCwiaWF0IjoxNjgxMjI3MTUzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjljZjk4NDZhLTUzNWYtNDdmYy1iMzY0LTZiNjRhNmQ2NjFhMyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.DmR6c7AJlD7mFIcilRmaEl2rr3xkD1rcJMcT5SlpmpQ8di_4_JGnOgWMwl0K8AI2w5UtGkX_belrPmLVvgroBZdRE00Knw3T-bLwyE0BkDPFJaf4KmNwa-EyF248cN6gxOxc5RcTKYUNukJSGK5KmGlLyofir0PjWx4H04FoaUcMTumHBWKxi-yS0GH81usawWLzqJDoC18hGBfbHJvX-pqCC3_oNy8d-aeTsc2sMND-iD_GINBlwUdkqrGw54cj0DDqNlPA58YdTvNr5to6T4TBXo6FyRX4k0wF_0mfr3fIzTfiXt-gkkBUmSlCuqfhbGcSyouR5Oa5PWwd-7oknw",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjU2ODcxNTcsImlhdCI6MTcyNTY1MTE3MSwianRpIjoiZDZmNmUwNzctZWRiZi00NzNlLTkxZWEtYjFlZmMwZWM1ODUzIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZjZmYzEwMTMtZjc5Ni00MjgwLThiNDYtYjM0MGJhOGI5YWNiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJmNmZjMTAxMy1mNzk2LTQyODAtOGI0Ni1iMzQwYmE4YjlhY2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.CQdtu-9tcNPpegCEG9rKq32UP2zwQuYVUH9q-sGopvWxJSWQC5zoLFR1d7soIV7diHwBPG3vQmv3VOZGzDxbHvCkVlqrJCNqLoe-pRS8eyg0cDm2VgrUvF4bM2S8QAfKi8YUkaMAom3zt5G-HBA9QNOqwBxrRuURp6JFa3kB-7jwdTnUU44RsraUpGh4gWlSRgAZomGeXNTonfW01zJtv8Dzv-3htVrGgDnAm-d4zM7Vz3xcHncccOEdKkVkGgP-61qoa2HvC8oI8jXQMGDeNtA2XN88Hxr6z57PsI4YG1Y0iZnou1c6c73g-ebadninTOstkYgzxyOR8ibFh8SPng",
           "cookie": null
         }
       },
@@ -558,25 +867,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.473000",
+              "complete_time": "2024-09-06T19:32:41.644000",
               "upload_id": "dft_upload_1",
-              "upload_create_time": "2023-04-11T15:32:23.472000",
+              "upload_create_time": "2024-09-06T19:32:41.643000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_1"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_1"
             },
             {
               "process_running": false,
@@ -584,21 +897,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.477000",
+              "complete_time": "2024-09-06T19:32:41.648000",
               "upload_id": "dft_upload_2",
-              "upload_create_time": "2023-04-11T15:32:23.476000",
+              "upload_create_time": "2024-09-06T19:32:41.647000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.479000",
+              "publish_time": "2024-09-06T19:32:41.650000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -610,25 +927,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.482000",
+              "complete_time": "2024-09-06T19:32:41.653000",
               "upload_id": "dft_upload_3",
-              "upload_create_time": "2023-04-11T15:32:23.481000",
+              "upload_create_time": "2024-09-06T19:32:41.652000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_3"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_3"
             },
             {
               "process_running": false,
@@ -636,21 +957,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.486000",
+              "complete_time": "2024-09-06T19:32:41.657000",
               "upload_id": "dft_upload_4",
-              "upload_create_time": "2023-04-11T15:32:23.485000",
+              "upload_create_time": "2024-09-06T19:32:41.656000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.488000",
+              "publish_time": "2024-09-06T19:32:41.659000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -662,25 +987,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.491000",
+              "complete_time": "2024-09-06T19:32:41.662000",
               "upload_id": "dft_upload_5",
-              "upload_create_time": "2023-04-11T15:32:23.490000",
+              "upload_create_time": "2024-09-06T19:32:41.661000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_5"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_5"
             },
             {
               "process_running": false,
@@ -688,21 +1017,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.495000",
+              "complete_time": "2024-09-06T19:32:41.666000",
               "upload_id": "dft_upload_6",
-              "upload_create_time": "2023-04-11T15:32:23.494000",
+              "upload_create_time": "2024-09-06T19:32:41.665000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.497000",
+              "publish_time": "2024-09-06T19:32:41.668000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -714,25 +1047,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.500000",
+              "complete_time": "2024-09-06T19:32:41.671000",
               "upload_id": "dft_upload_7",
-              "upload_create_time": "2023-04-11T15:32:23.499000",
+              "upload_create_time": "2024-09-06T19:32:41.670000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_7"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_7"
             },
             {
               "process_running": false,
@@ -740,21 +1077,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.504000",
+              "complete_time": "2024-09-06T19:32:41.675000",
               "upload_id": "dft_upload_8",
-              "upload_create_time": "2023-04-11T15:32:23.503000",
+              "upload_create_time": "2024-09-06T19:32:41.674000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.506000",
+              "publish_time": "2024-09-06T19:32:41.677000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -766,25 +1107,29 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.509000",
+              "complete_time": "2024-09-06T19:32:41.680000",
               "upload_id": "dft_upload_9",
-              "upload_create_time": "2023-04-11T15:32:23.508000",
+              "upload_create_time": "2024-09-06T19:32:41.679000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": false,
               "published_to": [],
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
               "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_9"
+              "upload_files_server_path": "/home/klawohns/work/code/nomad-FAIR/.volumes/test_fs/staging/df/dft_upload_9"
             },
             {
               "process_running": false,
@@ -792,21 +1137,25 @@
               "process_status": "SUCCESS",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.513000",
+              "complete_time": "2024-09-06T19:32:41.684000",
               "upload_id": "dft_upload_10",
-              "upload_create_time": "2023-04-11T15:32:23.512000",
+              "upload_create_time": "2024-09-06T19:32:41.683000",
               "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
               "coauthors": [],
+              "coauthor_groups": [],
               "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
+              "reviewer_groups": [],
               "writers": [
                 "68878af7-6845-46c0-b2c1-250d4d8eb470"
               ],
+              "writer_groups": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "viewer_groups": [],
               "published": true,
               "published_to": [],
-              "publish_time": "2023-04-11T15:32:23.515000",
+              "publish_time": "2024-09-06T19:32:41.686000",
               "with_embargo": false,
               "embargo_length": 0,
               "license": "CC BY 4.0",
@@ -816,202 +1165,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8486",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "2f103c6a7b06cf854f55569b750bd816": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=asc&order_by=upload_name&page_size=10000",
-        "method": "GET",
-        "body": "",
-        "headers": {
-          "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxZmE4OGUyZi1kOWNiLTRiMzYtYWMzYi0zMDkzOTlhMTVhY2IiLCJleHAiOjE2ODEyNjMxMzAsIm5iZiI6MCwiaWF0IjoxNjgxMjI3MTUzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjljZjk4NDZhLTUzNWYtNDdmYy1iMzY0LTZiNjRhNmQ2NjFhMyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.DmR6c7AJlD7mFIcilRmaEl2rr3xkD1rcJMcT5SlpmpQ8di_4_JGnOgWMwl0K8AI2w5UtGkX_belrPmLVvgroBZdRE00Knw3T-bLwyE0BkDPFJaf4KmNwa-EyF248cN6gxOxc5RcTKYUNukJSGK5KmGlLyofir0PjWx4H04FoaUcMTumHBWKxi-yS0GH81usawWLzqJDoC18hGBfbHJvX-pqCC3_oNy8d-aeTsc2sMND-iD_GINBlwUdkqrGw54cj0DDqNlPA58YdTvNr5to6T4TBXo6FyRX4k0wF_0mfr3fIzTfiXt-gkkBUmSlCuqfhbGcSyouR5Oa5PWwd-7oknw",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "query": {
-            "is_published": false
-          },
-          "pagination": {
-            "page_size": 10000,
-            "order_by": "upload_name",
-            "order": "asc",
-            "page": 1,
-            "total": 6,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=asc&order_by=upload_name&page_size=10000",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&order=asc&order_by=upload_name&page_size=10000"
-          },
-          "data": [
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.473000",
-              "upload_id": "dft_upload_1",
-              "upload_create_time": "2023-04-11T15:32:23.472000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_1"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.482000",
-              "upload_id": "dft_upload_3",
-              "upload_create_time": "2023-04-11T15:32:23.481000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_3"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.491000",
-              "upload_id": "dft_upload_5",
-              "upload_create_time": "2023-04-11T15:32:23.490000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_5"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.500000",
-              "upload_id": "dft_upload_7",
-              "upload_create_time": "2023-04-11T15:32:23.499000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_7"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.509000",
-              "upload_id": "dft_upload_9",
-              "upload_create_time": "2023-04-11T15:32:23.508000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_9"
-            },
-            {
-              "process_running": false,
-              "current_process": "process_upload",
-              "process_status": "SUCCESS",
-              "errors": [],
-              "warnings": [],
-              "complete_time": "2023-04-11T15:32:23.518000",
-              "upload_id": "dft_upload_11",
-              "upload_create_time": "2023-04-11T15:32:23.517000",
-              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-              "coauthors": [],
-              "reviewers": [],
-              "viewers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "writers": [
-                "68878af7-6845-46c0-b2c1-250d4d8eb470"
-              ],
-              "published": false,
-              "published_to": [],
-              "with_embargo": false,
-              "embargo_length": 0,
-              "license": "CC BY 4.0",
-              "entries": 1,
-              "upload_files_server_path": ".volumes/test_fs/staging/df/dft_upload_11"
-            }
-          ]
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "5300",
+          "content-length": "9786",
           "content-type": "application/json",
           "server": "uvicorn"
         }

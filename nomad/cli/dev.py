@@ -252,6 +252,7 @@ def get_gui_config() -> str:
         'globalLoginRequired': config.oasis.allowed_users is not None,
         'servicesUploadLimit': config.services.upload_limit,
         'appTokenMaxExpiresIn': config.services.app_token_max_expires_in,
+        'uploadMembersGroupSearchEnabled': config.services.upload_members_group_search_enabled,
         'ui': config.ui.dict(exclude_none=True) if config.ui else {},
         'plugins': plugins,
     }

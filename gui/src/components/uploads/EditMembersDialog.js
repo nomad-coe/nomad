@@ -16,39 +16,62 @@
  * limitations under the License.
  */
 import {
-  Box,
+  FormGroup,
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem, Select,
+  makeStyles,
+  MenuItem,
+  Select,
   TextField,
-  Tooltip,
-  Typography,
-  makeStyles
+  Tooltip
 } from '@material-ui/core'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DeleteIcon from '@material-ui/icons/Delete'
 import AutoComplete from '@material-ui/lab/Autocomplete'
-import { debounce } from 'lodash'
+import _, { debounce } from 'lodash'
 import PropTypes from 'prop-types'
 import React, { useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+import { isUploadVisibleForAll } from '../../utils'
 import { useApi } from '../api'
 import { Datatable, DatatableTable } from '../datatable/Datatable'
 import { useErrors } from '../errors'
+import {
+  fetchGroupsByIds,
+  fetchGroupsByNameSearch,
+  fetchUsersByIds,
+  fetchUsersByNamePrefix
+} from '../utils/apiUtils'
 import { InviteUserDialog } from './InviteUserDialog'
 import { useUploadPageContext } from './UploadPageContext'
+import {
+  getMemberIdsByTypeAndRole,
+  groupsToMembers,
+  groupToMember,
+  MemberIcon,
+  ROLES,
+  TYPES,
+  userToMember
+} from './memberUtils'
+import { uploadMembersGroupSearchEnabled } from '../../config'
 
 export const editMembersDialogContext = React.createContext()
 
 const useStyles = makeStyles(theme => ({
   dialog: {
     width: '100%'
+  },
+  memberSearch: {
+    columnGap: theme.spacing(1)
+  },
+  memberSearchType: {
+    width: '7em'
+  },
+  memberSearchText: {
+    flexGrow: 1
   }
 }))
 
@@ -57,21 +80,23 @@ function MembersTable() {
   const forceUpdate = useReducer(bool => !bool)[1]
 
   const columns = [
+    {key: '', align: 'right', render: member => (<MemberIcon type={member.type} />)},
     {key: 'Name', align: 'left', render: member => member.name},
     {key: 'Affiliation', align: 'left', render: member => member.affiliation},
     {
       key: 'Role',
       align: 'left',
-      render: member => (member.role === 'Main author' ? member.role
-        : <Select value={member.role}
+      render: member => (member.role === ROLES.MAIN_AUTHOR ? member.role
+        : <Select
+          value={member.role}
           onChange={(event) => {
             member.role = event.target.value
             setIsChanged(true)
             forceUpdate()
           }}
         >
-          <MenuItem value={'Co-author'}>Co-author</MenuItem>
-          <MenuItem value={'Reviewer'}>Reviewer</MenuItem>
+          <MenuItem value={ROLES.COAUTHOR}>Co-author</MenuItem>
+          <MenuItem value={ROLES.REVIEWER}>Reviewer</MenuItem>
         </Select>)
     }
   ]
@@ -81,128 +106,110 @@ function MembersTable() {
   </Datatable>
 }
 
-export const fetchUsers = (api, previousQuery, newQuery) => {
-  return new Promise((resolve, reject) => {
-    api.getUsers({prefix: newQuery})
-      .then(users => {
-        const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(newQuery) !== -1)
-        withQueryInName.sort((a, b) => {
-          const aValue = a.name.toLowerCase()
-          const bValue = b.name.toLowerCase()
-          if (aValue.startsWith(newQuery)) {
-            return -1
-          } else if (bValue.startsWith(newQuery)) {
-            return 1
-          } else {
-            return 0
-          }
-        })
-        resolve(withQueryInName.slice(0, 5))
-      })
-      .catch(err => {
-        reject(err)
-      })
-  })
-}
-
-function AddMember({...props}) {
-  const {api, raiseError} = props
-  const [role, setRole] = useState('Co-author')
+function AddMember() {
+  const classes = useStyles()
+  const {api} = useApi()
+  const {raiseError} = useErrors()
   const [suggestions, setSuggestions] = useState([])
-  const [newMember, setNewMember] = useState([])
   const {members, setMembers, setIsChanged} = useContext(editMembersDialogContext)
-  const [isDuplicated, setIsDuplicated] = useState(false)
-  const [isValid, setIsValid] = useState(false)
   const [query, setQuery] = useState('')
+  const [searchType, setSearchType] = useState(TYPES.USER)
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null)
+  const [suggestionsAreLoading, setSuggestionsAreLoading] = useState(false)
 
-  const handleInputChange = useCallback((event, value) => {
+  const handleInputChange = useCallback(async (event, value) => {
     const newQuery = value.toLowerCase()
-    if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
-      fetchUsers(api, query, newQuery)
-        .then(setSuggestions)
-        .catch(err => {
-          setSuggestions([])
-          raiseError(err)
-        })
+    const oldQuery = query
+
+    if (oldQuery !== '' && newQuery.startsWith(oldQuery) && suggestions.length === 0) {
+      setQuery(newQuery)
+      return
     }
+
+    try {
+      setSuggestionsAreLoading(true)
+      let newSuggestions = []
+      if (searchType === TYPES.GROUP) {
+        const groups = await fetchGroupsByNameSearch(api, newQuery)
+        newSuggestions = await groupsToMembers(groups, api)
+      } else {
+        const users = await fetchUsersByNamePrefix(api, newQuery)
+        newSuggestions = users.map(user => userToMember(user))
+      }
+
+      const filteredSuggestions = newSuggestions.filter(
+        suggestion => !members.some(member => member.id === suggestion.id)
+      )
+
+      setSuggestions(filteredSuggestions)
+    } catch (err) {
+      setSuggestions([])
+      raiseError(err)
+    } finally {
+      setSuggestionsAreLoading(false)
+    }
+
     setQuery(newQuery)
-  }, [api, query, raiseError, suggestions.length])
+  }, [api, searchType, members, query, raiseError, suggestions.length])
 
   const debouncedHandleInputChange = useMemo(() => (
     debounce(handleInputChange, 700)
   ), [handleInputChange])
 
-  const handleChange = useCallback((event, value) => {
-    if (value && value?.user_id) {
-      setNewMember(value)
-      setIsValid(true)
-      setIsDuplicated(members.map(member => member.user_id).includes(value.user_id))
-    } else {
-      setIsValid(false)
-    }
-  }, [members])
+  const handleSearchTypeChange = useCallback((event) => {
+    setSearchType(event.target.value)
+    setSelectedSuggestion(null)
+  }, [])
 
-  const handleAdd = useCallback(() => {
-    if (role) {
-      if (!members.map(member => member.user_id).includes(newMember.user_id)) {
-        newMember['role'] = role
-        setMembers(members => [...members, newMember])
-        setIsChanged(true)
-      } else {
-        setIsDuplicated(true)
-      }
+  const handleSearchSelectionChange = useCallback((event, value) => {
+    setSelectedSuggestion(null)
+
+    if (members.some(member => member.id === value?.id)) {
+      return
     }
-  }, [members, newMember, role, setIsChanged, setMembers])
+
+    setMembers([...members, value])
+    setIsChanged(true)
+  }, [members, setMembers, setIsChanged])
 
   return <React.Fragment>
-    <AutoComplete
-      style={{width: '100%'}}
-      options={suggestions}
-      getOptionLabel={option => (option.affiliation ? `${option.name} (${option.affiliation})` : option.name)}
-      getOptionSelected={(option, value) => value ? option.user_id === value.user_id : false}
-      onInputChange={debouncedHandleInputChange}
-      onChange={handleChange}
-      renderInput={params => (
-        <TextField
-          {...params}
-          variant='filled'
-          size='small'
-          label='Search the name and select a user from the list'
-          placeholder="Member's name"
-          margin='normal'
-          fullWidth
-        />
-      )}
-    />
-    <Box marginLeft={2}>
-      <Typography hidden={!isDuplicated} color="error">
-        The selected user is already in the members list
-      </Typography>
-    </Box>
-    <FormControl variant='filled' size='small' fullWidth>
-      <InputLabel htmlFor='role'>Select the member&apos;s role</InputLabel>
-      <Select
-        native
-        onChange={(event) => setRole(event.target.value)}
-        inputProps={{
-          name: 'role',
-          id: 'role'
-        }}
+    <FormGroup row className={classes.memberSearch}>
+      {uploadMembersGroupSearchEnabled && <TextField
+        select
+        className={classes.memberSearchType}
+        id='search-type'
+        size='small'
+        margin='normal'
+        variant='filled'
+        value={searchType}
+        onChange={handleSearchTypeChange}
       >
-        <option value={'Co-author'}>Co-author</option>
-        <option value={'Reviewer'}>Reviewer</option>
-      </Select>
-    </FormControl>
-    <Box display="flex" justifyContent="end" paddingY={1}>
-      <Button onClick={handleAdd} color="primary" variant="contained" disabled={isDuplicated || !isValid}>
-        Add
-      </Button>
-    </Box>
+        <MenuItem value={TYPES.USER}>User</MenuItem>
+        <MenuItem value={TYPES.GROUP}>Group</MenuItem>
+      </TextField>}
+      <AutoComplete
+        className={classes.memberSearchText}
+        options={suggestions}
+        getOptionLabel={option => (option.affiliation ? `${option.name} (${option.affiliation})` : option.name)}
+        getOptionSelected={(option, value) => value ? option.id === value.id : false}
+        onInputChange={debouncedHandleInputChange}
+        onChange={handleSearchSelectionChange}
+        value={selectedSuggestion}
+        blurOnSelect={true}
+        loading={suggestionsAreLoading}
+        renderInput={params => (
+          <TextField
+            {...params}
+            size='small'
+            margin='normal'
+            variant='filled'
+            label={`Search the name and select a ${searchType} from the list`}
+            placeholder={searchType === TYPES.GROUP ? "Group's name" : "User's name"}
+          />
+        )}
+      />
+    </FormGroup>
   </React.Fragment>
-}
-AddMember.propTypes = {
-  api: PropTypes.object.isRequired,
-  raiseError: PropTypes.func.isRequired
 }
 
 const DeleteAction = React.memo((props) => {
@@ -210,12 +217,12 @@ const DeleteAction = React.memo((props) => {
   const {members, setMembers, setIsChanged} = useContext(editMembersDialogContext)
 
   const handleRemove = () => {
-    const filteredMembers = members.filter(member => !(member.user_id === data.user_id))
+    const filteredMembers = members.filter(member => member.id !== data.id)
     setMembers(filteredMembers)
     setIsChanged(true)
   }
 
-  const isOwner = data.role === 'Main author'
+  const isOwner = data.role === ROLES.MAIN_AUTHOR
 
   return <IconButton disabled={isOwner} onClick={handleRemove} data-testid='member-delete-button'>
     <Tooltip title="Remove the member">
@@ -236,25 +243,33 @@ const EditMembersDialog = ({open, setOpen}) => {
   const [isChanged, setIsChanged] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
-  const getUsers = useCallback((user_ids, roles) => {
-    return new Promise((resolve, reject) => {
-      api.get(`users?user_id=${user_ids.join('&user_id=')}`)
-        .then(response => {
-          const members = response['data'].map((member, index) => {
-            member.role = roles[index]
-            return member
-          })
-          resolve(members)
-        })
-        .catch(error => reject(new Error('Unable to fetch the members' + error)))
-      })
-  }, [api])
+  const fetchMembers = useCallback(async () => {
+    const { main_author, coauthors, reviewers, coauthor_groups } = upload
+    const reviewer_groups = upload.reviewer_groups.filter(group => group !== 'all')
 
-  const fetchMembers = useCallback(() => {
-    const user_ids = [upload.main_author].concat(upload.coauthors, upload.reviewers)
-    const roles = ['Main author'].concat(upload.coauthors.map(_ => 'Co-author'), upload.reviewers.map(_ => 'Reviewer'))
-    return getUsers(user_ids, roles)
-  }, [getUsers, upload])
+    const groupIds = [...coauthor_groups, ...reviewer_groups]
+    const groupRoles = [...coauthor_groups.map(_ => ROLES.COAUTHOR),
+                        ...reviewer_groups.map(_ => ROLES.REVIEWER)]
+    const groups = await fetchGroupsByIds(api, groupIds)
+    const ownerIds = groups.map(group => group.owner)
+    const groupsDict = _.keyBy(groups, 'group_id')
+
+    const memberUserIds = [main_author, ...coauthors, ...reviewers]
+    const userRoles = [ROLES.MAIN_AUTHOR,
+                       ...coauthors.map(_ => ROLES.COAUTHOR),
+                       ...reviewers.map(_ => ROLES.REVIEWER)]
+    const users = await fetchUsersByIds(api, [...memberUserIds, ...ownerIds])
+    const usersDict = _.keyBy(users, 'user_id')
+
+    const memberUsers = memberUserIds.map((userId, index) =>
+      userToMember(usersDict[userId], userRoles[index])
+    )
+    const memberGroups = groupIds.map((groupId, index) =>
+      groupToMember(groupsDict[groupId], usersDict, groupRoles[index])
+    )
+
+    return [...memberUsers, ...memberGroups]
+  }, [api, upload])
 
   useEffect(() => {
     if (!open) {
@@ -274,24 +289,31 @@ const EditMembersDialog = ({open, setOpen}) => {
   }
 
   const handleSubmitChanges = () => {
-    if (isChanged) {
-      const newCoauthors = members.filter(member => member.role === 'Co-author').map(member => member.user_id)
-      const newReviewers = members.filter(member => member.role === 'Reviewer').map(member => member.user_id)
-      api.post(`/uploads/${uploadId}/edit`, {
-        'metadata': {
-          'coauthors': newCoauthors,
-          'reviewers': newReviewers
-        }
-      }).then(results => {
+    if (!isChanged) {
+      setOpen(false)
+      return
+    }
+
+    const metadata = {
+      'coauthors': getMemberIdsByTypeAndRole(members, TYPES.USER, ROLES.COAUTHOR),
+      'reviewers': getMemberIdsByTypeAndRole(members, TYPES.USER, ROLES.REVIEWER),
+      'coauthor_groups': getMemberIdsByTypeAndRole(members, TYPES.GROUP, ROLES.COAUTHOR),
+      'reviewer_groups': getMemberIdsByTypeAndRole(members, TYPES.GROUP, ROLES.REVIEWER)
+    }
+
+    if (isUploadVisibleForAll(upload)) {
+      metadata.reviewer_groups.push('all')
+    }
+
+    api.post(`/uploads/${uploadId}/edit`, {'metadata': metadata})
+      .then(results => {
         updateUpload({upload: results.data})
         setOpen(false)
-      }).catch(err => raiseError(err))
-    } else {
-      setOpen(false)
-    }
+      })
+      .catch(raiseError)
   }
 
-  const handleConfirm = () => {
+  const handleCancel = () => {
     if (isChanged) {
       setOpenConfirmDialog(true)
     } else {
@@ -312,16 +334,16 @@ const EditMembersDialog = ({open, setOpen}) => {
         <DialogTitle>Edit upload members</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You can add and remove members for this upload and change their access. Reviewers can view the upload, co-authors can also edit it.
+            You can add and remove members for this upload and change their access.
+            Reviewers can view the upload, co-authors can also edit it.
           </DialogContentText>
-          <Divider />
-          <AddMember api={api} raiseError={raiseError} />
+          <AddMember />
           <MembersTable />
         </DialogContent>
         <DialogActions>
           <InviteUserDialog />
           <span style={{flexGrow: 1}} />
-          <Button onClick={handleConfirm} color="secondary">
+          <Button onClick={handleCancel} color="secondary">
             Cancel
           </Button>
           <Button onClick={handleSubmitChanges} disabled={!isChanged} color="secondary">

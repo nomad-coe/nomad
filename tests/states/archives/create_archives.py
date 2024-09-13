@@ -38,7 +38,7 @@ def archive_dft_bulk():
         'nomad_commit': 'bf3c06fa',
         'comment': 'Mocked',
         'references': ['doi'],
-        'main_author': {'name': 'Lauri Himanen'},
+        'main_author': '00000000-0000-0000-0000-000000000000',
     }
     results = {
         'material': {
@@ -287,45 +287,5 @@ def archive_dft_bulk():
             }
         ],
     }
-    workflow = [
-        {
-            'type': 'phonon',
-            'calculation_result_ref': '/run/0/calculation/0',
-            'calculations_ref': ['/run/0/calculation/0'],
-            'thermodynamics': {
-                'heat_capacity_c_v': [0, 1],
-                'vibrational_free_energy_at_constant_volume': [0, 1],
-                'temperature': [0, 100],
-            },
-        },
-        {
-            'type': 'equation_of_state',
-            'calculation_result_ref': '/run/0/calculation/0',
-            'calculations_ref': ['/run/0/calculation/0'],
-            'equation_of_state': {
-                'energies': [0, 1],
-                'volumes': [0, 1],
-                'eos_fit': [
-                    {
-                        'function_name': 'murnaghan',
-                        'fitted_energies': [0, 1],
-                        'bulk_modulus': 1,
-                    }
-                ],
-            },
-        },
-        {
-            'type': 'elastic',
-            'calculation_result_ref': '/run/0/calculation/0',
-            'calculations_ref': ['/run/0/calculation/0'],
-            'elastic': [{'shear_modulus_hill': 1}],
-        },
-        {
-            'type': 'molecular_dynamics',
-            'calculation_result_ref': '/run/0/calculation/0',
-            'calculations_ref': ['/run/0/calculation/0'],
-            'molecular_dynamics': {'time_step': 1e-15, 'ensemble_type': 'NVT'},
-        },
-    ]
 
-    return create_entry_archive(metadata, results, run, workflow)
+    return create_entry_archive(metadata, results, run, workflow={})
