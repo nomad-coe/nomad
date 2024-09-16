@@ -12,7 +12,7 @@ nomad-normalizer-plugin-spectra>=1.0
 nomad-normalizer-plugin-system>=1.0
 nomad-normalizer-plugin-simulation-workflow>=1.0
 nomad-parser-plugins-electronic>=1.0
-nomad-parser-plugins-atomistic>=1.0
+nomad-parser-plugins-atomistic>=1.0.1
 nomad-parser-plugins-workflow>=1.0
 nomad-parser-plugins-database>=1.0
 git+https://github.com/nomad-coe/nomad-parser-eelsdb.git@entry-point

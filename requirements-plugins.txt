@@ -23,8 +23,7 @@ blinker==1.8.2            # via flask
 blosc2==2.7.1             # via tables
 cachetools==5.5.0         # via nomad-lab, -c requirements-dev.txt
 certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, requests, -c requirements-dev.txt
-cffi==1.17.0 ; platform_python_implementation == 'PyPy'  # via argon2-cffi-bindings, pyzmq, -c requirements-dev.txt
-cffi==1.17.1 ; platform_python_implementation != 'PyPy'  # via argon2-cffi-bindings, cryptography, pyzmq, -c requirements-dev.txt
+cffi==1.17.1              # via argon2-cffi-bindings, cryptography, pyzmq, -c requirements-dev.txt
 cftime==1.6.4             # via netcdf4, -c requirements-dev.txt
 charset-normalizer==3.3.2  # via requests, -c requirements-dev.txt
 click==8.1.7              # via asr, click-default-group, dask, flask, nomad-lab, pynxtools, -c requirements-dev.txt
@@ -70,7 +69,7 @@ hjson==3.1.0              # via nomad-lab, -c requirements-dev.txt
 httpcore==1.0.5           # via httpx, -c requirements-dev.txt
 httpx==0.27.2             # via jupyterlab, nomad-lab, python-keycloak, -c requirements-dev.txt
 hyperspy==1.7.5           # via kikuchipy, pyxem
-idna==3.8                 # via anyio, httpx, jsonschema, requests, -c requirements-dev.txt
+idna==3.10                # via anyio, httpx, jsonschema, requests, -c requirements-dev.txt
 ifes-apt-tc-data-modeling==0.2.2  # via pynxtools-apm
 igor2==0.5.8              # via pynxtools-xps
 imageio==2.27.0           # via hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
@@ -147,7 +146,7 @@ nomad-normalizer-plugin-simulation-workflow==1.0  # via -r default_plugins.txt
 nomad-normalizer-plugin-soap==1.0  # via -r default_plugins.txt
 nomad-normalizer-plugin-spectra==1.0  # via -r default_plugins.txt
 nomad-normalizer-plugin-system==1.0  # via -r default_plugins.txt
-nomad-parser-plugins-atomistic==1.0  # via -r default_plugins.txt
+nomad-parser-plugins-atomistic==1.0.1  # via -r default_plugins.txt
 nomad-parser-plugins-database==1.0  # via -r default_plugins.txt
 nomad-parser-plugins-electronic==1.0  # via -r default_plugins.txt
 nomad-parser-plugins-simulation==1.0.2  # via nomad-parser-plugins-atomistic, nomad-parser-plugins-electronic
@@ -180,7 +179,7 @@ pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'  # via
 phonopy==2.11.0           # via asr, nomad-parser-plugins-workflow
 pillow==10.4.0            # via fabio, imageio, matplotlib, nionswift, rdkit, scikit-image, -c requirements-dev.txt
 pint==0.17                # via fairmat-readers-xrd, hyperspy, nomad-lab, pynxtools-xps, pynxtools-xrd, rosettasciio, -c requirements-dev.txt
-platformdirs==4.3.2       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
+platformdirs==4.3.3       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
 plotly==5.24.1            # via asr, pymatgen, -c requirements-dev.txt
 pooch==1.8.2              # via kikuchipy, orix
 prettytable==3.11.0       # via hyperspy
@@ -213,7 +212,7 @@ pyrsistent==0.20.0        # via jsonschema, -c requirements-dev.txt
 python-box==7.2.0         # via rosettasciio
 python-dateutil==2.9.0.post0  # via arrow, elasticsearch-dsl, hyperspy, ipyparallel, jupyter-client, matplotlib, pandas, rfc3161ng, rosettasciio, -c requirements-dev.txt
 python-json-logger==2.0.2  # via jupyter-events, -c requirements-dev.txt
-python-keycloak==4.3.0    # via nomad-lab, -c requirements-dev.txt
+python-keycloak==4.4.0    # via nomad-lab, -c requirements-dev.txt
 python-magic==0.4.24      # via nomad-lab, -c requirements-dev.txt
 pytz==2024.2              # via nionswift, nomad-lab, pandas, -c requirements-dev.txt
 pywin32==306 ; platform_python_implementation != 'PyPy' and sys_platform == 'win32'  # via jupyter-core, -c requirements-dev.txt
@@ -233,7 +232,7 @@ rfc3339-validator==0.1.4  # via jsonschema, -c requirements-dev.txt
 rfc3986-validator==0.1.1  # via jsonschema
 rosettasciio==0.6         # via pynxtools-em
 ruamel-yaml==0.18.6       # via pymatgen, -c requirements-dev.txt
-ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -c requirements-dev.txt
+ruamel-yaml-clib==0.2.8 ; python_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -c requirements-dev.txt
 scikit-image==0.22.0      # via hyperspy, kikuchipy, pyxem
 scikit-learn==1.5.2       # via kikuchipy, matid, nomad-lab, pyxem, -c requirements-dev.txt
 scipy==1.14.1             # via ase, diffsims, findiff, griddataformats, hyperspy, kikuchipy, lmfit, mdanalysis, niondata, nionswift, nomad-lab, nomad-parser-plugins-atomistic, nomad-schema-plugin-simulation-workflow, orix, pyfai, pymatgen, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse, xraydb, -c requirements-dev.txt
@@ -282,7 +281,7 @@ xarray==2024.9.0          # via nomad-lab, nomad-parser-plugins-workflow, pynxto
 xmltodict==0.13.0         # via fairmat-readers-xrd, ifes-apt-tc-data-modeling, pynxtools-em, pynxtools-xrd
 xraydb==4.5.4             # via pynxtools-em
 zarr==2.18.2 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via hyperspy
-zipp==3.20.1              # via importlib-metadata, -c requirements-dev.txt
+zipp==3.20.2              # via importlib-metadata, -c requirements-dev.txt
 
 # The following packages were excluded from the output:
 # nomad-lab

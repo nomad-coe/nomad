@@ -4408,7 +4408,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/atomistic-parsers",
         "name": "atomisticparsers",
         "repository": null,
-        "version": "1.0"
+        "version": "1.0.1"
       },
       "bandstructurenormalizer": {
         "description": "Band structure normalizer plugin for NOMAD.",
