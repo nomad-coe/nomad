@@ -3379,7 +3379,8 @@ class Reagent(MSection):
         type=np.float64,
         shape=['*'],
         description="""
-        Volumetric concentration of the reagent in the feed gas, in %.
+        Volumetric concentration (fraction) of the reagent in the feed gas.
+        Should be a value between 0 and 1.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
@@ -3387,7 +3388,8 @@ class Reagent(MSection):
         type=np.float64,
         shape=['*'],
         description="""
-        Volumetric concentration of the reagent after the reactor, value between 0 and 1.
+        Volumetric concentration (fraction) of the reagent after the reactor.
+        Should be a value between 0 and 1.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
