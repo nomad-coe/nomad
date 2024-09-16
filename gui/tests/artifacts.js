@@ -4786,7 +4786,7 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.reactants.gas_concentration_in": {
       "name": "gas_concentration_in",
-      "description": "Volumetric concentration of the reagent in the feed gas, in %.",
+      "description": "Volumetric concentration (fraction) of the reagent in the feed gas.\nShould be a value between 0 and 1.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -4800,7 +4800,7 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.reactants.gas_concentration_out": {
       "name": "gas_concentration_out",
-      "description": "Volumetric concentration of the reagent after the reactor, value between 0 and 1.",
+      "description": "Volumetric concentration (fraction) of the reagent after the reactor.\nShould be a value between 0 and 1.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -4841,7 +4841,7 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.products.gas_concentration_in": {
       "name": "gas_concentration_in",
-      "description": "Volumetric concentration of the reagent in the feed gas, in %.",
+      "description": "Volumetric concentration (fraction) of the reagent in the feed gas.\nShould be a value between 0 and 1.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -4855,7 +4855,7 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.products.gas_concentration_out": {
       "name": "gas_concentration_out",
-      "description": "Volumetric concentration of the reagent after the reactor, value between 0 and 1.",
+      "description": "Volumetric concentration (fraction) of the reagent after the reactor.\nShould be a value between 0 and 1.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -39075,7 +39075,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "gas_concentration_in",
-                "description": "Volumetric concentration of the reagent in the feed gas, in %.",
+                "description": "Volumetric concentration (fraction) of the reagent in the feed gas.\nShould be a value between 0 and 1.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -39094,7 +39094,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "gas_concentration_out",
-                "description": "Volumetric concentration of the reagent after the reactor, value between 0 and 1.",
+                "description": "Volumetric concentration (fraction) of the reagent after the reactor.\nShould be a value between 0 and 1.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"

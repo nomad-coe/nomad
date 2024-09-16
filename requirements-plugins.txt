@@ -181,7 +181,7 @@ phonopy==2.11.0           # via asr, nomad-parser-plugins-workflow
 pillow==10.4.0            # via fabio, imageio, matplotlib, nionswift, rdkit, scikit-image, -c requirements-dev.txt
 pint==0.17                # via fairmat-readers-xrd, hyperspy, nomad-lab, pynxtools-xps, pynxtools-xrd, rosettasciio, -c requirements-dev.txt
 platformdirs==4.3.2       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
-plotly==5.24.0            # via asr, pymatgen, -c requirements-dev.txt
+plotly==5.24.1            # via asr, pymatgen, -c requirements-dev.txt
 pooch==1.8.2              # via kikuchipy, orix
 prettytable==3.11.0       # via hyperspy
 prometheus-client==0.20.0  # via jupyter-server, -c requirements-dev.txt
@@ -278,7 +278,7 @@ websocket-client==1.8.0   # via jupyter-server
 werkzeug==3.0.4           # via flask
 widgetsnbextension==4.0.13  # via ipywidgets
 wrapt==1.16.0             # via nomad-lab, -c requirements-dev.txt
-xarray==2024.7.0          # via nomad-lab, nomad-parser-plugins-workflow, pynxtools, pynxtools-mpes, pynxtools-xps, -c requirements-dev.txt
+xarray==2024.9.0          # via nomad-lab, nomad-parser-plugins-workflow, pynxtools, pynxtools-mpes, pynxtools-xps, -c requirements-dev.txt
 xmltodict==0.13.0         # via fairmat-readers-xrd, ifes-apt-tc-data-modeling, pynxtools-em, pynxtools-xrd
 xraydb==4.5.4             # via pynxtools-em
 zarr==2.18.2 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via hyperspy

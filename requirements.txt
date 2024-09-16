@@ -113,7 +113,7 @@ panedr==0.8.0             # via nomad-lab (pyproject.toml)
 parmed==4.2.2             # via nomad-lab (pyproject.toml)
 pillow==10.4.0            # via matplotlib, rdkit
 pint==0.17                # via nomad-lab (pyproject.toml)
-plotly==5.24.0            # via pymatgen
+plotly==5.24.1            # via pymatgen
 prometheus-client==0.20.0  # via jupyterhub
 prompt-toolkit==3.0.47    # via click-repl
 psutil==6.0.0 ; sys_platform == 'win32'  # via jupyterhub
@@ -199,6 +199,6 @@ webcolors==24.8.0         # via jsonschema
 webencodings==0.5.1       # via html5lib
 websockets==13.0.1        # via uvicorn
 wrapt==1.16.0             # via nomad-lab (pyproject.toml)
-xarray==2024.7.0          # via nomad-lab (pyproject.toml)
+xarray==2024.9.0          # via nomad-lab (pyproject.toml)
 zipp==3.20.1              # via importlib-metadata
 zipstream-new==1.1.5      # via nomad-lab (pyproject.toml)
