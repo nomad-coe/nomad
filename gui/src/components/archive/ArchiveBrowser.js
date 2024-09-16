@@ -819,9 +819,10 @@ export const QuantityValue = React.memo(function QuantityValue({value, def}) {
     } else if (def.type?.type_data === 'nomad.datamodel.hdf5.HDF5Dataset' || def.type?.type_data === 'nomad.datamodel.hdf5.HDF5Reference') {
       const h5Path = value.match(/(?:\/uploads\/(?<uploadId>.+?)\/(?<source>.+?)\/)*(?<filename>.+?)#(?<path>.+)/)
       const h5UploadId = h5Path.groups.uploadId || uploadId
-      const h5Source = h5Path.groups.source || (h5Path.groups.filename.endsWith('.h5') ? 'raw' : 'archive')
+      const h5File = h5Path.groups.filename
+      const h5Source = h5Path.groups.source || ((h5File.endsWith('.h5') || h5File.endsWith('.nxs')) ? 'raw' : 'archive')
       return <Compartment title='hdf5'>
-        <H5Web upload_id={h5UploadId} filename={h5Path.groups.filename} initialPath={h5Path.groups.path} source={h5Source} sidebarOpen={false}></H5Web>
+        <H5Web upload_id={h5UploadId} filename={h5File} initialPath={h5Path.groups.path} source={h5Source} sidebarOpen={false}></H5Web>
       </Compartment>
     } else if (def?.type?.type_kind === 'custom' && def?.type?.type_data === 'nomad.datamodel.data.Query') {
       return <Query value={value} def={def}/>
