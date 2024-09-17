@@ -151,14 +151,12 @@ class ParserEntryPoint(EntryPoint, metaclass=ABCMeta):
         description="""
         Matches a binary file if the given bytes are included in the file.
     """,
-        exclude=True,
     )
     mainfile_binary_header_re: Optional[bytes] = Field(
         description="""
         Matches a binary file if the given binary regular expression bytes matches the
         file contents.
     """,
-        exclude=True,
     )
     mainfile_alternative: bool = Field(
         False,
@@ -188,7 +186,13 @@ class ParserEntryPoint(EntryPoint, metaclass=ABCMeta):
         pass
 
     def dict_safe(self):
-        return self.dict(include=ParserEntryPoint.__fields__.keys(), exclude_none=True)
+        # The binary data types are removed from the safe serialization: binary
+        # data is not JSON serializable.
+        keys = set(list(ParserEntryPoint.__fields__.keys()))
+        keys.remove('mainfile_binary_header_re')
+        keys.remove('mainfile_binary_header')
+
+        return self.dict(include=keys, exclude_none=True)
 
 
 class ExampleUploadEntryPoint(EntryPoint):
@@ -405,14 +409,13 @@ class Parser(PythonPluginBase):
         'parser',
         description="""
         The type of the plugin. This has to be the string `parser` for parser plugins.
-    """,
+        """,
     )
-
     parser_class_name: str = Field(
         description="""
         The fully qualified name of the Python class that implements the parser.
         This class must have a function `def parse(self, mainfile, archive, logger)`.
-    """
+        """
     )
     parser_as_interface: bool = Field(
         False,
@@ -423,15 +426,14 @@ class Parser(PythonPluginBase):
         based on parser metadata is not sufficient and you implemented your own
         is_mainfile parser method, this setting can be used to use the given
         parser class directly for parsing and matching.
-    """,
+        """,
     )
-
     mainfile_contents_re: Optional[str] = Field(
         description="""
         A regular expression that is applied the content of a potential mainfile.
         If this expression is given, the parser is only considered for a file, if the
         expression matches.
-    """
+        """
     )
     mainfile_name_re: str = Field(
         r'.*',
@@ -439,7 +441,7 @@ class Parser(PythonPluginBase):
         A regular expression that is applied the name of a potential mainfile.
         If this expression is given, the parser is only considered for a file, if the
         expression matches.
-    """,
+        """,
     )
     mainfile_mime_re: str = Field(
         r'text/.*',
@@ -447,27 +449,25 @@ class Parser(PythonPluginBase):
         A regular expression that is applied the mime type of a potential mainfile.
         If this expression is given, the parser is only considered for a file, if the
         expression matches.
-    """,
+        """,
     )
     mainfile_binary_header: Optional[bytes] = Field(
         description="""
         Matches a binary file if the given bytes are included in the file.
-    """,
-        exclude=True,
+        """
     )
     mainfile_binary_header_re: Optional[bytes] = Field(
         description="""
         Matches a binary file if the given binary regular expression bytes matches the
         file contents.
-    """,
-        exclude=True,
+        """
     )
     mainfile_alternative: bool = Field(
         False,
         description="""
         If True, the parser only matches a file, if no other file in the same directory
         matches a parser.
-    """,
+        """,
     )
     mainfile_contents_dict: Optional[dict] = Field(
         description="""
@@ -476,34 +476,33 @@ class Parser(PythonPluginBase):
         `{'<sheet name>': {'__has_all_keys': [<column names>]}}`. In case the csv/excel file contains comments that
         are supposed to be ignored, use this reserved key-value pair
         `'__comment_symbol': '<symbol>'` at the top level of the dict right next to the <sheet name>.
-    """
+        """
     )
     supported_compressions: List[str] = Field(
         [],
         description="""
         Files compressed with the given formats (e.g. xz, gz) are uncompressed and
         matched like normal files.
-    """,
+        """,
     )
     domain: str = Field(
         'dft',
         description="""
         The domain value `dft` will apply all normalizers for atomistic codes. Deprecated.
-    """,
+        """,
     )
     level: int = Field(
         0,
         description="""
         The order by which the parser is executed with respect to other parsers.
-    """,
+        """,
     )
-
     code_name: Optional[str]
     code_homepage: Optional[str]
     code_category: Optional[str]
     metadata: Optional[dict] = Field(
         description="""
-        Metadata passed to the UI. Deprecated. """
+        Metadata passed to the UI. Deprecated."""
     )
 
     def create_matching_parser_interface(self):
