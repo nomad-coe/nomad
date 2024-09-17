@@ -314,7 +314,7 @@ class TableData(ArchiveSection):
                             continue
                 section_to_write = section_to_entry
             if not any(
-                (item.label == 'EntryData' or item.label == 'ArchiveSection')
+                item.name in ('EntryData', 'ArchiveSection')
                 for item in section_to_entry.m_def.all_base_sections
             ):
                 logger.warning(
@@ -396,7 +396,7 @@ class TableData(ArchiveSection):
             all_base_sections = section.all_base_sections
         except Exception:
             all_base_sections = section.m_def.all_base_sections
-        if not any(item.label == 'EntryData' for item in all_base_sections):
+        if not any(item.name == 'EntryData' for item in all_base_sections):
             logger.warning(
                 f'make sure to inherit from EntryData in your base sections in {section.name}'
             )

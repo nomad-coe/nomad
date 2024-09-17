@@ -156,7 +156,7 @@ class PlotlyFigureQuantity(Quantity):
                 else:
                     convert_to_list(all_data)
 
-        obj.m_set(self, value)
+        super().__set__(obj, value)
 
 
 class PlotlyFigure(Figure):

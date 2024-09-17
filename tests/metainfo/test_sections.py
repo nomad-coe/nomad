@@ -248,7 +248,7 @@ def test_path():
     pkg.section_definitions.append(EntryArchive.m_def)
     pkg.__init_metainfo__()
 
-    assert SubSection._used_sections[ChildSection.m_def] == [EntryArchive.child]
+    assert SubSection.used_sections[ChildSection.m_def] == [EntryArchive.child]
     assert ChildSection.m_def.path == 'child'
 
     from nomad.datamodel.metainfo.workflow import Workflow, Task

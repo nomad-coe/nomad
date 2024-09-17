@@ -115,7 +115,7 @@ class Datatype:
 
     @property
     def is_scalar(self):
-        return len(self._definition.shape) == 0
+        return self.shape is None or len(self.shape) == 0
 
     @property
     def unit(self):
@@ -1010,7 +1010,7 @@ class Enum(NonPrimitive):
                 raise ValueError(f"Duplicate value '{arg}' provided for enumeration.")
             kwargs[arg] = arg
 
-        self._list: list = list(kwargs.values())
+        self._list: list = list(sorted(kwargs.values()))
         self._unique_values: set = set(self._list)  # allow constant time member check
 
         if any(not isinstance(enum_value, str) for enum_value in self):
