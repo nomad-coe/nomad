@@ -206,6 +206,7 @@ export const getWidgetConfig = (quantity, dtype, aggregatable, scale) => {
   if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
     return {
       x: {quantity},
+      y: {scale: 'linear'},
       type: 'histogram',
       scale,
       showinput: false,
