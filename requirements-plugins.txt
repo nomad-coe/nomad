@@ -232,7 +232,7 @@ rfc3339-validator==0.1.4  # via jsonschema, -c requirements-dev.txt
 rfc3986-validator==0.1.1  # via jsonschema
 rosettasciio==0.6         # via pynxtools-em
 ruamel-yaml==0.18.6       # via pymatgen, -c requirements-dev.txt
-ruamel-yaml-clib==0.2.8 ; python_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -c requirements-dev.txt
+ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -c requirements-dev.txt
 scikit-image==0.22.0      # via hyperspy, kikuchipy, pyxem
 scikit-learn==1.5.2       # via kikuchipy, matid, nomad-lab, pyxem, -c requirements-dev.txt
 scipy==1.14.1             # via ase, diffsims, findiff, griddataformats, hyperspy, kikuchipy, lmfit, mdanalysis, niondata, nionswift, nomad-lab, nomad-parser-plugins-atomistic, nomad-schema-plugin-simulation-workflow, orix, pyfai, pymatgen, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse, xraydb, -c requirements-dev.txt
@@ -244,7 +244,7 @@ sniffio==1.3.1            # via anyio, httpx, -c requirements-dev.txt
 soupsieve==2.6            # via beautifulsoup4, -c requirements-dev.txt
 sparse==0.15.4            # via hyperspy
 spglib==2.5.0             # via asr, matid, phonopy, pymatgen, -c requirements-dev.txt
-sqlalchemy==2.0.34        # via xraydb, -c requirements-dev.txt
+sqlalchemy==2.0.35        # via xraydb, -c requirements-dev.txt
 stack-data==0.6.3         # via ipython
 sympy==1.13.2             # via findiff, hyperspy, pymatgen, radioactivedecay, -c requirements-dev.txt
 tables==3.10.1            # via ifes-apt-tc-data-modeling

@@ -32,12 +32,12 @@ def test_quantity():
 
     # order of aliases does not matter
     q2.aliases = ['alias2', 'alias1']
-    q2._hash(regenerate=True)
+    q2.hash(regenerate=True)
     assert ref_hash == q2.definition_id
 
     # description does not matter
     q2.description = 'Some other text'
-    q2._hash(regenerate=True)
+    q2.hash(regenerate=True)
     assert ref_hash == q2.definition_id
 
     # different aliases matter
@@ -45,7 +45,7 @@ def test_quantity():
     # cached so does not change
     assert ref_hash == q2.definition_id
     # regenerate to have different hash
-    q2._hash(regenerate=True)
+    q2.hash(regenerate=True)
     assert ref_hash != q2.definition_id
 
     # type matters
@@ -75,13 +75,13 @@ def test_quantity():
 
     q2 = simple_quantity()
     q2.type = MEnum('aad', 'wwa', 'qe')
-    q2._hash(regenerate=True)
+    q2.hash(regenerate=True)
     assert ref_hash != q2.definition_id
 
     # order of enum values do not matter
     ref_hash = q2.definition_id
     q2.type = MEnum('wwa', 'qe', 'aad')
-    q2._hash(regenerate=True)
+    q2.hash(regenerate=True)
     assert ref_hash == q2.definition_id
 
 
