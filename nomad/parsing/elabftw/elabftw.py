@@ -328,7 +328,13 @@ class ELabFTW(EntryData):
     project_id = Quantity(type=str, description='Project ID')
     status = Quantity(
         type=MEnum(
-            'Not set', 'Running', 'Waiting', 'Success', 'Need to be redone', 'Fail'
+            'Not set',
+            'Running',
+            'Waiting',
+            'Success',
+            'Need to be redone',
+            'Fail',
+            'Maintenance mode',
         ),
         description='Status of the Experiment',
     )
@@ -585,13 +591,17 @@ def _parse_latest(
     archive,
     logger,
 ) -> ELabFTW:
-    latest_elab_instance = ELabFTW(
-        author=raw_experiment.get('author').get('id'),
-        title=raw_experiment.get('name', None),
-        keywords=raw_experiment.get('keywords', '').split(','),
-        id=raw_experiment.get('id', ''),
-        status=raw_experiment.get('creative_work_status', 'Not set'),
-    )
+    try:
+        latest_elab_instance = ELabFTW(
+            author=raw_experiment.get('author').get('id'),
+            title=raw_experiment.get('name', None),
+            keywords=raw_experiment.get('keywords', '').split(','),
+            id=raw_experiment.get('id', ''),
+            status=raw_experiment.get('creative_work_status', 'Not set'),
+        )
+    except Exception:
+        logger.error('Failed to parse the eln file.')
+        raise ELabFTWParserError()
 
     _ = _set_experiment_metadata(
         raw_experiment, exp_archive, latest_elab_instance, logger
@@ -600,9 +610,10 @@ def _parse_latest(
         body=raw_experiment.get('text', None),
         created_at=raw_experiment.get('date_created', None),
         extra_fields={
-            i: value
-            for i, value in enumerate(raw_experiment.get('variable_measured', []))
-        },
+            i: value for i, value in enumerate(raw_experiment['variable_measured'])
+        }
+        if raw_experiment.get('variable_measured') is not None
+        else None,
     )
     data_section.steps.extend(
         [
