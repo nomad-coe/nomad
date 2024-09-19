@@ -52,6 +52,15 @@ Omitted versions are plain bugfix releases with only minor changes and fixes. Th
 file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
 contains much more detailed information about changes and fixes in the released versions.
 
+### v1.3.7
+
+- Added group assignment to the uploa user management dialog
+- Replaced sub-modules with plugins
+
+### v1.3.6
+
+- Changed the appearance of choosen search filters.
+
 ### v1.3.5
 
 - AI toolkit app
