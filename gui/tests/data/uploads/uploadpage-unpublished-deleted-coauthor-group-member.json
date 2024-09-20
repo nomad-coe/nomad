@@ -1,0 +1,111 @@
+{
+  "5b6de70afbfeec4bd1993514d31f8629": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/groups?user_id=54cb1f64-f84e-4815-9ade-440ce0b5430f",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3OTksImlhdCI6MTcyNjczODgxMCwianRpIjoiZjFkMjFhMzUtNDZiZi00ZDFiLTkzMWMtYzI0NGFmZWFhYWEyIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiMzBhNTVmNzQtNjk4My00MDk1LTlkMmItYjQ5NmRlMDFjYzNhIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiIzMGE1NWY3NC02OTgzLTQwOTUtOWQyYi1iNDk2ZGUwMWNjM2EiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.khHBhAsdWGcApbpD-8iYHgFxPoY9iGKN8jlxiY6SJOrt0Ba1gUQQ38wSdLuU8cOX13nBIPoy47Ut5Xv18dEK46deQ7mNJHLTtr6fAWALAqBde-e2MlE95uuQQTzCVsrNU7sIXWyLy9peK-LULm1HXT2I1Yp45Ht9bVNRzZ4GqxykWuKbGL2OOgYeqFhN291mMCYqd4o3CfHyuU9euYt6aSssrcCTONCnFPvFwHnvkj6-cyCL7MYGb4qMF1sJMO-s8rk-VBkw5w7eE1zJ23FYF67uWf_x4OkoSjItMIMjCRjSNPjUqaNHagYLZyDHWQ9M11HsbBHfCrqwYTBZXGcYMw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "group_id": "group3",
+              "group_name": "Group Tester",
+              "owner": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+              "members": []
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "170",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "ef176469409874c83459089471302b81": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page=1&page_size=5",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3OTksImlhdCI6MTcyNjczODgxMCwianRpIjoiZDUzYmU4YmMtZGU5MS00OTU0LWIxNmItZjcxNTYzOGVjZjQxIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiMzBhNTVmNzQtNjk4My00MDk1LTlkMmItYjQ5NmRlMDFjYzNhIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiIzMGE1NWY3NC02OTgzLTQwOTUtOWQyYi1iNDk2ZGUwMWNjM2EiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.JP69OGNiE78_KFA1wMbf9AxPedsdRSsmClt2OzYLvhqm1nT9SqkjKsEnYpoDaws3FRXSTH5dHqxF7MaUezm6rD7HHK7WDI2ijkuOzq4kwpFUlYDyb5SzWThkI8RHc474EDQJKygl8CgHsxdA4GRi4MLpJq4t6lf_eu4dbKol91pDEwFzCSetlg5ViLJ_2OiceuIVAAaK-306Oil6ZwqZ8PlgPEGiiMlwwg5ZWB4vS2ujpDkGgiek3fBXtiIicTarvYTI7MvdrclrvSnx6bu_WNRS5QWaCbb3Zq0ZJcb2isA2P2tVkUe5dYIUFPy7CUCRuoQ8RllOJlyLHptdTsxZGg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "60",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "ff95b7af4ca8739b8ba0065e4de2b8d7": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3OTksImlhdCI6MTcyNjczODgxMCwianRpIjoiZDUzYmU4YmMtZGU5MS00OTU0LWIxNmItZjcxNTYzOGVjZjQxIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiMzBhNTVmNzQtNjk4My00MDk1LTlkMmItYjQ5NmRlMDFjYzNhIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiIzMGE1NWY3NC02OTgzLTQwOTUtOWQyYi1iNDk2ZGUwMWNjM2EiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.JP69OGNiE78_KFA1wMbf9AxPedsdRSsmClt2OzYLvhqm1nT9SqkjKsEnYpoDaws3FRXSTH5dHqxF7MaUezm6rD7HHK7WDI2ijkuOzq4kwpFUlYDyb5SzWThkI8RHc474EDQJKygl8CgHsxdA4GRi4MLpJq4t6lf_eu4dbKol91pDEwFzCSetlg5ViLJ_2OiceuIVAAaK-306Oil6ZwqZ8PlgPEGiiMlwwg5ZWB4vS2ujpDkGgiek3fBXtiIicTarvYTI7MvdrclrvSnx6bu_WNRS5QWaCbb3Zq0ZJcb2isA2P2tVkUe5dYIUFPy7CUCRuoQ8RllOJlyLHptdTsxZGg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "60",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3OTksImlhdCI6MTcyNjczODgxMCwianRpIjoiMTZkZDI5OTktMWVmOC00OWNhLWIwMmUtZDUxMWRlYTA0NWQxIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjU0Y2IxZjY0LWY4NGUtNDgxNS05YWRlLTQ0MGNlMGI1NDMwZiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiMzBhNTVmNzQtNjk4My00MDk1LTlkMmItYjQ5NmRlMDFjYzNhIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiIzMGE1NWY3NC02OTgzLTQwOTUtOWQyYi1iNDk2ZGUwMWNjM2EiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlRlc3QgVGVzdGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidHRlc3RlciIsImdpdmVuX25hbWUiOiJUZXN0IiwiZmFtaWx5X25hbWUiOiJUZXN0ZXIiLCJlbWFpbCI6InRlc3RAbm9tYWQtY29lLmV1In0.ZjHvpHNQQ_ALnmJsMPRA-Cnxoa3i1WQ-sarVLwtMF2Bl8XpxCNKHo7eUkKpFAvxYHtEt5ZHJK4ovfTeIlF1WGr4YBNi7-_PiXUxj36Rom4QzwZKjpFhZxDLHrls2SfIhqTXQIuHu1qnZe4KvffOnksEDSEa9Pl3pgB9d3BArqTEb7pDToyRthpXQXN8rCVXR2QMfNjconamy7YPArNR0eEIovgaFjbRE060xkWIBBTmGVWN-jQkAW4GFC7GFX_-Pb-avlD4Pf4TY4Bl3WVFnO0ZXbFRHyxl8DZwdlmynJbnvOzUqh2xlbbRPHEyN2EpbrpFbq5XenkxboJ669LkAaA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "60",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

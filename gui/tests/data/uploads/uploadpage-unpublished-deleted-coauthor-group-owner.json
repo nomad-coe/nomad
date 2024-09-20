@@ -1,0 +1,111 @@
+{
+  "09c92ad277a6d0a0f0328049eeea3d01": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/groups?user_id=a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3ODMsImlhdCI6MTcyNjczODc5NCwianRpIjoiMDQ1ZDEyYjktMmYzMS00NGMzLWJmZjUtNDdhZmJiZGQ0MzUxIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJhY2NvdW50Il0sInN1YiI6ImEwM2FmOGI2LTNhYTctNDI4YS1iM2IxLTRhNjMxN2U1NzZiNiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbInZpZXctdXNlcnMiLCJxdWVyeS1ncm91cHMiLCJxdWVyeS11c2VycyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJTaGVsZG9uIENvb3BlciIsInByZWZlcnJlZF91c2VybmFtZSI6InNjb29wZXIiLCJnaXZlbl9uYW1lIjoiU2hlbGRvbiIsImZhbWlseV9uYW1lIjoiQ29vcGVyIiwiZW1haWwiOiJzaGVsZG9uLmNvb3BlckBub21hZC1jb2UuZXUifQ.DnXGktb54svfbkqnuYhcIFC1hhTViOKSL7YuFIbOEX9jLXViUQcSxuKqsUS_jAQ8opFS-lXSHRxG8qmTISId5kvsfW8ZbN45RZU0ays_WaudqbUtKDoXeJFFwMdj69uAoD1UkSmQWbTvqn-vdAW4thR_6TAVJ7LbNvzyDmYzaWhmv6nJGdeA9_vGc4fqflYhiOMkKYviRKi_NnwnE7Zt3GYRamWhECeoHxUZR_99LzifjlkgGeKRpQGEb8_v2zkHYDE93o1aMUitzExURbWpLJKaErO1tqColl029b8MoqsnIyHHfgyWYBx_W2Nzrrote4k2CV1OYVnpK2Q7-nB7TQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "group_id": "group2",
+              "group_name": "Group Cooper",
+              "owner": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+              "members": []
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "170",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "ff95b7af4ca8739b8ba0065e4de2b8d7": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3ODMsImlhdCI6MTcyNjczODc5NCwianRpIjoiNzg0YjQxZTYtNTk4MS00NDhlLTkzNzAtZTY4MmVlMTA1OGU1IiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJhY2NvdW50Il0sInN1YiI6ImEwM2FmOGI2LTNhYTctNDI4YS1iM2IxLTRhNjMxN2U1NzZiNiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbInZpZXctdXNlcnMiLCJxdWVyeS1ncm91cHMiLCJxdWVyeS11c2VycyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJTaGVsZG9uIENvb3BlciIsInByZWZlcnJlZF91c2VybmFtZSI6InNjb29wZXIiLCJnaXZlbl9uYW1lIjoiU2hlbGRvbiIsImZhbWlseV9uYW1lIjoiQ29vcGVyIiwiZW1haWwiOiJzaGVsZG9uLmNvb3BlckBub21hZC1jb2UuZXUifQ.KC-OAJBJJ5gx4yzpI_qz_SHVmICazk9uPnfuWrRySKbLops2TL8iDA_WAMquxSJ296DWVl601rbapZBBhKa6URHeAgdLDQj0PwiW0xZkVjktWGZ_QG6DTR1tqp3pKSiB7TSHdfyfBjERsIH0egzOgYurmkmq6qDblGllg6swL4HoLo8VhtsX6s6QI3FnYb1_UHNpKIWNvpuWRq4xCcCVKvLC0j8OByKeETlG4P1L8NBptPSjBUNZXxjbyabrVX7P-LHTVOO9yEFUikkOHhhOuaiw0Ujj0vfJCd0HAza52MMRv0OUohR7R6tyrGgTp60MLl1hUiIMsSBAPMRsd3vM7w",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "60",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3ODMsImlhdCI6MTcyNjczODc5NCwianRpIjoiNDE5ZTgyZjMtNmMzMC00OGQxLTk0NzgtZjZjNTQyNTkxYmZmIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJhY2NvdW50Il0sInN1YiI6ImEwM2FmOGI2LTNhYTctNDI4YS1iM2IxLTRhNjMxN2U1NzZiNiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbInZpZXctdXNlcnMiLCJxdWVyeS1ncm91cHMiLCJxdWVyeS11c2VycyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJTaGVsZG9uIENvb3BlciIsInByZWZlcnJlZF91c2VybmFtZSI6InNjb29wZXIiLCJnaXZlbl9uYW1lIjoiU2hlbGRvbiIsImZhbWlseV9uYW1lIjoiQ29vcGVyIiwiZW1haWwiOiJzaGVsZG9uLmNvb3BlckBub21hZC1jb2UuZXUifQ.ONjKcP-nHRK9oX69LjxWlAxNAe0x1-FiuQIJInhTMxCRB14jbPbPzaXoacPKwCBXsjvl45iP9QLqlM1uLizSM0gthnT9bYKM5XkojohcZ0Stj8r_e5OI_gB-bAsvavwKWRZF5tLI8ToLdpPeSwR2ckVPe7coGyp2lLMEEQLU1gTWNqByLGlzm-84aNE3LSSmd7ErvXblmO_zIuYaG-EJHaszpSoL1QvqyNz1TZULfEjM9RvitsZ9Ne5JKEoS-GxtdAhqAe62Dm2eovX_qateL6wSxwvua16V-GvrfK0SHOnFyMZvM272Dzl0qzv0pIjxcspJm74kx31stD8q5wDdxw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "60",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "ef176469409874c83459089471302b81": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page=1&page_size=5",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MjY3NzQ3ODMsImlhdCI6MTcyNjczODc5NCwianRpIjoiNzg0YjQxZTYtNTk4MS00NDhlLTkzNzAtZTY4MmVlMTA1OGU1IiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJhY2NvdW50Il0sInN1YiI6ImEwM2FmOGI2LTNhYTctNDI4YS1iM2IxLTRhNjMxN2U1NzZiNiIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbInZpZXctdXNlcnMiLCJxdWVyeS1ncm91cHMiLCJxdWVyeS11c2VycyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiY2E1MDA5NTAtODhhNC00ZDg3LTg2Y2QtYzNkMjM0MGE5MzE4IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJTaGVsZG9uIENvb3BlciIsInByZWZlcnJlZF91c2VybmFtZSI6InNjb29wZXIiLCJnaXZlbl9uYW1lIjoiU2hlbGRvbiIsImZhbWlseV9uYW1lIjoiQ29vcGVyIiwiZW1haWwiOiJzaGVsZG9uLmNvb3BlckBub21hZC1jb2UuZXUifQ.KC-OAJBJJ5gx4yzpI_qz_SHVmICazk9uPnfuWrRySKbLops2TL8iDA_WAMquxSJ296DWVl601rbapZBBhKa6URHeAgdLDQj0PwiW0xZkVjktWGZ_QG6DTR1tqp3pKSiB7TSHdfyfBjERsIH0egzOgYurmkmq6qDblGllg6swL4HoLo8VhtsX6s6QI3FnYb1_UHNpKIWNvpuWRq4xCcCVKvLC0j8OByKeETlG4P1L8NBptPSjBUNZXxjbyabrVX7P-LHTVOO9yEFUikkOHhhOuaiw0Ujj0vfJCd0HAza52MMRv0OUohR7R6tyrGgTp60MLl1hUiIMsSBAPMRsd3vM7w",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "60",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 from nomad import infrastructure
-from nomad.groups import create_user_group
+from nomad.groups import create_user_group, get_user_group
 
 
 def _create(group_id, group_name, owner, members=None):
@@ -7,6 +7,10 @@ def _create(group_id, group_name, owner, members=None):
     return create_user_group(
         group_id=group_id, group_name=group_name, owner=owner, members=members
     )
+
+
+def delete_group(group_id):
+    get_user_group(group_id).delete()
 
 
 def init_gui_test_groups():

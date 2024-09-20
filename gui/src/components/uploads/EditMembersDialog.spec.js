@@ -259,3 +259,28 @@ test.each([
   const isLoggedIn = username !== ''
   await testReadOnlyPermissions(isLoggedIn)
 })
+
+test.each([
+  [
+    'Unpublished with deleted coauthor group and logged in as main author',
+    'tests.states.uploads.unpublished_deleted_coauthor_group',
+    'tests/data/uploads/members-dialog-unpublished-deleted-coauthor-group-author',
+    'dft_upload',
+    'test',
+    'password'
+  ]
+])('Members dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  const user = userEvent.setup()
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
+
+  const dialog = await openMembersDialog(user)
+  const rows = within(dialog).queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(2)
+  checkRow(rows[0], { texts: ['Markus Scheidgen', 'Main author'], isDeletable: false })
+  checkRow(rows[1], { texts: ['Error: group was deleted', 'Co-author']})
+  userEvent.hover(within(rows[1]).getByText('Error: group was deleted'))
+  await waitFor(() => {
+    expect(screen.getByRole("tooltip", { name: "ID: group23", hidden: true })).toBeVisible()
+  })
+})

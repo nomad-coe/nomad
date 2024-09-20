@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 import {
-  FormGroup,
   Dialog,
   DialogContent,
   DialogTitle,
+  FormGroup,
   IconButton,
   makeStyles,
   MenuItem,
   Select,
   TextField,
-  Tooltip
+  Tooltip,
+  Typography
 } from '@material-ui/core'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
@@ -35,6 +36,7 @@ import AutoComplete from '@material-ui/lab/Autocomplete'
 import _, { debounce } from 'lodash'
 import PropTypes from 'prop-types'
 import React, { useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+import { uploadMembersGroupSearchEnabled } from '../../config'
 import { isUploadVisibleForAll } from '../../utils'
 import { useApi } from '../api'
 import { Datatable, DatatableTable } from '../datatable/Datatable'
@@ -56,7 +58,6 @@ import {
   TYPES,
   userToMember
 } from './memberUtils'
-import { uploadMembersGroupSearchEnabled } from '../../config'
 
 export const editMembersDialogContext = React.createContext()
 
@@ -75,13 +76,24 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
+function renderMemberName(member) {
+  if (member.error === 'missing') {
+    return (
+      <Tooltip title={`ID: ${member.id}`}>
+        <Typography color="error">Error: {member.type} was deleted</Typography>
+      </Tooltip>
+    )
+  }
+  return member.name
+}
+
 function MembersTable() {
   const {members, setIsChanged} = useContext(editMembersDialogContext)
   const forceUpdate = useReducer(bool => !bool)[1]
 
   const columns = [
     {key: '', align: 'right', render: member => (<MemberIcon type={member.type} />)},
-    {key: 'Name', align: 'left', render: member => member.name},
+    {key: 'Name', align: 'left', render: renderMemberName},
     {key: 'Affiliation', align: 'left', render: member => member.affiliation},
     {
       key: 'Role',
@@ -265,7 +277,7 @@ const EditMembersDialog = ({open, setOpen}) => {
       userToMember(usersDict[userId], userRoles[index])
     )
     const memberGroups = groupIds.map((groupId, index) =>
-      groupToMember(groupsDict[groupId], usersDict, groupRoles[index])
+      groupToMember(groupsDict[groupId], usersDict, groupRoles[index], groupId)
     )
 
     return [...memberUsers, ...memberGroups]

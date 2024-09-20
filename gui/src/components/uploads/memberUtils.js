@@ -33,13 +33,14 @@ export function userToMember(user, role = ROLES.REVIEWER) {
   }
 }
 
-export function groupToMember(group, usersDict = {}, role = ROLES.REVIEWER) {
+export function groupToMember(group, usersDict = {}, role = ROLES.REVIEWER, defaultId = null) {
   return {
     type: TYPES.GROUP,
-    id: group.group_id,
-    name: group.group_name,
-    affiliation: usersDict[group.owner]?.name ?? group.owner,
-    role: role
+    id: group?.group_id ?? defaultId,
+    name: group?.group_name ?? null,
+    affiliation: usersDict[group?.owner]?.name ?? group?.owner ?? null,
+    role: role,
+    error: !group ? `missing` : null
   }
 }
 
