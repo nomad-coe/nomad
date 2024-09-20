@@ -459,6 +459,29 @@ test.each([
   await testShownColumnsAction()
 })
 
+test.each([
+  [
+    'Unpublished and logged in as owner of deleted coauthor group',
+    'tests.states.uploads.unpublished_deleted_coauthor_group',
+    'tests/data/uploads/uploadpage-unpublished-deleted-coauthor-group-owner',
+    'dft_upload',
+    'scooper',
+    'password'
+  ], [
+    'Unpublished and logged in as member of deleted coauthor group',
+    'tests.states.uploads.unpublished_deleted_coauthor_group',
+    'tests/data/uploads/uploadpage-unpublished-deleted-coauthor-group-member',
+    'dft_upload',
+    'ttester',
+    'password'
+  ]
+])(`Upload page: %s`, async (name, state, snapshot, uploadId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  render(<><LoginLogout/><UploadPage uploadId={uploadId}/></>)
+  await screen.findByTestId('logout-button')
+  await screen.findByText('You do not have access to the specified upload.')
+})
+
 test('Toggle visible for all checkbox; check embargo, icon', async () => {
   await startAPI(
     'tests.states.uploads.unpublished',

@@ -20,7 +20,7 @@ from nomad import infrastructure, files
 from nomad.processing import Upload
 from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
-from .groups import init_gui_test_groups
+from .groups import init_gui_test_groups, delete_group
 
 default_access = {'coauthors': ['scooper'], 'reviewers': ['ttester']}
 twin_access = {
@@ -171,6 +171,15 @@ def unpublished_reviewer_group():
     """
     access = {'reviewer_groups': ['group23']}
     _create_vasp_upload(access=access, published=False, embargo_length=0)
+
+
+def unpublished_deleted_coauthor_group():
+    """
+    1 upload, unpublished, 1 entry, 1 coauthor group (deleted)
+    """
+    access = {'coauthor_groups': ['group23']}
+    _create_vasp_upload(access=access, published=False, embargo_length=0)
+    delete_group('group23')
 
 
 def multiple_entries():
