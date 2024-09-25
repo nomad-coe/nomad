@@ -860,8 +860,40 @@ class PureSubstanceSection(ArchiveSection):
     )
     molecular_mass = Quantity(
         type=np.dtype(np.float64),
+        links=['https://en.wikipedia.org/wiki/Molecular_mass'],
         unit='Da',
-        description='Molecular mass.',
+        description="""
+        The mass of the most likely isotopic composition for a single molecule,
+        corresponding to the most intense ion/molecule peak in a mass spectrum.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity',
+            defaultDisplayUnit='Da',
+        ),
+    )
+    molar_mass = Quantity(
+        type=np.dtype(np.float64),
+        links=['https://en.wikipedia.org/wiki/Molar_mass'],
+        unit='g/mol',
+        description="""
+        The molar mass is the sum of all atomic masses of the constituent atoms in a
+        compound, measured in g/mol. In the absence of explicit isotope labelling,
+        averaged natural abundance is assumed. If an atom bears an explicit isotope label,
+        100%% isotopic purity is assumed at this location.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity',
+            defaultDisplayUnit='g/mol',
+        ),
+    )
+    monoisotopic_mass = Quantity(
+        type=np.dtype(np.float64),
+        links=['https://en.wikipedia.org/wiki/Monoisotopic_mass'],
+        unit='Da',
+        description="""
+        The mass of a molecule, calculated using the mass of the most abundant isotope of
+        each element.
+        """,
         a_eln=dict(
             component='NumberEditQuantity',
             defaultDisplayUnit='Da',
@@ -1449,6 +1481,8 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             'IUPACName': 'iupac_name',
             'MolecularFormula': 'molecular_formula',
             'ExactMass': 'molecular_mass',
+            'MolecularWeight': 'molar_mass',
+            'MonoisotopicMass': 'monoisotopic_mass',
             'InChI': 'inchi',
             'InChIKey': 'inchi_key',
             'IsomericSMILES': 'smile',
@@ -1459,6 +1493,8 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             'IUPACName': str,
             'MolecularFormula': str,
             'ExactMass': float,
+            'MolecularWeight': float,
+            'MonoisotopicMass': float,
             'InChI': str,
             'InChIKey': str,
             'IsomericSMILES': str,
