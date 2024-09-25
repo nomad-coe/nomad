@@ -164,15 +164,15 @@ check python dependencies:
   image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
   stage: test
   services:
-    - name: rabbitmq:3.11.5
+    - name: rabbitmq:4
       alias: rabbitmq
-    - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    - name: elasticsearch:7.17.24
       alias: elastic
       command:
         - bash
         - "-c"
         - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
-    - name: mongo:5.0.6
+    - name: mongo:5
       alias: mongo
   variables:
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
