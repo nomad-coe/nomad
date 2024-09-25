@@ -127,7 +127,7 @@ export const WidgetTerms = React.memo((
     return config
   }, [aggSize, filterData, quantity])
   const agg = useAgg(quantity, !isNil(height), id, aggConfig)
-  const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
+  const max = agg ? Math.max(...agg.data.map(option => option.nested_count)) : 0
 
   const handleChange = useCallback((event, key, selected) => {
     setFilter(old => {
@@ -162,7 +162,7 @@ export const WidgetTerms = React.memo((
         const maxSize = Math.min(aggConfig.size, agg.data.length)
         for (let i = 0; i < maxSize; ++i) {
           const option = agg.data[i]
-          if (option.count > 0 && nShown < maxSize) {
+          if (option.nested_count > 0 && nShown < maxSize) {
             aggComp.push(<InputItem
               key={option.value}
               value={option.value}
@@ -170,7 +170,7 @@ export const WidgetTerms = React.memo((
               max={max}
               onChange={handleChange}
               variant="checkbox"
-              count={option.count}
+              count={option.nested_count}
               scale={scale}
             />)
             ++nShown
