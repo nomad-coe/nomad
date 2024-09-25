@@ -74,7 +74,7 @@ infrastructure = [
     'beautifulsoup4',
     'celery',
     'dockerspawner==13.0.0',
-    'elasticsearch==7.17.1',
+    'elasticsearch<8',
     'fastapi<0.100', # later versions pending pydantic v2 upgrade
     'filelock==3.3.1',
     'gitpython',
@@ -86,8 +86,7 @@ infrastructure = [
     'jsonschema[format]==4.17.3',
     'jupyterhub==4.0.2',
     'm2r==0.2.1',
-    'pymongo==4.6.3',
-    'mongoengine>=0.20',
+    'mongoengine',
     'msgpack',
     'oauthenticator==15.1.0',
     'optimade[mongo]==0.22.1',

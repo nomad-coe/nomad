@@ -272,7 +272,7 @@ Note that this will lead to [failing tests](#backend-tests) for the excluded plu
 
 ### App and worker
 
-NOMAD consists of the NOMAD app/API, a worker, and the GUI. You can run the app and the worker with
+NOMAD consists of the NOMAD app/API, a Celery worker, and the GUI. You can run the app and the worker with
 the NOMAD CLI. These commands will run the services and display their log output. You should open
 them in separate shells as they run continuously. They will not watch code changes and
 you have to restart manually.
@@ -294,6 +294,22 @@ nomad admin run appworker
 On MacOS you might run into multiprocessing errors. That can be solved as described [here](https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr){:target="_blank"}.
 
 The app will run at port 8000 by default.
+
+Depending on your preference, it is also possible to run the app and worker together with a python script.
+
+```bash
+python3 scripts/run_dev_env.py
+```
+
+The `scripts/run_dev_env.py` enables develop mode by default such that only one worker is used for FastAPI and Celery.
+This helps save resource usage, which is often useful for development purposes.
+
+There are more configurations available.
+You can see them by running the following.
+
+```shell
+nomad admin run --help
+```
 
 To run the worker directly with Celery, do (from the root)
 

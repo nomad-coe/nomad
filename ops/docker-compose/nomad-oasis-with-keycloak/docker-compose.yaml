@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   # keycloak user management
   keycloak:
@@ -18,12 +16,7 @@ services:
       - keycloak:/opt/jboss/keycloak/standalone/data
       - ./configs/nomad-realm.json:/tmp/nomad-realm.json
     healthcheck:
-      test:
-        - "CMD"
-        - "curl"
-        - "--fail"
-        - "--silent"
-        - "http://127.0.0.1:9990/health/live"
+      test: [ "CMD", "curl", "--fail", "--silent", "http://127.0.0.1:9990/health/live" ]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -32,7 +25,7 @@ services:
   # broker for celery
   rabbitmq:
     restart: unless-stopped
-    image: rabbitmq:3.11.5
+    image: rabbitmq:4
     container_name: nomad_oasis_rabbitmq
     environment:
       - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
@@ -42,7 +35,7 @@ services:
     volumes:
       - rabbitmq:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "--silent", "--quiet", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "--silent", "--quiet", "ping" ]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -51,7 +44,7 @@ services:
   # the search engine
   elastic:
     restart: unless-stopped
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    image: elasticsearch:7.17.24
     container_name: nomad_oasis_elastic
     environment:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
@@ -59,12 +52,7 @@ services:
     volumes:
       - elastic:/usr/share/elasticsearch/data
     healthcheck:
-      test:
-        - "CMD"
-        - "curl"
-        - "--fail"
-        - "--silent"
-        - "http://elastic:9200/_cat/health"
+      test: [ "CMD", "curl", "--fail", "--silent", "http://elastic:9200/_cat/health" ]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -73,7 +61,7 @@ services:
   # the user data db
   mongo:
     restart: unless-stopped
-    image: mongo:5.0.6
+    image: mongo:5
     container_name: nomad_oasis_mongo
     environment:
       - MONGO_DATA_DIR=/data/db
@@ -83,13 +71,7 @@ services:
       - ./.volumes/mongo:/backup
     command: mongod --logpath=/dev/null # --quiet
     healthcheck:
-      test:
-        - "CMD"
-        - "mongo"
-        - "mongo:27017/test"
-        - "--quiet"
-        - "--eval"
-        - "'db.runCommand({ping:1}).ok'"
+      test: [ "CMD", "mongo", "mongo:27017/test", "--quiet", "--eval", "'db.runCommand({ping:1}).ok'" ]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -143,12 +125,7 @@ services:
       - ./.volumes/fs:/app/.volumes/fs
     command: ./run.sh
     healthcheck:
-      test:
-        - "CMD"
-        - "curl"
-        - "--fail"
-        - "--silent"
-        - "http://localhost:8000/-/health"
+      test: [ "CMD", "curl", "--fail", "--silent", "http://localhost:8000/-/health" ]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -182,12 +159,7 @@ services:
     user: '1000:991'
     command: python -m nomad.cli admin run hub
     healthcheck:
-      test:
-        - "CMD"
-        - "curl"
-        - "--fail"
-        - "--silent"
-        - "http://localhost:8081/nomad-oasis/north/hub/health"
+      test: [ "CMD", "curl", "--fail", "--silent", "http://localhost:8081/nomad-oasis/north/hub/health" ]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -196,7 +168,7 @@ services:
   # nomad proxy (a reverse proxy for nomad)
   proxy:
     restart: unless-stopped
-    image: nginx:1.13.9-alpine
+    image: nginx:stable-alpine
     container_name: nomad_oasis_proxy
     command: nginx -g 'daemon off;'
     volumes:
@@ -211,7 +183,7 @@ services:
       north:
         condition: service_healthy
     ports:
-      - 80:80
+      - "80:80"
 
 volumes:
   mongo:

@@ -560,7 +560,7 @@ Since not all used services respect proxy variables, one also has to change the 
 ```yaml hl_lines="7 8"
 elastic:
     restart: unless-stopped
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    image: elasticsearch:7.17.24
     container_name: nomad_oasis_elastic
     environment:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m

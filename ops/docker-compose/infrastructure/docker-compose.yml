@@ -17,13 +17,11 @@
 # limitations under the License.
 #
 
-version: "3"
-
 services:
   # broker for celery
   rabbitmq:
     restart: "no"
-    image: rabbitmq:3.11.5
+    image: rabbitmq:4
     container_name: nomad_rabbitmq
     environment:
       - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
@@ -31,14 +29,13 @@ services:
       - RABBITMQ_DEFAULT_PASS=rabbitmq
       - RABBITMQ_DEFAULT_VHOST=/
     ports:
-      - 5672:5672
+      - "5672:5672"
     volumes:
       - nomad_rabbitmq:/var/lib/rabbitmq
-
   # the search engine
   elastic:
     restart: "no"
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    image: elasticsearch:7.17.24
     container_name: nomad_elastic
     environment:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
@@ -49,26 +46,22 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
     ports:
-      - 9200:9200
+      - "9200:9200"
     volumes:
       - nomad_elastic:/usr/share/elasticsearch/data
-
   # the user data db
   mongo:
     restart: "no"
-    image: mongo:5.0.6
+    image: mongo:5
     container_name: nomad_mongo
     environment:
       - MONGO_DATA_DIR=/data/db
       - MONGO_LOG_DIR=/dev/null
     ports:
-      - 27017:27017
+      - "27017:27017"
     volumes:
       - nomad_mongo:/data/db
       - nomad_mongo_config:/data/configdb
-    command: mongod
-    # --logpath=/dev/null # --quiet
-
 volumes:
   nomad_mongo:
   nomad_mongo_config:
