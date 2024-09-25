@@ -58346,7 +58346,10 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "molecular_mass",
-                "description": "Molecular mass.",
+                "description": "The mass of the most likely isotopic composition for a single molecule,\ncorresponding to the most intense ion/molecule peak in a mass spectrum.",
+                "links": [
+                  "https://en.wikipedia.org/wiki/Molecular_mass"
+                ],
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -58356,6 +58359,52 @@ window.nomadArtifacts = {
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity",
+                      "defaultDisplayUnit": "g/mol"
+                    }
+                  ]
+                },
+                "name": "molar_mass",
+                "description": "The molar mass is the sum of all atomic masses of the constituent atoms in a\ncompound, measured in g/mol. In the absence of explicit isotope labelling,\naveraged natural abundance is assumed. If an atom bears an explicit isotope label,\n100%% isotopic purity is assumed at this location.",
+                "links": [
+                  "https://en.wikipedia.org/wiki/Molar_mass"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "gram / mole"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity",
+                      "defaultDisplayUnit": "Da"
+                    }
+                  ]
+                },
+                "name": "monoisotopic_mass",
+                "description": "The mass of a molecule, calculated using the mass of the most abundant isotope of\neach element.",
+                "links": [
+                  "https://en.wikipedia.org/wiki/Monoisotopic_mass"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "dalton"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "eln": [
@@ -58373,7 +58422,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "eln": [
@@ -58391,7 +58440,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "eln": [
@@ -58409,7 +58458,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "eln": [
@@ -58427,7 +58476,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "eln": [
