@@ -63,8 +63,6 @@ try:
     import simulationworkflowschema.molecular_dynamics
     import simulationworkflowschema.thermodynamics
 except Exception as e:
-    logger = utils.get_logger(__name__)
-    logger.error('Error importing simulation schemas.')
     runschema, simulationworkflowschema = None, None
 
 m_package = Package()
