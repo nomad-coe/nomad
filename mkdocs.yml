@@ -3,103 +3,104 @@ site_description: |
   The documentation for NOMAD v1.
 site_author: The NOMAD Authors
 repo_url: https://github.com/nomad-coe/nomad
-edit_uri: ''
+edit_uri: ""
 nav:
   - Home: index.md
   - Tutorial:
-    - Navigating to NOMAD: tutorial/nomad_repo.md
-    - Uploading and publishing data: tutorial/upload_publish.md
-    - Exploring data: tutorial/explore.md
-    - Access data via API: tutorial/access_api.md
-    - Schemas and plugins: tutorial/custom.md
-    - Developing a NOMAD plugin: tutorial/develop_plugin.md
+      - Navigating to NOMAD: tutorial/nomad_repo.md
+      - Uploading and publishing data: tutorial/upload_publish.md
+      - Exploring data: tutorial/explore.md
+      - Access data via API: tutorial/access_api.md
+      - Schemas and plugins: tutorial/custom.md
+      - Developing a NOMAD plugin: tutorial/develop_plugin.md
   - How-to guides:
-    - Overview: howto/overview.md
-    - Manage and find data:
-      - Upload and publish data for supported formats: howto/manage/upload.md
-      - Use ELNs: howto/manage/eln.md
-      - Explore data: howto/manage/explore.md
-      - Use NORTH: howto/manage/north.md
-    - Programmatic use:
-      - Use the API: howto/programmatic/api.md  # TODO separate into How-to and Explanation/Reference
-      - Download data: howto/programmatic/download.md
-      - Publish data using python: howto/programmatic/publish_python.md
-      - Install nomad-lab: howto/programmatic/pythonlib.md
-      - Access processed data: howto/programmatic/archive_query.md
-      - Run a parser: howto/programmatic/local_parsers.md
-    - NOMAD Oasis:
-      - Install an Oasis: howto/oasis/install.md
-      - Customize an Oasis: howto/oasis/customize.md
-      - Install plugins: howto/oasis/plugins_install.md
-      - Migrate Oasis versions: howto/oasis/migrate.md
-      - Perform admin tasks: howto/oasis/admin.md
-    - Plugins:
-      - Get started with plugins: howto/plugins/plugins.md
-      - Write an app: howto/plugins/apps.md
-      - Write an example upload: howto/plugins/example_uploads.md
-      - Write a normalizer: howto/plugins/normalizers.md
-      - Write a parser: howto/plugins/parsers.md
-      - Write a schema package: howto/plugins/schema_packages.md
-    - Customization:
-      - Write a YAML schema package: howto/customization/basics.md
-      - Define ELNs: howto/customization/elns.md
-      - Use base sections: howto/customization/base_sections.md
-      - Parse tabular data: howto/customization/tabular.md
-      - Define workflows: howto/customization/workflows.md
-      - Work with units: howto/customization/units.md
-      - Use HDF5 to handle large quantities: howto/customization/hdf5.md
-    - Development:
-      - Get started: howto/develop/setup.md
-      - Navigate the code: howto/develop/code.md
-      - Contribute: howto/develop/contrib.md
-      - Extend the search: howto/develop/search.md
-      - Migrate to autoformatted code: howto/develop/migrate-to-autoformatter.md
-      - Make a release: howto/develop/release.md
+      - Overview: howto/overview.md
+      - Manage and find data:
+          - Upload and publish data for supported formats: howto/manage/upload.md
+          - Use ELNs: howto/manage/eln.md
+          - Explore data: howto/manage/explore.md
+          - Use NORTH: howto/manage/north.md
+      - Programmatic use:
+          - Use the API: howto/programmatic/api.md # TODO separate into How-to and Explanation/Reference
+          - Download data: howto/programmatic/download.md
+          - Publish data using python: howto/programmatic/publish_python.md
+          - Install nomad-lab: howto/programmatic/pythonlib.md
+          - Access processed data: howto/programmatic/archive_query.md
+          - Run a parser: howto/programmatic/local_parsers.md
+      - NOMAD Oasis:
+          - Install an Oasis: howto/oasis/install.md
+          - Customize an Oasis: howto/oasis/customize.md
+          - Install plugins: howto/oasis/plugins_install.md
+          - Migrate Oasis versions: howto/oasis/migrate.md
+          - Perform admin tasks: howto/oasis/admin.md
+      - Plugins:
+          - Get started with plugins: howto/plugins/plugins.md
+          - Write an app: howto/plugins/apps.md
+          - Write an example upload: howto/plugins/example_uploads.md
+          - Write a normalizer: howto/plugins/normalizers.md
+          - Write a parser: howto/plugins/parsers.md
+          - Write a schema package: howto/plugins/schema_packages.md
+      - Customization:
+          - Write a YAML schema package: howto/customization/basics.md
+          - Define ELNs: howto/customization/elns.md
+          - Use base sections: howto/customization/base_sections.md
+          - Parse tabular data: howto/customization/tabular.md
+          - Define workflows: howto/customization/workflows.md
+          - Work with units: howto/customization/units.md
+          - Use HDF5 to handle large quantities: howto/customization/hdf5.md
+      - Development:
+          - Get started: howto/develop/setup.md
+          - Navigate the code: howto/develop/code.md
+          - Contribute: howto/develop/contrib.md
+          - Extend the search: howto/develop/search.md
+          - Migrate to autoformatted code: howto/develop/migrate-to-autoformatter.md
+          - Make a release: howto/develop/release.md
   - Domain-specific examples:
-    - Overview: examples/overview.md
-    - Computational data:
-      - Quick start: examples/computational_data/uploading.md
-      - Workflows: examples/computational_data/workflows.md
-      - MetaInfo: examples/computational_data/metainfo.md
-      - Schema plugins: examples/computational_data/schema_plugins.md
-      - Parser plugins: examples/computational_data/parser_plugins.md
-      - H5MD schema - Howto: examples/computational_data/h5md_howto.md
-      - H5MD schema - Explanation: examples/computational_data/h5md_expl.md
-      - H5MD - Reference: examples/computational_data/h5md_ref.md
-    - Experimental data:
-      - NeXus:
-        - NeXus semantic file format: examples/experiment_data/nexus.md
-        - Guide to parser library pynxtools: examples/experiment_data/pynxtools.md
-        - Electron microscopy: examples/experiment_data/em.md
-        - Photoemission spectroscopy: examples/experiment_data/mpes.md
-        - X-ray photoemission spectroscopy: examples/experiment_data/xps.md
-        - Optical spectroscopy: examples/experiment_data/opt.md
-        - Atom probe tomography: examples/experiment_data/apm.md
-        - Scanning tunneling spectroscopy: examples/experiment_data/sts.md
-      # - NOMAD-supported plugins:
-      # - Databases for specific research topics:
+      - Overview: examples/overview.md
+      - Computational data:
+          - Quick start: examples/computational_data/uploading.md
+          - Workflows: examples/computational_data/workflows.md
+          - MetaInfo: examples/computational_data/metainfo.md
+          - Schema plugins: examples/computational_data/schema_plugins.md
+          - Parser plugins: examples/computational_data/parser_plugins.md
+          - H5MD schema - Howto: examples/computational_data/h5md_howto.md
+          - H5MD schema - Explanation: examples/computational_data/h5md_expl.md
+          - H5MD - Reference: examples/computational_data/h5md_ref.md
+      - Experimental data:
+          - NeXus:
+              - NeXus semantic file format: examples/experiment_data/nexus.md
+              - Guide to parser library pynxtools: examples/experiment_data/pynxtools.md
+              - Electron microscopy: examples/experiment_data/em.md
+              - Photoemission spectroscopy: examples/experiment_data/mpes.md
+              - X-ray photoemission spectroscopy: examples/experiment_data/xps.md
+              - Optical spectroscopy: examples/experiment_data/opt.md
+              - Atom probe tomography: examples/experiment_data/apm.md
+              - Scanning tunneling spectroscopy: examples/experiment_data/sts.md
+        # - NOMAD-supported plugins:
+        # - Databases for specific research topics:
   - Explanation:
-    - From files to data: explanation/basics.md
-    - Data structure: explanation/data.md
-    - Processing: explanation/processing.md
-    - Architecture: explanation/architecture.md
-    - Federation and Oasis: explanation/oasis.md
+      - From files to data: explanation/basics.md
+      - Data structure: explanation/data.md
+      - Processing: explanation/processing.md
+      - Architecture: explanation/architecture.md
+      - Plugins: explanation/plugin_system.md
+      - Federation and Oasis: explanation/oasis.md
   - Reference:
-    - reference/config.md
-    - reference/annotations.md
-    - reference/cli.md
-    - reference/plugins.md
-    - reference/parsers.md
-    - reference/code_guidelines.md
-    - reference/glossary.md
-    - reference/tutorials.md
+      - reference/config.md
+      - reference/annotations.md
+      - reference/cli.md
+      - reference/plugins.md
+      - reference/parsers.md
+      - reference/code_guidelines.md
+      - reference/glossary.md
+      - reference/tutorials.md
 theme:
   name: material
   palette:
-    primary: '#2A4CDF'
-    accent: '#008A67'
+    primary: "#2A4CDF"
+    accent: "#008A67"
   font:
-    text: 'Titillium Web'
+    text: "Titillium Web"
   logo: assets/nomad-logo.png
   favicon: assets/favicon.png
   features:
@@ -138,19 +139,19 @@ extra:
   homepage: https://nomad-lab.eu
 use_directory_urls: false
 plugins:
-    - search
-    - macros:
-        module_name: nomad/mkdocs
-    - redirects:
-        redirect_maps:
-          'pythonlib.md': 'howto/programmatic/pythonlib.md'
-          'oasis.md': 'howto/oasis/install.md'
-          'develop/gitlab.md': 'howto/develop/contrib.md'
-    - glightbox
-    # - git-revision-date-localized
-    # TODO Fix error in pipeline when this plugin is included
-    # (with 'mkdocs-git-revision-date-localized-plugin==1.2.1' in pyproject.toml)
-    # see pipeline error here: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/jobs/2473217
+  - search
+  - macros:
+      module_name: nomad/mkdocs
+  - redirects:
+      redirect_maps:
+        "pythonlib.md": "howto/programmatic/pythonlib.md"
+        "oasis.md": "howto/oasis/install.md"
+        "develop/gitlab.md": "howto/develop/contrib.md"
+  - glightbox
+  # - git-revision-date-localized
+  # TODO Fix error in pipeline when this plugin is included
+  # (with 'mkdocs-git-revision-date-localized-plugin==1.2.1' in pyproject.toml)
+  # see pipeline error here: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/jobs/2473217
 extra_css:
   - stylesheets/extra.css
 extra_javascript:
