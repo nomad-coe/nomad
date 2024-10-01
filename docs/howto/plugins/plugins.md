@@ -1,6 +1,6 @@
 # Get started with plugins
 
-The main way to customize a NOMAD installation is through the use of **plugins**. A NOMAD Plugin is a Git repository that contains a Python package that an administrator can install into a NOMAD deployment to add custom features. This page contains the basics of how to create, develop and publish a NOMAD Plugin.
+The main way to customize a NOMAD installation is through the use of **plugins**. A NOMAD plugin is a Python package that an administrator can install into a NOMAD distribution to add custom features. This page contains shows you how to create, develop and publish a NOMAD plugin. For a high-level overview of the plugin mechanism, see the [NOMAD plugin system](../../explanation/plugin_system.md) -page.
 
 ## Plugin anatomy
 
@@ -40,17 +40,9 @@ In the folder structure you can see that a single plugin can contain multiple ty
 
 ## Plugin entry points
 
-Plugin entry points represent different types of customizations that can be added to a NOMAD installation. The following plugin entry point types are currently supported:
+Plugin entry points represent different types of customizations that can be added to a NOMAD installation. Entry points contain **configuration**, but also a **resource**, which lives in a separate Python module. This split enables lazy-loading: the configuration can be loaded immediately, while the resource is loaded later when/if it is required. This can significantly improve startup times, as long as all time-consuming initializations are performed only when loading the resource. This split also helps to avoid cyclical imports between the plugin code and the `nomad-lab` package.
 
- - [Apps](./apps.md)
- - [Example uploads](./example_uploads.md)
- - [Normalizers](./parsers.md)
- - [Parsers](./parsers.md)
- - [Schema packages](./schema_packages.md)
-
-Entry points contain **configuration**, but also a separate **resource**, which should live in a separate Python module. This split enables lazy-loading: the configuration can be loaded immediately, while the resource is loaded later when/if it is required. This can significantly improve startup times, as long as all time-consuming initializations are performed only when loading the resource. This split also helps to avoid cyclical imports between the plugin code and the `nomad-lab` package.
-
-For example the entry point instance for a parser is contained in `.../parsers/__init__.py` and it contains e.g. the name, version and any additional entry point-specific parameters that control its behaviour. The entry point has a `load` method than can be called lazily to return the resource, which is a `Parser` instance defined in `.../parsers/myparser.py`.
+For example the entry point configuration for a parser is contained in `.../parsers/__init__.py` and it contains e.g. the name, version and any additional entry point-specific parameters that control its behaviour. The entry point has a `load` method than can be called lazily to return the resource, which is a `Parser` instance defined in `.../parsers/myparser.py`.
 
 In `pyproject.toml` you can expose plugin entry points for automatic discovery. E.g. to expose an app and a package, you would add the following to `pyproject.toml`:
 
@@ -63,6 +55,61 @@ mypackage = "nomad_example.schema_packages:mypackage"
 Here it is important to use the `nomad.plugin` group name in the `project.entry-points` header. The value on the right side (`"nomad_example.schema_packages:mypackage"`) must be a path pointing to a plugin entry point instance inside the python code. This unique key will be used to identify the plugin entry point when e.g. accessing it to read some of it's configuration values. The name on the left side (`mypackage`) can be set freely.
 
 You can read more about how to write different types of entry points in their dedicated documentation pages or learn more about the [Python entry point mechanism](https://setuptools.pypa.io/en/latest/userguide/entry_point.html).
+
+### Plugin configuration
+
+The plugin entry point configuration is an instance of a [`pydantic`](https://docs.pydantic.dev/1.10/) model. This base model may already contain entry point-specific fields (such as the file extensions that a parser plugin will match) but it is also possible to extend this model to define additional fields that control your plugin behaviour.
+
+Here is an example of a new plugin entry point configuration class and instance for a parser, that has a new custom `parameter` configuration added as a `pydantic` `Field`:
+
+```python
+from pydantic import Field
+from nomad.config.models.plugins import ParserEntryPoint
+
+
+class MyParserEntryPoint(ParserEntryPoint):
+    parameter: int = Field(0, description='Config parameter for this parser.')
+
+myparser = MyParserEntryPoint(
+    name = 'MyParser',
+    description = 'My custom parser.',
+    mainfile_name_re = '.*\.myparser',
+)
+```
+
+The plugin entry point behaviour can be controlled in `nomad.yaml` using `plugins.entry_points.options`:
+
+```yaml
+plugins:
+  entry_points:
+    options:
+      "nomad_example.parsers:myparser":
+        parameter: 47
+```
+
+Note that the model will also validate the values coming from `nomad.yaml`, and you should utilize the validation mechanisms of `pydantic` to provide users with helpful messages about invalid configuration.
+
+### Plugin resource
+
+The configuration class has a `load` method that returns the entry point resource. This is typically an instance of a class, e.g. `Parser` instance in the case of a parser entry point. Here is an example of a `load` method for a parser:
+
+```python
+class MyParserEntryPoint(ParserEntryPoint):
+
+    def load(self):
+        from nomad_example.parsers.myparser import MyParser
+
+        return MyParser(**self.dict())
+```
+
+Often when loading the resource, you will need access to the final entry point configuration defined in `nomad.yaml`. This way also any overrides to the plugin configuration are correctly taken into account. You can get the final configuration using the `get_plugin_entry_point` function and the plugin name as defined in `pyproject.toml` as an argument:
+
+```python
+from nomad.config import config
+
+configuration = config.get_plugin_entry_point('nomad_example.parsers:myparser')
+print(f'The parser parameter is: {configuration.parameter}')
+```
 
 ### Controlling loading of plugin entry points
 
@@ -79,42 +126,6 @@ You could disable the parser entry point in your `nomad.yaml` with:
 plugins:
   entry_points:
     exclude: ["nomad_plugin.parsers:myparser"]
-```
-
-### Extending and using the entry point
-
-The plugin entry point is an instance of a [`pydantic`](https://docs.pydantic.dev/1.10/) model. This base model may already contain entry point-specific fields (such as the file extensions that a parser plugin will match) but it is also possible to extend this model to define additional fields that control your plugin behaviour.
-
-To specify new configuration options, you can add new `pydantic` fields to the subclass. For example, if we wanted to add a new configuration option for a parser, we could do the following:
-
-```python
-from pydantic import Field
-from nomad.config.models.plugins import ParserEntryPoint
-
-
-class MyParserEntryPoint(ParserEntryPoint):
-    parameter: int = Field(0, description='Config parameter for this parser.')
-```
-
-where we have defined a new subclass of `ParserEntryPoint` and added a new configuration field `parameter`. The plugin users can then control these settings in their `nomad.yaml` using `plugins.entry_points.options`:
-
-```yaml
-plugins:
-  entry_points:
-    options:
-      "nomad_example.parsers:myparser":
-        parameter: 47
-```
-
-Note that the model will also validate the values coming from `nomad.yaml`, and you should utilize the validation mechanisms of `pydantic` to provide users with helpful messages about invalid configuration.
-
-In your code, you can then access the whole entry point by loading it with `config.get_plugin_entry_point`:
-
-```python
-from nomad.config import config
-
-configuration = config.get_plugin_entry_point('nomad_example.parsers:myparser')
-print(f'The parser parameter is: {configuration.parameter}')
 ```
 
 ## Plugin development guidelines
