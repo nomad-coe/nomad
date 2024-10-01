@@ -2391,15 +2391,13 @@ class MSection(
             for sub_section_def in self.m_def.all_sub_sections.values():
                 sub_sections_copy = MSubSectionList(self, sub_section_def)
                 for sub_section in self.m_get_sub_sections(sub_section_def):
-                    sub_sections_copy.append(sub_section.m_copy(deep=True, parent=copy))
-
+                    sub_sections_copy.append(
+                        None if sub_section is None else sub_section.m_copy(deep=True)
+                    )
                 if sub_section_def.repeats:
                     copy.__dict__[sub_section_def.name] = sub_sections_copy
-                else:
-                    if len(sub_sections_copy) == 1:
-                        copy.__dict__[sub_section_def.name] = sub_sections_copy[0]
-                    else:
-                        copy.__dict__[sub_section_def.name] = None
+                elif len(sub_sections_copy) == 1:
+                    copy.__dict__[sub_section_def.name] = sub_sections_copy[0]
 
         if a_elasticsearch:
             copy.m_annotations['elasticsearch'] = a_elasticsearch
