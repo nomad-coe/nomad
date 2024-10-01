@@ -141,11 +141,6 @@ class Figure(MSection):
 
 class PlotlyFigureQuantity(Quantity):
     def __set__(self, obj, value):
-        if obj is None:
-            raise KeyError(
-                'Cannot overwrite quantity definition. Only values can be set.'
-            )
-
         # Make generated json serializable by converting numpy.ndarray to python list
         if value is not None:
             if 'data' in value:

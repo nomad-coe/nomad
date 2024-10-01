@@ -139,7 +139,7 @@ def create_custom_mapping(
                             pass
                         if not next_section:
                             next_section = path_section_def.section_cls()
-                            section.m_add_sub_section(sub_section, next_section, -1)
+                            section.m_add_sub_section(sub_section, next_section)
                         section = next_section
 
                     if annotation and annotation.unit:

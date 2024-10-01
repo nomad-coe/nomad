@@ -939,9 +939,6 @@ class Unit(NonPrimitive):
         return unit_obj
 
     def _serialize_impl(self, value, **kwargs):
-        if self.flexible_unit:
-            return None
-
         return str(value)
 
     def standard_type(self):

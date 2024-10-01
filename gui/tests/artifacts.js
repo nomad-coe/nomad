@@ -60453,7 +60453,7 @@ window.nomadArtifacts = {
             "m_parent_index": 1,
             "m_parent_sub_section": "section_definitions",
             "name": "Attribute",
-            "description": "Attributes can be used to qualify all properties (subsections and quantities) with simple scalar values.",
+            "description": "Attributes can be used to qualify all properties (subsections and quantities) with simple primitive values.",
             "base_sections": [
               "/packages/30/section_definitions/0"
             ],
@@ -60466,7 +60466,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "type",
-                "description": "The type of the attribute. Can be any primitive type, including\nnumpy types, Datetime and enums.",
+                "description": "The type of the attribute. Needs to be a primitive type that is a subclass of `Datatype`.",
                 "type": {
                   "type_kind": "custom",
                   "type_data": "nomad.metainfo.metainfo.QuantityType"
@@ -60477,6 +60477,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "shape",
+                "description": "The shape of the attribute. Need to be a list, similar to the shape of a quantity.",
                 "type": {
                   "type_kind": "custom",
                   "type_data": "nomad.metainfo.data_type.Dimension"
@@ -60627,7 +60628,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "name": "all_inheriting_sections",
-                "description": null,
+                "description": "A helper attribute that gives direct and indirect inheriting sections.",
                 "type": {
                   "type_kind": "custom",
                   "type_data": "nomad.metainfo.data_type.Any"
@@ -60970,18 +60971,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
-                "name": "repeats",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "bool"
-                },
-                "default": false
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
-                "m_parent_sub_section": "quantities",
                 "name": "use_full_storage",
+                "description": "A derived boolean that indicates if this quantity should be stored in full storage mode.\nIt will be set to True if `flexible_unit` is True, or `variable` is True, or it has attributes.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -60990,9 +60981,10 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 11,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "name": "flexible_unit",
+                "description": "A boolean to indicate if this quantity may have a unit that is not the default unit.\nIn this case, the quantity will be stored in full storage mode as a `MQuantity`.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"

@@ -134,7 +134,7 @@ class TableData(ArchiveSection):
                 'CSV parser is only implemented for single files.'
             )
 
-        if self.m_get(quantity_def, None) is None:
+        if self.m_get(quantity_def) is None:
             pass
         elif (
             quantity_def.default and not self.m_get(quantity_def)
@@ -353,7 +353,6 @@ class TableData(ArchiveSection):
                 self.m_add_sub_section(
                     self.m_def.all_properties[single_entry_section.split('/')[0]],
                     target_section,
-                    -1,
                 )
 
         from nomad.datamodel import EntryArchive, EntryMetadata
@@ -491,7 +490,7 @@ class TableData(ArchiveSection):
                 section_ref: MSection = subsection_def.sub_section.section_cls()
                 section_ref.m_set(quantity_def, ref_quantity_proxy)
 
-                self.m_add_sub_section(subsection_def, section_ref, -1)
+                self.m_add_sub_section(subsection_def, section_ref)
 
 
 m_package.__init_metainfo__()
@@ -645,7 +644,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
                             pass
                         if not next_section:
                             next_section = path_section_def.section_cls()
-                            section.m_add_sub_section(sub_section, next_section, -1)
+                            section.m_add_sub_section(sub_section, next_section)
                         section = next_section
 
                     if annotation and annotation.unit:

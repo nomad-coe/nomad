@@ -466,9 +466,7 @@ class ChemotionParser(MatchingParser):
                         chemotion_subsection.post_process()
                     item_name = 'Reactions' if item_name == 'Reaction' else item_name
                     sub_section_def = getattr(chemotion.m_def.section_cls, item_name)
-                    chemotion.m_add_sub_section(
-                        sub_section_def, chemotion_subsection, -1
-                    )
+                    chemotion.m_add_sub_section(sub_section_def, chemotion_subsection)
                 except Exception as e:
                     logger.error(
                         'No dot (.) is allowed in the column name.',

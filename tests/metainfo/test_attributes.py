@@ -171,20 +171,11 @@ def test_unit_compatibility(token, units, result):
 
 def test_repeating_quantity():
     class MySection(MSection):
-        TEST_repeat = Quantity(repeats=True, type=float, unit='m')
         TEST_nonrepeat = Quantity(variable=True, type=float)
 
     my_section = MySection()
 
-    my_section.TEST_repeat = MQuantity.wrap(ureg.Quantity(1.0, 'cm'))
-
-    assert my_section.TEST_repeat.m == 0.01  # pylint: disable=E1101
-
-    my_section.TEST_repeat = None
-
-    assert my_section.TEST_repeat is None
-
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         _ = my_section.instance_repeat
 
     my_section.instance_nonrepeat = MQuantity('instance_nonrepeat', 1.23)
