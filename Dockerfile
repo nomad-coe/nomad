@@ -62,7 +62,7 @@ RUN apt-get update \
 WORKDIR /app
 
 # Install UV
-RUN pip install uv
+COPY --from=ghcr.io/astral-sh/uv:0.4 /uv /bin/uv
 
 # Python environment
 COPY requirements.txt .
@@ -93,7 +93,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Install UV
-RUN pip install uv
+COPY --from=ghcr.io/astral-sh/uv:0.4 /uv /bin/uv
 
 # Python environment
 COPY requirements-dev.txt .
@@ -179,7 +179,7 @@ ARG SETUPTOOLS_SCM_PRETEND_VERSION='0.0'
 RUN uv pip install ".[parsing,infrastructure,dev]"
 
 # Build the python source distribution package
-RUN python -m build --sdist
+RUN uv build --sdist
 
 
 # ================================================================================

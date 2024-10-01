@@ -351,7 +351,7 @@ install tests:
     UV_SYSTEM_PYTHON: true
   before_script:
     - pip install --upgrade pip
-    - pip install uv==0.2.27
+    - pip install uv==0.4
   script:
     - pip install dist/nomad-*.tar.gz
     - python -c 'import nomad.cli'
