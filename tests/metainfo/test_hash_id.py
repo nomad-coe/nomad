@@ -42,10 +42,6 @@ def test_quantity():
 
     # different aliases matter
     q2.aliases = ['alias2', 'alias1', 'alias3']
-    # cached so does not change
-    assert ref_hash == q2.definition_id
-    # regenerate to have different hash
-    q2.hash(regenerate=True)
     assert ref_hash != q2.definition_id
 
     # type matters

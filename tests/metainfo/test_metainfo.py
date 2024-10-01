@@ -608,9 +608,6 @@ class TestM1:
         assert run.systems[0].m_parent_index == 0
         assert run.systems[0].m_parent_sub_section == Run.systems
 
-        with pytest.raises(NotImplementedError):
-            run.systems[0] = System()
-
         run.systems.append(System())
         first = run.systems[0]
         del run.systems[0]
@@ -975,7 +972,7 @@ class TestM1:
             pytest.param(
                 Run(), 'parsing', None, id='non-existing non-repeating section'
             ),
-            pytest.param(Run(), 'systems', None, id='non-existing repeating section'),
+            pytest.param(Run(), 'systems/2', None, id='non-existing repeating section'),
             pytest.param(
                 existing_nonrepeating,
                 'parsing',
@@ -988,24 +985,24 @@ class TestM1:
             pytest.param(
                 Run(),
                 'code_name',
-                'Could not find section definition for path "code_name"',
+                'Could not find section definition with name "code_name".',
                 id='cannot target quantity',
             ),
             pytest.param(
                 Run(),
                 'missing',
-                'Could not find section definition for path "missing"',
+                'Cannot find a proper definition for name "missing".',
                 id='invalid path',
             ),
             pytest.param(
                 existing_multiple,
-                'systems',
-                'Cannot resolve "systems" as several instances were found',
+                'systems/noindex',
+                'Please provide index',
                 id='ambiguous path',
             ),
         ],
     )
-    def test_m_setdefault(self, root, path, exception):
+    def test_m_setdefault(self, root: MSection, path: str, exception: str):
         if not exception:
             system = root.m_setdefault(path)
             assert system

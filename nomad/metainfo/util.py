@@ -15,11 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import hashlib
 import re
 from difflib import SequenceMatcher
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 import pint
 
@@ -27,7 +28,6 @@ from nomad.metainfo.data_type import Enum
 from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
-
 
 MEnum = Enum  # type: ignore
 
@@ -38,27 +38,21 @@ class MQuantity:
     additional attributes, and more.
     """
 
-    name: str = None
-    value: Any = None
-    unit: Optional[pint.Unit] = None
-    original_unit: Optional[pint.Unit] = None
-    attributes: dict = None
-
     def __init__(
         self,
-        in_name: Optional[str],
+        in_name: str | None,
         in_value: Any,
-        in_unit: Optional[pint.Unit] = None,
-        in_attributes: Optional[dict] = None,
+        in_unit: pint.Unit | None = None,
+        in_attributes: dict | None = None,
     ):
         """
         The validation of value/unit/attribute is performed at 'MSection' level.
         """
-        self.name = in_name
+        self.name: str | None = in_name
         if self.name:
             assert isinstance(self.name, str), 'Name must be a string'
 
-        self.unit = None
+        self.unit: pint.Unit | None = None
         if isinstance(in_value, pint.Quantity):
             self.value = in_value.m  # magnitude
             self.unit = in_value.u  # unit
@@ -72,7 +66,7 @@ class MQuantity:
             elif isinstance(in_unit, str):
                 self.unit = ureg.parse_units(in_unit)
 
-        self.original_unit = self.unit
+        self.original_unit: pint.Unit | None = self.unit
 
         self.attributes: dict = {}
         if in_attributes is not None:
@@ -80,7 +74,21 @@ class MQuantity:
             self.__dict__.update(**in_attributes)
 
     @staticmethod
-    def wrap(in_value: Any, in_name: Optional[str] = None):
+    def from_dict(name: str, data: dict) -> MQuantity:
+        m_quantity = MQuantity(
+            name,
+            data['m_value'],
+            data.get('m_unit', None),
+            data.get('m_attributes', None),
+        )
+
+        if 'm_original_unit' in data:
+            m_quantity.original_unit = ureg.parse_units(data['m_original_unit'])
+
+        return m_quantity
+
+    @staticmethod
+    def wrap(in_value: Any, in_name: str | None = None):
         """
         Syntax sugar to wrap a value into a MQuantity. The name is optional.
 
@@ -97,6 +105,12 @@ class MQuantity:
         """
         self.attributes[name] = value
 
+    def get(self):
+        if self.unit:
+            return ureg.Quantity(self.value, self.unit)
+
+        return self.value
+
 
 class MSubSectionList(list):
     def __init__(self, section, sub_section_def):
@@ -105,7 +119,12 @@ class MSubSectionList(list):
         super().__init__()
 
     def __setitem__(self, key, value):
-        raise NotImplementedError('You can only append subsections.')
+        old_value = self[key]
+        super().__setitem__(key, value)
+        # noinspection PyProtectedMember
+        self.section._on_add_sub_section(self.sub_section_def, value, key)
+        # noinspection PyProtectedMember
+        self.section._on_remove_sub_section(self.sub_section_def, old_value)
 
     def __getitem__(self, item):
         if isinstance(item, str):
@@ -117,13 +136,7 @@ class MSubSectionList(list):
         return super().__getitem__(item)
 
     def __delitem__(self, key):
-        old_value = self[key]
-        list.__delitem__(self, key)
-        for index in range(key, len(self)):
-            self[index].m_parent_index = index
-
-        # noinspection PyProtectedMember
-        self.section._on_remove_sub_section(self.sub_section_def, old_value)
+        self.pop(key)
 
     def __setslice__(self, i, j, sequence):
         raise NotImplementedError('You can only append subsections.')
@@ -132,17 +145,26 @@ class MSubSectionList(list):
         raise NotImplementedError('You can only append subsections.')
 
     def append(self, value):
-        list.append(self, value)
-        if value is not None:
-            # noinspection PyProtectedMember
-            self.section._on_add_sub_section(self.sub_section_def, value, len(self) - 1)
+        super().append(value)
+        # noinspection PyProtectedMember
+        self.section._on_add_sub_section(self.sub_section_def, value, len(self) - 1)
 
-    def pop(self, index=...):
-        raise NotImplementedError('You can only append subsections.')
+    def pop(self, key=-1):
+        if key < 0:
+            key = key + len(self)
+        old_value = super().pop(key)
+        for index in range(key, len(self)):
+            # noinspection PyProtectedMember
+            self.section._on_add_sub_section(self.sub_section_def, self[index], index)
+
+        # noinspection PyProtectedMember
+        self.section._on_remove_sub_section(self.sub_section_def, old_value)
+
+        return old_value
 
     def extend(self, new_value):
         start_index = len(self)
-        list.extend(self, new_value)
+        super().extend(new_value)
         for index, value in enumerate(new_value):
             # noinspection PyProtectedMember
             self.section._on_add_sub_section(
@@ -163,10 +185,24 @@ class MSubSectionList(list):
 
     def clear(self):
         old_values = list(self)
-        list.clear(self)
+        super().clear()
         for old_value in old_values:
             # noinspection PyProtectedMember
             self.section._on_remove_sub_section(self.sub_section_def, old_value)
+
+    def has_duplicated_key(self) -> bool:
+        """
+        Check if each section has a unique key.
+        The key is from `.m_key` or the index of the section.
+        """
+        unique_keys: set = set()
+        for index, section in enumerate(self):
+            if section is not None:
+                if section.m_key in unique_keys:
+                    return True
+                unique_keys.add(section.m_key)
+
+        return False
 
 
 class Annotation:
@@ -196,7 +232,7 @@ class SectionAnnotation(DefinitionAnnotation):
     to section instances.
     """
 
-    def new(self, section) -> Dict[str, Any]:
+    def new(self, section) -> dict[str, Any]:
         return {}
 
 
@@ -213,9 +249,7 @@ def to_dict(entries):
     return entries
 
 
-def convert_to(
-    from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional[ureg.Unit]
-):
+def convert_to(from_magnitude, from_unit: ureg.Unit | None, to_unit: ureg.Unit | None):
     """
     Convert a magnitude from one unit to another.
 
@@ -247,7 +281,7 @@ def __similarity_match(candidates: list, name: str):
     return candidates[similarity.index(max(similarity))]
 
 
-def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = None):
+def resolve_variadic_name(definitions: dict, name: str, hint: str | None = None):
     """
     For properties with variadic names, it is necessary to check all possible definitions
     in the schema to find the unique and correct definition that matches the naming pattern.
@@ -292,7 +326,7 @@ def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = No
             candidates.append(definition)
 
     if len(candidates) == 0:
-        raise ValueError(f'Cannot find a proper definition for name {name}')
+        raise ValueError(f'Cannot find a proper definition for name "{name}".')
 
     if len(candidates) == 1:
         return candidates[0]
@@ -317,8 +351,8 @@ def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = No
 
 
 def validate_allowable_unit(
-    dimensionality: Optional[str],
-    allowable_list: Union[str, list, pint.Unit, pint.Quantity],
+    dimensionality: str | None,
+    allowable_list: str | list | pint.Unit | pint.Quantity,
 ) -> bool:
     """
     For a given list of units, e.g., ['m', 'cm', 'mm'], and a target NX unit token such as 'NX_LENGTH',
@@ -360,7 +394,7 @@ def default_hash():
     return hashlib.new(__hash_method)
 
 
-def split_python_definition(definition_with_id: str) -> Tuple[list, Optional[str]]:
+def split_python_definition(definition_with_id: str) -> tuple[list, str | None]:
     """
     Split a Python type name into names and an optional id.
 

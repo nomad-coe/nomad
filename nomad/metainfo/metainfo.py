@@ -25,12 +25,14 @@ import re
 import sys
 from collections.abc import Iterable
 from copy import deepcopy
+from functools import wraps
 from typing import (
     Any,
     Callable as TypingCallable,
     TypeVar,
     cast,
     ClassVar,
+    Literal,
 )
 from urllib.parse import urlsplit, urlunsplit
 
@@ -63,7 +65,6 @@ from nomad.metainfo.data_type import (
 from nomad.metainfo.util import (
     Annotation,
     DefinitionAnnotation,
-    MEnum,
     MQuantity,
     MSubSectionList,
     SectionAnnotation,
@@ -78,7 +79,8 @@ from nomad.units import ureg as units
 
 m_package: Package | None = None
 
-is_bootstrapping = True
+is_bootstrapping: bool = True
+is_initializing_proto: bool = True
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 T = TypeVar('T')
 
@@ -101,9 +103,7 @@ def _check_definition_id(
     raise MetainfoReferenceError(f'Could not resolve {target_id}, id mismatch.')
 
 
-# Make pylint believe all bootstrap quantities are actual properties even though
-# we have to initialize them to None due to bootstrapping
-_placeholder_quantity: Quantity = property()  # type: ignore # pylint: disable=used-before-assignment
+_placeholder_quantity: Quantity = property()  # type: ignore
 if True:
     _placeholder_quantity: Quantity = None  # type: ignore
 
@@ -651,6 +651,7 @@ class QuantityReference(Reference):
         )
 
 
+MEnum = Enum
 Unit = UnitType
 Datetime = DatetimeType
 JSON = JSONType
@@ -692,6 +693,54 @@ def constraint(warning):
     return decorator if f is None else decorator(f)
 
 
+def metainfo_modifier(method):
+    """
+    Decorate a method as a modifier that modifies the section.
+    Whenever the method is called, increase the counter.
+    """
+    assert method.__name__ != '__set__'
+
+    def wrapper(self, *args, **kwargs):
+        self.m_mod_count += 1
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
+def metainfo_setter(method):
+    """
+    Decorate a method as a modifier that modifies the section.
+    Whenever the method is called, increase the counter.
+    This differs from `modifier` in that it is used for setter methods.
+    """
+    assert method.__name__ == '__set__'
+    assert method.__code__.co_argcount == 3
+
+    @wraps(method)
+    def wrapper(self, obj, value):
+        if obj is None:
+            raise KeyError('Cannot overwrite definition. Only data can be set.')
+
+        obj.m_mod_count += 1
+        return method(self, obj, value)
+
+    return wrapper
+
+
+def metainfo_getter(method):
+    """
+    Decorate a method as a getter.
+    """
+    assert method.__name__ == '__get__'
+    assert method.__code__.co_argcount == 3
+
+    @wraps(method)
+    def wrapper(self, obj, cls=None):
+        return self if obj is None else method(self, obj, cls)
+
+    return wrapper
+
+
 class Context:
     """
     The root of a metainfo section hierarchy can have a Context. Contexts allow to customize
@@ -719,6 +768,9 @@ class Context:
         Allows subclasses to build references across resources, if necessary.
 
         Arguments:
+            section: The containing section.
+            quantity_def: The definition of the quantity.
+            value: The reference value.
             global_reference: A boolean flag that forces references with upload_ids.
                 Should be used if the reference needs to be used outside the context
                 of the own upload.
@@ -762,7 +814,7 @@ class Context:
 
     def resolve_section_definition(
         self, definition_reference: str, definition_id: str
-    ) -> type[MSectionBound]:
+    ) -> type[MSectionBound] | None:
         pkg_definition = self.retrieve_package_by_section_definition_id(
             definition_reference, definition_id
         )
@@ -788,9 +840,8 @@ class Context:
         raise NotImplementedError
 
 
-class MSection(
-    metaclass=MObjectMeta
-):  # TODO find a way to make this a subclass of collections.abs.Mapping
+# TODO find a way to make this a subclass of collections.abs.Mapping
+class MSection(metaclass=MObjectMeta):
     """
     The base-class for all *section defining classes* and respectively the base-class
     for all section objects.
@@ -868,30 +919,27 @@ class MSection(
 
     def __init__(self, m_def: Section = None, m_context: Context = None, **kwargs):
         self.m_def: Section = m_def
-        self.m_parent: MSection = None
-        self.m_parent_sub_section: SubSection = None
+        self.m_parent: MSection | None = None
+        self.m_parent_sub_section: SubSection | None = None
         self.m_parent_index = -1
         self.m_context = m_context
         self.m_mod_count = 0
         self.m_cache: dict = {}  # Dictionary for caching temporary values that are not persisted to the Archive
 
         # get missing m_def from class
-        cls = self.__class__
+        cls_def = self.__class__.m_def
         if self.m_def is None:
-            self.m_def = cls.m_def
+            self.m_def = cls_def
 
         # check m_def
-        if cls.m_def is not None:
-            if self.m_def != cls.m_def:
-                MetainfoError('Section class and section definition must match.')
+        if cls_def is not None:
+            if self.m_def != cls_def:
+                raise MetainfoError('Section class and section definition must match.')
 
             if self.m_def.extends_base_section:
-                MetainfoError(
+                raise MetainfoError(
                     'Section extends another section and cannot be instantiated.'
                 )
-
-        elif not is_bootstrapping:
-            MetainfoError('Section has no m_def.')
 
         # get annotations from kwargs
         self.m_annotations: dict[str, Any] = kwargs.get('m_annotations', {})
@@ -941,8 +989,7 @@ class MSection(
         base_sections: list[Section] = []
         for base_cls in cls.__bases__:
             if base_cls != MSection:
-                base_section = getattr(base_cls, 'm_def')
-                if base_section is None:
+                if (base_section := getattr(base_cls, 'm_def', None)) is None:
                     raise TypeError(
                         'Section defining classes must have MSection or a descendant of base classes.'
                     )
@@ -953,40 +1000,32 @@ class MSection(
 
         # transfer names, descriptions, constraints, event_handlers
         constraints: set[str] = set()
-        event_handlers: set[Callable] = set(m_def.event_handlers)
+        event_handlers: set[TypingCallable] = set(m_def.event_handlers)
         for name, attr in cls.__dict__.items():
             # transfer names and descriptions for properties, init properties
-            if isinstance(attr, Property):
+            if isinstance(attr, (Attribute, Property)):
                 attr.name = name
                 if attr.description is not None:
-                    description = inspect.cleandoc(attr.description)
-                    description = description.strip()
-                    description = re.sub(
+                    attr.description = re.sub(
                         r'\(https?://[^)]*\)',
                         lambda m: re.sub(r'\n', '', m.group(0)),
-                        description,
+                        inspect.cleandoc(attr.description).strip(),
                     )
-                    attr.description = description
                     attr.__doc__ = attr.description
 
                 if isinstance(attr, Quantity):
                     m_def.m_add_sub_section(Section.quantities, attr)
                 elif isinstance(attr, SubSection):
                     m_def.m_add_sub_section(Section.sub_sections, attr)
-                else:
-                    raise NotImplementedError('Unknown property kind.')
-            elif isinstance(attr, Attribute):
-                attr.name = name
-                m_def.m_add_sub_section(Section.attributes, attr)
-
-            if inspect.isclass(attr):
+                elif isinstance(attr, Attribute):
+                    m_def.m_add_sub_section(Section.attributes, attr)
+            elif inspect.isclass(attr):
                 inner_section_def = getattr(attr, 'm_def', None)
                 if isinstance(inner_section_def, Section):
                     m_def.m_add_sub_section(
                         Section.inner_section_definitions, inner_section_def
                     )
-
-            if inspect.isfunction(attr):
+            elif inspect.isfunction(attr):
                 method_name = attr.__name__
 
                 # transfer constraints
@@ -995,8 +1034,7 @@ class MSection(
 
                 # register event_handlers from event_handler methods
                 if method_name.startswith(('on_set', 'on_add_sub_section')):
-                    if attr not in event_handlers:
-                        event_handlers.add(attr)
+                    event_handlers.add(attr)
 
         # add handler and constraints from base sections
         for base_section in m_def.all_base_sections:
@@ -1006,7 +1044,9 @@ class MSection(
         if len(constraints) > 0:
             m_def.constraints = list(sorted(constraints))
         if len(event_handlers) > 0:
-            m_def.event_handlers = list(sorted(event_handlers))
+            m_def.event_handlers = list(
+                sorted(event_handlers, key=lambda x: x.__name__)
+            )
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -1062,67 +1102,53 @@ class MSection(
         return super().__setattr__(name, value)
 
     @property
-    def m_key(self):
+    def m_key(self) -> str | int:
+        """
+        Return the key of the current section.
+        The key can be used to identify different sections in a list.
+        It is an alternative to index.
+        The key is defined in `key_quantity` of the parent subsection.
+        For example, if `key_quantity='field'`, then the value `self.field` will be used as the key.
+        If `key_quantity` is not defined, it falls back to `label_quantity` for backward compatibility.
+        If the above two are not defined, the `name` of the current section will be returned.
+        If `name` is not defined, the index will be finally returned.
+
+        Returns:
+            str | int: The key of the current section.
+        """
+        default_name = getattr(self, 'name', self.m_parent_index)
+
         if (subsection := self.m_parent_sub_section) is None:
-            return None
+            return default_name
 
         if subsection.key_quantity is not None:
             key_quantity = subsection.key_quantity
         elif (label := subsection.more.get('label_quantity')) is not None:
             key_quantity = label
         else:
-            return None
+            return default_name
 
         quantity_def = self.m_def.all_quantities.get(key_quantity)
-        if quantity_def.type not in (MEnum, str) and (
-            not isinstance(quantity_def.type, (m_str, Enum))
-        ):
+        if not isinstance(quantity_def.type, (m_str, Enum)):
             raise TypeError(f'Key quantity {key_quantity} must be of type str.')
 
         if self.m_is_set(quantity_def):
             return self.m_get(quantity_def)
 
-        return None
+        return default_name
 
     def __getattr__(self, name):
-        # The existence of __getattr__ will make mypy and pylint ignore 'missing' dynamic
-        # attributes and functions and wrong types of those.
-        # Ideally we have a plugin for both that add the correct type info
-
-        if name == 'm_key':
-            return self.get(name)
-
-        if name in self.m_def.all_aliases:
-            return getattr(self, self.m_def.all_aliases[name].name)
-
-        if self.m_def.has_variable_names:
-            if m_definition := resolve_variadic_name(self.m_def.all_properties, name):
-                if (
-                    not isinstance(m_definition, Quantity)
-                    or not m_definition.use_full_storage
-                ):
-                    return getattr(self, m_definition.name)
-
-                m_storage: dict | None = self.__dict__.get(m_definition.name, None)
-                if m_storage is None:
-                    return None
-
-                m_quantity: MQuantity | None = m_storage.get(name, None)
-                if m_quantity is None:
-                    return None
-
-                if m_quantity.value is not None:
-                    if m_quantity.unit is not None:
-                        return units.Quantity(m_quantity.value, m_quantity.unit)
-
-                    return m_quantity.value
-
         if name.startswith('a_'):
-            annotation_name = name[2:]
-            if annotation_name not in self.m_annotations:
-                raise AttributeError(name)
-
-            return self.m_get_annotations(annotation_name)
+            if (annotation_name := name[2:]) in self.m_annotations:
+                return self.m_get_annotations(annotation_name)
+        elif name in self.m_def.all_aliases or self.m_def.has_variable_names:
+            # the first case will not throw
+            # the second case will throw if the name is not found
+            # we do not blindly try `m_get` for all unidentified names since it is very slow
+            try:
+                return self.m_get(name)
+            except (MetainfoError, ValueError):
+                pass
 
         raise AttributeError(name)
 
@@ -1132,23 +1158,22 @@ class MSection(
             if not annotation_model:
                 continue
 
-            def to_model(annotation_model, annotation_data):
-                if annotation_data is None:
+            def to_model(_model, _data):
+                if _data is None:
                     return None
 
                 try:
-                    if isinstance(annotation_data, AnnotationModel):
-                        annotation = annotation_data
+                    if isinstance(_data, AnnotationModel):
+                        _annotation = _data
                     else:
-                        annotation = parse_obj_as(annotation_model, annotation_data)
+                        _annotation = parse_obj_as(_model, _data)
 
                     if isinstance(self, Definition):
-                        annotation.m_definition = self
+                        _annotation.m_definition = self
 
+                    return _annotation
                 except ValidationError as e:
-                    annotation = AnnotationModel(m_error=str(e))
-
-                return annotation
+                    return AnnotationModel(m_error=str(e))
 
             if isinstance(annotation, list):
                 for index, item in enumerate(annotation):
@@ -1159,16 +1184,314 @@ class MSection(
             if annotation:
                 self.m_annotations[annotation_name] = annotation
 
-    def m_set(self, quantity_def: Quantity, value: Any) -> None:
-        """Set the given value for the given quantity."""
-        return quantity_def.__set__(self, value)
+    def _ensure_definition(
+        self,
+        def_or_name: Property | str,
+        *,
+        hint: str | None = None,
+    ) -> Property:
+        """
+        Return the definition.
+        The definition is ensured to be a valid definition defined in the current section.
 
-    def m_get(self, quantity_def: Quantity, full: bool = False) -> Any:
-        """Retrieve the given value for the given quantity."""
-        if not full:
-            return quantity_def.__get__(self, Quantity)
+        Parameters:
+            def_or_name: The definition of the target property.
+                It can also be the name/alias of the property.
+            hint: Only used for quantities that have variadic names.
+                The hint is the name of one of the attributes defined in the target quantity.
+                This will be used to help identify which quantity to check.
+        """
+        if isinstance(def_or_name, str):
+            definition = resolve_variadic_name(
+                self.m_def.all_aliases, def_or_name, hint
+            )
+        else:
+            definition = def_or_name
+            if (
+                not is_initializing_proto
+                and definition not in self.m_def.all_properties.values()
+            ):
+                raise MetainfoError(f'Property {definition} is not defined.')
 
-        return self.__dict__[quantity_def.name]
+        return definition
+
+    # The following are the basic methods to set/get/append/remove a property in a section.
+    # The property can be either a quantity or a subsection.
+    # They shall be used as the sole gateway to access the properties of a section.
+    # They may further delegate the actual operations to the `__set__` and `__get__` methods of the properties.
+
+    def m_set(
+        self,
+        def_or_name: Property | str,
+        value,
+        *,
+        hint: str | None = None,
+        skip_virtual: bool = False,
+        index: int | None = None,
+        context: Context | MSection | None = None,
+    ):
+        """
+        Set the given value for the given property.
+
+        Parameters:
+            def_or_name: The definition of the target property.
+                It can also be the name/alias of the property.
+            value: The value to set.
+                A None value in `overwrite` mode will unset the property.
+            hint: Only used for quantities that have variadic names.
+                The hint is the name of one of the attributes defined in the target quantity.
+                This will be used to help identify which quantity to set.
+            skip_virtual: If true, skip setting virtual properties.
+            index: Only used for repeating subsections in 'overwrite' mode.
+                No effect in 'append' mode.
+            context: The context to use when deserializing the value.
+                This is used in setting sections, while the value is given as a serialized dictionary.
+        """
+        definition: Property = self._ensure_definition(def_or_name, hint=hint)
+
+        if isinstance(definition, SubSection):
+            if isinstance(value, list):
+                # this is used when deserializing a list of subsections
+                for v in value:
+                    self.m_append(definition, v, context=context)
+                return
+
+            if isinstance(value, dict):
+                value = definition.sub_section.section_cls.m_from_dict(
+                    value, m_context=context, m_parent=self
+                )
+        elif definition.virtual and skip_virtual:
+            return
+
+        if index is None:
+            return definition.__set__(self, value)
+
+        def _populate(_target):
+            # overwrite mode with valid index
+            if (diff := index - len(_target) + 1) > 0:
+                _target.extend([None] * diff)
+            _target[index] = value
+
+        # index is not None
+        if isinstance(definition, SubSection):
+            if definition.repeats:
+                # guaranteed to be a MSubSectionList
+                _populate(definition.__get__(self))
+            else:
+                definition.__set__(self, value)
+        elif isinstance(definition, Quantity):
+            if definition.is_scalar:
+                target = value
+            else:
+                # maybe this setting a single element shall not be allowed?
+                target = definition.__get__(self)
+                if target is None:
+                    target = []
+                _populate(target)
+            # regardless, need to revalidate the value
+            definition.__set__(self, target)
+        else:
+            # should never reach here
+            raise NotImplementedError
+
+    def m_get(
+        self,
+        def_or_name: Property | str | list[Property | str],
+        *,
+        full: bool = False,
+        hint: str | None = None,
+        index: int | slice | str | None = None,
+        as_list: bool = False,
+    ):
+        """
+        Retrieve the given property of the current section.
+
+        Parameters:
+            def_or_name: The definition of the target property.
+                It can also be the name/alias of the property.
+                A list of names or definitions can be provided to get multiple properties at once.
+            full: Only used for quantities that use full storage.
+                If True, the MQuantity object instead of the value will be returned.
+            hint: Only used for quantities that have variadic names.
+                The hint is the name of one of the attributes defined in the target quantity.
+                This will be used to help identify which quantity to use.
+            index: Only used if the property is a list.
+                It can be an integer, a slice, for both quantities and subsections.
+                It can also be a string, for subsections only.
+            as_list: If True, return the value wrapped in a list.
+
+        Returns:
+            The value of the property.
+        """
+        if isinstance(def_or_name, list):
+            return [
+                self.m_get(x, full=full, hint=hint, index=index, as_list=as_list)
+                for x in def_or_name
+            ]
+
+        definition = self._ensure_definition(def_or_name, hint=hint)
+
+        def _wrap(_v):
+            if _v is None:
+                return [] if as_list else None
+
+            return [_v] if as_list else _v
+
+        if isinstance(definition, Quantity):
+            if definition.use_full_storage:
+                target = self.__dict__.get(definition.name, {}).get(def_or_name, None)
+                if full or target is None:
+                    return _wrap(target)
+
+                return _wrap(cast(MQuantity, target).get())
+
+            target = definition.__get__(self)
+            if isinstance(target, list) and index is not None:
+                assert isinstance(index, (int, slice))
+                try:
+                    sliced = target[index]
+                except IndexError:
+                    sliced = None
+            else:
+                sliced = target
+
+            # to account for the case where index is a slice
+            return sliced if isinstance(sliced, list) else _wrap(sliced)
+
+        if isinstance(definition, SubSection):
+            target = definition.__get__(self)
+            if not definition.repeats or target is None:
+                return _wrap(target)
+
+            # this practically does nothing only to make mypy happy
+            # it is guaranteed to be a MSubSectionList
+            target = cast(MSubSectionList, target)
+            if isinstance(index, str) and target.has_duplicated_key():
+                raise MetainfoError(f'Multiple sections with key {index} exist.')
+
+            try:
+                sliced = target if index is None else target[index]
+            except (KeyError, IndexError):
+                sliced = None
+
+            # to account for the case where index is a slice
+            return sliced if isinstance(sliced, list) else _wrap(sliced)
+
+        # should never reach here
+        raise NotImplementedError
+
+    def m_append(
+        self,
+        def_or_name: Property | str,
+        value,
+        *,
+        hint: str | None = None,
+        skip_virtual: bool = False,
+        context: Context | MSection | None = None,
+    ):
+        """
+        Append the given value to the given property.
+        If it is a scalar quantity or non-repeating subsection, this is equivalent to `m_set`.
+        If the property is not set, an empty list will be created.
+
+        Parameters:
+            def_or_name: The definition of the target property.
+                It can also be the name/alias of the property.
+            value: The value to set.
+                A None value in `overwrite` mode will unset the property.
+            hint: Only used for quantities that have variadic names.
+                The hint is the name of one of the attributes defined in the target quantity.
+                This will be used to help identify which quantity to set.
+            skip_virtual: If true, skip setting virtual properties.
+            context: The context to use when deserializing the value.
+                This is used in setting sections, while the value is given as a serialized dictionary.
+        """
+        definition: Property = self._ensure_definition(def_or_name, hint=hint)
+
+        if isinstance(definition, SubSection):
+            if isinstance(value, list):
+                assert definition.repeats
+                # this is used when deserializing a list of subsections
+                for v in value:
+                    self.m_append(definition, v, context=context)
+                return
+
+            if isinstance(value, dict):
+                value = definition.sub_section.section_cls.m_from_dict(
+                    value, m_context=context, m_parent=self
+                )
+
+            if definition.repeats:
+                definition.__get__(self).append(value)
+            else:
+                definition.__set__(self, value)
+        elif isinstance(definition, Quantity):
+            if definition.virtual and skip_virtual:
+                return
+
+            if definition.is_scalar:
+                target = value
+            else:
+                # maybe this setting/appending a single element shall not be allowed?
+                target = definition.__get__(self)
+                if target is None:
+                    target = []
+                target.append(value)
+            # regardless, need to revalidate the value
+            definition.__set__(self, target)
+        else:
+            # should never reach here
+            raise NotImplementedError
+
+    def m_remove(
+        self,
+        def_or_name: Property | str,
+        *,
+        hint: str | None = None,
+        index: int | slice | str | None = None,
+        mode: Literal['keep_size', 'pop'] = 'pop',
+    ):
+        """
+        Remove the given property of the current section.
+
+        Parameters:
+            def_or_name: The definition of the target property.
+                It can also be the name/alias of the property.
+            hint: Only used for quantities that have variadic names.
+                The hint is the name of one of the attributes defined in the target quantity.
+                This will be used to help identify which quantity to use.
+            index: Only used if the property is a list.
+                It can be an integer, a slice, for both quantities and subsections.
+                It can also be a string, for subsections only.
+            mode: Only used if the target property is a list.
+                If 'pop', pop the value and shrink the list.
+                If 'keep_size', replace the existing value with None.
+        """
+        definition = self._ensure_definition(def_or_name, hint=hint)
+
+        def _modify(_target):
+            if _target is not None:
+                if mode == 'keep_size':
+                    _target[index] = None
+                else:
+                    _target.pop(index)
+            return _target
+
+        if isinstance(definition, SubSection):
+            if definition.repeats:
+                _modify(definition.__get__(self))
+            else:
+                definition.__set__(self, None)
+        elif isinstance(definition, Quantity):
+            if definition.use_full_storage:
+                self.__dict__.get(definition.name, {}).pop(def_or_name, None)
+            elif definition.is_scalar:
+                definition.__set__(self, None)
+            else:
+                definition.__set__(self, _modify(definition.__get__(self)))
+        else:
+            # should never reach here
+            raise NotImplementedError
 
     def m_get_quantity_definition(self, quantity_name: str, hint: str | None = None):
         """
@@ -1179,29 +1502,35 @@ class MSection(
         """
         return resolve_variadic_name(self.m_def.all_quantities, quantity_name, hint)
 
-    def m_is_set(self, quantity_def: Quantity) -> bool:
-        """True if the given quantity is set."""
-        if quantity_def.derived is not None:
+    def m_is_set(self, def_or_name: Property | str, *, hint: str | None = None) -> bool:
+        """
+        Check if the given property is set for the current section.
+
+        Parameters:
+            def_or_name: The definition of the target property.
+                It can also be the name/alias of the property.
+            hint: Only used for quantities that have variadic names.
+                The hint is the name of one of the attributes defined in the target quantity.
+                This will be used to help identify which quantity to check.
+        """
+        definition = self._ensure_definition(def_or_name, hint=hint)
+
+        # derived quantity is always set
+        if isinstance(definition, Quantity) and definition.derived is not None:
             return True
 
-        return quantity_def.name in self.__dict__
+        return definition.name in self.__dict__
 
-    def m_add_values(self, quantity_def: Quantity, values: Any, offset: int) -> None:
-        """Add (partial) values for the given quantity of higher dimensionality."""
-        # TODO
-        raise NotImplementedError()
-
-    def _get_sub_sections(self, sub_section_def: SubSection):
-        sub_section_lst = self.__dict__.get(sub_section_def.name)
-        if sub_section_lst is None:
-            sub_section_lst = MSubSectionList(self, sub_section_def)
-            self.__dict__[sub_section_def.name] = sub_section_lst
-        return sub_section_lst
-
+    @metainfo_modifier
     def _on_add_sub_section(
         self, sub_section_def: SubSection, sub_section: MSection, parent_index: int
-    ) -> None:
-        self.m_mod_count += 1
+    ):
+        """
+        Update parent information of the section to be added.
+        Call the event handlers for adding a section.
+        """
+        if sub_section is None:
+            return
 
         sub_section.m_parent = self
         sub_section.m_parent_sub_section = sub_section_def
@@ -1211,102 +1540,46 @@ class MSection(
             if handler.__name__.startswith('on_add_sub_section'):
                 handler(self, sub_section_def, sub_section)
 
+    @metainfo_modifier
     def _on_remove_sub_section(
         self, sub_section_def: SubSection, sub_section: MSection
-    ) -> None:
-        self.m_mod_count += 1
+    ):
+        """
+        Update parent information of the section to be removed.
+        Call the event handlers for removing a section.
+        """
+        if sub_section is None:
+            return
 
         sub_section.m_parent = None
+        sub_section.m_parent_sub_section = None
         sub_section.m_parent_index = -1
 
+        for handler in self.m_def.event_handlers:
+            if handler.__name__.startswith('on_remove_sub_section'):
+                handler(self, sub_section_def, sub_section)
+
     def m_add_sub_section(
-        self, sub_section_def: SubSection, sub_section: MSection, index: int = -1
+        self,
+        sub_section_def: SubSection,
+        sub_section: MSection | None,
     ) -> None:
         """Adds the given section instance as a subsection of the given subsection definition."""
-
-        sub_section_name = sub_section_def.name
-        if sub_section_def.repeats:
-            if index != -1:
-                raise NotImplementedError('You can only append subsections.')
-
-            sub_section_lst = self._get_sub_sections(sub_section_def)
-            sub_section_lst.append(sub_section)
-            if sub_section_lst.__class__ != MSubSectionList:
-                self._on_add_sub_section(
-                    sub_section_def, sub_section, len(sub_section_lst) - 1
-                )
-        else:
-            if (
-                old_sub_section := self.__dict__.get(sub_section_name, None)
-            ) is sub_section:
-                return
-            self.__dict__[sub_section_name] = sub_section
-            if sub_section is not None:
-                self._on_add_sub_section(sub_section_def, sub_section, -1)
-            if old_sub_section is not None:
-                self._on_remove_sub_section(sub_section_def, old_sub_section)
+        self.m_append(sub_section_def, sub_section)
 
     def m_remove_sub_section(self, sub_section_def: SubSection, index: int) -> None:
         """Removes the exiting section for a non-repeatable subsection"""
-        self.m_mod_count += 1
+        self.m_remove(sub_section_def, index=index)
 
-        if sub_section_def.name not in self.__dict__:
-            return
+    def m_get_sub_section(self, sub_section_def: SubSection, index) -> MSection | None:
+        return self.m_get(sub_section_def, index=index)
 
-        if sub_section_def.repeats:
-            sub_section = self.__dict__[sub_section_def.name][index]
-            del self.__dict__[sub_section_def.name][index]
-        else:
-            sub_section = self.__dict__[sub_section_def.name]
-            del self.__dict__[sub_section_def.name]
-
-        self._on_remove_sub_section(sub_section_def, sub_section)
-
-    def m_get_sub_section(
-        self, sub_section_def: SubSection, index: Any
-    ) -> MSection | None:
-        """Retrieves a single subsection of the given subsection definition."""
-        if not sub_section_def.repeats:
-            return self.__dict__.get(sub_section_def.name, None)
-
-        if isinstance(index, int):
-            return self.__dict__[sub_section_def.name][index]
-
-        if isinstance(index, str):
-            try:
-                sub_sections: list[MSection] = [
-                    section
-                    for section in self.__dict__[sub_section_def.name]
-                    if index == section.name
-                ]
-                if len(sub_sections) > 1:
-                    raise MetainfoReferenceError(
-                        f'multiple sections with this section id were found.'
-                    )
-                if len(sub_sections) == 1:
-                    return sub_sections[0]
-            except KeyError:
-                raise MetainfoReferenceError(f'{index} is not a valid subsection.')
-
-        return None
-
-    def m_get_sub_sections(self, sub_section_def: SubSection) -> list[MSection]:
-        """Retrieves  all subsections of the given subsection definition."""
-        if sub_section_def.repeats:
-            return self._get_sub_sections(sub_section_def)
-
-        try:
-            return [self.__dict__[sub_section_def.name]]
-        except KeyError:
-            return []
+    def m_get_sub_sections(self, sub_section_def: SubSection) -> list | MSubSectionList:
+        return self.m_get(sub_section_def, as_list=True)
 
     def m_sub_section_count(self, sub_section_def: SubSection) -> int:
         """Returns the number of subsections for the given subsection definition."""
-        try:
-            value = self.__dict__[sub_section_def.name]
-            return len(value) if sub_section_def.repeats else 1
-        except KeyError:
-            return 0
+        return len(self.m_get_sub_sections(sub_section_def))
 
     def m_set_section_attribute(self, name: str, value: Any) -> None:
         """
@@ -1326,6 +1599,7 @@ class MSection(
         """
         self.__set_attribute(quantity_def, name, value, quantity=quantity)
 
+    @metainfo_modifier
     def __set_attribute(
         self,
         tgt_property: str | None | Definition,
@@ -1436,8 +1710,8 @@ class MSection(
 
         if n_sub_section_defs > 1 and sub_section_def is None:
             raise MetainfoError(
-                f'There are multiple subsection to hold a {section_def} in {self.m_def}, '
-                f'but no subsection was explicitly given.'
+                f'There are multiple subsections to hold a {section_def} in {self.m_def}, '
+                f'but no subsection definition is explicitly given.'
             )
 
         if sub_section_def is not None and sub_section_def not in sub_section_defs:
@@ -1456,81 +1730,66 @@ class MSection(
 
     def m_update(self, m_ignore_additional_keys: bool = False, **kwargs):
         """Updates all quantities and subsections with the given arguments."""
-        self.m_mod_count += 1
-
         for name, value in kwargs.items():
-            prop: SubSection | Quantity = self.m_def.all_aliases.get(name, None)
+            prop: Property | None = self.m_def.all_aliases.get(name, None)
             if prop is None:
                 if m_ignore_additional_keys:
                     continue
                 raise KeyError(f'{name} is not an attribute of this section {self}')
 
-            if isinstance(prop, Quantity):
-                self.m_set(prop, value)
-            elif not prop.repeats:
-                self.m_add_sub_section(prop, value)
-            elif isinstance(value, list):
-                for item in value:
-                    self.m_add_sub_section(prop, item)
-            else:
-                raise TypeError(
-                    f'Subsection {prop.name} repeats, but no list was given'
-                )
+            self.m_set(prop, value)
 
-    def m_setdefault(self, path):
-        """Given a root section and a path, looks if a unique section can be found
-        under that path and returns it. Will create the sections along the path if
-        no instances are found.
+    def m_setdefault(self, path: str | list):
         """
-        parts = path.split('.')
-        root = self
-        for part in parts:
-            error = AttributeError(
-                f'Could not find section definition for path "{part}"'
-            )
-            try:
-                child = getattr(root, part)
-            except Exception as e:
-                raise error from e
-            sub_sections = root.m_def.all_sub_sections
-            try:
-                child_section = sub_sections[part]
-            except Exception as e:
-                raise error from e
-            repeats = child_section.repeats
+        Ensure the given path (e.g., 'a/b/1/c/2/d') exists and return the target section instance.
+        The path is relative to the current section.
 
-            # See if child exists. Repeating subsection is accepted only if
-            # there is one instance.
-            if child:
-                if repeats:
-                    if len(child) != 1:
-                        raise ValueError(
-                            f'Cannot resolve "{part}" as several instances were found'
-                        )
-                    root = child[0]
-                else:
-                    root = child
-            # Otherwise create child
-            else:
-                child_cls = child_section.sub_section.section_cls
-                child_instance = child_cls()
-                if repeats:
-                    root.m_add_sub_section(child_section, child_instance)
-                else:
-                    setattr(root, part, child_instance)
-                root = child_instance
+        Parameters:
+            path: The path to the target section instance.
+                Could be a string or a list.
+                If it is a string, it should be separated by '/' or '.'.
+                If it is a list, each element should be a string or an integer.
+        """
+        if isinstance(stack := path, str):
+            stack = [x for x in stack.replace('/', '.').split('.') if x]
 
-        return root
+        if len(stack) == 0:
+            return self
 
-    def m_as(self, section_cls: type[MSectionBound]) -> MSectionBound:
-        """'Casts' this section to the given extending sections."""
-        return cast(MSectionBound, self)
+        def isint(s):
+            if isinstance(s, str):
+                return (s[1:] if s[0] in ('-', '+') else s).isdigit()
+            return isinstance(s, int)
+
+        child_name = stack.pop(0)
+        child_index = int(stack.pop(0)) if len(stack) > 0 and isint(stack[0]) else None
+        child_def = self._ensure_definition(child_name)
+        assert isinstance(
+            child_def, SubSection
+        ), f'Could not find section definition with name "{child_name}".'
+        if (child_instance := self.m_get(child_def, index=child_index)) is None:
+            child_instance = child_def.sub_section.section_cls()
+            self.m_set(child_def, child_instance, index=child_index)
+
+        if len(stack) == 0:
+            return child_instance
+
+        if isinstance(child_instance, MSection):
+            return child_instance.m_setdefault(stack)
+
+        raise MetainfoError(f'Please provide index for {child_def}.')
+
+    def m_as(self, cls: type[MSectionBound]) -> MSectionBound:
+        # todo: mypy bug https://github.com/python/mypy/issues/14458
+        return cast(cls, self)  # type: ignore
 
     def m_follows(self, definition: Section) -> bool:
-        """Determines if this section's definition is or is derived from the given definition."""
+        """
+        Determines if this section's definition is or is derived from the given definition.
+        """
         if not isinstance(definition, Section):
-            raise TypeError(f'{definition} is not an instance of class Section')
-        return self.m_def == definition or definition in self.m_def.all_base_sections
+            raise TypeError(f'{definition} is not an instance of class Section.')
+        return definition in itertools.chain(self.m_def.all_base_sections, [self.m_def])
 
     def m_to_dict(
         self,
@@ -1538,6 +1797,7 @@ class MSection(
         with_root_def: bool = False,
         with_out_meta: bool = False,
         with_def_id: bool = False,
+        with_index: bool = False,
         include_defaults: bool = False,
         include_derived: bool = False,
         resolve_references: bool = False,
@@ -1567,6 +1827,7 @@ class MSection(
                 identify the used "schema" based on the root section definition.
             with_def_id: Include the definition id for the top-level section. This
                 allows detection different versions of section definition used.
+            with_index: Include index for subsections.
             include_defaults: Include default values of unset quantities.
             include_derived: Include values of derived quantities.
             resolve_references:
@@ -1599,10 +1860,14 @@ class MSection(
         if isinstance(self, Definition) and not with_out_meta:
             with_meta = True
 
+        if subsection_as_dict:
+            with_index = True
+
         kwargs: dict[str, Any] = dict(
             with_meta=with_meta,
             with_out_meta=with_out_meta,
             with_def_id=with_def_id,
+            with_index=with_index,
             include_defaults=include_defaults,
             include_derived=include_derived,
             resolve_references=resolve_references,
@@ -1779,9 +2044,11 @@ class MSection(
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
 
-            if with_meta:
+            if with_meta or with_index:
                 if self.m_parent_index != -1:
                     yield 'm_parent_index', self.m_parent_index
+
+            if with_meta:
                 if self.m_parent_sub_section is not None:
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
 
@@ -1836,27 +2103,20 @@ class MSection(
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         subsections = self.m_get_sub_sections(sub_section_def)
-                        if subsection_as_dict:
-                            all_keys: list = [
-                                item.m_key
+                        assert isinstance(subsections, MSubSectionList)
+                        if subsection_as_dict and not subsections.has_duplicated_key():
+                            serialised_dict: dict = {
+                                item.m_key: item.m_to_dict(**kwargs)
                                 for item in subsections
-                                if item and item.m_key
+                                if item is not None
+                            }
+                            yield name, serialised_dict
+                        else:
+                            serialised_list: list = [
+                                None if item is None else item.m_to_dict(**kwargs)
+                                for item in subsections
                             ]
-                            if not (0 < len(all_keys) != len(set(all_keys))):
-                                serialised_dict: dict = {}
-                                for index, item in enumerate(subsections):
-                                    if item is None:
-                                        continue
-                                    item_key = item.m_key if item.m_key else index
-                                    serialised_dict[item_key] = item.m_to_dict(**kwargs)
-                                yield name, serialised_dict
-                                continue
-
-                        serialised_list: list = [
-                            None if item is None else item.m_to_dict(**kwargs)
-                            for item in subsections
-                        ]
-                        yield name, serialised_list
+                            yield name, serialised_list
                 elif (
                     sub_section := self.m_get_sub_section(sub_section_def, -1)
                 ) is not None:
@@ -1869,74 +2129,39 @@ class MSection(
         Updates this section with the serialized data from the given dict, e.g. data
         produced by :func:`m_to_dict`.
         """
-        m_context = self.m_context if self.m_context else self
+        m_context: Context | MSection = self.m_context if self.m_context else self
 
+        # need to deserialize the definitions first as they are needed for the rest
         if 'definitions' in data:
-            definition_def = self.m_def.all_aliases['definitions']
-            definition_cls = definition_def.sub_section.section_cls
-            definition_section = definition_cls.m_from_dict(
-                data['definitions'], m_parent=self, m_context=m_context
-            )
-            self.m_add_sub_section(definition_def, definition_section)
+            self.m_set('definitions', data['definitions'], context=m_context)
 
-        for name, property_def in self.m_def.all_aliases.items():
-            if name not in data or name == 'definitions':
+        for name, value in data.items():
+            if name == 'definitions' or name.startswith('m_'):
                 continue
 
-            target_value = data.get(name)
+            try:
+                definition = self._ensure_definition(name)
+            except (ValueError, MetainfoError):
+                continue
 
-            if isinstance(property_def, SubSection):
-                sub_section_def = property_def
-                sub_section_cls = sub_section_def.sub_section.section_cls
+            if isinstance(definition, SubSection):
+                self.m_set(
+                    definition,
+                    list(sorted(value.values(), key=lambda x: x['m_parent_index']))
+                    if definition.repeats and isinstance(value, dict)
+                    else value,
+                    context=m_context,
+                )
+            elif definition.use_full_storage:
+                self.m_set(definition, value)
+            elif not definition.virtual:
+                # todo: setting None has different implications
+                self.__dict__[definition.name] = definition.type.normalize(
+                    value, section=self
+                )
 
-                def _append(value=None):
-                    sub_section = None
-                    if value is not None:
-                        sub_section = sub_section_cls.m_from_dict(
-                            value, m_parent=self, m_context=m_context
-                        )
-                    self.m_add_sub_section(sub_section_def, sub_section)
-
-                if sub_section_def.repeats:
-                    for sub_section_dct in (
-                        target_value
-                        if isinstance(target_value, list)
-                        else target_value.values()
-                    ):
-                        _append(sub_section_dct)
-                else:
-                    _append(target_value)
-
-            elif isinstance(property_def, Quantity):
-                quantity_def = property_def
-
-                if quantity_def.virtual:
-                    continue
-
-                if quantity_def.use_full_storage:
-                    if not isinstance(target_value, dict):
-                        raise MetainfoError('Full storage quantity must be a dict')
-
-                    for each_name, each_quantity in target_value.items():
-                        m_quantity = MQuantity(each_name, each_quantity['m_value'])
-                        if 'm_unit' in each_quantity:
-                            m_quantity.unit = units.parse_units(each_quantity['m_unit'])
-                        if 'm_original_unit' in each_quantity:
-                            m_quantity.original_unit = units.parse_units(
-                                each_quantity['m_original_unit']
-                            )
-                        if 'm_attributes' in each_quantity:
-                            m_quantity.attributes = each_quantity['m_attributes']
-
-                        self.m_set(quantity_def, m_quantity)
-                else:
-                    # todo: setting None has different implications
-                    self.__dict__[property_def.name] = quantity_def.type.normalize(
-                        target_value, section=self
-                    )
-
-        for attr_key, attr_value in data.get('m_attributes', {}).items():
-            self.m_set_section_attribute(attr_key, attr_value)
+        for name, value in data.get('m_attributes', {}).items():
+            self.m_set_section_attribute(name, value)
 
     @classmethod
     def m_from_dict(
@@ -2055,13 +2280,9 @@ class MSection(
 
         if stop is None or not stop(self):
             for content in self.m_contents():
-                if not depth_first:
-                    yield content
-
-                yield from content.m_all_contents(depth_first=depth_first, stop=stop)
-
-                if depth_first:
-                    yield content
+                yield from content.m_all_contents(
+                    depth_first=depth_first, include_self=True, stop=stop
+                )
 
         if include_self and depth_first:
             yield self
@@ -2118,55 +2339,55 @@ class MSection(
     def m_contents(self) -> Iterable[MSection]:
         """Returns an iterable over all direct subs sections."""
         for sub_section_def in self.m_def.all_sub_sections.values():
-            if sub_section_def.repeats:
-                index = 0
-                for sub_section in self.m_get_sub_sections(sub_section_def):
-                    yield sub_section
-                    index += 1
-
-            else:
-                sub_section = self.m_get_sub_section(sub_section_def, -1)
+            for sub_section in self.m_get_sub_sections(sub_section_def):
                 if sub_section is not None:
                     yield sub_section
 
     def m_path(
         self, *, quantity_def: Quantity = None, package_path: bool = False
     ) -> str:
-        """Returns the path of this section or the given quantity within the section hierarchy."""
+        """
+        Returns the path of this section or the given quantity within the section hierarchy.
+
+        Parameters:
+            quantity_def: The quantity definition for which to return the path.
+                If None, the path of the section itself is returned.
+            package_path: If True, the path starts from the package instead of the environment.
+        """
         if self.m_parent is None:
             return '/'
 
-        if self.m_parent_index == -1:
-            segment = self.m_parent_sub_section.name
-        else:
-            segment = f'{self.m_parent_sub_section.name}/{self.m_parent_index:d}'
-
+        segment = self.m_parent_sub_section.name
+        if self.m_parent_index != -1:
+            segment += f'/{self.m_parent_index:d}'
         if quantity_def is not None:
-            segment = f'{segment}/{quantity_def.name}'
+            assert quantity_def in self.m_def.all_quantities.values()
+            segment += f'/{quantity_def.name}'
+
+        if not (package_path and isinstance(self.m_parent, Package)):
+            return f'{self.m_parent.m_path(package_path=package_path).rstrip("/")}/{segment}'
 
         # for packages provide path starting from package instead of environment
-        if package_path and isinstance(self.m_parent, Package):
-            # two cases:
-            # 1. build-in packages that does not contain a valid `entry_id`
-            # 2. custom packages that need valid `upload_id` and `entry_id` (for generating correct references)
-            if self.m_parent.entry_id is not None:
-                return f'entry_id:{self.m_parent.entry_id}/{segment}'
+        # two cases:
+        # 1. build-in packages that does not contain a valid `entry_id`
+        if self.m_parent.entry_id is None:
             return f'{self.m_parent.name}/{segment}'
 
-        return (
-            f'{self.m_parent.m_path(package_path=package_path).rstrip("/")}/{segment}'
-        )
+        # 2. custom packages that need valid `upload_id` and `entry_id` (for generating correct references)
+        return f'entry_id:{self.m_parent.entry_id}/{segment}'
 
-    def m_root(self, cls: type[MSectionBound] = None) -> MSectionBound:
+    def m_root(self, cls: type[MSectionBound] | None = None) -> MSectionBound:
         """Returns the first parent of the parent section that has no parent; the root."""
         if self.m_parent is None:
-            return cast(MSectionBound, self)
+            # todo: mypy bug https://github.com/python/mypy/issues/14458
+            return cast(cls, self) if cls else self  # type: ignore
         else:
             return self.m_parent.m_root(cls)
 
-    def m_parent_as(self, cls: type[MSectionBound] = None) -> MSectionBound:
+    def m_parent_as(self, cls: type[MSectionBound] | None = None) -> MSectionBound:
         """Returns the parent section with the given section class type."""
-        return cast(MSectionBound, self.m_parent)
+        # todo: mypy bug https://github.com/python/mypy/issues/14458
+        return cast(cls, self.m_parent) if cls else self.m_parent  # type: ignore
 
     def m_resolved(self):
         """
@@ -2301,76 +2522,60 @@ class MSection(
         """Evaluates all constraints and shapes of this section and returns a list of errors."""
         errors: list[str] = []
         warnings: list[str] = []
-        if self.m_parent and hasattr(self.m_parent, 'all_base_sections'):
-            for base_sections in self.m_parent.all_base_sections:
-                for constraint_name in base_sections.constraints:
-                    constraint = getattr(
-                        base_sections.section_cls, constraint_name, None
+
+        def _execute(
+            _name: str, _constraint: TypingCallable, include_self: bool = False
+        ):
+            if _constraint is None:
+                raise MetainfoError(
+                    f'Could not find implementation for constraint {_name} of section {self.m_def}.'
+                )
+            try:
+                _constraint(self) if include_self else _constraint()
+            except AssertionError as _e:
+                message = str(_e).strip()
+                if message == '':
+                    message = f'Constraint {_name} violated.'
+                if getattr(_constraint, 'm_warning', False):
+                    warnings.append(message)
+                else:
+                    errors.append(message)
+
+        if base_sections := getattr(self.m_parent, 'all_base_sections', None):
+            for base_section in base_sections:
+                for constraint_name in base_section.constraints:
+                    _execute(
+                        constraint_name,
+                        getattr(base_section.section_cls, constraint_name, None),
+                        include_self=True,
                     )
-                    if constraint is None:
-                        raise MetainfoError(
-                            f'Could not find implementation for constraint {constraint_name} of section {self.m_def}.'
-                        )
-                    try:
-                        constraint(self)
-                    except AssertionError as e:
-                        error_str = str(e).strip()
-                        if error_str == '':
-                            error_str = f'Constraint {constraint_name} violated.'
-                        if getattr(constraint, 'm_warning', False):
-                            warnings.append(error_str)
-                        else:
-                            errors.append(error_str)
 
         for constraint_name in self.m_def.constraints:
-            constraint = getattr(self, constraint_name, None)
-            if constraint is None:
-                raise MetainfoError(
-                    f'Could not find implementation for constraint {constraint_name} of section {self.m_def}.'
-                )
+            _execute(constraint_name, getattr(self, constraint_name, None))
 
-            try:
-                constraint()
-            except AssertionError as e:
-                error_str = str(e).strip()
-                if error_str == '':
-                    error_str = f'Constraint {constraint_name} violated.'
-                if getattr(constraint, 'm_warning', False):
-                    warnings.append(error_str)
-                else:
-                    errors.append(error_str)
+        def _validate(_annotation):
+            if isinstance(_annotation, list):
+                for x in _annotation:
+                    _validate(x)
+                return
 
-        for annotation in self.m_annotations.values():
+            if isinstance(_annotation, AnnotationModel):
+                if _annotation.m_error:
+                    # This annotation could not be parsed and only contains the error.
+                    errors.append(_annotation.m_error)
+                    return
 
-            def validate_annotation(annotation):
-                if isinstance(annotation, AnnotationModel):
-                    if annotation.m_error:
-                        # This annotation could not be parsed and only contains the error.
-                        errors.append(annotation.m_error)
-                        return
+                try:
+                    # Trigger model validation by re-assigning the definition
+                    _annotation.m_definition = self
+                except ValidationError as e:
+                    errors.append(f'Annotation validation error for {self}: {str(e)}')
 
-                    try:
-                        # Trigger model validation by re-assigning the definition
-                        annotation.m_definition = self
-                    except ValidationError as e:
-                        errors.append(
-                            f'Annotation validation error for {self}: {str(e)}'
-                        )
-
-            if isinstance(annotation, list):
-                for item in annotation:
-                    validate_annotation(item)
-            else:
-                validate_annotation(annotation)
+        _validate(list(self.m_annotations.values()))
 
         return errors, warnings
 
-    def m_copy(
-        self: MSectionBound,
-        deep=False,
-        parent=None,
-        a_elasticsearch: list | None = None,
-    ) -> MSectionBound:
+    def m_copy(self, deep=False, a_elasticsearch: list | None = None):
         """
         a_elasticsearch: Optional annotation for ElasticSearch. Will override
             any existing annotation.
@@ -2378,12 +2583,6 @@ class MSection(
         # TODO this a shallow copy, but should be a deep copy
         copy = self.m_def.section_cls()
         copy.__dict__.update(**self.__dict__)
-        copy.m_parent = parent
-        copy.m_parent_index = -1 if parent is None else self.m_parent_index
-        copy.m_parent_sub_section = (
-            None if parent is None else self.m_parent_sub_section
-        )
-        copy.m_context = self.m_context
 
         if deep:
             if isinstance(copy, Definition):
@@ -2401,7 +2600,8 @@ class MSection(
 
         if a_elasticsearch:
             copy.m_annotations['elasticsearch'] = a_elasticsearch
-        return cast(MSectionBound, copy)
+
+        return cast(type(self), copy)  # type: ignore
 
     def m_all_validate(self):
         """Evaluates all constraints in the whole section hierarchy, incl. this section."""
@@ -2424,8 +2624,7 @@ class MSection(
         # if name_quantity_def is not None:
         #     name = self.m_get(name_quantity_def)
         try:
-            name = self.__dict__['name']
-            main = f'{name}:{m_section_name}'
+            main = f"{self.__dict__['name']}:{m_section_name}"
         except KeyError:
             main = m_section_name
 
@@ -2594,6 +2793,7 @@ class Definition(MSection):
     all_attributes: Quantity = _placeholder_quantity
 
     def __init__(self, *args, **kwargs):
+        self._cached_count: int | None = None
         self._cached_hash: _HASH_OBJ | None = None
 
         if is_bootstrapping:
@@ -2647,11 +2847,13 @@ class Definition(MSection):
 
         return super().__getattr__(name)
 
-    def m_is_set(self, quantity_def: Quantity) -> bool:
-        if quantity_def == Definition.more:
+    def m_is_set(self, def_or_name: Property | str, *, hint: str | None = None) -> bool:
+        definition = self._ensure_definition(def_or_name, hint=hint)
+
+        if definition == Definition.more:
             return len(self.more) > 0
 
-        return super().m_is_set(quantity_def)
+        return super().m_is_set(definition)
 
     def qualified_name(self):
         name = self.name if self.name else '*'
@@ -2691,14 +2893,18 @@ class Definition(MSection):
         """
         Generates a hash object based on the unique representation of the definition.
         """
-        if self._cached_hash is None or regenerate:
+        if (
+            self._cached_hash is None
+            or regenerate
+            or self._cached_hash != self.m_mod_count
+        ):
+            self._cached_count = self.m_mod_count
             self._cached_hash = default_hash()
             self._cached_hash.update(self._hash_seed().encode('utf-8'))
 
-            if self.attributes:
-                for item in self.attributes:  # pylint: disable=not-an-iterable
-                    if self is not item:
-                        self._cached_hash.update(item.hash(regenerate).digest())
+            for item in self.attributes:
+                if self is not item:
+                    self._cached_hash.update(item.hash(regenerate).digest())
 
         return self._cached_hash
 
@@ -2728,8 +2934,7 @@ class Definition(MSection):
             # 1. loaded from file so archive.definitions.archive is set by parser
             # 2. loaded from versioned mongo so entry_id_based_name is set by mongo
             # second one has no metadata, so do not create reference
-            context = self.m_root().m_context
-            if context:
+            if context := self.m_root().m_context:
                 relative_name = context.create_reference(source, None, self, **kwargs)
                 if relative_name:
                     definition_reference = relative_name
@@ -2761,25 +2966,22 @@ class Definition(MSection):
 class Attribute(Definition):
     """
     Attributes can be used to qualify all properties (subsections and quantities)
-    with simple scalar values.
+    with simple primitive values.
 
     Attributes:
-        type: The type of the attribute. Can be any primitive type, including
-            numpy types, Datetime and enums.
+        type: The type of the attribute. Needs to be a primitive type that is a subclass of `Datatype`.
+        shape: The shape of the attribute. Need to be a list, similar to the shape of a quantity.
     """
 
     type: Quantity = _placeholder_quantity
     shape: Quantity = _placeholder_quantity
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     @constraint(warning=False)
     def is_primitive(self):
         if isinstance(self.type, Datatype):
             return
 
-        assert False, 'Attributes must have primitive type.'
+        raise AssertionError('Attributes must have primitive type.')
 
     def _hash_seed(self) -> str:
         return (
@@ -2801,7 +3003,7 @@ class Property(Definition):
         Attempts to read the property from a dict. Returns the used alias and value as
         tuple.
         """
-        for name in self.aliases + [self.name]:
+        for name in itertools.chain([self.name], self.aliases):
             if name in data:
                 return name, data[name]
         return None, default_value
@@ -2813,10 +3015,8 @@ class Property(Definition):
         assert self.m_parent and isinstance(
             self.m_parent, Section
         ), 'Property must be property of a section.'
-        section = cast(Section, self.m_parent)
-        for base_section in section.all_base_sections.values():
-            base_property = base_section.all_properties.get(self.name)
-            if base_property:
+        for base_section in self.m_parent_as(Section).all_base_sections.values():
+            if base_property := base_section.all_properties.get(self.name):
                 if base_property.m_def != self.m_def:
                     raise MetainfoError(
                         'Cannot overwrite a property of different metainfo type.'
@@ -2935,6 +3135,14 @@ class Quantity(Property):
             A boolean that determines if this quantity is virtual. Virtual quantities can
             be got/set like regular quantities, but their values are not (de-)serialized,
             hence never permanently stored.
+
+        flexible_unit:
+            A boolean to indicate if this quantity may have a unit that is not the default unit.
+            In this case, the quantity will be stored in full storage mode as a `MQuantity`.
+
+        use_full_storage:
+            A derived boolean that indicates if this quantity should be stored in full storage mode.
+            It will be set to True if `flexible_unit` is True, or `variable` is True, or it has attributes.
     """
 
     type: Quantity = _placeholder_quantity
@@ -2947,7 +3155,6 @@ class Quantity(Property):
     virtual: Quantity = _placeholder_quantity
 
     is_scalar: Quantity = _placeholder_quantity
-    repeats: Quantity = _placeholder_quantity
     use_full_storage: Quantity = _placeholder_quantity
     flexible_unit: Quantity = _placeholder_quantity
 
@@ -2960,30 +3167,27 @@ class Quantity(Property):
 
         check_dimensionality(self, self.unit)
 
-    def __get__(self, obj, cls):
-        try:
+    def __get__(self, obj, cls=None):
+        if obj is None:
+            return self
+
+        if self.name in obj.__dict__:
             value = obj.__dict__[self.name]
             # appears to be a quantity using full storage
             # cannot use .use_full_storage as this is not set yet
             if isinstance(value, dict) and self.name in value:
-                m_quantity = value[self.name]
-                if m_quantity.unit:
-                    value = units.Quantity(m_quantity.value, m_quantity.unit)
-                else:
-                    value = m_quantity.value
-        except KeyError:
+                value = value[self.name].get()
+        else:
             if self.derived is not None:
                 try:
-                    if self.cached:
-                        cached = obj.__dict__.setdefault(
-                            f'{self.name}_cached', [-1, None]
-                        )
-                        if cached[0] != obj.m_mod_count:
-                            cached[0] = obj.m_mod_count
-                            cached[1] = self.derived(obj)  # pylint: disable=not-callable
-                        return cached[1]
+                    if not self.cached:
+                        return self.derived(obj)
 
-                    return self.derived(obj)  # pylint: disable=not-callable
+                    cached = obj.__dict__.setdefault(f'_cached_{self.name}', [-1, None])
+                    if cached[0] != obj.m_mod_count:
+                        cached[0] = obj.m_mod_count
+                        cached[1] = self.derived(obj)
+                    return cached[1]
                 except Exception as e:
                     raise DeriveError(f'Could not derive value for {self}: {str(e)}')
 
@@ -2992,29 +3196,18 @@ class Quantity(Property):
             else:
                 value = self.default
 
-        except AttributeError:
-            # class (def) attribute case, because obj is None
-            return self
-
         if value is None:
             return value
 
         if isinstance(self.type, QuantityReference):
-            dimensions = len(self.shape)
 
             def _unwrap(_v):
+                if isinstance(_v, list):
+                    return [_unwrap(x) for x in _v]
+
                 return getattr(_v, self.type.target_quantity_def.name)
 
-            if dimensions == 0:
-                value = _unwrap(value)  # type: ignore
-
-            elif dimensions == 1:
-                value = [_unwrap(item) for item in value]
-
-            else:
-                raise MetainfoError(
-                    'Only numpy arrays and dtypes can be used for higher dimensional quantities.'
-                )
+            value = _unwrap(value)
 
         # no need to append unit if it is already a quantity from full storage
         if isinstance(value, units.Quantity):
@@ -3025,16 +3218,8 @@ class Quantity(Property):
 
         return value
 
+    @metainfo_setter
     def __set__(self, obj, value):
-        if obj is None:
-            # class (def) case
-            raise KeyError(
-                'Cannot overwrite quantity definition. Only values can be set.'
-            )
-
-        # object (instance) case
-        obj.m_mod_count += 1
-
         if self.derived is not None:
             raise MetainfoError(f'The quantity {self} is derived and cannot be set.')
 
@@ -3061,6 +3246,11 @@ class Quantity(Property):
 
             obj.__dict__[item_name] = value
         else:
+            if isinstance(value, dict):
+                for k, v in value.items():
+                    self.__set__(obj, MQuantity.from_dict(k, v))
+                return
+
             # it is a repeating quantity w/o attributes
             # the actual value/name/unit would be wrapped into 'MQuantity'
             # check if there is an existing item
@@ -3073,13 +3263,12 @@ class Quantity(Property):
                         m_quantity.name = item_name
                     elif m_quantity.name != item_name:
                         raise MetainfoError(
-                            f'The name of {value} must match definition name {item_name}'
+                            f'The name of {value} must match definition name {item_name}.'
                         )
-                else:
-                    if not m_quantity.name:
-                        raise MetainfoError(
-                            f'The name must be provided for variadic quantity {item_name}'
-                        )
+                elif not m_quantity.name:
+                    raise MetainfoError(
+                        f'The name must be provided for variadic quantity {item_name}.'
+                    )
 
                 # swap to add attributes via the setter to allow validation
                 m_attribute = m_quantity.attributes
@@ -3096,7 +3285,7 @@ class Quantity(Property):
                     m_quantity = MQuantity(item_name, value)
             else:
                 raise MetainfoError(
-                    "Variadic quantities only accept raw values wrapped in 'MQuantity'"
+                    "Variadic quantities only accept raw values wrapped in 'MQuantity'."
                 )
 
             m_quantity.value = self.type.normalize(m_quantity.value, section=obj)
@@ -3137,16 +3326,17 @@ class Quantity(Property):
 
     @constraint(warning=False)
     def has_type(self):
-        assert (
-            self.type is not None
-        ), f'The quantity {self.qualified_name()} must define a type'
+        if self.type is None:
+            raise AssertionError(
+                f'The quantity {self.qualified_name()} must define a type.'
+            )
         if isinstance(self.type, Reference):
             try:
                 self.type.target_section_def.m_resolved()
             except MetainfoReferenceError as e:
-                assert (
-                    False
-                ), f'Cannot resolve "type" of {self.qualified_name()}: {str(e)}'
+                raise AssertionError(
+                    f'Cannot resolve "type" of {self.qualified_name()}: {str(e)}'
+                )
 
     @constraint(warning=False)
     def correct_dimensionality(self):
@@ -3204,28 +3394,21 @@ class DirectQuantity(Quantity):
         self._name = kwargs.get('name')
         self._default = kwargs.get('default')
 
-    def __get__(self, obj, cls):
-        try:
-            return obj.__dict__[self._name]
-        except KeyError:
-            return self._default
-        except AttributeError:
-            # class (def) attribute case
+    def __get__(self, obj, cls=None):
+        if obj is None:
             return self
 
+        return obj.__dict__.get(self._name, self._default)
+
+    @metainfo_setter
     def __set__(self, obj, value):
-        if obj is None:
-            # class (def) case
-            raise KeyError(
-                'Cannot overwrite quantity definition. Only values can be set.'
-            )
+        if value is None:
+            obj.__dict__.pop(self._name, None)
+        else:
+            if self._name == 'type':
+                value = _adapter.normalize(value, section=obj)
 
-        if self._name == 'type':
-            value = _adapter.normalize(value, section=obj)
-
-        # object (instance) case
-        obj.m_mod_count += 1
-        obj.__dict__[self._name] = value
+            obj.__dict__[self._name] = value
 
 
 class SubSection(Property):
@@ -3256,39 +3439,39 @@ class SubSection(Property):
     key_quantity: Quantity = _placeholder_quantity
 
     def __get__(self, obj, cls=None):
-        # the class attribute case
         if obj is None:
             return self
 
-        # the object attribute case
         if self.repeats:
-            return obj.m_get_sub_sections(self)
+            return obj.__dict__.setdefault(self.name, MSubSectionList(obj, self))
 
-        return obj.m_get_sub_section(self, -1)
+        return obj.__dict__.get(self.name, None)
 
+    @metainfo_setter
     def __set__(self, obj, value):
-        if obj is None:
-            raise NotImplementedError()
-
+        """
+        Accepts a single section or a list of sections.
+        Accepts None to unset the subsection.
+        """
+        existing: MSection | MSubSectionList | None = self.__get__(obj)
         if self.repeats:
-            if isinstance(value, (list, set)):
-                obj.m_get_sub_sections(self).clear()
-                for item in value:
-                    obj.m_add_sub_section(self, item)
-                return
-
-            if value is not None:
-                raise NotImplementedError(
+            if value is not None and not isinstance(value, (list, set)):
+                raise TypeError(
                     'Cannot set a repeating subsection directly, modify the list, e.a. via append.'
                 )
-
-            obj.m_get_sub_sections(self).clear()
-
-        elif value is None:
-            obj.m_remove_sub_section(self, -1)
-
+            existing = cast(MSubSectionList, existing)
+            existing.clear()
+            if isinstance(value, (list, set)):
+                existing.extend(value)
         else:
-            obj.m_add_sub_section(self, value)
+            if existing is value:
+                return
+            obj._on_remove_sub_section(self, existing)
+            if value is None:
+                obj.__dict__.pop(self.name, None)
+            else:
+                obj.__dict__[self.name] = value
+                obj._on_add_sub_section(self, value, -1)
 
     def __delete__(self, obj):
         raise NotImplementedError('Deleting subsections is not supported.')
@@ -3306,7 +3489,11 @@ class SubSection(Property):
             assert False, f'Cannot resolve "sub_section": {str(e)}'
 
     def hash(self, regenerate=False) -> _HASH_OBJ:
-        if self._cached_hash is not None and not regenerate:
+        if (
+            self._cached_hash is not None
+            and not regenerate
+            and self._cached_count == self.m_mod_count
+        ):
             return self._cached_hash
 
         self._cached_hash = super().hash(regenerate)
@@ -3315,8 +3502,8 @@ class SubSection(Property):
 
         for item in itertools.chain(
             self.sub_section.quantities,
-            self.sub_section.base_sections,
             self.sub_section.sub_sections,
+            self.sub_section.base_sections,
             self.sub_section.inner_section_definitions,
         ):
             if self is not item:
@@ -3441,9 +3628,6 @@ class Section(Definition):
     Other attributes and helper properties:
 
     Attributes:
-        section_cls:
-            A helper attribute that gives the `section class` as a Python class object.
-
         inherited_sections:
             A helper attribute that gives direct and indirect base sections and extending
             sections including this section. These are all sections that this sections
@@ -3452,7 +3636,7 @@ class Section(Definition):
         all_base_sections:
             A helper attribute that gives direct and indirect base sections.
 
-        all_inheriting_section:
+        all_inheriting_sections:
             A helper attribute that gives direct and indirect inheriting sections.
 
         all_properties:
@@ -3496,12 +3680,6 @@ class Section(Definition):
             Handler are called after the respective action was performed. This quantity is
             automatically populated with handler from the section classes methods. If there
             is a method ``on_set`` or ``on_add_sub_section``, it will be added as handler.
-
-        errors:
-            A list of errors. These issues prevent the section definition from being usable.
-
-        warnings:
-            A list of warnings. These still allow to use the section definition.
     """
 
     quantities: SubSection = None
@@ -3528,7 +3706,7 @@ class Section(Definition):
     path: Quantity = _placeholder_quantity
 
     def __init__(self, *args, validate: bool = True, **kwargs):
-        self._section_cls: type[MSection] = None  # type: ignore
+        self._section_cls: type[MSection] | None = None
 
         super().__init__(*args, **kwargs)
         self.validate = validate
@@ -3541,6 +3719,9 @@ class Section(Definition):
 
     @property
     def section_cls(self) -> type[MSection]:
+        """
+        A helper attribute that gives the `section class` as a Python class object.
+        """
         if self._section_cls is None:
             # set a temporary to avoid endless recursion
             self._section_cls = type(self.name, (MSection,), dict(do_init=False))
@@ -3556,12 +3737,11 @@ class Section(Definition):
                 attrs[name] = inner_section_def.section_cls
 
             attrs.update(m_def=self, do_init=False)
-            if len(self.base_sections) > 0:
-                bases = tuple(
-                    base_section.section_cls for base_section in self.base_sections
-                )
-            else:
-                bases = (MSection,)
+            bases = (
+                tuple(base_section.section_cls for base_section in self.base_sections)
+                if len(self.base_sections) > 0
+                else (MSection,)
+            )
             self._section_cls = type(self.name, bases, attrs)
 
         return self._section_cls
@@ -3569,17 +3749,11 @@ class Section(Definition):
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
-        # Init extending_sections
         if self.extends_base_section:
-            base_sections_count = len(self.base_sections)
-            if base_sections_count == 0:
+            # Init extending_sections
+            if len(self.base_sections) != 1:
                 raise MetainfoError(
-                    f'Section {self} extend the base section, but has no base section.'
-                )
-
-            if base_sections_count > 1:
-                raise MetainfoError(
-                    f'Section {self} extend the base section, but has more than one base section.'
+                    f'Section {self} extend the base section, but has no or more than one base section.'
                 )
 
             base_section = self.base_sections[0]
@@ -3587,31 +3761,25 @@ class Section(Definition):
                 if isinstance(attr, Property):
                     setattr(base_section.section_cls, name, attr)
 
-            base_section.extending_sections = base_section.extending_sections + [self]
-
-        # Init inheriting_sections
-        if not self.extends_base_section:
+            base_section.extending_sections += [self]  # cannot use append here
+        else:
+            # Init inheriting_sections
             for base_section in self.base_sections:
-                base_section.inheriting_sections = base_section.inheriting_sections + [
-                    self
-                ]
+                base_section.inheriting_sections += [self]  # cannot use append here
 
         # Transfer properties of inherited and overwritten property definitions that
         # have not been overwritten
-        inherited_properties: dict[str, Property] = dict()
+        base_props: dict[str, Property] = dict()
         for base_section in self.all_base_sections:
-            inherited_properties.update(**base_section.all_properties)
+            base_props.update(**base_section.all_properties)
 
-        for property in itertools.chain(self.quantities, self.sub_sections):
-            inherited_property = inherited_properties.get(property.name)
-            if inherited_property is None:
+        for derived_prop in itertools.chain(self.quantities, self.sub_sections):
+            if (base_prop := base_props.get(derived_prop.name)) is None:
                 continue
 
-            for m_quantity in property.m_def.all_quantities.values():
-                if not property.m_is_set(m_quantity) and inherited_property.m_is_set(
-                    m_quantity
-                ):
-                    property.m_set(m_quantity, inherited_property.m_get(m_quantity))
+            for item in derived_prop.m_def.all_quantities.values():
+                if not derived_prop.m_is_set(item) and base_prop.m_is_set(item):
+                    derived_prop.m_set(item, base_prop.m_get(item))
 
     def get_attribute(self, definition, attr_name: str) -> tuple[Definition, Attribute]:
         """
@@ -3622,7 +3790,7 @@ class Section(Definition):
         """
 
         # find the section or quantity where attribute is defined
-        tgt_def: Definition = None
+        tgt_def: Definition | None = None
         if definition is None:
             tgt_def = self
         elif isinstance(definition, Definition):
@@ -3719,7 +3887,11 @@ class Section(Definition):
         return super().m_from_dict(data, **kwargs)
 
     def hash(self, regenerate=False) -> _HASH_OBJ:
-        if self._cached_hash is not None and not regenerate:
+        if (
+            self._cached_hash is not None
+            and not regenerate
+            and self._cached_count == self.m_mod_count
+        ):
             return self._cached_hash
 
         self._cached_hash = super().hash(regenerate)
@@ -3729,8 +3901,8 @@ class Section(Definition):
 
         for item in itertools.chain(
             self.quantities,
-            self.base_sections,
             self.sub_sections,
+            self.base_sections,
             self.inner_section_definitions,
         ):
             if self is not item:
@@ -3763,6 +3935,12 @@ class Package(Definition):
 
         all_definitions: A helper attribute that provides all section and category definitions
             by name and aliases.
+
+        errors:
+            A list of errors. These issues prevent the section definition from being usable.
+
+        warnings:
+            A list of warnings. These still allow to use the section definition.
     """
 
     section_definitions: SubSection = None
@@ -3878,7 +4056,7 @@ class Package(Definition):
             while len(path_stack) > 0:
                 current_pos = path_stack.pop(0)
                 section = section.all_properties.get(current_pos, None)
-        except Exception:
+        except Exception:  # noqa
             section = None
 
         if section is not None:
@@ -3892,7 +4070,11 @@ class Package(Definition):
                 archive.metadata.entry_name = self.name
 
     def hash(self, regenerate=False) -> _HASH_OBJ:
-        if self._cached_hash is not None and not regenerate:
+        if (
+            self._cached_hash is not None
+            and not regenerate
+            and self._cached_count == self.m_mod_count
+        ):
             return self._cached_hash
 
         self._cached_hash = super().hash(regenerate)
@@ -4092,7 +4274,7 @@ def all_inheriting_sections(self) -> list[Section]:
 
 
 @derived(cached=True)
-def all_properties(self) -> dict[str, SubSection | Quantity]:
+def all_properties(self) -> dict[str, Property]:
     return self.all_quantities | self.all_sub_sections
 
 
@@ -4123,8 +4305,8 @@ def all_sub_sections_by_section(self) -> dict[Section, list[SubSection]]:
 
 
 @derived(cached=True)
-def all_aliases(self) -> dict[str, SubSection | Quantity]:
-    result: dict[str, SubSection | Quantity] = dict()
+def all_aliases(self) -> dict[str, Property]:
+    result: dict[str, Property] = dict()
     for definition in self.all_properties.values():
         result.update({alias: definition for alias in definition.aliases})
         result[definition.name] = definition
@@ -4207,12 +4389,11 @@ Quantity.is_scalar = Quantity(
 Quantity.use_full_storage = Quantity(
     type=bool,
     name='use_full_storage',
-    derived=lambda quantity: quantity.repeats
+    derived=lambda quantity: quantity.flexible_unit
     or quantity.variable
     or len(quantity.attributes) > 0,
 )
 Quantity.flexible_unit = Quantity(type=bool, name='flexible_unit', default=False)
-Quantity.repeats = Quantity(type=bool, name='repeats', default=False)
 Quantity.cached = Quantity(type=bool, name='cached', default=False)
 
 Package.section_definitions = SubSection(
@@ -4246,32 +4427,21 @@ def dependencies(self):
     All packages which have definitions that definitions from this package need. Being
     'needed' includes categories, base sections, and referenced definitions.
     """
-    result = set()
+    to_add = set()
     for content in self.m_all_contents():
-        to_add = None
         if isinstance(content, Definition):
-            for category in content.categories:
-                if category.m_parent != self:
-                    to_add = category.m_parent
-
-        if isinstance(content, Quantity):
-            if isinstance(content.type, Reference):
-                if content.type.target_section_def.m_parent != self:
-                    to_add = content.type.target_section_def.m_parent
-
+            to_add.update(category.m_parent for category in content.categories)
         if isinstance(content, Section):
-            for section in content.base_sections:
-                if section.m_parent != self:
-                    to_add = section.m_parent
+            to_add.update(section.m_parent for section in content.base_sections)
+        elif isinstance(content, Quantity) and isinstance(content.type, Reference):
+            to_add.add(content.type.target_section_def.m_parent)
+    to_add.discard(self)
 
-        more_dependencies = []
-        if to_add is not None:
-            more_dependencies.append(to_add)
-        while len(more_dependencies) > 0:
-            dependency = more_dependencies.pop()
-            if dependency not in result:
-                result.add(dependency)
-                more_dependencies.extend(dependency.dependencies)
+    result = set()
+    while len(to_add) > 0:
+        if (dependency := to_add.pop()) not in result:
+            result.add(dependency)
+            to_add.update(dependency.dependencies)
 
     return result
 
@@ -4290,6 +4460,8 @@ Category.__init_cls__()
 Quantity.__init_cls__()
 SubSection.__init_cls__()
 
+is_initializing_proto = False  # noqa
+
 
 class Environment(MSection):
     """Environments allow to manage many metainfo packages and quickly access all definitions.
@@ -4303,9 +4475,6 @@ class Environment(MSection):
     """
 
     packages = SubSection(sub_section=Package, repeats=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     @derived(cached=True)
     def all_definitions_by_name(self):
