@@ -1129,7 +1129,7 @@ class CompositeSystem(System):
                         elemental_composition = elemental_composition_from_formula(
                             formula
                         )
-                    except ValueError:
+                    except (AttributeError, ValueError):
                         elemental_composition = []
                 elif isinstance(component, SystemComponent):
                     elemental_composition = component.system.elemental_composition
