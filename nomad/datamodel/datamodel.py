@@ -70,6 +70,25 @@ except Exception:
     run_def = None
 
 
+has_mongo = False
+
+logger = utils.get_logger(__name__)
+
+
+def _check_mongo_connection():
+    from nomad.infrastructure import mongo_client
+
+    global has_mongo
+    if has_mongo or mongo_client is None:
+        return
+
+    try:
+        mongo_client.server_info()
+        has_mongo = True
+    except Exception as e:
+        logger.warning('MongoDB connection failed.', exc_info=e)
+
+
 class AuthLevel(int, Enum):
     """
     Used to decorate fields with the authorization level required to edit them (using `a_auth_level`).
@@ -922,6 +941,8 @@ class EntryMetadata(MSection):
         search_quantities = []
         keywords_set = set()
 
+        _check_mongo_connection()
+
         def get_section_path(section):
             section_path = section_paths.get(section)
             if section_path is None:
@@ -1001,6 +1022,9 @@ class EntryMetadata(MSection):
             Receives a definition of a quantity 'current_def' and checks if it is a reference to another entry.
             If yes, add the value to 'ref_pool'.
             """
+            if not has_mongo:
+                return
+
             if isinstance(current_def, Quantity):
                 # for quantities
                 if not isinstance(current_def.type, Reference):
