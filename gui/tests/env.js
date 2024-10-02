@@ -4653,5 +4653,6 @@ window.nomadEnv = {
         "version": "1.0"
       }
     }
-  }
+  },
+  "dataciteEnabled": false
 }
