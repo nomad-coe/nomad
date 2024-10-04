@@ -86,6 +86,7 @@ infrastructure = [
     'jsonschema[format]==4.17.3',
     'jupyterhub==4.0.2',
     'm2r==0.2.1',
+    'pymongo==4.6.3',
     'mongoengine>=0.4',
     'msgpack>=1.0',
     'oauthenticator==15.1.0',
