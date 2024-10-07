@@ -22,7 +22,7 @@ import clsx from 'clsx'
 import { isNil, isEmpty, isPlainObject } from 'lodash'
 import { useSearchContext } from './SearchContext'
 import { useUnitContext } from '../units/UnitContext'
-import { Typography, Box, Chip } from '@material-ui/core'
+import { Typography, Box, Chip, Tooltip } from '@material-ui/core'
 import FilterTitle from './FilterTitle'
 import Ellipsis from '../visualization/Ellipsis'
 import ClearIcon from '@material-ui/icons/Clear'
@@ -148,28 +148,53 @@ QueryChipGroup.defaultProps = {
  */
 const useQueryOpStyles = makeStyles(theme => ({
   root: {
+    cursor: 'default'
+  },
+  inside: {
     fontSize: '0.6rem',
     marginLeft: theme.spacing(0.2),
     marginRight: theme.spacing(0),
     color: 'white'
+  },
+  outside: {
+    fontSize: '1.5rem',
+    marginLeft: theme.spacing(0.1),
+    marginRight: theme.spacing(0.1),
+    marginBottom: theme.spacing(-0.4)
   }
 }))
-export const QueryOp = React.memo(({className, children}) => {
+export const QueryOp = React.memo(({className, children, tooltip, variant}) => {
   const styles = useQueryOpStyles()
-  return <Typography variant="caption" className={clsx(className, styles.root)}>{children}</Typography>
+  return <Tooltip title={tooltip || ''}>
+    <Typography
+      variant="caption"
+      className={clsx(className, styles.root, styles[variant])}
+    >{children}
+    </Typography>
+  </Tooltip>
 })
 
 QueryOp.propTypes = {
   className: PropTypes.string,
-  children: PropTypes.node
+  tooltip: PropTypes.string,
+  children: PropTypes.node,
+  variant: PropTypes.string
+}
+QueryOp.defaultProps = {
+  variant: 'inside'
 }
 
 export const QueryAnd = React.memo(() => {
   return <QueryOp>AND</QueryOp>
 })
-
 export const QueryOr = React.memo(() => {
   return <QueryOp>OR</QueryOp>
+})
+export const QueryCurlyBracketLeft = React.memo((props) => {
+  return <QueryOp tooltip="Starts a nested query" {...props}>{'{'}</QueryOp>
+})
+export const QueryCurlyBracketRight = React.memo((props) => {
+  return <QueryOp tooltip="Ends a nested query" {...props}>{'}'}</QueryOp>
 })
 
 // Custom function for chip creation
@@ -283,14 +308,17 @@ const QueryChips = React.memo(({ className, classes }) => {
             newChips.push(
               <React.Fragment key={`${quantity}.${key}`}>
                 {createChips(`${quantity}.${key}`, value, onDelete, filterData, units)}
-                {index < Object.entries(data).length - 1 && <QueryAnd/>}
               </React.Fragment>
             )
           })
           return newChips
         }
         const newChips = addChipsForSection(filterValue)
-        newChips.length && chips.push(newChips)
+        if (newChips.length) {
+          chips.push(<QueryCurlyBracketLeft variant='outside'/>)
+          chips.push(newChips)
+          chips.push(<QueryCurlyBracketRight variant='outside'/>)
+        }
       // Regular chips get their own group
       } else {
         const onDelete = (newValue) => updateFilter([quantity, newValue])

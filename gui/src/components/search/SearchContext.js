@@ -1939,7 +1939,7 @@ function convertQueryGUIToQS(query, filtersData, filterAbbreviations) {
     }
   }
 
-  return qs.stringify(queryStringQuery, {indices: false, encode: false})
+  return qs.stringify(queryStringQuery, {indices: false})
 }
 
 /**
