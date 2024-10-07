@@ -8,7 +8,7 @@ definitions:
       m_annotations:
         template:
           reader: mpes
-          nxdl: NXmpes.nxdl
+          nxdl: NXmpes
         eln:
           hide: []
       quantities:

@@ -2,7 +2,7 @@ git+https://github.com/FAIRmat-NFDI/nomad-perovskite-solar-cells-database.git@f3
 git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@522f4a3208077f534f1c5e886527ee2104283d0b
 git+https://github.com/FAIRmat-NFDI/nomad-aitoolkit.git@b203f8eb28dc4b6771a39d5c5b7ad3d9d8583ac8
 nomad-simulations==0.0.1
-pynxtools[convert]==0.5.0
+pynxtools[convert]==0.7.0
 nomad-schema-plugin-run>=1.0.1
 nomad-schema-plugin-simulation-workflow>=1.0.1
 nomad-normalizer-plugin-bandstructure>=1.0

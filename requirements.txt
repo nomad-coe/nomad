@@ -35,7 +35,7 @@ cryptography==43.0.1      # via certipy, jwcrypto, pyjwt, rfc3161ng
 cycler==0.12.1            # via matplotlib
 decorator==5.1.1          # via validators
 deprecation==2.1.0        # via python-keycloak
-dnspython==2.6.1          # via email-validator, pymongo
+dnspython==2.7.0          # via email-validator, pymongo
 docker==7.1.0             # via dockerspawner
 dockerspawner==13.0.0     # via nomad-lab (pyproject.toml)
 docstring-parser==0.16    # via nomad-lab (pyproject.toml)
@@ -132,13 +132,13 @@ pyrsistent==0.20.0        # via jsonschema
 python-dateutil==2.9.0.post0  # via arrow, celery, elasticsearch-dsl, jupyterhub, matplotlib, nomad-openbis, pandas, rfc3161ng
 python-dotenv==1.0.1      # via uvicorn
 python-json-logger==2.0.2  # via jupyter-telemetry, nomad-lab (pyproject.toml)
-python-keycloak==4.6.0    # via nomad-lab (pyproject.toml)
+python-keycloak==4.6.2    # via nomad-lab (pyproject.toml)
 python-logstash==0.4.6    # via nomad-lab (pyproject.toml)
 python-magic==0.4.24      # via nomad-lab (pyproject.toml)
 python-magic-bin==0.4.14 ; sys_platform == 'win32'  # via nomad-lab (pyproject.toml)
 python-multipart==0.0.12  # via nomad-lab (pyproject.toml)
 pytz==2024.2              # via mongomock, pandas, nomad-lab (pyproject.toml)
-pywin32==306 ; sys_platform == 'win32'  # via docker
+pywin32==307 ; sys_platform == 'win32'  # via docker
 pyyaml==6.0.2             # via pybtex, uvicorn, nomad-lab (pyproject.toml)
 rdflib==5.0.0             # via nomad-lab (pyproject.toml)
 rdkit==2023.9.5           # via nomad-lab (pyproject.toml)
