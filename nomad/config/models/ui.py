@@ -233,11 +233,32 @@ class AlignEnum(str, Enum):
 
 
 class Column(ConfigBaseModel):
-    """Option for a column show in the search results."""
+    """Column show in the search results table. With `quantity` you may target a
+    specific part of the data to be shown. Note that the use of JMESPath is
+    supported here, and you can e.g. do the following:
 
-    label: Optional[str] = Field(
+     - Show first value from a repeating subsection: `repeating_section[0].quantity`
+     - Show slice of values from a repeating subsection: `repeating_section[1:2].quantity`
+     - Show all values from a repeating subsection: `repeating_section[*].quantity`
+     - Show minimum value from a repeating section: `min(repeating_section[*].quantity)`
+     - Show instance that matches a criterion: `repeating_section[?label=='target'].quantity`
+    """
+
+    quantity: Optional[str] = Field(
+        description="""
+        Path of the targeted quantity. Note that you can most of the features
+        JMESPath syntax here to further specify a selection of values. This
+        becomes especially useful when dealing with repeated sections or
+        statistical values.
+        """
+    )
+    selected: bool = Field(
+        False, description="""Is this column initially selected to be shown."""
+    )
+    title: Optional[str] = Field(
         description='Label shown in the header. Defaults to the quantity name.'
     )
+    label: Optional[str] = Field(description='Alias for title.')
     align: AlignEnum = Field(AlignEnum.LEFT, description='Alignment in the table.')
     unit: Optional[str] = Field(
         description="""
@@ -249,6 +270,15 @@ class Column(ConfigBaseModel):
         description='Controls the formatting of the values.'
     )
 
+    @root_validator(pre=True)
+    def _validate(cls, values):
+        # Backwards compatibility for label
+        label = values.get('label')
+        title = values.get('title')
+        if label and not title:
+            values['title'] = label
+        return values
+
 
 class Columns(OptionsMulti):
     """
@@ -259,7 +289,7 @@ class Columns(OptionsMulti):
     options: Optional[Dict[str, Column]] = Field(
         description="""
         All available column options. Note here that the key must correspond to a
-        quantity path that exists in the metadata.
+        quantity path that exists in the metadata. The key
     """
     )
 
@@ -682,8 +712,8 @@ class App(ConfigBaseModel):
     pagination: Pagination = Field(
         Pagination(), description='Default result pagination.'
     )
-    columns: Columns = Field(
-        description='Controls the columns shown in the results table.'
+    columns: Optional[List[Column]] = Field(
+        description='List of columns for the results table.'
     )
     rows: Optional[Rows] = Field(
         Rows(
@@ -711,6 +741,30 @@ class App(ConfigBaseModel):
     search_syntaxes: Optional[SearchSyntaxes] = Field(
         description='Controls which types of search syntax are available.'
     )
+
+    @root_validator(pre=True)
+    def _validate(cls, values):
+        # Backwards compatibility for columns
+        columns = values.get('columns')
+        if isinstance(columns, Columns):
+            columns = columns.dict()
+        if isinstance(columns, dict):
+            options = columns.get('options') or {}
+            keys = list(options.keys())
+            include = columns.get('include') or keys
+            exclude = columns.get('exclude') or []
+            selected = columns.get('selected') or []
+            new_columns = []
+            for key in include:
+                if key not in exclude:
+                    column = options[key]
+                    column['quantity'] = key
+                    if key in selected:
+                        column['selected'] = True
+                    new_columns.append(column)
+            values['columns'] = new_columns
+
+        return values
 
 
 class Apps(Options):

@@ -56,11 +56,6 @@ ActionURL.propTypes = {
  * Displays the list of search results.
  */
 export const SearchResults = React.memo(({
-  columns,
-  resource,
-  rows,
-  useResults,
-  useApiQuery,
   noAction,
   onSelectedChanged,
   defaultUncollapsedEntryID,
@@ -69,9 +64,15 @@ export const SearchResults = React.memo(({
   PaperProps,
   ...otherProps
 }) => {
+  const {columns, resource, rows, useResults, useApiQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
   const apiQuery = useApiQuery()
   const [selected, setSelected] = useState(new Set())
+  const shownColumns = columns
+    ? columns
+      .filter((column) => column.selected)
+      .map((column) => column.quantity)
+    : []
 
   useEffect(() => {
     if (onSelectedChanged) {
@@ -131,8 +132,8 @@ export const SearchResults = React.memo(({
       data={data}
       pagination={pagination}
       onPaginationChanged={setPagination}
-      columns={columns?.options && Object.values(columns.options)}
-      shownColumns={columns?.selected}
+      columns={columns}
+      shownColumns={shownColumns}
       selected={rows?.selection?.enabled ? selected : undefined}
       getId={option => option.entry_id}
       onSelectedChanged={rows?.selection?.enabled ? setSelected : undefined}
@@ -157,11 +158,6 @@ export const SearchResults = React.memo(({
 })
 
 SearchResults.propTypes = {
-  columns: PropTypes.object,
-  resource: PropTypes.string,
-  rows: PropTypes.object,
-  useResults: PropTypes.func,
-  useApiQuery: PropTypes.func,
   noAction: PropTypes.bool,
   PaperProps: PropTypes.object,
   onSelectedChanged: PropTypes.func,
@@ -173,19 +169,3 @@ SearchResults.propTypes = {
 SearchResults.defaultProps = {
   'data-testid': 'search-results'
 }
-
-/**
- * Displays search results from the current search context.
- */
-export const SearchResultsWithContext = React.memo((props) => {
-  const {columns, resource, rows, useResults, useApiQuery} = useSearchContext()
-
-  return <SearchResults
-    columns={columns}
-    resource={resource}
-    rows={rows}
-    useResults={useResults}
-    useApiQuery={useApiQuery}
-    {...props}
-  />
-})

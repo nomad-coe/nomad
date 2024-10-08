@@ -31,7 +31,7 @@ import {useUploadPageContext} from './UploadPageContext'
 import {useEntryStore} from '../entry/EntryContext'
 import {traverse, useGlobalMetainfo} from '../archive/metainfo'
 import { defaultFilterGroups, quantityNameSearch } from '../search/FilterRegistry'
-import { SearchResultsWithContext } from '../search/SearchResults'
+import { SearchResults } from '../search/SearchResults'
 import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
 import {Check} from '@material-ui/icons'
@@ -203,9 +203,9 @@ Details.propTypes = {
   data: PropTypes.object.isRequired
 }
 
-const columns = context?.columns
+const columns = (context?.columns || [])
+  .map((column) => ({...column, selected: shownColumns.includes(column.quantity)}))
 const rows = context?.rows
-columns.selected = shownColumns
 rows.details = {enabled: true, render: Details}
 rows.actions = {enabled: false}
 
@@ -383,7 +383,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
           {definedFilters.length > 0 && <Chip label={`and ${definedFilters.length} more ${pluralize('filter', definedFilters.length, false)}`} color="primary" onDelete={() => handleResetSearch()}/>}
         </Box>
         <div className={classes.resultsTable}>
-          <SearchResultsWithContext
+          <SearchResults
             defaultUncollapsedEntryID={selected?.entry_id}
             multiSelect={false}
             noAction
