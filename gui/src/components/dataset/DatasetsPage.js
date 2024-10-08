@@ -34,6 +34,7 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import { formatTimestamp } from '../../utils'
+import { dataciteEnabled } from '../../config'
 
 export const help = `
 NOMAD allows you to create *datasets* from your data. A dataset is like a tag that you
@@ -98,13 +99,13 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
   }, [api, raiseError, data.dataset_id, refresh, setOpenConfirmDoiDialog])
 
   return <React.Fragment>
-    <Tooltip title="Assign a DOI">
+    {dataciteEnabled && <Tooltip title="Assign a DOI">
       <span>
         <IconButton onClick={() => setOpenConfirmDoiDialog(true)} disabled={!!data.doi}>
           <DOIIcon />
         </IconButton>
       </span>
-    </Tooltip>
+    </Tooltip>}
     <Tooltip title={(data.doi ? 'The dataset cannot be deleted. A DOI has been assigned to the dataset.' : 'Delete the dataset')}>
       <span>
         <IconButton onClick={() => setOpenConfirmDeleteDialog(true)} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>

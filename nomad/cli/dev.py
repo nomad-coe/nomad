@@ -255,6 +255,7 @@ def get_gui_config() -> str:
         'uploadMembersGroupSearchEnabled': config.services.upload_members_group_search_enabled,
         'ui': config.ui.dict(exclude_none=True) if config.ui else {},
         'plugins': plugins,
+        'dataciteEnabled': config.datacite.enabled,
     }
 
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'
