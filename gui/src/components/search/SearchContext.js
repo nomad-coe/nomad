@@ -18,6 +18,7 @@
 
 import React, { useCallback, useEffect, useState, useRef, useMemo, useContext } from 'react'
 import compose from 'compose-function'
+import jmespath from 'jmespath'
 import {
   atom,
   atomFamily,
@@ -40,7 +41,8 @@ import {
   isObject,
   isFunction,
   size,
-  cloneDeep
+  cloneDeep,
+  flattenDeep
 } from 'lodash'
 import qs from 'qs'
 import { useLocation, useHistory } from 'react-router-dom'
@@ -53,9 +55,10 @@ import {
   entryName,
   entryType,
   formatTimestamp,
-  getDeep,
   formatNumber,
+  formatBoolean,
   parseQuantityName,
+  parseJMESPath,
   rsplit,
   parseOperator,
   getSuggestions,
@@ -245,55 +248,60 @@ export const SearchContextRaw = React.memo(({
   const columns = useMemo(() => {
     if (!initialColumns) return undefined
 
-    // Add unit information if one is defined. This unit is currently fixed and
-    // not affected by global unit system.
-    const config = cloneDeep(initialColumns)
-    let options = config?.options
-      ? Object.entries(config.options).map(([key, value]) => ({key, ...value}))
-      : []
+    let options = cloneDeep(initialColumns)
     options.forEach(option => {
-      const storageUnit = initialFilterData[option.quantity || option.key]?.unit
+      const parseResults = parseJMESPath(option.quantity)
+      if (parseResults.error) {
+        throw Error(`Invalid JMESPath query in the app columns: ${option.quantity}`)
+      }
+      option.sortable = parseResults.quantity === option.quantity
+      const filter = initialFilterData[parseResults.quantity]
+      const storageUnit = filter?.unit
       const displayUnit = option.unit
-      option.label = option.label || initialFilterData[option.quantity || option.key]?.label
-      if (storageUnit || displayUnit) {
-        const finalUnit = displayUnit
+      const finalUnit = (storageUnit || displayUnit)
+        ? displayUnit
           ? new Unit(displayUnit)
           : new Unit(storageUnit).toSystem(units)
+        : undefined
+      option.label = option.title || filter?.label
+      if (finalUnit) {
         option.label = `${option.label} (${finalUnit.label()})`
       }
-    })
 
-    // Automatically determine the render function based on metainfo.
-    options.forEach(option => {
+      // Automatically determine the render function based on metainfo.
       option.render = (data) => {
-        const value = getDeep(data, parseQuantityName(option.key).path)
+        // Get value using JMESPath
+        let value = jmespath.search(data, parseResults.path)
         if (isNil(value)) return value
 
-        const transform = (value) => {
-          const key = option.key
-          const format = option.format
-          const dtype = initialFilterData[key]?.dtype
+        // Flatten arrays to a single list
+        const isList = isArray(value)
+        value = isList ? flattenDeep(value) : value
 
-          if (dtype === 'timestamp') {
+        // Function for rendering individual values
+        const renderValue = (value, option) => {
+          const format = option.format
+          const dtype = filter?.dtype
+
+          if (dtype === DType.Timestamp) {
             return formatTimestamp(value, format?.mode)
+          } else if (dtype === DType.Boolean) {
+            return formatBoolean(value)
           }
 
-          const storageUnit = initialFilterData[option.quantity || option.key]?.unit
-          const displayUnit = option.unit
-          if (storageUnit || displayUnit) {
-            const finalUnit = displayUnit
-              ? new Unit(displayUnit)
-              : new Unit(storageUnit).toSystem(units)
+          if (finalUnit) {
             value = new Quantity(value, storageUnit).to(finalUnit).value()
           }
           if (dtype === DType.Int || dtype === DType.Float) {
-            value = formatNumber(value, dtype, format?.mode, format?.decimals)
+            return formatNumber(value, dtype, format?.mode, format?.decimals)
           }
+
           return value
         }
-        return isArray(value)
-          ? value.map(transform).join(option?.format?.separator || ', ')
-          : transform(value)
+
+        return isList
+          ? value.map((v) => renderValue(v, option)).join(option?.format?.separator || ", ")
+          : renderValue(value, option)
       }
     })
 
@@ -354,21 +362,12 @@ export const SearchContextRaw = React.memo(({
       }
     }
 
-    // Sort options by putting initially selected ones on top
-    if (config.selected) {
-      options = [
-        ...config.selected.map(key => options.find(opt => opt.key === key)).filter(opt => !!opt),
-        ...options.filter(opt => !config.selected.find(key => key === opt.key))
-      ]
-    }
-
-    // Add defaults and custom overrides to the options
+    // Add key, defaults, and custom overrides
+    options = options.map((column) => ({...column, key: column.quantity}))
     addColumnDefaults(options, undefined, initialFilterData)
-    config.options = Object.fromEntries(options.map(option => {
-      return [option.key, {...option, ...(overrides[option.key] || {})}]
-    }))
+    options = options.map((column) => ({...column, ...(overrides[column.quantity] || {})}))
 
-    return config
+    return options
   }, [initialFilterData, initialColumns, user, units])
 
   // The final row configuration
@@ -1789,7 +1788,7 @@ export const SearchContextRaw = React.memo(({
 SearchContextRaw.propTypes = {
   resource: PropTypes.string,
   initialFiltersLocked: PropTypes.object,
-  initialColumns: PropTypes.object,
+  initialColumns: PropTypes.arrayOf(PropTypes.object),
   initialRows: PropTypes.object,
   initialFilterMenus: PropTypes.object,
   initialPagination: PropTypes.object,

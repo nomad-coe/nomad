@@ -439,111 +439,166 @@ window.nomadEnv = {
             "order": "desc",
             "page_size": 20
           },
-          "columns": {
-            "options": {
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
-              "results.material.chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "entry_type": {
-                "align": "left"
-              },
-              "entry_create_time": {
-                "align": "left"
-              },
-              "upload_name": {
-                "align": "left"
-              },
-              "upload_id": {
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "align": "left"
-              },
-              "results.method.method_name": {
-                "align": "left"
-              },
-              "results.method.simulation.program_name": {
-                "align": "left"
-              },
-              "results.method.simulation.dft.xc_functional_type": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.apw_cutoff": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.basis_set": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.k_line_density": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.native_tier": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.planewave_cutoff": {
-                "align": "left"
-              },
-              "results.material.structural_type": {
-                "align": "left"
-              },
-              "results.material.symmetry.crystal_system": {
-                "align": "left"
-              },
-              "results.material.symmetry.space_group_symbol": {
-                "align": "left"
-              },
-              "results.material.symmetry.space_group_number": {
-                "align": "left"
-              },
-              "results.eln.lab_ids": {
-                "align": "left"
-              },
-              "results.eln.sections": {
-                "align": "left"
-              },
-              "results.eln.methods": {
-                "align": "left"
-              },
-              "results.eln.tags": {
-                "align": "left"
-              },
-              "results.eln.instruments": {
-                "align": "left"
-              },
-              "mainfile": {
-                "align": "left"
-              },
-              "comment": {
-                "align": "left"
-              },
-              "references": {
-                "align": "left"
-              },
-              "datasets": {
-                "align": "left"
-              },
-              "published": {
-                "label": "Access",
-                "align": "left"
-              }
+          "columns": [
+            {
+              "quantity": "entry_name",
+              "selected": true,
+              "title": "Name",
+              "label": "Name",
+              "align": "left"
             },
-            "selected": [
-              "entry_name",
-              "results.material.chemical_formula_hill",
-              "entry_type",
-              "upload_create_time",
-              "authors"
-            ]
-          },
+            {
+              "quantity": "results.material.chemical_formula_hill",
+              "selected": true,
+              "title": "Formula",
+              "label": "Formula",
+              "align": "left"
+            },
+            {
+              "quantity": "entry_type",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "entry_create_time",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "upload_name",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "upload_id",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "upload_create_time",
+              "selected": true,
+              "title": "Upload time",
+              "label": "Upload time",
+              "align": "left"
+            },
+            {
+              "quantity": "authors",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.method_name",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.program_name",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.dft.xc_functional_type",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.apw_cutoff",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.basis_set",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.k_line_density",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.native_tier",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.planewave_cutoff",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.structural_type",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.symmetry.crystal_system",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.symmetry.space_group_symbol",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.symmetry.space_group_number",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.lab_ids",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.sections",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.methods",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.tags",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.instruments",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "mainfile",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "comment",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "references",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "datasets",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "published",
+              "selected": false,
+              "title": "Access",
+              "label": "Access",
+              "align": "left"
+            }
+          ],
           "rows": {
             "actions": {
               "enabled": true
@@ -704,85 +759,121 @@ window.nomadEnv = {
             "order": "desc",
             "page_size": 20
           },
-          "columns": {
-            "options": {
-              "results.material.chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "results.method.simulation.program_name": {
-                "align": "left"
-              },
-              "results.method.method_name": {
-                "align": "left"
-              },
-              "results.method.simulation.dft.xc_functional_type": {
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.apw_cutoff": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.basis_set": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.k_line_density": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.native_tier": {
-                "align": "left"
-              },
-              "results.method.simulation.precision.planewave_cutoff": {
-                "align": "left"
-              },
-              "results.material.structural_type": {
-                "align": "left"
-              },
-              "results.material.symmetry.crystal_system": {
-                "align": "left"
-              },
-              "results.material.symmetry.space_group_symbol": {
-                "align": "left"
-              },
-              "results.material.symmetry.space_group_number": {
-                "align": "left"
-              },
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
-              "mainfile": {
-                "align": "left"
-              },
-              "comment": {
-                "align": "left"
-              },
-              "references": {
-                "align": "left"
-              },
-              "datasets": {
-                "align": "left"
-              },
-              "published": {
-                "label": "Access",
-                "align": "left"
-              }
+          "columns": [
+            {
+              "quantity": "results.material.chemical_formula_hill",
+              "selected": true,
+              "title": "Formula",
+              "label": "Formula",
+              "align": "left"
             },
-            "selected": [
-              "results.material.chemical_formula_hill",
-              "results.method.simulation.program_name",
-              "results.method.method_name",
-              "results.method.simulation.dft.xc_functional_type",
-              "upload_create_time",
-              "authors"
-            ]
-          },
+            {
+              "quantity": "results.method.simulation.program_name",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.method_name",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.dft.xc_functional_type",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "upload_create_time",
+              "selected": true,
+              "title": "Upload time",
+              "label": "Upload time",
+              "align": "left"
+            },
+            {
+              "quantity": "authors",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.apw_cutoff",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.basis_set",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.k_line_density",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.native_tier",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.simulation.precision.planewave_cutoff",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.structural_type",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.symmetry.crystal_system",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.symmetry.space_group_symbol",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.symmetry.space_group_number",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "entry_name",
+              "selected": false,
+              "title": "Name",
+              "label": "Name",
+              "align": "left"
+            },
+            {
+              "quantity": "mainfile",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "comment",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "references",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "datasets",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "published",
+              "selected": false,
+              "title": "Access",
+              "label": "Access",
+              "align": "left"
+            }
+          ],
           "rows": {
             "actions": {
               "enabled": true
@@ -1169,39 +1260,45 @@ window.nomadEnv = {
             "order": "asc",
             "page_size": 20
           },
-          "columns": {
-            "options": {
-              "chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "structural_type": {
-                "align": "left"
-              },
-              "symmetry.structure_name": {
-                "align": "left"
-              },
-              "symmetry.space_group_number": {
-                "align": "left"
-              },
-              "symmetry.crystal_system": {
-                "align": "left"
-              },
-              "symmetry.space_group_symbol": {
-                "align": "left"
-              },
-              "material_id": {
-                "align": "left"
-              }
+          "columns": [
+            {
+              "quantity": "chemical_formula_hill",
+              "selected": true,
+              "title": "Formula",
+              "label": "Formula",
+              "align": "left"
             },
-            "selected": [
-              "chemical_formula_hill",
-              "structural_type",
-              "symmetry.structure_name",
-              "symmetry.space_group_number",
-              "symmetry.crystal_system"
-            ]
-          },
+            {
+              "quantity": "structural_type",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "symmetry.structure_name",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "symmetry.space_group_number",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "symmetry.crystal_system",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "symmetry.space_group_symbol",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "material_id",
+              "selected": false,
+              "align": "left"
+            }
+          ],
           "rows": {
             "actions": {
               "enabled": true
@@ -1349,68 +1446,96 @@ window.nomadEnv = {
             "order": "desc",
             "page_size": 20
           },
-          "columns": {
-            "options": {
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
-              "entry_type": {
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "align": "left"
-              },
-              "results.material.chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "results.method.method_name": {
-                "align": "left"
-              },
-              "results.eln.lab_ids": {
-                "align": "left"
-              },
-              "results.eln.sections": {
-                "align": "left"
-              },
-              "results.eln.methods": {
-                "align": "left"
-              },
-              "results.eln.tags": {
-                "align": "left"
-              },
-              "results.eln.instruments": {
-                "align": "left"
-              },
-              "mainfile": {
-                "align": "left"
-              },
-              "comment": {
-                "align": "left"
-              },
-              "references": {
-                "align": "left"
-              },
-              "datasets": {
-                "align": "left"
-              },
-              "published": {
-                "label": "Access",
-                "align": "left"
-              }
+          "columns": [
+            {
+              "quantity": "entry_name",
+              "selected": true,
+              "title": "Name",
+              "label": "Name",
+              "align": "left"
             },
-            "selected": [
-              "entry_name",
-              "entry_type",
-              "upload_create_time",
-              "authors"
-            ]
-          },
+            {
+              "quantity": "entry_type",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "upload_create_time",
+              "selected": true,
+              "title": "Upload time",
+              "label": "Upload time",
+              "align": "left"
+            },
+            {
+              "quantity": "authors",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.material.chemical_formula_hill",
+              "selected": false,
+              "title": "Formula",
+              "label": "Formula",
+              "align": "left"
+            },
+            {
+              "quantity": "results.method.method_name",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.lab_ids",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.sections",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.methods",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.tags",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.eln.instruments",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "mainfile",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "comment",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "references",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "datasets",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "published",
+              "selected": false,
+              "title": "Access",
+              "label": "Access",
+              "align": "left"
+            }
+          ],
           "rows": {
             "actions": {
               "enabled": true
@@ -1484,63 +1609,86 @@ window.nomadEnv = {
             "order": "desc",
             "page_size": 20
           },
-          "columns": {
-            "options": {
-              "results.material.chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "results.properties.spectroscopic.spectra.provenance.eels.detector_type": {
-                "align": "left"
-              },
-              "results.properties.spectroscopic.spectra.provenance.eels.resolution": {
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "align": "left"
-              },
-              "results.properties.spectroscopic.spectra.provenance.eels.min_energy": {
-                "align": "left"
-              },
-              "results.properties.spectroscopic.spectra.provenance.eels.max_energy": {
-                "align": "left"
-              },
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
-              "entry_type": {
-                "align": "left"
-              },
-              "mainfile": {
-                "align": "left"
-              },
-              "comment": {
-                "align": "left"
-              },
-              "references": {
-                "align": "left"
-              },
-              "datasets": {
-                "align": "left"
-              },
-              "published": {
-                "label": "Access",
-                "align": "left"
-              }
+          "columns": [
+            {
+              "quantity": "results.material.chemical_formula_hill",
+              "selected": true,
+              "title": "Formula",
+              "label": "Formula",
+              "align": "left"
             },
-            "selected": [
-              "results.material.chemical_formula_hill",
-              "results.properties.spectroscopic.spectra.provenance.eels.detector_type",
-              "results.properties.spectroscopic.spectra.provenance.eels.resolution",
-              "upload_create_time",
-              "authors"
-            ]
-          },
+            {
+              "quantity": "results.properties.spectroscopic.spectra.provenance.eels.detector_type",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.properties.spectroscopic.spectra.provenance.eels.resolution",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "upload_create_time",
+              "selected": true,
+              "title": "Upload time",
+              "label": "Upload time",
+              "align": "left"
+            },
+            {
+              "quantity": "authors",
+              "selected": true,
+              "align": "left"
+            },
+            {
+              "quantity": "results.properties.spectroscopic.spectra.provenance.eels.min_energy",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "results.properties.spectroscopic.spectra.provenance.eels.max_energy",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "entry_name",
+              "selected": false,
+              "title": "Name",
+              "label": "Name",
+              "align": "left"
+            },
+            {
+              "quantity": "entry_type",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "mainfile",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "comment",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "references",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "datasets",
+              "selected": false,
+              "align": "left"
+            },
+            {
+              "quantity": "published",
+              "selected": false,
+              "title": "Access",
+              "label": "Access",
+              "align": "left"
+            }
+          ],
           "rows": {
             "actions": {
               "enabled": true
@@ -2719,56 +2867,59 @@ window.nomadEnv = {
               "order": "desc",
               "page_size": 20
             },
-            "columns": {
-              "include": [
-                "entry_id",
-                "entry_type",
-                "authors",
-                "data.name#nomad_aitoolkit.schema.AIToolkitNotebook",
-                "data.category#nomad_aitoolkit.schema.AIToolkitNotebook",
-                "data.platform#nomad_aitoolkit.schema.AIToolkitNotebook",
-                "data.date#nomad_aitoolkit.schema.AIToolkitNotebook"
-              ],
-              "options": {
-                "entry_id": {
-                  "align": "left"
-                },
-                "entry_type": {
-                  "label": "Entry type",
-                  "align": "left"
-                },
-                "authors": {
-                  "label": "Authors",
-                  "align": "left"
-                },
-                "data.name#nomad_aitoolkit.schema.AIToolkitNotebook": {
-                  "label": "Name",
-                  "align": "left"
-                },
-                "data.category#nomad_aitoolkit.schema.AIToolkitNotebook": {
-                  "label": "Category",
-                  "align": "left"
-                },
-                "data.platform#nomad_aitoolkit.schema.AIToolkitNotebook": {
-                  "label": "Platform",
-                  "align": "left"
-                },
-                "data.date#nomad_aitoolkit.schema.AIToolkitNotebook": {
-                  "label": "Last update",
-                  "align": "left",
-                  "format": {
-                    "decimals": 3,
-                    "mode": "date"
-                  }
-                }
+            "columns": [
+              {
+                "quantity": "entry_id",
+                "selected": false,
+                "align": "left"
               },
-              "selected": [
-                "data.name#nomad_aitoolkit.schema.AIToolkitNotebook",
-                "authors",
-                "data.category#nomad_aitoolkit.schema.AIToolkitNotebook",
-                "data.date#nomad_aitoolkit.schema.AIToolkitNotebook"
-              ]
-            },
+              {
+                "quantity": "entry_type",
+                "selected": false,
+                "title": "Entry type",
+                "label": "Entry type",
+                "align": "left"
+              },
+              {
+                "quantity": "authors",
+                "selected": true,
+                "title": "Authors",
+                "label": "Authors",
+                "align": "left"
+              },
+              {
+                "quantity": "data.name#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "selected": true,
+                "title": "Name",
+                "label": "Name",
+                "align": "left"
+              },
+              {
+                "quantity": "data.category#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "selected": true,
+                "title": "Category",
+                "label": "Category",
+                "align": "left"
+              },
+              {
+                "quantity": "data.platform#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "selected": false,
+                "title": "Platform",
+                "label": "Platform",
+                "align": "left"
+              },
+              {
+                "quantity": "data.date#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "selected": true,
+                "title": "Last update",
+                "label": "Last update",
+                "align": "left",
+                "format": {
+                  "decimals": 3,
+                  "mode": "date"
+                }
+              }
+            ],
             "rows": {
               "actions": {
                 "options": {
@@ -2993,39 +3144,49 @@ window.nomadEnv = {
               "order": "desc",
               "page_size": 20
             },
-            "columns": {
-              "options": {
-                "results.material.chemical_formula_iupac": {
-                  "label": "Formula",
-                  "align": "left"
-                },
-                "mainfile": {
-                  "align": "left"
-                },
-                "upload_create_time": {
-                  "label": "Upload time",
-                  "align": "left"
-                },
-                "authors": {
-                  "align": "left"
-                },
-                "comment": {
-                  "align": "left"
-                },
-                "datasets": {
-                  "align": "left"
-                },
-                "published": {
-                  "label": "Access",
-                  "align": "left"
-                }
+            "columns": [
+              {
+                "quantity": "results.material.chemical_formula_iupac",
+                "selected": true,
+                "title": "Formula",
+                "label": "Formula",
+                "align": "left"
               },
-              "selected": [
-                "results.material.chemical_formula_iupac",
-                "mainfile",
-                "authors"
-              ]
-            },
+              {
+                "quantity": "mainfile",
+                "selected": true,
+                "align": "left"
+              },
+              {
+                "quantity": "upload_create_time",
+                "selected": false,
+                "title": "Upload time",
+                "label": "Upload time",
+                "align": "left"
+              },
+              {
+                "quantity": "authors",
+                "selected": true,
+                "align": "left"
+              },
+              {
+                "quantity": "comment",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "datasets",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "published",
+                "selected": false,
+                "title": "Access",
+                "label": "Access",
+                "align": "left"
+              }
+            ],
             "rows": {
               "actions": {
                 "enabled": true
@@ -3460,114 +3621,155 @@ window.nomadEnv = {
               "order": "desc",
               "page_size": 20
             },
-            "columns": {
-              "options": {
-                "results.material.chemical_formula_descriptive": {
-                  "label": "Descriptive formula",
-                  "align": "left"
-                },
-                "results.properties.optoelectronic.solar_cell.efficiency": {
-                  "label": "Efficiency (%)",
-                  "align": "left",
-                  "format": {
-                    "decimals": 2,
-                    "mode": "standard"
-                  }
-                },
-                "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
-                  "align": "left",
-                  "unit": "V",
-                  "format": {
-                    "decimals": 3,
-                    "mode": "standard"
-                  }
-                },
-                "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
-                  "align": "left",
-                  "unit": "A/m**2",
-                  "format": {
-                    "decimals": 3,
-                    "mode": "standard"
-                  }
-                },
-                "results.properties.optoelectronic.solar_cell.fill_factor": {
-                  "align": "left",
-                  "format": {
-                    "decimals": 3,
-                    "mode": "standard"
-                  }
-                },
-                "references": {
-                  "align": "left"
-                },
-                "results.material.chemical_formula_hill": {
-                  "label": "Formula",
-                  "align": "left"
-                },
-                "results.material.structural_type": {
-                  "align": "left"
-                },
-                "results.properties.optoelectronic.solar_cell.illumination_intensity": {
-                  "label": "Illum. intensity",
-                  "align": "left",
-                  "unit": "W/m**2",
-                  "format": {
-                    "decimals": 3,
-                    "mode": "standard"
-                  }
-                },
-                "results.eln.lab_ids": {
-                  "align": "left"
-                },
-                "results.eln.sections": {
-                  "align": "left"
-                },
-                "results.eln.methods": {
-                  "align": "left"
-                },
-                "results.eln.tags": {
-                  "align": "left"
-                },
-                "results.eln.instruments": {
-                  "align": "left"
-                },
-                "entry_name": {
-                  "label": "Name",
-                  "align": "left"
-                },
-                "entry_type": {
-                  "align": "left"
-                },
-                "mainfile": {
-                  "align": "left"
-                },
-                "upload_create_time": {
-                  "label": "Upload time",
-                  "align": "left"
-                },
-                "authors": {
-                  "align": "left"
-                },
-                "comment": {
-                  "align": "left"
-                },
-                "datasets": {
-                  "align": "left"
-                },
-                "published": {
-                  "label": "Access",
-                  "align": "left"
+            "columns": [
+              {
+                "quantity": "results.material.chemical_formula_descriptive",
+                "selected": true,
+                "title": "Descriptive formula",
+                "label": "Descriptive formula",
+                "align": "left"
+              },
+              {
+                "quantity": "results.properties.optoelectronic.solar_cell.efficiency",
+                "selected": true,
+                "title": "Efficiency (%)",
+                "label": "Efficiency (%)",
+                "align": "left",
+                "format": {
+                  "decimals": 2,
+                  "mode": "standard"
                 }
               },
-              "selected": [
-                "results.material.chemical_formula_descriptive",
-                "results.properties.optoelectronic.solar_cell.efficiency",
-                "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-                "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
-                "results.properties.optoelectronic.solar_cell.fill_factor",
-                "references"
-              ]
-            },
+              {
+                "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                "selected": true,
+                "align": "left",
+                "unit": "V",
+                "format": {
+                  "decimals": 3,
+                  "mode": "standard"
+                }
+              },
+              {
+                "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                "selected": true,
+                "align": "left",
+                "unit": "A/m**2",
+                "format": {
+                  "decimals": 3,
+                  "mode": "standard"
+                }
+              },
+              {
+                "quantity": "results.properties.optoelectronic.solar_cell.fill_factor",
+                "selected": true,
+                "align": "left",
+                "format": {
+                  "decimals": 3,
+                  "mode": "standard"
+                }
+              },
+              {
+                "quantity": "references",
+                "selected": true,
+                "align": "left"
+              },
+              {
+                "quantity": "results.material.chemical_formula_hill",
+                "selected": false,
+                "title": "Formula",
+                "label": "Formula",
+                "align": "left"
+              },
+              {
+                "quantity": "results.material.structural_type",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                "selected": false,
+                "title": "Illum. intensity",
+                "label": "Illum. intensity",
+                "align": "left",
+                "unit": "W/m**2",
+                "format": {
+                  "decimals": 3,
+                  "mode": "standard"
+                }
+              },
+              {
+                "quantity": "results.eln.lab_ids",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "results.eln.sections",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "results.eln.methods",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "results.eln.tags",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "results.eln.instruments",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "entry_name",
+                "selected": false,
+                "title": "Name",
+                "label": "Name",
+                "align": "left"
+              },
+              {
+                "quantity": "entry_type",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "mainfile",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "upload_create_time",
+                "selected": false,
+                "title": "Upload time",
+                "label": "Upload time",
+                "align": "left"
+              },
+              {
+                "quantity": "authors",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "comment",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "datasets",
+                "selected": false,
+                "align": "left"
+              },
+              {
+                "quantity": "published",
+                "selected": false,
+                "title": "Access",
+                "label": "Access",
+                "align": "left"
+              }
+            ],
             "rows": {
               "actions": {
                 "enabled": true

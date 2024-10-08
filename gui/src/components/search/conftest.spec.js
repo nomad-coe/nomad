@@ -347,15 +347,16 @@ export async function expectSearchResults(context, root = screen) {
     const container = within(screen.getByTestId('search-results'))
 
     // Check that correct columns are displayed
-    const columnConfig = context.columns
-    const columnLabels = columnConfig.selected.map(key => {
-      const config = columnConfig.options[key]
-      const unit = config.unit || defaultFilterData[key]?.unit
-      const label = config.label || defaultFilterData[key]?.label || getDisplayLabel({name: key.split('.').slice(-1)[0]})
-      return unit
-        ? `${label} (${new Unit(unit).label()})`
-        : label
-    })
+    const columnLabels = context.columns
+      .filter((column) => column.selected)
+      .map((column) => {
+        const quantity = column.quantity
+        const unit = column.unit || defaultFilterData[quantity]?.unit
+        const label = column.label || defaultFilterData[quantity]?.label || getDisplayLabel({name: quantity.split('.').slice(-1)[0]})
+        return unit
+          ? `${label} (${new Unit(unit).label()})`
+          : label
+      })
     for (const columnLabel of columnLabels) {
       expect(container.getByText(columnLabel)).toBeInTheDocument()
     }

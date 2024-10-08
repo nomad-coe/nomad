@@ -52,9 +52,9 @@ The definition fo the actual app is given as an instance of the `App` class spec
 
 ```python
 from nomad.config.models.plugins import AppEntryPoint
-from nomad.config.models.ui import App, Column, Columns, FilterMenu, FilterMenus, Filters
+from nomad.config.models.ui import App, Column, FilterMenu, FilterMenus, Filters
 
-
+schema = 'nomad_example.schema_packages.mypackage.MySchema'
 myapp = AppEntryPoint(
     name='MyApp',
     description='App defined using the new plugin mechanism.',
@@ -74,29 +74,28 @@ myapp = AppEntryPoint(
         # explicitly here. Note that you can use a glob syntax to load the
         # entire package, or just a single schema from a package.
         filters=Filters(
-            include=['*#nomad_example.schema_packages.mypackage.MySchema'],
+            include=[f'*#{schema}'],
         ),
         # Controls which columns are shown in the results table
-        columns=Columns(
-            selected=[
-                'entry_id'
-                'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema'
-            ],
-            options={
-                'entry_id': Column(),
-                'upload_create_time': Column(),
-                'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema': Column(),
-            }
-        ),
+        columns=[
+            Column(quantity='entry_id', selected=True),
+            Column(
+                quantity=f'data.section.myquantity#{schema}',
+                selected=True
+            ),
+            Column(
+                quantity=f'data.my_repeated_section[*].myquantity#{schema}',
+                selected=True
+            )
+            Column(quantity='upload_create_time')
+        ],
         # Dictionary of search filters that are always enabled for queries made
         # within this app. This is especially important to narrow down the
         # results to the wanted subset. Any available search filter can be
         # targeted here. This example makes sure that only entries that use
         # MySchema are included.
         filters_locked={
-            "section_defs.definition_qualified_name:all": [
-                "nomad_example.schema_packages.mypackage.MySchema"
-            ]
+            "section_defs.definition_qualified_name:all": [schema]
         },
         # Controls the filter menus shown on the left
         filter_menus=FilterMenus(
@@ -113,7 +112,7 @@ myapp = AppEntryPoint(
                     'autorange': True,
                     'nbins': 30,
                     'scale': 'linear',
-                    'quantity': 'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema',
+                    'quantity': f'data.mysection.myquantity#{schema}',
                     'layout': {
                         'lg': {
                             'minH': 3,
@@ -199,17 +198,14 @@ filters=Filters(
 Once quantities from a schema are included in an app as filters, they can be targeted in the rest of the app. The app configuration often refers to specific filters to configure parts of the user interface. For example, one could configure the results table to show a new column using one of the schema quantities with:
 
 ```python
-columns=Columns(
-    selected=[
-        'entry_id'
-        'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema'
-    ],
-    options={
-        'entry_id': Column(),
-        'upload_create_time': Column(),
-        'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema': Column(),
-    }
-)
+columns=[
+    Column(quantity='entry_id', selected=True),
+    Column(
+        quantity='data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema',
+        selected=True
+    ),
+    Column(quantity='upload_create_time')
+]
 ```
 
 The syntax for targeting quantities depends on the resource:

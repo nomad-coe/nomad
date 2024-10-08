@@ -36,17 +36,15 @@ import {ItemButton, useLane} from "../archive/Browser"
 import ClearIcon from "@material-ui/icons/Clear"
 
 const context = cloneDeep(ui?.apps?.options?.eln)
-
 const shownColumns = [
   'entry_name',
   'entry_type',
   'authors',
   'upload_name'
 ]
-
-const columns = context?.columns
 const rows = context?.rows
-columns.selected = shownColumns
+const columns = (context?.columns || [])
+  .map((column) => ({...column, selected: shownColumns.includes(column.quantity)}))
 rows.details = {enabled: false}
 rows.actions = {enabled: false}
 

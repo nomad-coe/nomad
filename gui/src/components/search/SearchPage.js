@@ -24,7 +24,7 @@ import FilterMainMenu from './menus/FilterMainMenu'
 import { collapsedMenuWidth } from './menus/FilterMenu'
 import SearchBar from './SearchBar'
 import Query from './Query.js'
-import { SearchResultsWithContext } from './SearchResults'
+import { SearchResults } from './SearchResults'
 import Dashboard from './widgets/Dashboard'
 import { useSearchContext } from './SearchContext'
 
@@ -117,7 +117,7 @@ const SearchPage = React.memo(({
           <Dashboard/>
         </Box>
         <Box position="relative" zIndex={1}>
-          <SearchResultsWithContext/>
+          <SearchResults/>
         </Box>
         <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>
       </Box>

@@ -21,27 +21,23 @@ import React, { memo, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { SearchContext, useSearchContext } from "../../search/SearchContext"
-import { SearchResultsWithContext } from "../../search/SearchResults"
+import { SearchResults } from "../../search/SearchResults"
 import { cloneDeep } from "lodash"
 import { ui } from "../../../config"
 
 const context = cloneDeep(ui?.apps?.options?.entries)
-const shownColumns = ['entry_name', 'entry_type', 'entry_create_time']
+const columns = [
+  {quantity: 'entry_name', title: 'Name', align: 'left', selected: true},
+  {quantity: 'entry_type', title: 'Entry type', align: 'left', selected: true},
+  {quantity: 'entry_create_time', title: 'Entry creation time', align: 'left', selected: true},
+  {quantity: 'upload_name', title: 'Upload name', align: 'left'},
+  {quantity: 'upload_id', title: 'Upload id', align: 'left'},
+  {quantity: 'upload_create_time', title: 'Upload time', align: 'left'},
+  {quantity: 'authors', title: 'Authors', align: 'left', sortable: false},
+  {quantity: 'results.eln.lab_ids', title: 'IDs'}
+]
 
-const options = {
-  'entry_name': {'label': 'Name', 'align': 'left'},
-  'entry_type': {'label': 'Entry type', 'align': 'left'},
-  'entry_create_time': {'label': 'Entry creation time', 'align': 'left'},
-  'upload_name': {'label': 'Upload name', 'align': 'left'},
-  'upload_id': {'label': 'Upload id', 'align': 'left'},
-  'upload_create_time': {'label': 'Upload time', 'align': 'left'},
-  'authors': {'label': 'Authors', 'align': 'left', 'sortable': false},
-  'results.eln.lab_ids': {'label': 'IDs'}
-}
-
-Object.keys(options).forEach(key => { options[key].key = key })
-context.columns.options = options
-context.columns.selected = shownColumns
+context.colums = columns
 context.rows.details = { enabled: false }
 context.rows.actions = { enabled: true }
 
@@ -55,7 +51,7 @@ const HistoryCard = memo(() => {
 
   return (
     <PropertyCard title='History'>
-      <SearchResultsWithContext
+      <SearchResults
         title='activity'
         multiSelect={false}
         PaperProps={{elevation: 0}}

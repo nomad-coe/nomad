@@ -135,6 +135,7 @@ export class Filter {
     }
 
     this.dtype = params?.dtype || getDatatype(def)
+    this.shape = params?.shape || params?.shape
     this.description = params?.description || def?.description
     this.unit = params?.unit || def?.unit
     this.dimension = def?.unit ? new Unit(def?.unit).dimension() : 'dimensionless'
