@@ -111,7 +111,7 @@ lmfit==1.3.2              # via pyxem
 locket==1.0.0             # via partd
 lxml==5.3.0               # via fabio, lxml-html-clean, nomad-lab, nomad-parser-plugins-atomistic, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, pynxtools, -c requirements-dev.txt
 lxml-html-clean==0.2.2    # via nomad-lab, perovskite-solar-cell-database, -c requirements-dev.txt
-markupsafe==2.1.5         # via jinja2, nbconvert, werkzeug, -c requirements-dev.txt
+markupsafe==3.0.0         # via jinja2, nbconvert, werkzeug, -c requirements-dev.txt
 matid==2.1.2              # via nomad-lab, nomad-simulations, -c requirements-dev.txt
 matplotlib==3.9.2         # via ase, asr, diffsims, hyperspy, kikuchipy, matplotlib-scalebar, mdanalysis, orix, phonopy, pyfai, pymatgen, pyxem, radioactivedecay, -c requirements-dev.txt
 matplotlib-inline==0.1.7  # via ipykernel, ipython

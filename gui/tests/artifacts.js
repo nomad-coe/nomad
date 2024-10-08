@@ -63119,6 +63119,74 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 2,
             "m_parent_sub_section": "section_definitions",
+            "name": "ShearParameters",
+            "description": "Section containing the parameters pertaining to the shear flow for a molecular dynamics run.",
+            "base_sections": [
+              "/packages/25/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "shear_type",
+                "description": "The name of the method used to implement the effect of shear flow within the simulation.\n\nAllowed values are:\n\n| Shear Method          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"lees_edwards\"`          | A.W. Lees and S.F. Edwards,\n[J. Phys. C **5** (1972) 1921](https://doi.org/10.1088/0022-3719/5/15/006)|\n\n| `\"trozzi_ciccotti\"`          | A.W. Lees and S.F. Edwards,\n[Phys. Rev. A **29** (1984) 916](https://doi.org/10.1103/PhysRevA.29.916)|\n\n| `\"ashurst_hoover\"`          | W. T. Ashurst and W. G. Hoover,\n[Phys. Rev. A **11** (1975) 658](https://doi.org/10.1103/PhysRevA.11.658)|",
+                "type": {
+                  "type_kind": "enum",
+                  "type_data": [
+                    "ashurst_hoover",
+                    "lees_edwards",
+                    "trozzi_ciccotti"
+                  ]
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "shear_rate",
+                "description": "The external stress tensor include normal (diagonal elements; which are zero in shear simulations)\nand shear stress' rates (off-diagonal elements).\nIts elements are: [[\u03c3_x, \u03c4_yx, \u03c4_zx], [\u03c4_xy, \u03c3_y, \u03c4_zy], [\u03c4_xz, \u03c4_yz, \u03c3_z]],\n        where \u03c3 and \u03c4 are the normal and shear stress' rates.\nThe first and second letters in the index correspond to the normal vector to the shear plane and the direction of shearing, respectively.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  3,
+                  3
+                ],
+                "unit": "1 / picosecond"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "step_start",
+                "description": "Trajectory step where this shearing starts.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "step_end",
+                "description": "Trajectory step number where this shearing ends.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
             "name": "Lambdas",
             "description": "Section for storing all lambda parameters for free energy perturbation",
             "base_sections": [
@@ -63161,7 +63229,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 3,
+            "m_parent_index": 4,
             "m_parent_sub_section": "section_definitions",
             "name": "FreeEnergyCalculationParameters",
             "description": "Section containing the parameters pertaining to a free energy calculation workflow that interpolates between two system states (defined via the interpolation parameter lambda).\nThe parameters are stored for each molecular dynamics run separately, to be referenced\nby the overarching workflow.",
@@ -63288,14 +63356,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "lambdas",
                 "description": "Contains the lists of lambda values defined for the interpolation of the system.",
-                "sub_section": "/packages/38/section_definitions/2",
+                "sub_section": "/packages/38/section_definitions/3",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
+            "m_parent_index": 5,
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamicsMethod",
             "base_sections": [
@@ -63445,15 +63513,23 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
+                "name": "shear_parameters",
+                "sub_section": "/packages/38/section_definitions/2",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "sub_sections",
                 "name": "free_energy_calculation_parameters",
-                "sub_section": "/packages/38/section_definitions/3",
+                "sub_section": "/packages/38/section_definitions/4",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
+            "m_parent_index": 6,
             "m_parent_sub_section": "section_definitions",
             "name": "Property",
             "description": "Generic parent section for all property types.",
@@ -63510,7 +63586,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
+            "m_parent_index": 7,
             "m_parent_sub_section": "section_definitions",
             "name": "PropertyValues",
             "description": "Generic parent section for information regarding the values of a property.",
@@ -63551,12 +63627,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
+            "m_parent_index": 8,
             "m_parent_sub_section": "section_definitions",
             "name": "EnsemblePropertyValues",
             "description": "Generic section containing information regarding the values of an ensemble property.",
             "base_sections": [
-              "/packages/38/section_definitions/6"
+              "/packages/38/section_definitions/7"
             ],
             "quantities": [
               {
@@ -63651,12 +63727,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
+            "m_parent_index": 9,
             "m_parent_sub_section": "section_definitions",
             "name": "RadialDistributionFunctionValues",
             "description": "Section containing information regarding the values of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/38/section_definitions/7"
+              "/packages/38/section_definitions/8"
             ],
             "quantities": [
               {
@@ -63692,12 +63768,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
+            "m_parent_index": 10,
             "m_parent_sub_section": "section_definitions",
             "name": "EnsembleProperty",
             "description": "Generic section containing information about a calculation of any static observable from a trajectory (i.e., from an ensemble average).",
             "base_sections": [
-              "/packages/38/section_definitions/5"
+              "/packages/38/section_definitions/6"
             ],
             "quantities": [
               {
@@ -63745,26 +63821,6 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "ensemble_property_values",
-                "sub_section": "/packages/38/section_definitions/7",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 10,
-            "m_parent_sub_section": "section_definitions",
-            "name": "RadialDistributionFunction",
-            "description": "Section containing information about the calculation of radial distribution functions (rdfs).",
-            "base_sections": [
-              "/packages/38/section_definitions/9"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "radial_distribution_function_values",
                 "sub_section": "/packages/38/section_definitions/8",
                 "repeats": true
               }
@@ -63774,10 +63830,30 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 11,
             "m_parent_sub_section": "section_definitions",
+            "name": "RadialDistributionFunction",
+            "description": "Section containing information about the calculation of radial distribution functions (rdfs).",
+            "base_sections": [
+              "/packages/38/section_definitions/10"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "radial_distribution_function_values",
+                "sub_section": "/packages/38/section_definitions/9",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 12,
+            "m_parent_sub_section": "section_definitions",
             "name": "TrajectoryProperty",
             "description": "Generic section containing information about a calculation of any observable defined and stored at each individual frame of a trajectory.",
             "base_sections": [
-              "/packages/38/section_definitions/5"
+              "/packages/38/section_definitions/6"
             ],
             "quantities": [
               {
@@ -63865,12 +63941,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 12,
+            "m_parent_index": 13,
             "m_parent_sub_section": "section_definitions",
             "name": "RadiusOfGyration",
             "description": "Section containing information about the calculation of radius of gyration (Rg).",
             "base_sections": [
-              "/packages/38/section_definitions/11"
+              "/packages/38/section_definitions/12"
             ],
             "quantities": [
               {
@@ -63906,12 +63982,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 13,
+            "m_parent_index": 14,
             "m_parent_sub_section": "section_definitions",
             "name": "FreeEnergyCalculations",
             "description": "Section containing information regarding the instantaneous (i.e., for a single configuration) values of free energies calculated via thermodynamic perturbation.\nThe values stored are actually infinitesimal changes in the free energy, determined as derivatives\nof the Hamiltonian with respect to the coupling parameter (lambda) defining each state for the perturbation.",
             "base_sections": [
-              "/packages/38/section_definitions/11"
+              "/packages/38/section_definitions/12"
             ],
             "quantities": [
               {
@@ -63922,7 +63998,7 @@ window.nomadArtifacts = {
                 "description": "Links the free energy results with the method parameters.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/38/section_definitions/3"
+                  "type_data": "/packages/38/section_definitions/4"
                 },
                 "shape": []
               },
@@ -63954,29 +64030,18 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
-                "name": "value_unit",
-                "description": "Unit of the property, using UnitRegistry() notation.\nIn this case, the unit corresponds to all `value` properties stored within this section.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
                 "name": "value_total_energy_magnitude",
                 "description": "Value of the total energy for the present lambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
                   "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
-                "shape": []
+                "shape": [],
+                "unit": "joule"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "value_PV_energy_magnitude",
                 "description": "Value of the pressure-volume energy (i.e., P*V) for the present lambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
@@ -63984,11 +64049,12 @@ window.nomadArtifacts = {
                   "type_kind": "custom",
                   "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
-                "shape": []
+                "shape": [],
+                "unit": "joule"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "value_total_energy_differences_magnitude",
                 "description": "Values correspond to the difference in total energy between each specified lambda state\nand the reference state, which corresponds to the value of lambda of the current simulation.\nThe expected dimensions are [\"n_frames\", \"n_states\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
@@ -63996,11 +64062,12 @@ window.nomadArtifacts = {
                   "type_kind": "custom",
                   "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
-                "shape": []
+                "shape": [],
+                "unit": "joule"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "value_total_energy_derivative_magnitude",
                 "description": "Value of the derivative of the total energy with respect to lambda, evaluated for the current\nlambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
@@ -64008,18 +64075,19 @@ window.nomadArtifacts = {
                   "type_kind": "custom",
                   "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
-                "shape": []
+                "shape": [],
+                "unit": "joule"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 14,
+            "m_parent_index": 15,
             "m_parent_sub_section": "section_definitions",
             "name": "DiffusionConstantValues",
             "description": "Section containing information regarding the diffusion constants.",
             "base_sections": [
-              "/packages/38/section_definitions/6"
+              "/packages/38/section_definitions/7"
             ],
             "quantities": [
               {
@@ -64051,12 +64119,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 15,
+            "m_parent_index": 16,
             "m_parent_sub_section": "section_definitions",
             "name": "CorrelationFunctionValues",
             "description": "Generic section containing information regarding the values of a correlation function.",
             "base_sections": [
-              "/packages/38/section_definitions/6"
+              "/packages/38/section_definitions/7"
             ],
             "quantities": [
               {
@@ -64116,12 +64184,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 16,
+            "m_parent_index": 17,
             "m_parent_sub_section": "section_definitions",
             "name": "MeanSquaredDisplacementValues",
             "description": "Section containing information regarding the values of a mean squared displacements (msds).",
             "base_sections": [
-              "/packages/38/section_definitions/15"
+              "/packages/38/section_definitions/16"
             ],
             "quantities": [
               {
@@ -64175,19 +64243,19 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "diffusion_constant",
-                "sub_section": "/packages/38/section_definitions/14",
+                "sub_section": "/packages/38/section_definitions/15",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 17,
+            "m_parent_index": 18,
             "m_parent_sub_section": "section_definitions",
             "name": "CorrelationFunction",
             "description": "Generic section containing information about a calculation of any time correlation function from a trajectory.",
             "base_sections": [
-              "/packages/38/section_definitions/5"
+              "/packages/38/section_definitions/6"
             ],
             "quantities": [
               {
@@ -64217,26 +64285,6 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "correlation_function_values",
-                "sub_section": "/packages/38/section_definitions/15",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 18,
-            "m_parent_sub_section": "section_definitions",
-            "name": "MeanSquaredDisplacement",
-            "description": "Section containing information about a calculation of any mean squared displacements (msds).",
-            "base_sections": [
-              "/packages/38/section_definitions/17"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "mean_squared_displacement_values",
                 "sub_section": "/packages/38/section_definitions/16",
                 "repeats": true
               }
@@ -64245,6 +64293,26 @@ window.nomadArtifacts = {
           {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 19,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MeanSquaredDisplacement",
+            "description": "Section containing information about a calculation of any mean squared displacements (msds).",
+            "base_sections": [
+              "/packages/38/section_definitions/18"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "mean_squared_displacement_values",
+                "sub_section": "/packages/38/section_definitions/17",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 20,
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamicsResults",
             "base_sections": [
@@ -64296,7 +64364,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_functions",
-                "sub_section": "/packages/38/section_definitions/10",
+                "sub_section": "/packages/38/section_definitions/11",
                 "repeats": true
               },
               {
@@ -64304,7 +64372,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "ensemble_properties",
-                "sub_section": "/packages/38/section_definitions/9",
+                "sub_section": "/packages/38/section_definitions/10",
                 "repeats": true
               },
               {
@@ -64312,7 +64380,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "correlation_functions",
-                "sub_section": "/packages/38/section_definitions/17",
+                "sub_section": "/packages/38/section_definitions/18",
                 "repeats": true
               },
               {
@@ -64320,7 +64388,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/38/section_definitions/12",
+                "sub_section": "/packages/38/section_definitions/13",
                 "repeats": true
               },
               {
@@ -64328,7 +64396,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacements",
-                "sub_section": "/packages/38/section_definitions/18",
+                "sub_section": "/packages/38/section_definitions/19",
                 "repeats": true
               },
               {
@@ -64336,14 +64404,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "free_energy_calculations",
-                "sub_section": "/packages/38/section_definitions/13",
+                "sub_section": "/packages/38/section_definitions/14",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 20,
+            "m_parent_index": 21,
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamics",
             "base_sections": [
@@ -64355,7 +64423,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/38/section_definitions/4"
+                "sub_section": "/packages/38/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -64365,7 +64433,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/38/section_definitions/19"
+                "sub_section": "/packages/38/section_definitions/20"
               }
             ]
           }

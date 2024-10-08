@@ -65,7 +65,7 @@ idna==3.10                # via anyio, email-validator, httpx, jsonschema, reque
 imagesize==1.4.1          # via sphinx
 importlib-metadata==7.1.0  # via nomad-lab (pyproject.toml)
 inflection==0.5.1         # via nomad-lab (pyproject.toml)
-isodate==0.6.1            # via rdflib
+isodate==0.7.0            # via rdflib
 isoduration==20.11.0      # via jsonschema
 itsdangerous==2.2.0       # via nomad-lab (pyproject.toml)
 jinja2==3.1.4             # via jupyterhub, sphinx
@@ -85,7 +85,7 @@ lxml==5.3.0               # via lxml-html-clean, nomad-lab (pyproject.toml)
 lxml-html-clean==0.2.2    # via nomad-lab (pyproject.toml)
 m2r==0.2.1                # via nomad-lab (pyproject.toml)
 mako==1.3.5               # via alembic
-markupsafe==2.1.5         # via jinja2, mako
+markupsafe==3.0.0         # via jinja2, mako
 matid==2.1.2              # via nomad-lab (pyproject.toml)
 matplotlib==3.9.2         # via ase, pymatgen
 mda-xdrlib==0.2.0         # via pyedr
@@ -154,7 +154,7 @@ runstats==2.0.0           # via nomad-lab (pyproject.toml)
 scikit-learn==1.5.2       # via matid, nomad-lab (pyproject.toml)
 scipy==1.14.1             # via ase, pymatgen, scikit-learn, nomad-lab (pyproject.toml)
 sentinels==1.0.0          # via mongomock
-six==1.16.0               # via basicauth, elasticsearch-dsl, html5lib, isodate, pybtex, python-dateutil, rdflib, rfc3339-validator, validators
+six==1.16.0               # via basicauth, elasticsearch-dsl, html5lib, pybtex, python-dateutil, rdflib, rfc3339-validator, validators
 smmap==5.0.1              # via gitdb
 sniffio==1.3.1            # via anyio, httpx
 snowballstemmer==2.2.0    # via sphinx
