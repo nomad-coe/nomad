@@ -10,7 +10,7 @@ The following sections contain some alternatives for achieving this, with the fi
 
 When initially starting to create a customized NOMAD Oasis distribution, it is strongly advised that you create a GitHub repository to persist your work, collaborate with coworkers and also to automate the building and distribution of your custom image. To streamline this process, we have created a [GitHub template repository](https://github.com/FAIRmat-NFDI/nomad-distribution-template) that helps with all of this. It can do the following for you:
 
-- Plugins are controlled with a simple `plugins.txt` file where it is easy to install plugins from PyPI, Git repositories, local files, etc.
+- Plugins are controlled with a `pyproject.toml` file where it is easy to install plugins from PyPI, Git repositories, local files, etc.
 - The automatic pipeline will create a new Docker image for your Oasis. This image will also be stored on GitHub servers.
 - Initial modifications to the `docker-compose.yaml` are done automatically so you can boot up the software directly.
 
