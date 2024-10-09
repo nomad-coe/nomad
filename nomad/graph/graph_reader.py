@@ -24,9 +24,12 @@ import functools
 import itertools
 import os
 import re
+from collections.abc import Iterator, AsyncIterator
+from threading import Lock
 from typing import Any, Callable, Type
 
 import orjson
+from cachetools import TTLCache
 from fastapi import HTTPException
 from mongoengine import Q
 
@@ -49,6 +52,9 @@ from nomad.app.v1.routers.uploads import (
     RawDirPagination,
 )
 from nomad.archive import ArchiveList, ArchiveDict, to_json
+from nomad.datamodel import ServerContext, User, EntryArchive, Dataset
+from nomad.datamodel.util import parse_path
+from nomad.files import UploadFiles, RawPathInfo
 from nomad.graph.model import (
     RequestConfig,
     DefinitionType,
@@ -56,10 +62,9 @@ from nomad.graph.model import (
     ResolveType,
     DatasetQuery,
     EntryQuery,
+    MetainfoQuery,
+    MetainfoPagination,
 )
-from nomad.datamodel import ServerContext, User, EntryArchive, Dataset
-from nomad.datamodel.util import parse_path
-from nomad.files import UploadFiles, RawPathInfo
 from nomad.metainfo import (
     SubSection,
     QuantityReference,
@@ -70,7 +75,6 @@ from nomad.metainfo import (
     Definition,
     Section,
 )
-
 from nomad.metainfo.data_type import Any as AnyType, JSON
 from nomad.metainfo.util import split_python_definition, MSubSectionList
 from nomad.processing import Entry, Upload, ProcessStatus
@@ -396,7 +400,14 @@ def _to_response_config(config: RequestConfig, exclude: list = None, **kwargs):
     return response_config
 
 
-async def _populate_result(container_root: dict, path: list, value, *, path_like=False):
+async def _populate_result(
+    container_root: dict,
+    path: list,
+    value,
+    *,
+    path_like=False,
+    overwrite_existing_str=False,
+):
     """
     For the given path and the root of the target container, populate the value.
 
@@ -476,6 +487,8 @@ async def _populate_result(container_root: dict, path: list, value, *, path_like
         assert isinstance(key_or_index, int)
         if target_container[key_or_index] is None:
             target_container[key_or_index] = new_value
+        elif isinstance(target_container[key_or_index], str) and overwrite_existing_str:
+            target_container[key_or_index] = new_value
         elif isinstance(new_value, dict):
             _merge_dict(target_container[key_or_index], new_value)
         elif isinstance(new_value, list):
@@ -484,7 +497,12 @@ async def _populate_result(container_root: dict, path: list, value, *, path_like
             target_container[key_or_index] = new_value
     elif isinstance(target_container, dict):
         assert isinstance(key_or_index, str)
-        if isinstance(new_value, dict):
+        if (
+            isinstance(target_container.get(key_or_index, None), str)
+            and overwrite_existing_str
+        ):
+            target_container[key_or_index] = new_value
+        elif isinstance(new_value, dict):
             target_container.setdefault(key_or_index, {})
             _merge_dict(target_container[key_or_index], new_value)
         elif isinstance(new_value, list):
@@ -570,6 +588,9 @@ def _normalise_required(
         can_query = True
     elif name == Token.SEARCH:
         reader_type = ElasticSearchReader
+        can_query = True
+    elif name == Token.METAINFO:
+        reader_type = MetainfoBrowser
         can_query = True
     elif name == Token.RAW or name == Token.MAINFILE:
         reader_type = FileSystemReader
@@ -703,6 +724,10 @@ def _normalise_index(index: tuple | None, length: int) -> range:
         end = length
 
     return range(_bound(start), _bound(end) + 1)
+
+
+def _unwrap_subsection(target):
+    return target.sub_section.m_resolved() if isinstance(target, SubSection) else target
 
 
 class GeneralReader:
@@ -1046,6 +1071,111 @@ class GeneralReader:
         return asyncio.run(self.read(*args, **kwargs))
 
 
+# module level TTL cache for caching packages
+__lock_pool = Lock()
+__package_pool = TTLCache(maxsize=128, ttl=300)
+
+
+def _fetch_package(key: str) -> Package:
+    with __lock_pool:
+        return __package_pool.get(key, None)
+
+
+def _cache_package(key: str, package: Package):
+    with __lock_pool:
+        __package_pool[key] = package
+
+
+class ArchiveLikeReader(GeneralReader):
+    """
+    An abstract class for `ArchiveReader` and `DefinitionReader`.
+    """
+
+    # noinspection PyUnusedLocal
+    async def _retrieve_definition(
+        self,
+        m_def: str | None,
+        m_def_id: str | None = None,
+        node: GraphNode | None = None,
+    ):
+        """
+        Retrieve a definition from an archive.
+        The definition is identified by `m_def` and/or `m_def_id`.
+        It could be a local definition that is defined in the `definitions` section.
+        In this case, we initialise a new `Package` object and resolve the path.
+        It could also be a reference to another entry in another upload.
+        In this case, we need to load the archive.
+
+        todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
+        """
+
+        async def __resolve_definition_in_archive(
+            _root,
+            _path_stack: list,
+            _upload_id: str = None,
+            _entry_id: str = None,
+        ):
+            cache_key: str = f'{_upload_id}:{_entry_id}'
+
+            custom_package: Package | None = _fetch_package(cache_key)
+            if custom_package is None:
+                custom_package = Package.m_from_dict(
+                    await async_to_json(await goto_child(_root, 'definitions')),
+                    m_context=ServerContext(
+                        get_upload_with_read_access(
+                            _upload_id, self.user, include_others=True
+                        )
+                    ),
+                )
+                # package loaded in this way does not have an attached archive
+                # we manually set the upload_id and entry_id so that
+                # correct references can be generated in the corresponding method
+                custom_package.entry_id = _entry_id
+                custom_package.upload_id = _upload_id
+                custom_package.init_metainfo()
+                if (
+                    upload := Upload.objects(upload_id=_upload_id).first()
+                ) is not None and upload.published:
+                    _cache_package(cache_key, custom_package)
+
+            return custom_package.m_resolve_path(_path_stack)
+
+        if m_def is not None:
+            if m_def.startswith(('#/', '/')):
+                # appears to be a local definition
+                return await __resolve_definition_in_archive(
+                    node.archive_root,
+                    [v for v in m_def.split('/') if v not in ('', '#', 'definitions')],
+                    await goto_child(node.archive_root, ['metadata', 'upload_id']),
+                    await goto_child(node.archive_root, ['metadata', 'entry_id']),
+                )
+            # todo: !!!need to unify different formats!!!
+            # check if m_def matches the pattern 'entry_id:example_id.example_section.example_quantity'
+            if m_def.startswith('entry_id:'):
+                tokens = m_def[9:].split('.')
+                entry_id = tokens.pop(0)
+                entry_record = Entry.objects(entry_id=entry_id).first()
+                upload_id = entry_record.upload_id
+                if (
+                    cached_package := _fetch_package(f'{upload_id}:{entry_id}')
+                ) is not None:  # early fetch to avoid loading archive from disk
+                    return cached_package.m_resolve_path(tokens)
+                archive = self.load_archive(upload_id, entry_id)
+                return await __resolve_definition_in_archive(
+                    archive, tokens, upload_id, entry_id
+                )
+
+        # further consider when only m_def_id is given, etc.
+
+        # this is not likely to be reached
+        # it does not work anyway
+        proxy = SectionReference().normalize(m_def)
+        proxy.m_proxy_context = ServerContext(
+            get_upload_with_read_access(node.upload_id, self.user, include_others=True)
+        )
+        return proxy.section_cls.m_def
+
+
 class MongoReader(GeneralReader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1341,7 +1471,9 @@ class MongoReader(GeneralReader):
             if key in (GeneralReader.__CONFIG__, GeneralReader.__WILDCARD__):
                 continue
 
-            async def offload_read(reader_cls, *args, read_list=False):
+            async def offload_read(
+                reader_cls: Type[GeneralReader], *args, read_list=False
+            ):
                 try:
                     with reader_cls(value, **offload_pack) as reader:
                         await _populate_result(
@@ -1384,6 +1516,11 @@ class MongoReader(GeneralReader):
             if key == Token.ENTRIES and self.__class__ is ElasticSearchReader:
                 # hitting the bottom of the current scope
                 await offload_read(EntryReader, node.archive['entry_id'])
+                continue
+
+            if key == Token.METAINFO and self.__class__ is MongoReader:
+                # hitting the bottom of the current scope
+                await offload_read(MetainfoBrowser)
                 continue
 
             if isinstance(node.archive, dict) and isinstance(value, dict):
@@ -2146,7 +2283,7 @@ class FileSystemReader(GeneralReader):
         return {}
 
 
-class ArchiveReader(GeneralReader):
+class ArchiveReader(ArchiveLikeReader):
     """
     This class provides functionalities to read an archive with the required fields.
     A sample query will look like the following.
@@ -2181,7 +2318,6 @@ class ArchiveReader(GeneralReader):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.package_pool: dict = {}
 
     @staticmethod
     def __if_strip(node: GraphNode, config: RequestConfig, *, depth_check: bool = True):
@@ -2601,70 +2737,6 @@ class ArchiveReader(GeneralReader):
             resolved_node.replace(definition=target.m_resolved()), config
         )
 
-    # noinspection PyUnusedLocal
-    async def _retrieve_definition(
-        self, m_def: str | None, m_def_id: str | None, node: GraphNode
-    ):
-        # todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
-        context = ServerContext(
-            get_upload_with_read_access(node.upload_id, self.user, include_others=True)
-        )
-
-        def __resolve_definition_in_archive(
-            _root: dict,
-            _path_stack: list,
-            _upload_id: str = None,
-            _entry_id: str = None,
-        ):
-            cache_key = f'{_upload_id}:{_entry_id}'
-
-            if cache_key not in self.package_pool:
-                custom_def_package: Package = Package.m_from_dict(
-                    _root, m_context=context
-                )
-                # package loaded in this way does not have an attached archive
-                # we manually set the upload_id and entry_id so that
-                # correct references can be generated in the corresponding method
-                custom_def_package.entry_id = _entry_id
-                custom_def_package.upload_id = _upload_id
-                custom_def_package.init_metainfo()
-                self.package_pool[cache_key] = custom_def_package
-
-            return self.package_pool[cache_key].m_resolve_path(_path_stack)
-
-        if m_def is not None:
-            if m_def.startswith(('#/', '/')):
-                # appears to be a local definition
-                return __resolve_definition_in_archive(
-                    await async_to_json(
-                        await goto_child(node.archive_root, 'definitions')
-                    ),
-                    [v for v in m_def.split('/') if v not in ('', '#', 'definitions')],
-                    await goto_child(node.archive_root, ['metadata', 'upload_id']),
-                    await goto_child(node.archive_root, ['metadata', 'entry_id']),
-                )
-            # todo: !!!need to unify different formats!!!
-            # check if m_def matches the pattern 'entry_id:example_id.example_section.example_quantity'
-            regex = re.compile(r'entry_id:(.+)(?:\.(.+))+')
-            if match := regex.match(m_def):
-                entry_id = match.groups()[0]
-                upload_id = Entry.objects(entry_id=entry_id).first().upload_id
-                archive = self.load_archive(upload_id, entry_id)
-                return __resolve_definition_in_archive(
-                    await async_to_json(await goto_child(archive, 'definitions')),
-                    list(match.groups()[1:]),
-                    upload_id,
-                    entry_id,
-                )
-
-        # further consider when only m_def_id is given, etc.
-
-        # this is not likely to be reached
-        # it does not work anyway
-        proxy = SectionReference().normalize(m_def)
-        proxy.m_proxy_context = context
-        return proxy.section_cls.m_def
-
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
         if config.pagination is not None:
@@ -2685,7 +2757,7 @@ class ArchiveReader(GeneralReader):
             return reader.sync_read(archive)
 
 
-class DefinitionReader(GeneralReader):
+class DefinitionReader(ArchiveLikeReader):
     async def read(self, archive: Definition) -> dict:
         response: dict = {Token.DEF: {}}
 
@@ -2814,17 +2886,10 @@ class DefinitionReader(GeneralReader):
                     # should never reach here
                     raise  # noqa: PLE0704
 
-            def __unwrap_subsection(__archive):
-                return (
-                    __archive.sub_section.m_resolved()
-                    if isinstance(__archive, SubSection)
-                    else __archive
-                )
-
             if isinstance(value, RequestConfig):
                 # this is a leaf, resolve it according to the config
                 async def __resolve(__path, __target):
-                    __archive = __unwrap_subsection(__target)
+                    __archive = _unwrap_subsection(__target)
                     if __archive is node.archive:
                         return
                     await self._resolve(
@@ -2846,7 +2911,7 @@ class DefinitionReader(GeneralReader):
             elif isinstance(value, dict):
                 # this is a nested query, keep walking down the tree
                 async def __walk(__path, __target):
-                    __archive = __unwrap_subsection(__target)
+                    __archive = _unwrap_subsection(__target)
                     if __archive is node.archive:
                         return
                     await self._walk(
@@ -2891,13 +2956,13 @@ class DefinitionReader(GeneralReader):
                 else ref_type.target_section_def
             )
 
+        def __convert(m_def):
+            return _convert_ref_to_path_string(m_def.strict_reference())
+
         def __override_path(q, s, v, p):
             """
             Normalise all definition identifiers with unique global reference.
             """
-
-            def __convert(m_def):
-                return _convert_ref_to_path_string(m_def.strict_reference())
 
             if isinstance(s, Quantity) and isinstance(v, dict):
                 if isinstance(s.type, Reference):
@@ -2917,6 +2982,36 @@ class DefinitionReader(GeneralReader):
 
             return v
 
+        def __unique_name(item):
+            # quantities may have identical names in different sections
+            # cannot just use the name as the key
+            # sections are guaranteed to have unique names
+            return (
+                f'{item.m_parent.name}.{item.name}'
+                if isinstance(item, Quantity)
+                else item.name
+            )
+
+        #
+        # the actual logic starts here
+        #
+
+        # the following forces definitions being resolved per package
+        if config.export_whole_package:
+            pkg = node.archive
+            while not isinstance(pkg, Package) and pkg.m_parent is not None:
+                pkg = pkg.m_parent
+            if pkg is not node.archive:
+                node = await self._switch_root(
+                    node.replace(archive=pkg),
+                    inplace=config.resolve_inplace,
+                )
+
+        # use current path as the unique package identifier
+        # instead of generating a new one from definition
+        if not config.if_include('/'.join(node.current_path)):
+            return
+
         # rewrite quantity type data with global reference
         if not self._check_cache(node.current_path, config.hash):
             self._cache_hash(node.current_path, config.hash)
@@ -2924,7 +3019,31 @@ class DefinitionReader(GeneralReader):
                 node.result_root,
                 node.current_path,
                 node.archive.m_to_dict(with_out_meta=True, transform=__override_path),
+                # the target location may contain a reference string already
+                # the string was added during switching root
+                # we allow it to be overwritten here
+                overwrite_existing_str=True,
             )
+            if isinstance(node.archive, Package):
+                # always export the following for packages
+                for name in ('all_quantities', 'all_sub_sections', 'all_base_sections'):
+                    container: set = set()
+                    for section in node.archive.section_definitions:
+                        target = getattr(section, name)
+                        container.update(
+                            _unwrap_subsection(v)
+                            for v in (
+                                target
+                                if isinstance(target, (list, set))
+                                else target.values()
+                            )
+                        )
+                    output: dict = {__unique_name(v): __convert(v) for v in container}
+                    await _populate_result(
+                        node.result_root,
+                        node.current_path + [name],
+                        {k: v for k, v in sorted(output.items(), key=lambda x: x[1])},
+                    )
 
         if isinstance(node.archive, Quantity):
             if isinstance(ref := node.archive.type, Reference):
@@ -2950,7 +3069,7 @@ class DefinitionReader(GeneralReader):
             return
 
         #
-        # the following is for section
+        # the following is for section and package
         #
 
         # no need to recursively resolve all relevant definitions if the directive is plain
@@ -2966,32 +3085,37 @@ class DefinitionReader(GeneralReader):
         ):
             return
 
-        for name, unwrap in (
-            ('extending_sections', False),
-            ('base_sections', False),
-            ('sub_sections', True),
-            ('quantities', False),
-        ):
-            for index, base in enumerate(getattr(node.archive, name, [])):
-                section = base.sub_section.m_resolved() if unwrap else base
-                ref_str = section.strict_reference()
-                path_stack = _convert_ref_to_path(ref_str)
-                if section is node.archive or self._check_cache(
-                    path_stack, config.hash
-                ):
-                    continue
-                await self._resolve(
-                    await self._switch_root(
-                        node.replace(
-                            archive=section,
-                            current_path=node.current_path + [name, str(index)],
-                            visited_path=node.visited_path.union({ref_str}),
-                            current_depth=node.current_depth + 1,
+        async def __visit(_definition, _items):
+            for _name in _items:
+                for _index, _base in enumerate(getattr(_definition, _name, [])):
+                    _section = _unwrap_subsection(_base)
+                    _ref_str = _section.strict_reference()
+                    _path_stack = _convert_ref_to_path(_ref_str)
+                    if _section is _definition or self._check_cache(
+                        _path_stack, config.hash
+                    ):
+                        continue
+                    await self._resolve(
+                        await self._switch_root(
+                            node.replace(
+                                archive=_section,
+                                current_path=node.current_path + [_name, str(_index)],
+                                visited_path=node.visited_path.union({_ref_str}),
+                                current_depth=node.current_depth + 1,
+                            ),
+                            inplace=config.resolve_inplace,
                         ),
-                        inplace=config.resolve_inplace,
-                    ),
-                    config,
-                )
+                        config,
+                    )
+
+        if isinstance(node.archive, Package):
+            for section in node.archive.section_definitions:
+                await __visit(section, ('extending_sections', 'base_sections'))
+        else:
+            await __visit(
+                node.archive,
+                ('extending_sections', 'base_sections', 'sub_sections', 'quantities'),
+            )
 
     @staticmethod
     async def _switch_root(node: GraphNode, *, inplace: bool) -> GraphNode:
@@ -3002,6 +3126,27 @@ class DefinitionReader(GeneralReader):
         if inplace:
             return node
 
+        if isinstance(node.archive, Package):
+            return node.replace(
+                result_root=node.ref_result_root,
+                current_path=[
+                    Token.UPLOADS,
+                    node.archive.upload_id,
+                    Token.ENTRIES,
+                    node.archive.entry_id,
+                    Token.ARCHIVE,
+                    'definitions',
+                ]  # reconstruct the path to the definition in the archive
+                if node.archive.entry_id and node.archive.upload_id
+                else [
+                    Token.METAINFO,
+                    node.archive.name,
+                ],  # otherwise a built-in package
+            )
+
+        # we always put a reference string at the current location
+        # since the section may belong to another package
+        # its definition may be placed in at the current location, or another location
         ref_str: str = node.archive.strict_reference()
         if not isinstance(node.archive, Quantity):
             await _populate_result(
@@ -3016,6 +3161,158 @@ class DefinitionReader(GeneralReader):
 
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
+        return config
+
+
+class MetainfoBrowser(DefinitionReader):
+    """
+    A special implementation of definition reader.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._pagination_response: dict | None = None
+
+    def _apply_query(self, config: RequestConfig) -> list[str]:
+        if config.query is None:
+            all_keys: list = list(Package.registry.keys())
+        else:
+            raise NotImplementedError
+            # todo: implement query based filtering
+
+        total: int = len(all_keys)
+
+        default_pagination = config.pagination
+        if default_pagination is not None:
+            assert isinstance(default_pagination, MetainfoPagination)
+            all_keys = default_pagination.order_result(all_keys)
+            all_keys = default_pagination.paginate_result(all_keys, None)
+        else:
+            default_pagination = MetainfoPagination()
+
+        # we use the class member to cache the response
+        # it will be written to the result tree later
+        # we do not direct perform writing here to avoid turning all methods async
+        self._pagination_response = default_pagination.dict()
+        self._pagination_response['total'] = total
+
+        return all_keys
+
+    def _filter_registry(self, config: RequestConfig, omit_keys=None) -> Iterator[str]:
+        """
+        Filter the registry based on the given config.
+        """
+        for pkg_name in self._apply_query(config):
+            if not config.if_include(pkg_name):
+                continue
+            if omit_keys is not None and pkg_name in omit_keys:
+                continue
+            yield pkg_name
+
+    async def _generate_package(
+        self,
+    ) -> AsyncIterator[tuple[str, Package, RequestConfig | dict]]:
+        if isinstance(self.required_query, RequestConfig):
+            for name in self._filter_registry(self.required_query):
+                yield name, Package.registry[name], self.required_query
+        else:
+            has_wildcard: bool = GeneralReader.__WILDCARD__ in self.required_query
+
+            if GeneralReader.__CONFIG__ in self.required_query:
+                current_config: RequestConfig = self.required_query[
+                    GeneralReader.__CONFIG__
+                ]
+                if has_wildcard:
+                    child_config = self.required_query[GeneralReader.__WILDCARD__]
+                else:
+                    child_config = current_config.new(
+                        {
+                            'index': None,  # ignore index requirements for children
+                            'query': None,  # ignore query for children
+                            'pagination': None,  # ignore pagination for children
+                        },
+                        retain_pattern=True,  # alert: should the include/exclude pattern be retained?
+                    )
+                for name in self._filter_registry(
+                    current_config, omit_keys=self.required_query.keys()
+                ):
+                    yield name, Package.registry[name], child_config
+            elif has_wildcard:
+                raise ValueError(
+                    'Wildcard is not supported when no parent config is defined.'
+                )
+
+            for key, value in self.required_query.items():
+                if key in (GeneralReader.__CONFIG__, GeneralReader.__WILDCARD__):
+                    continue
+
+                if key in Package.registry:
+                    yield key, Package.registry[key], value
+                elif key.startswith('entry_id:'):
+                    try:
+                        yield key, await self._retrieve_definition(key), value
+                    except Exception as e:
+                        self._log(f'Failed to retrieve definition: {e}')
+
+    async def read(self) -> dict:  # type: ignore # noqa
+        response: dict = {}
+
+        if self.global_root is None:
+            self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
+
+        current_config = self.global_config
+        if isinstance(self.required_query, dict):
+            current_config = self.required_query.get(
+                GeneralReader.__CONFIG__, current_config
+            )
+
+        async for pkg_name, pkg_definition, pkg_query in self._generate_package():
+            response.setdefault(pkg_name, {})
+            await self._walk(
+                GraphNode(
+                    upload_id='__NONE__',
+                    entry_id='__NONE__',
+                    current_path=[pkg_name],
+                    result_root=response,
+                    ref_result_root=self.global_root,
+                    archive=pkg_definition,
+                    archive_root=None,
+                    definition=None,
+                    visited_path=set(),
+                    current_depth=0,
+                    reader=self,
+                ),
+                pkg_query,
+                current_config,
+            )
+
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
+
+        if self._pagination_response is not None:
+            await _populate_result(
+                response, [Token.RESPONSE, 'pagination'], self._pagination_response
+            )
+            # reset the cache to ensure re-entrance
+            self._pagination_response = None
+
+        return response
+
+    @classmethod
+    def validate_config(cls, key: str, config: RequestConfig):
+        try:
+            if config.query is not None:
+                config.query = MetainfoQuery.parse_obj(config.query)
+            if config.pagination is not None:
+                config.pagination = MetainfoPagination.parse_obj(config.pagination)
+        except Exception as e:
+            raise ConfigError(str(e))
+
         return config
 
 

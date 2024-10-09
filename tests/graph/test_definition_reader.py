@@ -139,6 +139,16 @@ def assert_dict(d1, d2):
             },
             id='plain-retrieval',
         ),
+        pytest.param(
+            {
+                'm_request': {
+                    'directive': 'plain',
+                    'exclude': ['*test_definition_reader*'],
+                }
+            },
+            {'m_def': f'{prefix}/3'},
+            id='plain-retrieval-exclude',
+        ),
         # now resolve all referenced quantities and sections
         pytest.param(
             {'m_request': {'directive': 'resolved'}},
@@ -584,7 +594,7 @@ def assert_dict(d1, d2):
         ),
     ],
 )
-def test_definition_reader(query, result):
+def test_definition_reader(query: dict, result: dict):
     with DefinitionReader(query) as reader:
         response = remove_cache(reader.sync_read(m_def))
-    assert_dict(response, result)
+        assert_dict(response, result)

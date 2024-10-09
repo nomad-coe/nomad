@@ -2512,6 +2512,505 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
 
 
 # noinspection DuplicatedCode,SpellCheckingInspection
+def test_metainfo_reader(mongo_infra, user1):
+    def increment():
+        n = 0
+        while True:
+            n += 1
+            yield n
+
+    counter = increment()
+
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+        with MongoReader(required, user=user1) as reader:
+            if result:
+                assert_dict(reader.sync_read(), result)
+            else:
+                rprint(f'\n\nExample: {next(counter)} -> {msg}:')
+                rprint(required)
+                if not to_file:
+                    rprint('output:')
+                    rprint(reader.sync_read())
+                else:
+                    with open('archive_reader_test.json', 'w') as f:
+                        f.write(json.dumps(reader.sync_read()))
+
+    __ge_print(
+        'general start from metainfo',
+        {
+            Token.METAINFO: {
+                'nomad.datamodel.metainfo.simulation.run': {
+                    'section_definitions[2]': {
+                        'm_request': {'directive': 'plain'},
+                    }
+                }
+            }
+        },
+        result={
+            'metainfo': {
+                'nomad.datamodel.metainfo.simulation.run': {
+                    'section_definitions': [
+                        None,
+                        None,
+                        {
+                            'name': 'MessageRun',
+                            'description': 'Contains warning, error, and info messages of the run.',
+                            'quantities': [
+                                {
+                                    'name': 'type',
+                                    'description': 'Type of the message. Can be one of warning, error, info, debug.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'value',
+                                    'description': 'Value of the message of the computational program, given by type.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                            ],
+                        },
+                    ]
+                }
+            },
+        },
+    )
+
+    __ge_print(
+        'general start from metainfo',
+        {
+            Token.METAINFO: {
+                'm_request': {
+                    'include': ['*nomad.datamodel.metainfo.simulation.run'],
+                    'pagination': {'page_size': 50},
+                },
+                '*': {'m_request': {'index': [2]}},
+            }
+        },
+        result={
+            'metainfo': {
+                'nomad.datamodel.metainfo.simulation.run': {
+                    'name': 'nomad.datamodel.metainfo.simulation.run',
+                    'section_definitions': [
+                        {
+                            'name': 'Program',
+                            'description': 'Contains the specifications of the program.',
+                            'quantities': [
+                                {
+                                    'name': 'name',
+                                    'description': 'Specifies the name of the program that generated the data.',
+                                    'categories': [
+                                        '/packages/0/category_definitions/0',
+                                        '/packages/0/category_definitions/1',
+                                    ],
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'version',
+                                    'description': 'Specifies the official release version of the program that was used.',
+                                    'categories': [
+                                        '/packages/0/category_definitions/0',
+                                        '/packages/0/category_definitions/1',
+                                    ],
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'version_internal',
+                                    'description': 'Specifies a program version tag used internally for development purposes.\nAny kind of tagging system is supported, including git commit hashes.',
+                                    'categories': [
+                                        '/packages/0/category_definitions/1'
+                                    ],
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'compilation_datetime',
+                                    'description': 'Contains the program compilation date and time from *Unix epoch* (00:00:00 UTC on\n1 January 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.',
+                                    'categories': [
+                                        '/packages/0/category_definitions/0',
+                                        '/packages/0/category_definitions/1',
+                                    ],
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                                {
+                                    'name': 'compilation_host',
+                                    'description': 'Specifies the host on which the program was compiled.',
+                                    'categories': [
+                                        '/packages/0/category_definitions/0',
+                                        '/packages/0/category_definitions/1',
+                                    ],
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                            ],
+                        },
+                        {
+                            'name': 'TimeRun',
+                            'description': 'Contains information on timing information of the run.',
+                            'quantities': [
+                                {
+                                    'name': 'date_end',
+                                    'description': 'Stores the end date of the run as time since the *Unix epoch* (00:00:00 UTC on 1\nJanuary 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                                {
+                                    'name': 'date_start',
+                                    'description': 'Stores the start date of the run as time since the *Unix epoch* (00:00:00 UTC on 1\nJanuary 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                                {
+                                    'name': 'cpu1_end',
+                                    'description': 'Stores the end time of the run on CPU 1.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                                {
+                                    'name': 'cpu1_start',
+                                    'description': 'Stores the start time of the run on CPU 1.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                                {
+                                    'name': 'wall_end',
+                                    'description': 'Stores the internal wall-clock time at the end of the run.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                                {
+                                    'name': 'wall_start',
+                                    'description': 'Stores the internal wall-clock time from the start of the run.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'float64',
+                                    },
+                                    'shape': [],
+                                    'unit': 'second',
+                                },
+                            ],
+                        },
+                        {
+                            'name': 'MessageRun',
+                            'description': 'Contains warning, error, and info messages of the run.',
+                            'quantities': [
+                                {
+                                    'name': 'type',
+                                    'description': 'Type of the message. Can be one of warning, error, info, debug.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'value',
+                                    'description': 'Value of the message of the computational program, given by type.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                            ],
+                        },
+                        {
+                            'name': 'Run',
+                            'description': 'Every section run represents a single call of a program.',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/0'
+                            ],
+                            'quantities': [
+                                {
+                                    'name': 'calculation_file_uri',
+                                    'description': 'Contains the nomad uri of a raw the data file connected to the current run. There\nshould be an value for the main_file_uri and all ancillary files.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'clean_end',
+                                    'description': 'Indicates whether this run terminated properly (true), or if it was killed or\nexited with an error code unequal to zero (false).',
+                                    'type': {
+                                        'type_kind': 'python',
+                                        'type_data': 'bool',
+                                    },
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'raw_id',
+                                    'description': 'An optional calculation id, if one is found in the code input/output files.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'starting_run_ref',
+                                    'description': 'Links the current section run to a section run containing the calculations from\nwhich the current section starts.',
+                                    'categories': ['/category_definitions/0'],
+                                    'type': {
+                                        'type_kind': 'reference',
+                                        'type_data': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3',
+                                    },
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'n_references',
+                                    'description': 'Number of references to the current section calculation.',
+                                    'type': {
+                                        'type_kind': 'numpy',
+                                        'type_data': 'int32',
+                                    },
+                                    'shape': [],
+                                },
+                                {
+                                    'name': 'runs_ref',
+                                    'description': 'Links the the current section to other run sections. Such a link is necessary for\nexample for workflows that may contain a series of runs.',
+                                    'categories': ['/category_definitions/0'],
+                                    'type': {
+                                        'type_kind': 'reference',
+                                        'type_data': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3',
+                                    },
+                                    'shape': ['n_references'],
+                                },
+                            ],
+                            'sub_sections': [
+                                {
+                                    'name': 'program',
+                                    'sub_section': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0',
+                                },
+                                {
+                                    'name': 'time_run',
+                                    'sub_section': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1',
+                                },
+                                {
+                                    'name': 'message',
+                                    'sub_section': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/2',
+                                },
+                                {
+                                    'name': 'method',
+                                    'sub_section': 'metainfo/nomad.datamodel.metainfo.simulation.method/section_definitions/44',
+                                    'repeats': True,
+                                },
+                                {
+                                    'name': 'system',
+                                    'sub_section': 'metainfo/nomad.datamodel.metainfo.simulation.system/section_definitions/8',
+                                    'repeats': True,
+                                },
+                                {
+                                    'name': 'calculation',
+                                    'sub_section': 'metainfo/nomad.datamodel.metainfo.simulation.calculation/section_definitions/36',
+                                    'repeats': True,
+                                },
+                            ],
+                        },
+                    ],
+                    'category_definitions': [
+                        {
+                            'name': 'AccessoryInfo',
+                            'description': 'Information that *in theory* should not affect the results of the calculations (e.g.,\ntiming).',
+                        },
+                        {
+                            'name': 'ProgramInfo',
+                            'description': 'Contains information on the program that generated the data, i.e. the program_name,\nprogram_version, program_compilation_host and program_compilation_datetime as direct\nchildren of this field.',
+                            'categories': ['/packages/0/category_definitions/0'],
+                        },
+                    ],
+                    'all_base_sections': {
+                        'ArchiveSection': 'metainfo/nomad.datamodel.data/section_definitions/0'
+                    },
+                    'all_quantities': {
+                        'MessageRun.value': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/2/quantities/1',
+                        'Run.calculation_file_uri': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3/quantities/0',
+                        'TimeRun.date_start': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1/quantities/1',
+                        'Run.n_references': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3/quantities/4',
+                        'Program.name': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0/quantities/0',
+                        'TimeRun.date_end': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1/quantities/0',
+                        'Run.starting_run_ref': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3/quantities/3',
+                        'Run.raw_id': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3/quantities/2',
+                        'Program.compilation_host': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0/quantities/4',
+                        'TimeRun.wall_end': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1/quantities/4',
+                        'TimeRun.cpu1_start': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1/quantities/3',
+                        'TimeRun.cpu1_end': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1/quantities/2',
+                        'Run.clean_end': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3/quantities/1',
+                        'TimeRun.wall_start': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1/quantities/5',
+                        'MessageRun.type': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/2/quantities/0',
+                        'Program.version': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0/quantities/1',
+                        'Program.compilation_datetime': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0/quantities/3',
+                        'Program.version_internal': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0/quantities/2',
+                        'Run.runs_ref': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/3/quantities/5',
+                    },
+                    'all_sub_sections': {
+                        'MessageRun': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/2',
+                        'TimeRun': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/1',
+                        'System': 'metainfo/nomad.datamodel.metainfo.simulation.system/section_definitions/8',
+                        'Method': 'metainfo/nomad.datamodel.metainfo.simulation.method/section_definitions/44',
+                        'Calculation': 'metainfo/nomad.datamodel.metainfo.simulation.calculation/section_definitions/36',
+                        'Program': 'metainfo/nomad.datamodel.metainfo.simulation.run/section_definitions/0',
+                    },
+                },
+            },
+        },
+    )
+
+    __ge_print(
+        'general start from metainfo',
+        {
+            Token.METAINFO: {
+                'm_request': {
+                    'include': ['*test_data'],
+                    'pagination': {'page_size': 50},
+                }
+            }
+        },
+        result={
+            'metainfo': {
+                'tests.processing.test_data': {
+                    'name': 'tests.processing.test_data',
+                    'section_definitions': [
+                        {
+                            'name': 'TestBatchSample',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/1'
+                            ],
+                            'quantities': [
+                                {
+                                    'name': 'batch_id',
+                                    'description': 'Id for the batch',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'sample_number',
+                                    'description': 'Sample index',
+                                    'type': {'type_kind': 'python', 'type_data': 'int'},
+                                },
+                                {
+                                    'm_annotations': {
+                                        'eln': [{'component': 'RichTextEditQuantity'}]
+                                    },
+                                    'name': 'comments',
+                                    'description': 'Comments',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                            ],
+                        },
+                        {
+                            'name': 'TestBatch',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/1'
+                            ],
+                            'quantities': [
+                                {
+                                    'm_annotations': {
+                                        'eln': [{'component': 'StringEditQuantity'}]
+                                    },
+                                    'name': 'batch_id',
+                                    'description': 'Id for the batch',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'm_annotations': {
+                                        'eln': [{'component': 'NumberEditQuantity'}]
+                                    },
+                                    'name': 'n_samples',
+                                    'description': 'Number of samples in batch',
+                                    'type': {'type_kind': 'python', 'type_data': 'int'},
+                                },
+                                {
+                                    'name': 'sample_refs',
+                                    'more': {
+                                        'descriptions': 'The samples in the batch.',
+                                        'type_data': 'metainfo/tests.processing.test_data/section_definitions/0',
+                                    },
+                                    'type': {
+                                        'type_kind': 'reference',
+                                        'type_data': 'metainfo/tests.processing.test_data/section_definitions/0',
+                                    },
+                                    'shape': ['*'],
+                                },
+                            ],
+                        },
+                        {
+                            'name': 'TestSection',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/0'
+                            ],
+                        },
+                        {
+                            'name': 'TestReferenceSection',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/0'
+                            ],
+                            'quantities': [
+                                {
+                                    'name': 'reference',
+                                    'type': {
+                                        'type_kind': 'reference',
+                                        'type_data': 'metainfo/tests.processing.test_data/section_definitions/2',
+                                    },
+                                }
+                            ],
+                        },
+                        {
+                            'name': 'TestData',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/1'
+                            ],
+                            'sub_sections': [
+                                {
+                                    'name': 'test_section',
+                                    'sub_section': 'metainfo/tests.processing.test_data/section_definitions/2',
+                                    'repeats': True,
+                                },
+                                {
+                                    'name': 'reference_section',
+                                    'sub_section': 'metainfo/tests.processing.test_data/section_definitions/3',
+                                },
+                            ],
+                        },
+                    ],
+                    'all_base_sections': {
+                        'ArchiveSection': 'metainfo/nomad.datamodel.data/section_definitions/0',
+                        'EntryData': 'metainfo/nomad.datamodel.data/section_definitions/1',
+                    },
+                    'all_quantities': {
+                        'TestBatch.batch_id': 'metainfo/tests.processing.test_data/section_definitions/1/quantities/0',
+                        'TestReferenceSection.reference': 'metainfo/tests.processing.test_data/section_definitions/3/quantities/0',
+                        'TestBatchSample.batch_id': 'metainfo/tests.processing.test_data/section_definitions/0/quantities/0',
+                        'TestBatch.sample_refs': 'metainfo/tests.processing.test_data/section_definitions/1/quantities/2',
+                        'TestBatchSample.sample_number': 'metainfo/tests.processing.test_data/section_definitions/0/quantities/1',
+                        'TestBatch.n_samples': 'metainfo/tests.processing.test_data/section_definitions/1/quantities/1',
+                        'TestBatchSample.comments': 'metainfo/tests.processing.test_data/section_definitions/0/quantities/2',
+                    },
+                    'all_sub_sections': {
+                        'TestSection': 'metainfo/tests.processing.test_data/section_definitions/2',
+                        'TestReferenceSection': 'metainfo/tests.processing.test_data/section_definitions/3',
+                    },
+                },
+            },
+        },
+    )
+
+
+# noinspection DuplicatedCode,SpellCheckingInspection
 def test_general_reader_search(json_dict, example_data_with_reference, user1):
     def increment():
         n = 0
@@ -2700,6 +3199,7 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
                     'm_def': {
                         'm_request': {
                             'directive': 'plain',
+                            'export_whole_package': True,
                         },
                     },
                 }
@@ -2719,6 +3219,327 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
             'process_status': 'SUCCESS',
             'upload_id': 'id_custom',
             'warnings': [],
+            'uploads': {
+                'id_custom': {
+                    'entries': {
+                        'id_example': {
+                            'archive': {
+                                'definitions': {
+                                    'section_definitions': [
+                                        {
+                                            'name': 'MySection',
+                                            'base_sections': [
+                                                'metainfo/nomad.datamodel.data/section_definitions/1'
+                                            ],
+                                            'quantities': [
+                                                {
+                                                    'name': 'my_quantity',
+                                                    'type': {
+                                                        'type_kind': 'python',
+                                                        'type_data': 'str',
+                                                    },
+                                                },
+                                                {
+                                                    'name': 'datetime_list',
+                                                    'type': {
+                                                        'type_kind': 'custom',
+                                                        'type_data': 'nomad.metainfo.data_type.Datetime',
+                                                    },
+                                                    'shape': ['*'],
+                                                },
+                                            ],
+                                        }
+                                    ],
+                                    'name': 'test_package_name',
+                                    'all_base_sections': {
+                                        'ArchiveSection': 'metainfo/nomad.datamodel.data/section_definitions/0',
+                                        'EntryData': 'metainfo/nomad.datamodel.data/section_definitions/1',
+                                    },
+                                    'all_quantities': {
+                                        'MySection.my_quantity': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0/quantities/0',
+                                        'MySection.datetime_list': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0/quantities/1',
+                                    },
+                                    'all_sub_sections': {},
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            'archive': {
+                'data': {
+                    'datetime_list': [
+                        '2022-04-01T00:00:00+00:00',
+                        '2022-04-02T00:00:00+00:00',
+                    ],
+                    'my_quantity': 'test_value',
+                    'm_def': {
+                        'm_def': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0'
+                    },
+                }
+            },
+        },
+    )
+
+    __entry_print(
+        'custom',
+        {
+            Token.ARCHIVE: {
+                'data': {
+                    'm_def': {
+                        'm_request': {
+                            'directive': 'resolved',
+                            'export_whole_package': True,
+                            'depth': 1,
+                        },
+                    },
+                }
+            },
+        },
+        result={
+            'uploads': {
+                'id_custom': {
+                    'entries': {
+                        'id_example': {
+                            'archive': {
+                                'definitions': {
+                                    'name': 'test_package_name',
+                                    'section_definitions': [
+                                        {
+                                            'name': 'MySection',
+                                            'base_sections': [
+                                                'metainfo/nomad.datamodel.data/section_definitions/1'
+                                            ],
+                                            'quantities': [
+                                                {
+                                                    'name': 'my_quantity',
+                                                    'type': {
+                                                        'type_kind': 'python',
+                                                        'type_data': 'str',
+                                                    },
+                                                },
+                                                {
+                                                    'name': 'datetime_list',
+                                                    'type': {
+                                                        'type_kind': 'custom',
+                                                        'type_data': 'nomad.metainfo.data_type.Datetime',
+                                                    },
+                                                    'shape': ['*'],
+                                                },
+                                            ],
+                                        }
+                                    ],
+                                    'all_quantities': {
+                                        'MySection.my_quantity': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0/quantities/0',
+                                        'MySection.datetime_list': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0/quantities/1',
+                                    },
+                                    'all_sub_sections': {},
+                                    'all_base_sections': {
+                                        'ArchiveSection': 'metainfo/nomad.datamodel.data/section_definitions/0',
+                                        'EntryData': 'metainfo/nomad.datamodel.data/section_definitions/1',
+                                    },
+                                    'base_sections': [
+                                        'metainfo/nomad.datamodel.data/section_definitions/1'
+                                    ],
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            'metainfo': {
+                'nomad.datamodel.data': {
+                    'name': 'nomad.datamodel.data',
+                    'section_definitions': [
+                        {
+                            'name': 'ArchiveSection',
+                            'description': 'Base class for sections in a NOMAD archive. Provides a framework for custom section normalization via the `normalize` function.',
+                        },
+                        {
+                            'name': 'EntryData',
+                            'description': 'An empty base section definition. This can be used to add new top-level sections to an entry.',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/0'
+                            ],
+                        },
+                        {
+                            'name': 'Author',
+                            'description': 'A person that is author of data in NOMAD or references by NOMAD.',
+                            'quantities': [
+                                {
+                                    'm_annotations': {
+                                        'elasticsearch': [
+                                            'viewers.name',
+                                            'viewers.name.text',
+                                            'viewers.name__suggestion',
+                                        ]
+                                    },
+                                    'name': 'name',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                    'virtual': True,
+                                },
+                                {
+                                    'name': 'first_name',
+                                    'description': 'The users first name (including all other given names)',
+                                    'type': {
+                                        'type_kind': 'custom',
+                                        'type_data': 'nomad.metainfo.data_type.Capitalized',
+                                    },
+                                },
+                                {
+                                    'name': 'last_name',
+                                    'description': 'The users last name',
+                                    'type': {
+                                        'type_kind': 'custom',
+                                        'type_data': 'nomad.metainfo.data_type.Capitalized',
+                                    },
+                                },
+                                {
+                                    'name': 'email',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'affiliation',
+                                    'description': 'The name of the company and institutes the user identifies with',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'affiliation_address',
+                                    'description': 'The address of the given affiliation',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                            ],
+                        },
+                        {
+                            'm_annotations': {'pydantic': ['PydanticModel']},
+                            'name': 'User',
+                            'description': 'A NOMAD user. Typically a NOMAD user has a NOMAD account. The user related data is managed by\nNOMAD keycloak user-management system. Users are used to denote authors,\nreviewers, and owners of datasets.',
+                            'base_sections': [
+                                'metainfo/nomad.datamodel.data/section_definitions/2'
+                            ],
+                            'quantities': [
+                                {
+                                    'm_annotations': {
+                                        'elasticsearch': ['viewers.user_id']
+                                    },
+                                    'name': 'user_id',
+                                    'description': 'The unique, persistent keycloak UUID',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'username',
+                                    'description': 'The unique, persistent, user chosen username',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'created',
+                                    'description': 'The time the account was created',
+                                    'type': {
+                                        'type_kind': 'custom',
+                                        'type_data': 'nomad.metainfo.data_type.Datetime',
+                                    },
+                                },
+                                {
+                                    'name': 'repo_user_id',
+                                    'description': 'Optional, legacy user id from the old NOMAD CoE repository.',
+                                    'type': {'type_kind': 'python', 'type_data': 'str'},
+                                },
+                                {
+                                    'name': 'is_admin',
+                                    'description': 'Bool that indicated, iff the user the use admin user',
+                                    'type': {
+                                        'type_kind': 'python',
+                                        'type_data': 'bool',
+                                    },
+                                    'virtual': True,
+                                },
+                                {
+                                    'name': 'is_oasis_admin',
+                                    'type': {
+                                        'type_kind': 'python',
+                                        'type_data': 'bool',
+                                    },
+                                    'default': False,
+                                },
+                            ],
+                        },
+                    ],
+                    'category_definitions': [
+                        {'name': 'EntryDataCategory'},
+                        {
+                            'name': 'ElnIntegrationCategory',
+                            'label': 'Third-party ELN Integration',
+                            'categories': ['/category_definitions/0'],
+                        },
+                        {
+                            'name': 'BasicElnCategory',
+                            'label': 'Basic ELN',
+                            'categories': ['/category_definitions/0'],
+                        },
+                        {
+                            'name': 'ElnExampleCategory',
+                            'label': 'Example ELNs',
+                            'categories': ['/category_definitions/0'],
+                        },
+                        {
+                            'name': 'UseCaseElnCategory',
+                            'label': 'Use-cases',
+                            'categories': ['/category_definitions/0'],
+                        },
+                        {
+                            'name': 'WorkflowsElnCategory',
+                            'label': 'Workflows',
+                            'categories': ['/category_definitions/0'],
+                        },
+                    ],
+                    'all_quantities': {
+                        'Author.name': 'metainfo/nomad.datamodel.data/section_definitions/2/quantities/0',
+                        'Author.first_name': 'metainfo/nomad.datamodel.data/section_definitions/2/quantities/1',
+                        'Author.last_name': 'metainfo/nomad.datamodel.data/section_definitions/2/quantities/2',
+                        'Author.email': 'metainfo/nomad.datamodel.data/section_definitions/2/quantities/3',
+                        'Author.affiliation': 'metainfo/nomad.datamodel.data/section_definitions/2/quantities/4',
+                        'Author.affiliation_address': 'metainfo/nomad.datamodel.data/section_definitions/2/quantities/5',
+                        'User.user_id': 'metainfo/nomad.datamodel.data/section_definitions/3/quantities/0',
+                        'User.username': 'metainfo/nomad.datamodel.data/section_definitions/3/quantities/1',
+                        'User.created': 'metainfo/nomad.datamodel.data/section_definitions/3/quantities/2',
+                        'User.repo_user_id': 'metainfo/nomad.datamodel.data/section_definitions/3/quantities/3',
+                        'User.is_admin': 'metainfo/nomad.datamodel.data/section_definitions/3/quantities/4',
+                        'User.is_oasis_admin': 'metainfo/nomad.datamodel.data/section_definitions/3/quantities/5',
+                    },
+                    'all_sub_sections': {},
+                    'all_base_sections': {
+                        'ArchiveSection': 'metainfo/nomad.datamodel.data/section_definitions/0',
+                        'Author': 'metainfo/nomad.datamodel.data/section_definitions/2',
+                    },
+                }
+            },
+            'archive': {
+                'data': {
+                    'm_def': {
+                        'm_def': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0'
+                    }
+                }
+            },
+        },
+    )
+
+    __entry_print(
+        'custom',
+        {
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                    },
+                    'm_def': {
+                        'm_request': {
+                            'directive': 'plain',
+                        },
+                    },
+                }
+            },
+        },
+        result={
             'uploads': {
                 'id_custom': {
                     'entries': {

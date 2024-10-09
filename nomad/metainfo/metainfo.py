@@ -4049,6 +4049,9 @@ class Package(Definition):
         return super().qualified_name()
 
     def m_resolve_path(self, path_stack: list):
+        if len(path_stack) == 0:
+            return self
+
         path_str = '/'.join(path_stack)
         current_pos = path_stack.pop(0)
         section = self.all_definitions.get(current_pos, None)

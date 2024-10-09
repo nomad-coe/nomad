@@ -25,7 +25,7 @@ from typing import FrozenSet, Optional, Union
 
 from pydantic import BaseModel, Field, Extra, ValidationError, validator
 
-from nomad.app.v1.models import MetadataPagination, Metadata
+from nomad.app.v1.models import MetadataPagination, Metadata, Pagination, Direction
 from nomad.app.v1.routers.datasets import DatasetPagination
 from nomad.app.v1.routers.uploads import (
     UploadProcDataQuery,
@@ -63,6 +63,37 @@ class EntryQuery(BaseModel):
     Provide a list of regex patterns to match the references. Case sensitive.
     """,
     )
+
+
+class MetainfoQuery(BaseModel):
+    pass
+
+
+class MetainfoPagination(Pagination):
+    def order_result(self, result):
+        return list(sorted(result, reverse=self.order == Direction.desc))
+
+    def paginate_result(self, result, pick_value):
+        if self.page is not None:
+            start = (self.page - 1) * self.page_size
+            end = start + self.page_size
+        elif self.page_offset is not None:
+            start = self.page_offset
+            end = start + self.page_size
+        elif self.page_after_value is not None:
+            start = 0
+            for index, item in enumerate(result):
+                if item == self.page_after_value:
+                    start = index + 1
+                    break
+            end = start + self.page_size
+        else:
+            start, end = 0, self.page_size
+
+        total_size = len(result)
+        first, last = min(start, total_size), min(end, total_size)
+
+        return [] if first == last else result[first:last]
 
 
 class DirectiveType(Enum):
@@ -187,6 +218,13 @@ class RequestConfig(BaseModel):
         The resolved quantity/section will be placed in the same archive.
         """,
     )
+    export_whole_package: bool = Field(
+        False,
+        description="""
+        Set to `True` to always get the whole package.
+        Set to `False` to definitions per section basis.
+        """,
+    )
     include_definition: DefinitionType = Field(
         DefinitionType.none,
         description="""
@@ -220,6 +258,7 @@ class RequestConfig(BaseModel):
         UploadProcDataPagination,
         MetadataPagination,
         EntryProcDataPagination,
+        MetainfoPagination,
     ] = Field(
         None,
         description="""
@@ -229,7 +268,9 @@ class RequestConfig(BaseModel):
         Please refer to `DatasetPagination`, `UploadProcDataPagination`, `MetadataPagination` for details.
         """,
     )
-    query: Union[dict, DatasetQuery, UploadProcDataQuery, Metadata, EntryQuery] = Field(
+    query: Union[
+        dict, DatasetQuery, UploadProcDataQuery, Metadata, EntryQuery, MetainfoQuery
+    ] = Field(
         None,
         description="""
         The query configuration used for either mongo or elastic search.
