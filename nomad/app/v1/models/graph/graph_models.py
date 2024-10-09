@@ -21,7 +21,12 @@ from typing import Optional, List, Union, Any, Literal
 from pydantic import BaseModel, Field, Extra
 
 from nomad.metainfo import Package
-from nomad.graph.model import RequestConfig, DatasetQuery
+from nomad.graph.model import (
+    RequestConfig,
+    DatasetQuery,
+    MetainfoQuery,
+    MetainfoPagination,
+)
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.datamodel.data import User as UserModel
 from nomad.app.v1.models.models import Metadata, MetadataResponse
@@ -217,7 +222,20 @@ class GraphDatasets(BaseModel):
     m_children: GraphDataset
 
 
+class MetainfoRequestOptions(BaseModel):
+    pagination: Optional[MetainfoPagination]
+    query: Optional[MetainfoQuery]
+
+
+class MetainfoResponseOptions(BaseModel):
+    pagination: Optional[PaginationResponse]
+    query: Optional[MetainfoQuery]
+
+
 class GraphMetainfo(BaseModel):
+    m_request: MetainfoRequestOptions
+    m_response: MetainfoResponseOptions
+    m_errors: List[Error]
     m_children: MSection
 
 
