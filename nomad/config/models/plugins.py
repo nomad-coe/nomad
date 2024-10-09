@@ -23,7 +23,7 @@ from tempfile import TemporaryDirectory
 from abc import ABCMeta, abstractmethod
 import importlib
 from typing import Optional, Dict, Union, List, Literal, TYPE_CHECKING
-import requests
+import httpx
 from pydantic import BaseModel, Field, root_validator
 
 from nomad.common import get_package_path
@@ -264,22 +264,23 @@ class ExampleUploadEntryPoint(EntryPoint):
 
             if not os.path.exists(final_filepath):
                 try:
-                    with requests.get(self.url, stream=True) as response:
+                    with httpx.stream(
+                        'GET',
+                        self.url,
+                    ) as response:
                         response.raise_for_status()
                         # Download into a temporary directory to ensure the integrity of
                         # the download
                         with TemporaryDirectory() as tmp_folder:
                             tmp_filepath = os.path.join(tmp_folder, filename)
                             with open(tmp_filepath, mode='wb') as file:
-                                for chunk in response.iter_content(
-                                    chunk_size=10 * 1024
-                                ):
+                                for chunk in response.iter_bytes(chunk_size=10 * 1024):
                                     file.write(chunk)
                             # If download has succeeeded, copy the files over to
                             # final location
                             os.makedirs(final_folder, exist_ok=True)
                             shutil.copy(tmp_filepath, final_filepath)
-                except requests.RequestException as e:
+                except Exception as e:
                     raise ValueError(
                         f'Could not fetch the example upload from URL: {self.url}'
                     ) from e
