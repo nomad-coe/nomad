@@ -61,6 +61,7 @@ from nomad.metainfo.data_type import (
     Any as AnyType,
     check_dimensionality,
     ExactNumber,
+    InexactNumber,
 )
 from nomad.metainfo.util import (
     Annotation,
@@ -549,7 +550,7 @@ class Reference:
 
         raise TypeError(f'{value} is not a valid value of {self._definition}.')
 
-    def normalize(self, value, *, section=None):
+    def normalize(self, value, *, section=None, **kwargs):
         def _convert(_v):
             if isinstance(_v, list):
                 return [_convert(v) for v in _v]
@@ -714,15 +715,15 @@ def metainfo_setter(method):
     This differs from `modifier` in that it is used for setter methods.
     """
     assert method.__name__ == '__set__'
-    assert method.__code__.co_argcount == 3
+    assert method.__code__.co_argcount >= 3
 
     @wraps(method)
-    def wrapper(self, obj, value):
+    def wrapper(self, obj, value, **kwargs):
         if obj is None:
             raise KeyError('Cannot overwrite definition. Only data can be set.')
 
         obj.m_mod_count += 1
-        return method(self, obj, value)
+        return method(self, obj, value, **kwargs)
 
     return wrapper
 
@@ -732,11 +733,11 @@ def metainfo_getter(method):
     Decorate a method as a getter.
     """
     assert method.__name__ == '__get__'
-    assert method.__code__.co_argcount == 3
+    assert method.__code__.co_argcount >= 3
 
     @wraps(method)
-    def wrapper(self, obj, cls=None):
-        return self if obj is None else method(self, obj, cls)
+    def wrapper(self, obj, cls=None, **kwargs):
+        return self if obj is None else method(self, obj, cls, **kwargs)
 
     return wrapper
 
@@ -1229,6 +1230,7 @@ class MSection(metaclass=MObjectMeta):
         skip_virtual: bool = False,
         index: int | None = None,
         context: Context | MSection | None = None,
+        **kwargs,
     ):
         """
         Set the given value for the given property.
@@ -1246,6 +1248,7 @@ class MSection(metaclass=MObjectMeta):
                 No effect in 'append' mode.
             context: The context to use when deserializing the value.
                 This is used in setting sections, while the value is given as a serialized dictionary.
+            kwargs: Additional keyword arguments to pass to the property setter.
         """
         definition: Property = self._ensure_definition(def_or_name, hint=hint)
 
@@ -1253,18 +1256,18 @@ class MSection(metaclass=MObjectMeta):
             if isinstance(value, list):
                 # this is used when deserializing a list of subsections
                 for v in value:
-                    self.m_append(definition, v, context=context)
+                    self.m_append(definition, v, context=context, **kwargs)
                 return
 
             if isinstance(value, dict):
                 value = definition.sub_section.section_cls.m_from_dict(
-                    value, m_context=context, m_parent=self
+                    value, m_context=context, m_parent=self, **kwargs
                 )
         elif definition.virtual and skip_virtual:
             return
 
         if index is None:
-            return definition.__set__(self, value)
+            return definition.__set__(self, value, **kwargs)
 
         def _populate(_target):
             # overwrite mode with valid index
@@ -1278,7 +1281,7 @@ class MSection(metaclass=MObjectMeta):
                 # guaranteed to be a MSubSectionList
                 _populate(definition.__get__(self))
             else:
-                definition.__set__(self, value)
+                definition.__set__(self, value, **kwargs)
         elif isinstance(definition, Quantity):
             if definition.is_scalar:
                 target = value
@@ -1289,7 +1292,7 @@ class MSection(metaclass=MObjectMeta):
                     target = []
                 _populate(target)
             # regardless, need to revalidate the value
-            definition.__set__(self, target)
+            definition.__set__(self, target, **kwargs)
         else:
             # should never reach here
             raise NotImplementedError
@@ -1339,11 +1342,9 @@ class MSection(metaclass=MObjectMeta):
 
         if isinstance(definition, Quantity):
             if definition.use_full_storage:
-                target = self.__dict__.get(definition.name, {}).get(def_or_name, None)
-                if full or target is None:
-                    return _wrap(target)
-
-                return _wrap(cast(MQuantity, target).get())
+                return _wrap(
+                    definition.__get__(self, full=full, actual_name=def_or_name)
+                )
 
             target = definition.__get__(self)
             if isinstance(target, list) and index is not None:
@@ -1388,6 +1389,7 @@ class MSection(metaclass=MObjectMeta):
         hint: str | None = None,
         skip_virtual: bool = False,
         context: Context | MSection | None = None,
+        **kwargs,
     ):
         """
         Append the given value to the given property.
@@ -1413,18 +1415,18 @@ class MSection(metaclass=MObjectMeta):
                 assert definition.repeats
                 # this is used when deserializing a list of subsections
                 for v in value:
-                    self.m_append(definition, v, context=context)
+                    self.m_append(definition, v, context=context, **kwargs)
                 return
 
             if isinstance(value, dict):
                 value = definition.sub_section.section_cls.m_from_dict(
-                    value, m_context=context, m_parent=self
+                    value, m_context=context, m_parent=self, **kwargs
                 )
 
             if definition.repeats:
                 definition.__get__(self).append(value)
             else:
-                definition.__set__(self, value)
+                definition.__set__(self, value, **kwargs)
         elif isinstance(definition, Quantity):
             if definition.virtual and skip_virtual:
                 return
@@ -1438,7 +1440,7 @@ class MSection(metaclass=MObjectMeta):
                     target = []
                 target.append(value)
             # regardless, need to revalidate the value
-            definition.__set__(self, target)
+            definition.__set__(self, target, **kwargs)
         else:
             # should never reach here
             raise NotImplementedError
@@ -2124,12 +2126,16 @@ class MSection(metaclass=MObjectMeta):
 
         return {key: value for key, value in items()}
 
-    def m_update_from_dict(self, data: dict) -> None:
+    def m_update_from_dict(self, data: dict, **kwargs) -> None:
         """
         Updates this section with the serialized data from the given dict, e.g. data
         produced by :func:`m_to_dict`.
         """
         m_context: Context | MSection = self.m_context if self.m_context else self
+
+        # todo: the hack flag shall be removed
+        # it is required due to json serialize nan and inf to null
+        treat_none_as_nan = kwargs.get('treat_none_as_nan', False)
 
         # need to deserialize the definitions first as they are needed for the rest
         if 'definitions' in data:
@@ -2151,13 +2157,16 @@ class MSection(metaclass=MObjectMeta):
                     if definition.repeats and isinstance(value, dict)
                     else value,
                     context=m_context,
+                    treat_none_as_nan=treat_none_as_nan,
                 )
-            elif definition.use_full_storage:
-                self.m_set(definition, value)
             elif not definition.virtual:
-                # todo: setting None has different implications
-                self.__dict__[definition.name] = definition.type.normalize(
-                    value, section=self
+                self.m_set(
+                    definition,
+                    value,
+                    # todo: the hack flag shall be removed
+                    # it is required in editing, None is used to remove the value in indexing
+                    force_none=kwargs.get('force_none', False),
+                    treat_none_as_nan=treat_none_as_nan,
                 )
 
         for name, value in data.get('m_attributes', {}).items():
@@ -2190,6 +2199,9 @@ class MSection(metaclass=MObjectMeta):
         through the optional parameter. Otherwise, the section definition is read from
         the `m_def` key in the section data.
         """
+
+        treat_none_as_nan: bool = kwargs.pop('treat_none_as_nan', False)
+
         if 'm_ref_archives' in dct and isinstance(m_context, Context):
             # dct['m_ref_archives'] guarantees that 'm_def' exists
             for entry_url, archive_json in dct['m_ref_archives'].items():
@@ -2251,7 +2263,7 @@ class MSection(metaclass=MObjectMeta):
             section.m_annotations.update(m_annotations)
             section.m_parse_annotations()
 
-        section.m_update_from_dict(dct)
+        section.m_update_from_dict(dct, treat_none_as_nan=treat_none_as_nan)
         return section
 
     def m_to_json(self, **kwargs):
@@ -3167,16 +3179,19 @@ class Quantity(Property):
 
         check_dimensionality(self, self.unit)
 
-    def __get__(self, obj, cls=None):
+    def __get__(self, obj, cls=None, **kwargs):
         if obj is None:
             return self
 
         if self.name in obj.__dict__:
             value = obj.__dict__[self.name]
+            actual_name = kwargs.get('actual_name', self.name)
             # appears to be a quantity using full storage
             # cannot use .use_full_storage as this is not set yet
-            if isinstance(value, dict) and self.name in value:
-                value = value[self.name].get()
+            if isinstance(value, dict) and actual_name in value:
+                if kwargs.get('full', False):  # full storage requested
+                    return value[actual_name]
+                value = value[actual_name].get()
         else:
             if self.derived is not None:
                 try:
@@ -3219,24 +3234,33 @@ class Quantity(Property):
         return value
 
     @metainfo_setter
-    def __set__(self, obj, value):
+    def __set__(self, obj, value, **kwargs):
         if self.derived is not None:
             raise MetainfoError(f'The quantity {self} is derived and cannot be set.')
 
         item_name: str = self.name
 
         if value is None:
-            # This implements the implicit "unset" semantics of assigned None as a value
-            to_remove: dict | None = obj.__dict__.pop(item_name, None)
-            # if full storage is used, also need to clear quantities created for convenient access
-            if self.use_full_storage and to_remove:
-                # self.__dict__[full_name] is guaranteed to be a 'dict[str, MQuantity]'
-                for key in to_remove.keys():
-                    obj.__dict__.pop(key, None)
-            return
+            if kwargs.get('force_none', False):
+                # todo: this is due to the bug in editing which set None as label to remove it in indexing
+                # this should be removed when the bug is fixed
+                obj.__dict__[item_name] = value
+            else:
+                # This implements the implicit "unset" semantics of assigned None as a value
+                to_remove: dict | None = obj.__dict__.pop(item_name, None)
+                # if full storage is used, also need to clear quantities created for convenient access
+                if self.use_full_storage and to_remove:
+                    # self.__dict__[full_name] is guaranteed to be a 'dict[str, MQuantity]'
+                    for key in to_remove.keys():
+                        obj.__dict__.pop(key, None)
+            if not (
+                kwargs.get('treat_none_as_nan', False)
+                and isinstance(self.type, InexactNumber)
+            ):
+                return
 
         if not self.use_full_storage:
-            value = self.type.normalize(value, section=obj)
+            value = self.type.normalize(value, section=obj, **kwargs)
             if isinstance(self.type, Reference):
                 if value == _UNSET_:
                     return
@@ -3288,7 +3312,9 @@ class Quantity(Property):
                     "Variadic quantities only accept raw values wrapped in 'MQuantity'."
                 )
 
-            m_quantity.value = self.type.normalize(m_quantity.value, section=obj)
+            m_quantity.value = self.type.normalize(
+                m_quantity.value, section=obj, **kwargs
+            )
 
             if self.unit is None:
                 # no prescribed unit, need to check dimensionality, no need to convert
@@ -3401,7 +3427,7 @@ class DirectQuantity(Quantity):
         return obj.__dict__.get(self._name, self._default)
 
     @metainfo_setter
-    def __set__(self, obj, value):
+    def __set__(self, obj, value, **kwargs):
         if value is None:
             obj.__dict__.pop(self._name, None)
         else:
@@ -3448,7 +3474,7 @@ class SubSection(Property):
         return obj.__dict__.get(self.name, None)
 
     @metainfo_setter
-    def __set__(self, obj, value):
+    def __set__(self, obj, value, **kwargs):
         """
         Accepts a single section or a list of sections.
         Accepts None to unset the subsection.

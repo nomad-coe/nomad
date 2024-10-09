@@ -518,6 +518,25 @@ class InexactNumber(Number):
         super().__init__(dtype)
         self._np_base = np.inexact
 
+    def normalize(self, value, **kwargs):
+        """
+        Accept the following additional flags to tweak the behavior.
+
+        Parameters:
+            treat_none_as_nan: If True, treat None as NaN.
+        """
+
+        def _preprocess(v):
+            if isinstance(v, (list, tuple)):
+                return [_preprocess(x) for x in v]
+
+            return float('nan') if v is None else v
+
+        if kwargs.get('treat_none_as_nan', False):
+            value = _preprocess(value)
+
+        return super().normalize(value, **kwargs)
+
 
 class m_float(InexactNumber):
     """
@@ -966,7 +985,7 @@ class Datetime(NonPrimitive):
 
     __slots__ = ()
 
-    def _normalize_impl(self, value, section=None):
+    def _normalize_impl(self, value, **kwargs):
         if isinstance(value, datetime):
             datetime_obj = value
         elif isinstance(value, date):
