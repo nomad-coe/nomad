@@ -2879,8 +2879,8 @@ class Upload(Proc):
             # Create updates for ES
             entry_metadata = entry.mongo_metadata(self)
             if upload_updates:
-                entry_metadata.m_update_from_dict(upload_updates)
-            entry_metadata.m_update_from_dict(entry_updates)
+                entry_metadata.m_update_from_dict(upload_updates, force_none=True)
+            entry_metadata.m_update_from_dict(entry_updates, force_none=True)
             updated_metadata.append(entry_metadata)
 
         # Update mongo

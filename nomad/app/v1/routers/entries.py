@@ -1502,7 +1502,7 @@ def edit(
             for entry in proc.Entry.objects(entry_id__in=entry_ids):
                 entry_metadata = entry.mongo_metadata(entry.upload)
                 # Ensure that updated fields are marked as "set", even if they are cleared
-                entry_metadata.m_update_from_dict(mongo_update)
+                entry_metadata.m_update_from_dict(mongo_update, force_none=True)
                 # Add to list
                 updated_metadata.append(entry_metadata)
 

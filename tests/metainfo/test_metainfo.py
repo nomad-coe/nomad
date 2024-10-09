@@ -19,6 +19,7 @@
 # Contains more general test cases that are replaced continiously by more specialized
 # in-depth tests in test_* files of the same module.
 
+from math import isnan
 import pytest
 import numpy as np
 import pandas as pd
@@ -677,6 +678,16 @@ class TestM1:
         test_section.test_quantity = 12
         assert test_section.test_quantity == 12
         assert type(test_section.test_quantity) is np.int32
+
+    def test_scalar_float(self):
+        class TestSection(MSection):
+            test_quantity = Quantity(type=float)
+
+        assert isnan(
+            TestSection.m_from_dict(
+                {'test_quantity': None}, treat_none_as_nan=True
+            ).test_quantity
+        )
 
     def test_pd_dataframe_quantity(self):
         class TestSection(MSection):

@@ -543,7 +543,7 @@ class ArchiveParser(MatchingParser):
 
             del archive_data['definitions']
 
-        archive.m_update_from_dict(archive_data)
+        archive.m_update_from_dict(archive_data, treat_none_as_nan=True)
 
     def parse(
         self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
