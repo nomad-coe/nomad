@@ -48,6 +48,7 @@ class ELNComponentEnum(str, Enum):
     UserEditQuantity = 'UserEditQuantity'
     AuthorEditQuantity = 'AuthorEditQuantity'
     QueryEditQuantity = 'QueryEditQuantity'
+    ActionEditQuantity = 'ActionEditQuantity'
 
 
 valid_eln_types = {
@@ -79,7 +80,7 @@ valid_eln_components = {
         ELNComponentEnum.RichTextEditQuantity,
         ELNComponentEnum.EnumEditQuantity,
     ],
-    'bool': [ELNComponentEnum.BoolEditQuantity],
+    'bool': [ELNComponentEnum.BoolEditQuantity, ELNComponentEnum.ActionEditQuantity],
     'number': [
         ELNComponentEnum.NumberEditQuantity,
         ELNComponentEnum.SliderEditQuantity,

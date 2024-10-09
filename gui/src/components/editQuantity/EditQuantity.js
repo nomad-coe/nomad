@@ -22,6 +22,7 @@ import {NumberEditQuantity} from './NumberEditQuantity'
 import {EnumEditQuantity} from './EnumEditQuantity'
 import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
 import {BoolEditQuantity} from './BoolEditQuantity'
+import {ActionEditQuantity} from './ActionEditQuantity'
 import FileEditQuantity from './FileEditQuantity'
 import RichTextEditQuantity from './RichTextEditQuantity'
 import ReferenceEditQuantity from './ReferenceEditQuantity'
@@ -38,6 +39,7 @@ export const editQuantityComponents = {
   RadioEnumEditQuantity: RadioEnumEditQuantity,
   AutocompleteEditQuantity: AutocompleteEditQuantity,
   BoolEditQuantity: BoolEditQuantity,
+  ActionEditQuantity: ActionEditQuantity,
   FileEditQuantity: FileEditQuantity,
   DateTimeEditQuantity: DateTimeEditQuantity,
   DateEditQuantity: DateEditQuantity,
