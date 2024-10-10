@@ -321,7 +321,7 @@ install tests:
     - python -c 'import nomad.cli'
     - python -c 'from nomad.client import ArchiveQuery'
     - python -m nomad.cli parse --skip-normalizers archive.json
-    - uv pip install git+https://github.com/nomad-coe/nomad-parser-example.git@0b0035d
+    - uv pip install git+https://github.com/nomad-coe/nomad-parser-example.git@ba6027fdd4cda0cf9e0b32546bd809c8fdda79e6
     - python -m exampleparser tests/data/examples/example.out
 
 python package:

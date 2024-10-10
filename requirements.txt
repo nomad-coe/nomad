@@ -23,7 +23,7 @@ certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, request
 certipy==0.2.1            # via jupyterhub
 cffi==1.17.1 ; platform_python_implementation != 'PyPy'  # via cryptography
 cftime==1.6.4             # via netcdf4
-charset-normalizer==3.3.2  # via requests
+charset-normalizer==3.4.0  # via requests
 click==8.1.7              # via celery, click-didyoumean, click-plugins, click-repl, uvicorn, nomad-lab (pyproject.toml)
 click-didyoumean==0.3.1   # via celery
 click-plugins==1.1.1      # via celery
@@ -65,7 +65,7 @@ idna==3.10                # via anyio, email-validator, httpx, jsonschema, reque
 imagesize==1.4.1          # via sphinx
 importlib-metadata==7.1.0  # via nomad-lab (pyproject.toml)
 inflection==0.5.1         # via nomad-lab (pyproject.toml)
-isodate==0.7.0            # via rdflib
+isodate==0.7.2            # via rdflib
 isoduration==20.11.0      # via jsonschema
 itsdangerous==2.2.0       # via nomad-lab (pyproject.toml)
 jinja2==3.1.4             # via jupyterhub, sphinx
@@ -82,10 +82,10 @@ kombu==5.4.2              # via celery
 lark==1.2.2               # via optimade
 latexcodec==3.0.0         # via pybtex
 lxml==5.3.0               # via lxml-html-clean, nomad-lab (pyproject.toml)
-lxml-html-clean==0.2.2    # via nomad-lab (pyproject.toml)
+lxml-html-clean==0.3.1    # via nomad-lab (pyproject.toml)
 m2r==0.2.1                # via nomad-lab (pyproject.toml)
 mako==1.3.5               # via alembic
-markupsafe==3.0.0         # via jinja2, mako
+markupsafe==3.0.1         # via jinja2, mako
 matid==2.1.2              # via nomad-lab (pyproject.toml)
 matplotlib==3.9.2         # via ase, pymatgen
 mda-xdrlib==0.2.0         # via pyedr
@@ -188,7 +188,7 @@ uncertainties==3.2.2      # via pymatgen
 unidecode==1.3.2          # via nomad-lab (pyproject.toml)
 uri-template==1.3.0       # via jsonschema
 urllib3==1.26.20          # via docker, elasticsearch, nomad-openbis, requests
-uvicorn==0.31.0           # via h5grove, nomad-lab (pyproject.toml)
+uvicorn==0.31.1           # via h5grove, nomad-lab (pyproject.toml)
 uvloop==0.20.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn
 validators==0.18.2        # via nomad-lab (pyproject.toml)
 vine==5.1.0               # via amqp, celery, kombu
