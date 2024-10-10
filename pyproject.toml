@@ -106,7 +106,6 @@ infrastructure = [
 ]
 dev = [
     'aiosmtpd>=1.0',
-    'astroid>=2.5.1',
     'devtools>=0.6',
     'essential-generators==1.0',
     'markupsafe>=1.0',
