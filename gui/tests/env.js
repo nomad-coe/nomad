@@ -4610,7 +4610,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/atomistic-parsers",
         "name": "atomisticparsers",
         "repository": null,
-        "version": "1.0.1"
+        "version": "1.0.2"
       },
       "bandstructurenormalizer": {
         "description": "Band structure normalizer plugin for NOMAD.",
@@ -4706,7 +4706,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/electronic-parsers",
         "name": "electronicparsers",
         "repository": null,
-        "version": "1.0"
+        "version": "1.0.2"
       },
       "nomad_aitoolkit": {
         "description": "Schema and app for AI Toolkit notebooks.",
@@ -4766,7 +4766,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/FAIRmat-NFDI/pynxtools",
         "name": "pynxtools",
         "repository": null,
-        "version": "0.5.0"
+        "version": "0.7.0"
       },
       "runschema": {
         "description": "Run schema plugin for NOMAD.",
@@ -4777,7 +4777,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/nomad-schema-plugin-run.git",
         "name": "runschema",
         "repository": null,
-        "version": "1.0.1"
+        "version": "1.0.2"
       },
       "simulationworkflownormalizer": {
         "description": "Simulation workflow nomad plugin for NOMAD.",
@@ -4799,7 +4799,7 @@ window.nomadEnv = {
         "homepage": "https://github.com/nomad-coe/nomad-schema-simulation-workflow-plugin",
         "name": "simulationworkflowschema",
         "repository": null,
-        "version": "1.0.1"
+        "version": "1.0.4"
       },
       "soapnormalizer": {
         "description": "SOAP nomad plugin for NOMAD.",

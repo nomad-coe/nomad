@@ -10,7 +10,7 @@ arrow==1.3.0              # via isoduration, -c requirements-dev.txt
 asciitree==0.3.3 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via zarr
 ase==3.22.1               # via asr, ifes-apt-tc-data-modeling, matid, nomad-lab, nomad-porous-materials, pynxtools, -c requirements-dev.txt
 asr==0.4.1                # via nomad-parser-plugins-workflow
-asteval==1.0.2            # via lmfit
+asteval==1.0.5            # via lmfit
 asttokens==2.4.1          # via stack-data, -c requirements-dev.txt
 async-lru==2.0.4          # via jupyterlab
 async-property==0.2.2     # via python-keycloak, -c requirements-dev.txt
@@ -34,14 +34,14 @@ comm==0.2.2               # via ipykernel, ipywidgets
 contourpy==1.3.0          # via matplotlib, -c requirements-dev.txt
 cryptography==43.0.1      # via jwcrypto, rfc3161ng, -c requirements-dev.txt
 cycler==0.12.1            # via matplotlib, -c requirements-dev.txt
-dask==2024.8.1            # via hyperspy, kikuchipy, orix, pyxem, rosettasciio
-debugpy==1.8.5            # via ipykernel
+dask==2024.9.1            # via hyperspy, kikuchipy, orix, pyxem, rosettasciio
+debugpy==1.8.6            # via ipykernel
 decorator==5.1.1          # via ipyparallel, ipython, -c requirements-dev.txt
 defusedxml==0.7.1         # via nbconvert
 deprecation==2.1.0        # via python-keycloak, -c requirements-dev.txt
-diffpy-structure==3.2.0   # via diffsims, kikuchipy, orix
+diffpy-structure==3.2.2   # via diffsims, kikuchipy, orix
 diffsims==0.6.0           # via kikuchipy, pyxem
-dill==0.3.8               # via hyperspy, lmfit
+dill==0.3.9               # via hyperspy, lmfit
 docstring-parser==0.16    # via nomad-lab, -c requirements-dev.txt
 eelsdbconverter @ git+https://github.com/nomad-coe/nomad-parser-eelsdb.git@788eb03dc71ef9b164e2a5ccb9c0209b546f5c38  # via -r default_plugins.txt
 elasticsearch==7.17.12    # via elasticsearch-dsl, -c requirements-dev.txt
@@ -49,22 +49,22 @@ elasticsearch-dsl==7.4.0  # via nomad-lab, -c requirements-dev.txt
 entrypoints==0.4          # via ipyparallel
 et-xmlfile==1.1.0         # via openpyxl, -c requirements-dev.txt
 executing==2.1.0          # via stack-data, -c requirements-dev.txt
-fabio==2024.4.0           # via pyfai, silx
-fairmat-readers-xrd==0.0.6  # via pynxtools-xrd
+fabio==2024.9.0           # via pyfai, silx
+fairmat-readers-xrd==0.0.7  # via pynxtools-xrd
 fasteners==0.19           # via mdanalysis, zarr
 fastjsonschema==2.20.0    # via nbformat
-findiff==0.10.0           # via pynxtools-stm
+findiff==0.10.2           # via pynxtools-stm
 flask==3.0.3              # via asr
 flatdict==4.0.1           # via ifes-apt-tc-data-modeling, pynxtools-em
 fonttools==4.54.1         # via matplotlib, -c requirements-dev.txt
 fqdn==1.5.1               # via jsonschema, -c requirements-dev.txt
-fsspec==2024.6.1          # via dask, hyperspy
+fsspec==2024.9.0          # via dask, hyperspy
 greenlet==3.1.1 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')  # via sqlalchemy, -c requirements-dev.txt
 griddataformats==1.0.2    # via mdanalysis
 h11==0.14.0               # via httpcore, -c requirements-dev.txt
 h5grove==1.3.0            # via jupyterlab-h5web, -c requirements-dev.txt
 h5py==3.11.0              # via fabio, h5grove, hdf5plugin, hyperspy, ifes-apt-tc-data-modeling, jupyterlab-h5web, kikuchipy, nionswift, nomad-lab, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, orix, phonopy, pyfai, pynxtools, pynxtools-mpes, pynxtools-xps, pyxem, silx, -c requirements-dev.txt
-hdf5plugin==4.4.0         # via fabio
+hdf5plugin==5.0.0         # via fabio
 hjson==3.1.0              # via nomad-lab, -c requirements-dev.txt
 httpcore==1.0.6           # via httpx, -c requirements-dev.txt
 httpx==0.27.2             # via jupyterlab, nomad-lab, python-keycloak, -c requirements-dev.txt
@@ -74,9 +74,9 @@ ifes-apt-tc-data-modeling==0.2.2  # via pynxtools-apm
 igor2==0.5.8              # via pynxtools-xps
 imageio==2.27.0           # via hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
 importlib-metadata==7.1.0  # via dask, hyperspy, nomad-lab, pynxtools, -c requirements-dev.txt
-ipykernel==6.29.5         # via ipyparallel, jupyter, jupyter-console, jupyterlab, qtconsole
+ipykernel==6.29.5         # via ipyparallel, jupyter, jupyter-console, jupyterlab
 ipyparallel==8.8.0        # via hyperspy
-ipython==8.26.0           # via hyperspy, ipykernel, ipyparallel, ipywidgets, jupyter-console
+ipython==8.28.0           # via hyperspy, ipykernel, ipyparallel, ipywidgets, jupyter-console
 ipywidgets==8.1.5         # via jupyter
 isoduration==20.11.0      # via jsonschema, -c requirements-dev.txt
 itsdangerous==2.2.0       # via flask, -c requirements-dev.txt
@@ -87,22 +87,22 @@ joblib==1.4.2             # via mdanalysis, pymatgen, scikit-learn, -c requireme
 json5==0.9.25             # via jupyterlab-server
 jsonpointer==3.0.0        # via jsonschema, -c requirements-dev.txt
 jsonschema==4.17.3        # via jupyter-events, jupyterlab-server, nbformat, -c requirements-dev.txt
-jupyter==1.0.0            # via ifes-apt-tc-data-modeling
-jupyter-client==8.6.2     # via ipykernel, ipyparallel, jupyter-console, jupyter-server, nbclient, qtconsole
+jupyter==1.1.1            # via ifes-apt-tc-data-modeling
+jupyter-client==8.6.3     # via ipykernel, ipyparallel, jupyter-console, jupyter-server, nbclient
 jupyter-console==6.6.3    # via jupyter
-jupyter-core==5.7.2       # via ipykernel, jupyter-client, jupyter-console, jupyter-server, jupyterlab, nbclient, nbconvert, nbformat, qtconsole
+jupyter-core==5.7.2       # via ipykernel, jupyter-client, jupyter-console, jupyter-server, jupyterlab, nbclient, nbconvert, nbformat
 jupyter-events==0.5.0     # via jupyter-server
 jupyter-lsp==2.2.5        # via jupyterlab
 jupyter-server==2.5.0     # via jupyter-lsp, jupyterlab, jupyterlab-h5web, jupyterlab-server, notebook, notebook-shim
 jupyter-server-terminals==0.5.3  # via jupyter-server
-jupyterlab==4.1.6         # via ifes-apt-tc-data-modeling, notebook
+jupyterlab==4.1.6         # via ifes-apt-tc-data-modeling, jupyter, notebook
 jupyterlab-h5web==11.1.0  # via ifes-apt-tc-data-modeling
 jupyterlab-pygments==0.3.0  # via nbconvert
 jupyterlab-server==2.24.0  # via jupyterlab, notebook
 jupyterlab-widgets==3.0.13  # via ipywidgets
 jwcrypto==1.5.6           # via python-keycloak, -c requirements-dev.txt
 kaleido==0.2.1            # via nomad-lab, -c requirements-dev.txt
-kikuchipy==0.9.0          # via pynxtools-em
+kikuchipy==0.10.0         # via pynxtools-em
 kiwisolver==1.4.7         # via matplotlib, -c requirements-dev.txt
 latexcodec==3.0.0         # via pybtex, -c requirements-dev.txt
 lazy-loader==0.4          # via scikit-image
@@ -111,7 +111,7 @@ lmfit==1.3.2              # via pyxem
 locket==1.0.0             # via partd
 lxml==5.3.0               # via fabio, lxml-html-clean, nomad-lab, nomad-parser-plugins-atomistic, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, pynxtools, -c requirements-dev.txt
 lxml-html-clean==0.2.2    # via nomad-lab, perovskite-solar-cell-database, -c requirements-dev.txt
-markupsafe==2.1.5         # via jinja2, nbconvert, werkzeug, -c requirements-dev.txt
+markupsafe==3.0.0         # via jinja2, nbconvert, werkzeug, -c requirements-dev.txt
 matid==2.1.2              # via nomad-lab, nomad-simulations, -c requirements-dev.txt
 matplotlib==3.9.2         # via ase, asr, diffsims, hyperspy, kikuchipy, matplotlib-scalebar, mdanalysis, orix, phonopy, pyfai, pymatgen, pyxem, radioactivedecay, -c requirements-dev.txt
 matplotlib-inline==0.1.7  # via ipykernel, ipython
@@ -129,7 +129,7 @@ natsort==8.4.0            # via hyperspy
 nbclient==0.10.0          # via nbconvert
 nbconvert==7.16.4         # via jupyter, jupyter-server
 nbformat==5.10.4          # via jupyter-server, nbclient, nbconvert
-ndindex==1.8              # via blosc2
+ndindex==1.9.2            # via blosc2
 nest-asyncio==1.6.0       # via ipykernel
 netcdf4==1.6.5            # via nomad-parser-plugins-electronic, -c requirements-dev.txt
 networkx==3.3             # via matid, nomad-schema-plugin-simulation-workflow, pymatgen, radioactivedecay, scikit-image, -c requirements-dev.txt
@@ -146,14 +146,14 @@ nomad-normalizer-plugin-simulation-workflow==1.0  # via -r default_plugins.txt
 nomad-normalizer-plugin-soap==1.0  # via -r default_plugins.txt
 nomad-normalizer-plugin-spectra==1.0  # via -r default_plugins.txt
 nomad-normalizer-plugin-system==1.0  # via -r default_plugins.txt
-nomad-parser-plugins-atomistic==1.0.1  # via -r default_plugins.txt
+nomad-parser-plugins-atomistic==1.0.2  # via -r default_plugins.txt
 nomad-parser-plugins-database==1.0  # via -r default_plugins.txt
-nomad-parser-plugins-electronic==1.0  # via -r default_plugins.txt
+nomad-parser-plugins-electronic==1.0.2  # via -r default_plugins.txt
 nomad-parser-plugins-simulation==1.0.2  # via nomad-parser-plugins-atomistic, nomad-parser-plugins-electronic
 nomad-parser-plugins-workflow==1.0  # via -r default_plugins.txt
 nomad-porous-materials @ git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@522f4a3208077f534f1c5e886527ee2104283d0b  # via -r default_plugins.txt
-nomad-schema-plugin-run==1.0.1  # via nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-simulation, nomad-parser-plugins-workflow, nomad-schema-plugin-simulation-workflow, -r default_plugins.txt
-nomad-schema-plugin-simulation-workflow==1.0.1  # via nomad-normalizer-plugin-simulation-workflow, nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, -r default_plugins.txt
+nomad-schema-plugin-run==1.0.2  # via nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-simulation, nomad-parser-plugins-workflow, nomad-schema-plugin-simulation-workflow, -r default_plugins.txt
+nomad-schema-plugin-simulation-workflow==1.0.4  # via nomad-normalizer-plugin-simulation-workflow, nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, -r default_plugins.txt
 nomad-simulations==0.0.1  # via -r default_plugins.txt
 notebook==7.1.3           # via jupyter
 notebook-shim==0.2.4      # via jupyterlab, notebook
@@ -161,12 +161,11 @@ nptyping==1.4.4           # via nomad-lab, -c requirements-dev.txt
 numba==0.60.0             # via diffsims, hyperspy, kikuchipy, orix, pyxem, sparse
 numcodecs==0.13.0 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via zarr
 numexpr==2.10.1           # via blosc2, hyperspy, pyfai, pyxem, tables
-numpy==1.26.4             # via ase, blosc2, cftime, contourpy, dask, diffsims, fabio, fairmat-readers-xrd, findiff, griddataformats, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, igor2, imageio, kikuchipy, lmfit, matid, matplotlib, mdanalysis, mrcfile, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-lab, nptyping, numba, numcodecs, numexpr, numpy-quaternion, orix, pandas, phonopy, pyedr, pyfai, pymatgen, pynxtools, pynxtools-xps, pyxem, radioactivedecay, rdkit, rosettasciio, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tables, tifffile, transforms3d, xarray, xraydb, zarr, -c requirements-dev.txt
-numpy-quaternion==2023.0.4  # via orix
+numpy==1.26.4             # via ase, blosc2, cftime, contourpy, dask, diffpy-structure, diffsims, fabio, fairmat-readers-xrd, findiff, griddataformats, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, igor2, imageio, kikuchipy, lmfit, matid, matplotlib, mdanalysis, mrcfile, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-lab, nptyping, numba, numcodecs, numexpr, orix, pandas, phonopy, pycifrw, pyedr, pyfai, pymatgen, pynxtools, pynxtools-apm, pynxtools-em, pynxtools-xps, pyxem, radioactivedecay, rdkit, rosettasciio, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tables, tifffile, transforms3d, xarray, xraydb, zarr, -c requirements-dev.txt
 openpyxl==3.1.5           # via nomad-lab, perovskite-solar-cell-database, -c requirements-dev.txt
-orix==0.12.1.post0        # via diffsims, kikuchipy, pyxem
+orix==0.13.2              # via diffsims, kikuchipy, pyxem
 orjson==3.10.7            # via h5grove, nomad-lab, -c requirements-dev.txt
-packaging==24.1           # via dask, deprecation, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, lazy-loader, matplotlib, mdanalysis, nbconvert, pint, plotly, pooch, qtconsole, qtpy, scikit-image, silx, tables, xarray, xraydb, -c requirements-dev.txt
+packaging==24.1           # via dask, deprecation, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, lazy-loader, matplotlib, mdanalysis, nbconvert, pint, plotly, pooch, scikit-image, silx, tables, xarray, xraydb, -c requirements-dev.txt
 palettable==3.3.3         # via pymatgen, -c requirements-dev.txt
 pandas==2.2.3             # via eelsdbconverter, ifes-apt-tc-data-modeling, nomad-lab, panedr, pymatgen, pynxtools, radioactivedecay, xarray, -c requirements-dev.txt
 pandocfilters==1.5.1      # via nbconvert
@@ -178,9 +177,10 @@ perovskite-solar-cell-database @ git+https://github.com/FAIRmat-NFDI/nomad-perov
 pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'  # via ipython
 phonopy==2.11.0           # via asr, nomad-parser-plugins-workflow
 pillow==10.4.0            # via fabio, imageio, matplotlib, nionswift, rdkit, scikit-image, -c requirements-dev.txt
-pint==0.17                # via fairmat-readers-xrd, hyperspy, nomad-lab, pynxtools-xps, pynxtools-xrd, rosettasciio, -c requirements-dev.txt
+pint==0.17                # via fairmat-readers-xrd, hyperspy, nomad-lab, pynxtools-apm, pynxtools-em, pynxtools-xps, pynxtools-xrd, rosettasciio, -c requirements-dev.txt
 platformdirs==4.3.6       # via jupyter-core, pooch, xraydb, -c requirements-dev.txt
 plotly==5.24.1            # via asr, pymatgen, -c requirements-dev.txt
+ply==3.11                 # via pycifrw
 pooch==1.8.2              # via kikuchipy, orix
 prettytable==3.11.0       # via hyperspy
 prometheus-client==0.21.0  # via jupyter-server, -c requirements-dev.txt
@@ -192,37 +192,36 @@ py-cpuinfo==9.0.0         # via blosc2, tables
 pyasn1==0.6.1             # via pyasn1-modules, rfc3161ng, -c requirements-dev.txt
 pyasn1-modules==0.4.1     # via rfc3161ng, -c requirements-dev.txt
 pybtex==0.24.0            # via pymatgen, -c requirements-dev.txt
+pycifrw==4.4.6            # via diffpy-structure, orix
 pycparser==2.22           # via cffi, -c requirements-dev.txt
 pydantic==1.10.18         # via nomad-lab, nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, nomad-porous-materials, -c requirements-dev.txt
 pyedr==0.8.0              # via panedr, -c requirements-dev.txt
-pyfai==2024.5.0           # via pyxem
-pygments==2.18.0          # via ipython, jupyter-console, nbconvert, qtconsole, -c requirements-dev.txt
+pyfai==2024.9.0           # via pyxem
+pygments==2.18.0          # via ipython, jupyter-console, nbconvert, -c requirements-dev.txt
 pymatgen==2024.5.1        # via asr, nomad-lab, nomad-porous-materials, -c requirements-dev.txt
-pynxtools==0.5.0          # via pynxtools-apm, pynxtools-ellips, pynxtools-em, pynxtools-mpes, pynxtools-raman, pynxtools-stm, pynxtools-xps, pynxtools-xrd, -r default_plugins.txt
-pynxtools-apm==0.2        # via pynxtools
+pynxtools==0.7.0          # via pynxtools-apm, pynxtools-ellips, pynxtools-em, pynxtools-mpes, pynxtools-raman, pynxtools-stm, pynxtools-xps, pynxtools-xrd, -r default_plugins.txt
+pynxtools-apm==0.2.1      # via pynxtools
 pynxtools-ellips==0.0.4   # via pynxtools
-pynxtools-em==0.2         # via pynxtools
-pynxtools-mpes==0.1.1     # via pynxtools
+pynxtools-em==0.3.0       # via pynxtools
+pynxtools-mpes==0.2.0     # via pynxtools
 pynxtools-raman==0.0.1    # via pynxtools
 pynxtools-stm==1.0.5      # via pynxtools
-pynxtools-xps==0.2.5      # via pynxtools
+pynxtools-xps==0.4.2      # via pynxtools
 pynxtools-xrd==0.0.2      # via pynxtools
 pyparsing==3.1.4          # via matplotlib, -c requirements-dev.txt
 pyrsistent==0.20.0        # via jsonschema, -c requirements-dev.txt
 python-box==7.2.0         # via rosettasciio
 python-dateutil==2.9.0.post0  # via arrow, elasticsearch-dsl, hyperspy, ipyparallel, jupyter-client, matplotlib, pandas, rfc3161ng, rosettasciio, -c requirements-dev.txt
 python-json-logger==2.0.2  # via jupyter-events, -c requirements-dev.txt
-python-keycloak==4.6.0    # via nomad-lab, -c requirements-dev.txt
+python-keycloak==4.6.2    # via nomad-lab, -c requirements-dev.txt
 python-magic==0.4.24      # via nomad-lab, -c requirements-dev.txt
 pytz==2024.2              # via nionswift, nomad-lab, pandas, -c requirements-dev.txt
-pywin32==306 ; platform_python_implementation != 'PyPy' and sys_platform == 'win32'  # via jupyter-core, -c requirements-dev.txt
+pywin32==307 ; platform_python_implementation != 'PyPy' and sys_platform == 'win32'  # via jupyter-core, -c requirements-dev.txt
 pywinpty==2.0.13 ; os_name == 'nt'  # via jupyter-server, jupyter-server-terminals, terminado
 pyxem==0.16.0             # via pynxtools-em
-pyyaml==6.0.2             # via dask, hyperspy, jupyter-events, kikuchipy, nomad-lab, nomad-parser-plugins-electronic, phonopy, pybtex, pynxtools, pynxtools-mpes, rosettasciio, -c requirements-dev.txt
+pyyaml==6.0.2             # via dask, hyperspy, jupyter-events, kikuchipy, nomad-lab, nomad-parser-plugins-electronic, phonopy, pybtex, pynxtools, rosettasciio, -c requirements-dev.txt
 pyzeo==0.1.6              # via nomad-porous-materials
-pyzmq==26.2.0             # via ipykernel, ipyparallel, jupyter-client, jupyter-console, jupyter-server, qtconsole
-qtconsole==5.5.2          # via jupyter
-qtpy==2.4.1               # via qtconsole
+pyzmq==26.2.0             # via ipykernel, ipyparallel, jupyter-client, jupyter-console, jupyter-server
 radioactivedecay==0.5.1   # via ifes-apt-tc-data-modeling
 rdkit==2023.9.5           # via perovskite-solar-cell-database, -c requirements-dev.txt
 requests==2.31.0          # via eelsdbconverter, hyperspy, jupyterlab-server, nomad-lab, pooch, pymatgen, python-keycloak, requests-toolbelt, rfc3161ng, -c requirements-dev.txt
@@ -237,7 +236,7 @@ scikit-image==0.22.0      # via hyperspy, kikuchipy, pyxem
 scikit-learn==1.5.2       # via kikuchipy, matid, nomad-lab, pyxem, -c requirements-dev.txt
 scipy==1.14.1             # via ase, diffsims, findiff, griddataformats, hyperspy, kikuchipy, lmfit, mdanalysis, niondata, nionswift, nomad-lab, nomad-parser-plugins-atomistic, nomad-schema-plugin-simulation-workflow, orix, pyfai, pymatgen, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse, xraydb, -c requirements-dev.txt
 send2trash==1.8.3         # via jupyter-server
-setuptools==73.0.1        # via pynxtools-xps, radioactivedecay
+setuptools==75.1.0        # via radioactivedecay
 silx==2.1.1               # via pyfai
 six==1.16.0               # via anytree, asttokens, bleach, elasticsearch-dsl, pybtex, python-dateutil, rfc3339-validator, -c requirements-dev.txt
 sniffio==1.3.1            # via anyio, httpx, -c requirements-dev.txt
@@ -254,15 +253,15 @@ terminado==0.18.1         # via jupyter-server, jupyter-server-terminals
 threadpoolctl==3.5.0      # via mdanalysis, scikit-learn, -c requirements-dev.txt
 tifffile==2024.9.20       # via h5grove, hyperspy, scikit-image, -c requirements-dev.txt
 tinycss2==1.3.0           # via nbconvert
-toolz==0.12.1             # via dask, hyperspy, partd
+toolz==1.0.0              # via dask, hyperspy, partd
 toposort==1.10            # via nomad-lab, -c requirements-dev.txt
 tornado==6.4.1            # via ipykernel, ipyparallel, jupyter-client, jupyter-server, jupyterlab, notebook, terminado, -c requirements-dev.txt
 tqdm==4.66.5              # via diffsims, hyperspy, ipyparallel, kikuchipy, mdanalysis, orix, pyedr, pymatgen, pyxem, -c requirements-dev.txt
-traitlets==5.14.3         # via comm, ipykernel, ipyparallel, ipython, ipywidgets, jupyter-client, jupyter-console, jupyter-core, jupyter-events, jupyter-server, jupyterlab, matplotlib-inline, nbclient, nbconvert, nbformat, qtconsole, -c requirements-dev.txt
+traitlets==5.14.3         # via comm, ipykernel, ipyparallel, ipython, ipywidgets, jupyter-client, jupyter-console, jupyter-core, jupyter-events, jupyter-server, jupyterlab, matplotlib-inline, nbclient, nbconvert, nbformat, -c requirements-dev.txt
 traits==6.4.3             # via hyperspy, pyxem
 transforms3d==0.4.2       # via diffsims, pyxem
 types-python-dateutil==2.9.0.20241003  # via arrow, -c requirements-dev.txt
-typing-extensions==4.12.2  # via ipython, jwcrypto, pydantic, sqlalchemy, tables, -c requirements-dev.txt
+typing-extensions==4.12.2  # via ipython, jwcrypto, orix, pydantic, sqlalchemy, tables, -c requirements-dev.txt
 typish==1.9.3             # via nptyping, -c requirements-dev.txt
 tzdata==2024.2            # via pandas, tzlocal, -c requirements-dev.txt
 tzlocal==5.2              # via nionswift, pynxtools-em
@@ -280,7 +279,7 @@ wrapt==1.16.0             # via nomad-lab, -c requirements-dev.txt
 xarray==2024.9.0          # via nomad-lab, nomad-parser-plugins-workflow, pynxtools, pynxtools-mpes, pynxtools-xps, -c requirements-dev.txt
 xmltodict==0.13.0         # via fairmat-readers-xrd, ifes-apt-tc-data-modeling, pynxtools-em, pynxtools-xrd
 xraydb==4.5.4             # via pynxtools-em
-zarr==2.18.2 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via hyperspy
+zarr==2.18.3 ; platform_machine == 'AMD64' or platform_machine == 'x86_64'  # via hyperspy
 zipp==3.20.2              # via importlib-metadata, -c requirements-dev.txt
 
 # The following packages were excluded from the output:
