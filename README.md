@@ -52,6 +52,10 @@ Omitted versions are plain bugfix releases with only minor changes and fixes. Th
 file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
 contains much more detailed information about changes and fixes in the released versions.
 
+### v1.3.8
+
+- Added an ELN edit quantity that presents a button to trigger an action during processing.
+
 ### v1.3.7
 
 - Added group assignment to the uploa user management dialog
