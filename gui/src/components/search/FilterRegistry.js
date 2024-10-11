@@ -517,9 +517,12 @@ registerFilter(
   idCatalyst,
   nestedQuantity,
   [
-    {name: 'temperature', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'temperature', ...numberHistogramQuantity, scale: 'linear'},
     {name: 'pressure', ...numberHistogramQuantity, scale: 'linear'},
-    {name: 'weight_hourly_space_velocity', ...numberHistogramQuantity, scale: 'log'}
+    {name: 'weight_hourly_space_velocity', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'gas_hourly_space_velocity', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'flow_rate', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'time_on_stream', ...numberHistogramQuantity, scale: 'linear'}
   ]
 )
 registerFilter(
@@ -529,7 +532,8 @@ registerFilter(
   [
     {name: 'name', ...termQuantityAllNonExclusive},
     {name: 'gas_concentration_out', ...numberHistogramQuantity, scale: 'linear'},
-    {name: 'selectivity', ...numberHistogramQuantity, scale: 'log'}
+    {name: 'selectivity', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'space_time_yield', ...numberHistogramQuantity, scale: 'linear'}
   ]
 )
 registerFilter(
@@ -548,7 +552,23 @@ registerFilter(
   idCatalyst,
   nestedQuantity,
   [
-    {name: 'reaction_rate', ...numberHistogramQuantity, scale: 'linear'}
+    {name: 'name', ...termQuantityAllNonExclusive},
+    {name: 'reaction_rate', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'specific_mass_rate', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'specific_surface_area_rate', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'rate', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'turnover_frequency', ...numberHistogramQuantity, scale: 'linear'}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.reaction.reaction_mechanism',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'initial_states', ...termQuantity},
+    {name: 'final_states', ...termQuantity},
+    {name: 'reaction_enthalpy', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'activation_energy', ...numberHistogramQuantity, scale: 'linear'}
   ]
 )
 registerFilter(
