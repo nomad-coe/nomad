@@ -65,7 +65,7 @@ import {apiBase} from '../../config'
 import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
 import ReactJson from 'react-json-view'
-import { range, isNaN, partition } from 'lodash'
+import { range, isNaN, partition, isArray } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { useEntryStore } from '../entry/EntryContext'
 import ArchiveSearchBar from './ArchiveSearchBar'
@@ -564,14 +564,33 @@ class SectionAdaptor extends ArchiveAdaptor {
               // the custom definition is present anyway
               resolvedDef = property.type._referencedDefinition
             } else {
+              // We need to traverse the data and primarily use definition from
+              // the data (m_def), or alternatively load the definition from the
+              // metainfo
+              let iData = archive
               const metainfo = await this.dataStore.getMetainfoAsync(systemMetainfoUrl)
+              let iDef = metainfo.getEntryArchiveDefinition()
+              let iSection = 0
               try {
-                resolvedDef = metainfo.getEntryArchiveDefinition()
                 for (const item of resolvedUrl.path.split('/')) {
-                  if (item.match(/^-?\d+$/) || item === '') continue
-                  resolvedDef = resolvedDef._properties[item]
-                  if (resolvedDef.sub_section) resolvedDef = resolvedDef.sub_section
+                  // Section numbers are stored
+                  if (item.match(/^-?\d+$/) || item === '') {
+                    iSection = parseInt(item)
+                    continue
+                  }
+                  // If the archive has an m_def, use it
+                  iData = iData[isArray(iData) ? iSection : item]
+                  if (iData?.m_def) {
+                    iDef = await metainfo.resolveDefinition(iData.m_def)
+                  // Otherwise use the definition loaded from the parent section
+                  } else {
+                    iDef = iDef._properties[item]
+                    if (iDef.sub_section) iDef = iDef.sub_section
+                  }
                 }
+                resolvedDef = iDef
+              // If something goes wrong with the definition resolution, fall
+              // back to the type specified in the reference definition.
               } catch {
                 resolvedDef = property.type._referencedDefinition
               }
@@ -852,16 +871,13 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
   }, [])
 
   const validSections = useMemo(() => {
-    if (Object.keys(section).filter(key => key !== 'm_def').length === 0) {
-      return originalInheritingSectionsRef.current
-    } else {
-      return currentInheritingSections
-    }
-  }, [originalInheritingSectionsRef, currentInheritingSections, section])
-
-  const showSelection = useMemo(() => {
-    return validSections.length > 1
-  }, [validSections])
+    const sectionsToSort = section.m_def
+        ? currentInheritingSections
+        : originalInheritingSectionsRef.current
+    return [...sectionsToSort]
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+  }, [currentInheritingSections, section.m_def])
+  const showSelection = validSections.length > 1
 
   const handleInheritingSectionsChange = useCallback((e) => {
     if (Object.keys(section).filter(key => key !== 'm_def').length !== 0) {
