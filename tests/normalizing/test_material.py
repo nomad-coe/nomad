@@ -421,7 +421,7 @@ two_d_split_expected = Atoms(
     pbc=[True, True, False],
 )
 two_d_swap = Atoms(
-    symbols=['B', 'N'],
+    symbols=['B', 'H'],
     positions=[
         [0, 0, 0],
         [-0.6, 0.3, 0],
@@ -430,7 +430,7 @@ two_d_swap = Atoms(
     pbc=True,
 )
 two_d_swap_expected = Atoms(
-    symbols=['B', 'N'],
+    symbols=['B', 'H'],
     positions=[
         [0, 0, 0.67082039],
         [0, 0, 0],
@@ -464,7 +464,10 @@ def test_conventional_structure(atoms, expected, monkeypatch):
     """Tests that the conventional structure has the correct form."""
     monkeypatch.setattr(
         'nomad.normalizing.topology.top_50k_material_ids',
-        {'upphbIG7rwgpi5sAvc9-z3GT1MCO': 1, 'nikqWRhuLtW8p8rPILRL60yQlf1C': 1},
+        {
+            'nikqWRhuLtW8p8rPILRL60yQlf1C': 1,
+            'R2G5lRApZZD9dzBpXcZXbGQbsZDi': 1,
+        },
     )
     entry = get_template_for_structure(atoms)
     topology = entry.results.material.topology
