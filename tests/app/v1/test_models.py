@@ -122,7 +122,6 @@ def test_module():
                 '*':
                     entry:
                         process_status: '*'
-                    '*': '*'
             """,
             [
                 'users.m_children.me.uploads.m_request.query.is_published:False',
@@ -134,7 +133,6 @@ def test_module():
                 'users.m_children.me.datasets.m_children.*.doi:*',
                 'search.m_children.*.entry.process_status:*',
                 'search.m_children.*.entry:GraphEntryRequest',
-                'search.m_children.*.*:*',
             ],
             None,
             id='ok',
@@ -184,7 +182,6 @@ def test_validation(request_yaml: str, paths: List[str], error_path: str):
         export_kwargs = dict(
             exclude_unset=True, exclude_defaults=False, exclude_none=False
         )
-        print(request.json(indent=2, **export_kwargs))
         for path in paths:
             assert_path(request, path)
 

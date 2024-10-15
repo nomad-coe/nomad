@@ -29,6 +29,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from nomad import infrastructure
 from nomad.config import config
+from nomad.config.models.plugins import APIEntryPoint
 
 from .v1.main import app as v1_app
 from .static import app as static_files_app, GuiFiles
@@ -95,6 +96,12 @@ if config.resources.enabled:
     from .resources.main import app as resources_app
 
     app.mount(f'{app_base}/resources', resources_app)
+
+# Add API plugins
+for entry_point in config.plugins.entry_points.filtered_values():
+    if isinstance(entry_point, APIEntryPoint):
+        api_app = entry_point.load()
+        app.mount(f'{app_base}/{entry_point.prefix}', api_app)
 
 # Make sure to mount this last, as it is a catch-all routes that are not yet mounted.
 app.mount(app_base, static_files_app)

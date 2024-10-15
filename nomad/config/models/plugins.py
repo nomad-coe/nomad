@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from nomad.metainfo import SchemaPackage
     from nomad.normalizing import Normalizer as NormalizerBaseClass
     from nomad.parsing import Parser as ParserBaseClass
+    from fastapi import FastAPI
 
 
 class EntryPoint(BaseModel):
@@ -299,6 +300,44 @@ class ExampleUploadEntryPoint(EntryPoint):
         )
 
 
+class APIEntryPoint(EntryPoint, metaclass=ABCMeta):
+    """Base model for API plugin entry points."""
+
+    entry_point_type: Literal['api'] = Field(
+        'api', description='Specifies the entry point type.'
+    )
+
+    prefix: str = Field(
+        None,
+        description=(
+            'The prefix for the API. The URL for the API will be the base URL of the NOMAD '
+            'installation followed by this prefix. The prefix must not collide with any other '
+            'API prefixes. There is no default, this field must be set.'
+        ),
+    )
+
+    @root_validator(pre=True)
+    def prefix_must_be_defined_and_valid(cls, v):
+        import urllib.parse
+
+        if 'prefix' not in v:
+            raise ValueError('prefix must be defined')
+        if not v['prefix']:
+            raise ValueError('prefix must be defined')
+        if urllib.parse.quote(v['prefix']) != v['prefix']:
+            raise ValueError('prefix must be a valid URL path')
+
+        v['prefix'] = v['prefix'].strip('/')
+        return v
+
+    @abstractmethod
+    def load(self) -> 'FastAPI':
+        """Used to lazy-load the API instance. You should override this
+        method in your subclass. Note that any Python module imports required
+        for the API should be done within this function as well."""
+        pass
+
+
 class PluginBase(BaseModel):
     """
     Base model for a NOMAD plugin.
@@ -536,6 +575,7 @@ EntryPointType = Union[
     NormalizerEntryPoint,
     AppEntryPoint,
     ExampleUploadEntryPoint,
+    APIEntryPoint,
 ]
 
 

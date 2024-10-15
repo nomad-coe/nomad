@@ -1506,7 +1506,7 @@ async def post_entry_edit(
             key = to_key(path_segment)
             repeated_sub_section = isinstance(next_key, int)
 
-            next_value = [] if repeated_sub_section else {}
+            next_value: Union[list, dict] = [] if repeated_sub_section else {}
 
             if isinstance(section_data, list):
                 if section_data[key] is None:

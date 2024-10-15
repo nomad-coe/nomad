@@ -21,6 +21,7 @@ import pytest
 
 from nomad.config.models.plugins import (
     ExampleUploadEntryPoint,
+    APIEntryPoint,
     example_upload_path_prefix,
 )
 
@@ -117,3 +118,40 @@ def test_example_upload_entry_point_invalid(config, error, monkeypatch):
             entry_point.load()
 
         assert exc_info.match(error)
+
+
+@pytest.mark.parametrize(
+    'config, error, value',
+    [
+        pytest.param({}, 'prefix must be defined', None, id='prefix-must-be-defined'),
+        pytest.param(
+            {'prefix': None},
+            'prefix must be defined',
+            None,
+            id='prefix-must-not-be-none',
+        ),
+        pytest.param(
+            {'prefix': ''}, 'prefix must be defined', None, id='prefix-must-not-empty'
+        ),
+        pytest.param({'prefix': '/foo/bar/'}, None, 'foo/bar', id='prefix-slashes'),
+        pytest.param(
+            {'prefix': 'not_$url& save'},
+            'prefix must be a valid URL path',
+            None,
+            id='prefix-is-valid-url',
+        ),
+    ],
+)
+def test_api_entry_point_invalid(config, error, value):
+    class MyAPIEntryPoint(APIEntryPoint):
+        def load(self):
+            pass
+
+    if error:
+        with pytest.raises(Exception) as exc_info:
+            MyAPIEntryPoint(**config)
+        assert exc_info.match(error)
+
+    if not error:
+        entry_point = MyAPIEntryPoint(**config)
+        assert entry_point.prefix == value
