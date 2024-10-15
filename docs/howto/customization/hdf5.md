@@ -120,6 +120,8 @@ class LargeData(ArchiveSection):
 The assigned value will also be written to the archive HDF5 file and serialized as
 `/uploads/test_upload/archive/test_entry#/data/value`.
 
+To read the dataset, one shall use the context manager to ensure the file is closed properly when done.
+
 ```python
 archive.data.value = np.ones(3)
 
@@ -127,7 +129,8 @@ serialized = archive.m_to_dict()
 serialized['data']['value']
 # '/uploads/test_upload/archive/test_entry#/data/value'
 deserialized = archive.m_from_dict(serialized, m_context=archive.m_context)
-deserialized.data.value
+with deserialized.data.value as dataset:
+    print(dataset[:])
 # array([1., 1., 1.])
 ```
 
