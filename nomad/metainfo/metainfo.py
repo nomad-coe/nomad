@@ -3420,7 +3420,7 @@ class DirectQuantity(Quantity):
         self._name = kwargs.get('name')
         self._default = kwargs.get('default')
 
-    def __get__(self, obj, cls=None):
+    def __get__(self, obj, cls=None, **kwargs):
         if obj is None:
             return self
 
