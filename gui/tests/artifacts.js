@@ -66052,6 +66052,59 @@ window.nomadArtifacts = {
       ]
     },
     {
+      "name": "UK_force_ton",
+      "dimension": "force",
+      "label": "UK force ton",
+      "abbreviation": "UK_force_ton",
+      "aliases": [
+        "UK_ton_force"
+      ],
+      "definition": "9964.01641818352 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "UK_hundredweight",
+      "dimension": "mass",
+      "label": "UK hundredweight",
+      "abbreviation": "UK_cwt",
+      "aliases": [
+        "UK_cwt"
+      ],
+      "definition": "50.80234544 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "UK_ton",
+      "dimension": "mass",
+      "label": "UK ton",
+      "abbreviation": "UK_ton",
+      "aliases": [],
+      "definition": "1016.0469088000001 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "US_force_ton",
+      "dimension": "force",
+      "label": "US force ton",
+      "abbreviation": "US_force_ton",
+      "aliases": [
+        "US_ton_force"
+      ],
+      "definition": "8896.443230521003 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "US_hundredweight",
+      "dimension": "mass",
+      "label": "US hundredweight",
+      "abbreviation": "US_cwt",
+      "aliases": [
+        "US_cwt"
+      ],
+      "definition": "45.35923700000001 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "US_international_ampere",
       "dimension": "current",
       "label": "US international ampere",
@@ -66083,6 +66136,15 @@ window.nomadArtifacts = {
         "V_US"
       ],
       "definition": "1.00033 kilogram * meter ^ 2 / ampere / second ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "US_ton",
+      "dimension": "mass",
+      "label": "US ton",
+      "abbreviation": "US_ton",
+      "aliases": [],
+      "definition": "907.1847400000001 kilogram",
       "offset": 0.0
     },
     {
@@ -66161,6 +66223,26 @@ window.nomadArtifacts = {
         "abV"
       ],
       "definition": "1e-08 kilogram * meter ^ 2 / ampere / second ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "acre",
+      "dimension": "area",
+      "label": "Acre",
+      "abbreviation": "acre",
+      "aliases": [],
+      "definition": "4046.8726098742513 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "acre_foot",
+      "dimension": "volume",
+      "label": "Acre foot",
+      "abbreviation": "acre_foot",
+      "aliases": [
+        "acre_feet"
+      ],
+      "definition": "1233.4892384681486 meter ^ 3",
       "offset": 0.0
     },
     {
@@ -66306,6 +66388,15 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "bag",
+      "dimension": "mass",
+      "label": "Bag",
+      "abbreviation": "bag",
+      "aliases": [],
+      "definition": "42.637682780000006 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "bar",
       "dimension": "pressure",
       "label": "Bar",
@@ -66408,6 +66499,15 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "cables_length",
+      "dimension": "length",
+      "label": "Cables length",
+      "abbreviation": "cables_length",
+      "aliases": [],
+      "definition": "219.45643891287781 meter",
+      "offset": 0.0
+    },
+    {
       "name": "calorie",
       "dimension": "energy",
       "label": "Calorie",
@@ -66455,6 +66555,15 @@ window.nomadArtifacts = {
         "centimeter_Hg_0C"
       ],
       "definition": "1333.2238741499998 kilogram / meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "chain",
+      "dimension": "length",
+      "label": "Chain",
+      "abbreviation": "chain",
+      "aliases": [],
+      "definition": "20.116840233680467 meter",
       "offset": 0.0
     },
     {
@@ -66602,6 +66711,40 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "cubic_foot",
+      "dimension": "volume",
+      "label": "Cubic foot",
+      "abbreviation": "cu_ft",
+      "aliases": [
+        "cu_ft",
+        "cubic_feet"
+      ],
+      "definition": "0.028316846591999994 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "cubic_inch",
+      "dimension": "volume",
+      "label": "Cubic inch",
+      "abbreviation": "cu_in",
+      "aliases": [
+        "cu_in"
+      ],
+      "definition": "1.6387063999999996e-05 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "cubic_yard",
+      "dimension": "volume",
+      "label": "Cubic yard",
+      "abbreviation": "cu_yd",
+      "aliases": [
+        "cu_yd"
+      ],
+      "definition": "0.764554857984 meter ^ 3",
+      "offset": 0.0
+    },
+    {
       "name": "curie",
       "dimension": "frequency",
       "label": "Curie",
@@ -66717,6 +66860,20 @@ window.nomadArtifacts = {
       "offset": 341.43749999999994
     },
     {
+      "name": "dram",
+      "dimension": "mass",
+      "label": "Dram",
+      "abbreviation": "dr",
+      "aliases": [
+        "dr",
+        "avoirdupois_dram",
+        "avdp_dram",
+        "drachm"
+      ],
+      "definition": "0.0017718451953125003 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "dyne",
       "dimension": "force",
       "label": "Dyne",
@@ -66824,6 +66981,15 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "fathom",
+      "dimension": "length",
+      "label": "Fathom",
+      "abbreviation": "fathom",
+      "aliases": [],
+      "definition": "1.828803657607315 meter",
+      "offset": 0.0
+    },
+    {
       "name": "fermi",
       "dimension": "length",
       "label": "Fermi",
@@ -66841,6 +67007,58 @@ window.nomadArtifacts = {
         "cal_15"
       ],
       "definition": "4.1855 kilogram * meter ^ 2 / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "fifth",
+      "dimension": "volume",
+      "label": "Fifth",
+      "abbreviation": "fifth",
+      "aliases": [
+        "US_liquid_fifth"
+      ],
+      "definition": "0.0007570823567999999 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "fluid_dram",
+      "dimension": "volume",
+      "label": "Fluid dram",
+      "abbreviation": "fldr",
+      "aliases": [
+        "fldr",
+        "fluidram",
+        "US_fluid_dram",
+        "US_liquid_dram"
+      ],
+      "definition": "3.6966911953124993e-06 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "fluid_ounce",
+      "dimension": "volume",
+      "label": "Fluid ounce",
+      "abbreviation": "floz",
+      "aliases": [
+        "floz",
+        "US_fluid_ounce",
+        "US_liquid_ounce"
+      ],
+      "definition": "2.9573529562499994e-05 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "foot",
+      "dimension": "length",
+      "label": "Foot",
+      "abbreviation": "ft",
+      "aliases": [
+        "ft",
+        "international_foot",
+        "feet",
+        "international_feet"
+      ],
+      "definition": "0.30479999999999996 meter",
       "offset": 0.0
     },
     {
@@ -66890,6 +67108,17 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "force_long_ton",
+      "dimension": "force",
+      "label": "Force long ton",
+      "abbreviation": "force_long_ton",
+      "aliases": [
+        "long_ton_force"
+      ],
+      "definition": "9964.01641818352 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
       "name": "force_metric_ton",
       "dimension": "force",
       "label": "Force metric ton",
@@ -66904,6 +67133,54 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "force_ounce",
+      "dimension": "force",
+      "label": "Force ounce",
+      "abbreviation": "ozf",
+      "aliases": [
+        "ozf",
+        "ounce_force"
+      ],
+      "definition": "0.2780138509537813 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "force_pound",
+      "dimension": "force",
+      "label": "Force pound",
+      "abbreviation": "lbf",
+      "aliases": [
+        "lbf",
+        "pound_force"
+      ],
+      "definition": "4.4482216152605005 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "force_ton",
+      "dimension": "force",
+      "label": "Force ton",
+      "abbreviation": "force_ton",
+      "aliases": [
+        "ton_force",
+        "force_short_ton",
+        "short_ton_force"
+      ],
+      "definition": "8896.443230521003 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "furlong",
+      "dimension": "length",
+      "label": "Furlong",
+      "abbreviation": "fur",
+      "aliases": [
+        "fur"
+      ],
+      "definition": "201.16840233680466 meter",
+      "offset": 0.0
+    },
+    {
       "name": "galileo",
       "dimension": "acceleration",
       "label": "Galileo",
@@ -66912,6 +67189,19 @@ window.nomadArtifacts = {
         "Gal"
       ],
       "definition": "0.01 meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "gallon",
+      "dimension": "volume",
+      "label": "Gallon",
+      "abbreviation": "gal",
+      "aliases": [
+        "gal",
+        "liquid_gallon",
+        "US_liquid_gallon"
+      ],
+      "definition": "0.0037854117839999993 meter ^ 3",
       "offset": 0.0
     },
     {
@@ -66946,6 +67236,19 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "gill",
+      "dimension": "volume",
+      "label": "Gill",
+      "abbreviation": "gi",
+      "aliases": [
+        "gi",
+        "liquid_gill",
+        "US_liquid_gill"
+      ],
+      "definition": "0.00011829411824999998 meter ^ 3",
+      "offset": 0.0
+    },
+    {
       "name": "grade",
       "dimension": "angle",
       "label": "Grade",
@@ -66977,6 +67280,15 @@ window.nomadArtifacts = {
         "g"
       ],
       "definition": "0.001 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "hand",
+      "dimension": "length",
+      "label": "Hand",
+      "abbreviation": "hand",
+      "aliases": [],
+      "definition": "0.1016 meter",
       "offset": 0.0
     },
     {
@@ -67041,6 +67353,18 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "hundredweight",
+      "dimension": "mass",
+      "label": "Hundredweight",
+      "abbreviation": "cwt",
+      "aliases": [
+        "cwt",
+        "short_hundredweight"
+      ],
+      "definition": "45.35923700000001 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "impedance_of_free_space",
       "dimension": "resistance",
       "label": "Impedance of free space",
@@ -67050,6 +67374,158 @@ window.nomadArtifacts = {
         "characteristic_impedance_of_vacuum"
       ],
       "definition": "376.73031366837046 kilogram * meter ^ 2 / ampere ^ 2 / second ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_barrel",
+      "dimension": "volume",
+      "label": "Imperial barrel",
+      "abbreviation": "imperial_bbl",
+      "aliases": [
+        "imperial_bbl",
+        "UK_bbl"
+      ],
+      "definition": "0.16365924000000004 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_bushel",
+      "dimension": "volume",
+      "label": "Imperial bushel",
+      "abbreviation": "imperial_bu",
+      "aliases": [
+        "imperial_bu",
+        "UK_bushel"
+      ],
+      "definition": "0.036368720000000014 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_cup",
+      "dimension": "volume",
+      "label": "Imperial cup",
+      "abbreviation": "imperial_cp",
+      "aliases": [
+        "imperial_cp",
+        "UK_cup"
+      ],
+      "definition": "0.0002841306250000001 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_fluid_drachm",
+      "dimension": "volume",
+      "label": "Imperial fluid drachm",
+      "abbreviation": "imperial_fldr",
+      "aliases": [
+        "imperial_fldr",
+        "imperial_fluid_dram"
+      ],
+      "definition": "3.551632812500001e-06 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_fluid_ounce",
+      "dimension": "volume",
+      "label": "Imperial fluid ounce",
+      "abbreviation": "imperial_floz",
+      "aliases": [
+        "imperial_floz",
+        "UK_fluid_ounce"
+      ],
+      "definition": "2.8413062500000008e-05 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_fluid_scruple",
+      "dimension": "volume",
+      "label": "Imperial fluid scruple",
+      "abbreviation": "imperial_fluid_scruple",
+      "aliases": [],
+      "definition": "1.1838776041666672e-06 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_gallon",
+      "dimension": "volume",
+      "label": "Imperial gallon",
+      "abbreviation": "imperial_gal",
+      "aliases": [
+        "imperial_gal",
+        "UK_gallon"
+      ],
+      "definition": "0.004546090000000002 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_gill",
+      "dimension": "volume",
+      "label": "Imperial gill",
+      "abbreviation": "imperial_gi",
+      "aliases": [
+        "imperial_gi",
+        "UK_gill"
+      ],
+      "definition": "0.00014206531250000006 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_minim",
+      "dimension": "volume",
+      "label": "Imperial minim",
+      "abbreviation": "imperial_minim",
+      "aliases": [],
+      "definition": "5.919388020833336e-08 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_peck",
+      "dimension": "volume",
+      "label": "Imperial peck",
+      "abbreviation": "imperial_pk",
+      "aliases": [
+        "imperial_pk",
+        "UK_pk"
+      ],
+      "definition": "0.009092180000000004 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_pint",
+      "dimension": "volume",
+      "label": "Imperial pint",
+      "abbreviation": "imperial_pt",
+      "aliases": [
+        "imperial_pt",
+        "UK_pint"
+      ],
+      "definition": "0.0005682612500000002 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "imperial_quart",
+      "dimension": "volume",
+      "label": "Imperial quart",
+      "abbreviation": "imperial_qt",
+      "aliases": [
+        "imperial_qt",
+        "UK_quart"
+      ],
+      "definition": "0.0011365225000000004 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "inch",
+      "dimension": "length",
+      "label": "Inch",
+      "abbreviation": "in",
+      "aliases": [
+        "in",
+        "international_inch",
+        "inches",
+        "international_inches"
+      ],
+      "definition": "0.0254 meter",
       "offset": 0.0
     },
     {
@@ -67150,6 +67626,15 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "kip",
+      "dimension": "force",
+      "label": "Kip",
+      "abbreviation": "kip",
+      "aliases": [],
+      "definition": "4448.2216152605015 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
       "name": "kip_per_square_inch",
       "dimension": "pressure",
       "label": "Kip per square inch",
@@ -67181,6 +67666,27 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "league",
+      "dimension": "length",
+      "label": "League",
+      "abbreviation": "league",
+      "aliases": [],
+      "definition": "4828.041656083312 meter",
+      "offset": 0.0
+    },
+    {
+      "name": "link",
+      "dimension": "length",
+      "label": "Link",
+      "abbreviation": "li",
+      "aliases": [
+        "li",
+        "survey_link"
+      ],
+      "definition": "0.20116840233680466 meter",
+      "offset": 0.0
+    },
+    {
       "name": "liter",
       "dimension": "volume",
       "label": "Liter",
@@ -67191,6 +67697,24 @@ window.nomadArtifacts = {
         "litre"
       ],
       "definition": "0.0010000000000000002 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "long_hundredweight",
+      "dimension": "mass",
+      "label": "Long hundredweight",
+      "abbreviation": "long_hundredweight",
+      "aliases": [],
+      "definition": "50.80234544 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "long_ton",
+      "dimension": "mass",
+      "label": "Long ton",
+      "abbreviation": "long_ton",
+      "aliases": [],
+      "definition": "1016.0469088000001 kilogram",
       "offset": 0.0
     },
     {
@@ -67338,6 +67862,18 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "mile",
+      "dimension": "length",
+      "label": "Mile",
+      "abbreviation": "mi",
+      "aliases": [
+        "mi",
+        "international_mile"
+      ],
+      "definition": "1609.344 meter",
+      "offset": 0.0
+    },
+    {
       "name": "mile_per_hour",
       "dimension": "speed",
       "label": "Mile per hour",
@@ -67371,6 +67907,15 @@ window.nomadArtifacts = {
         "millimeter_Hg_0C"
       ],
       "definition": "133.32238741499998 kilogram / meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "minim",
+      "dimension": "volume",
+      "label": "Minim",
+      "abbreviation": "minim",
+      "aliases": [],
+      "definition": "6.161151992187499e-08 meter ^ 3",
       "offset": 0.0
     },
     {
@@ -67459,6 +68004,19 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "ounce",
+      "dimension": "mass",
+      "label": "Ounce",
+      "abbreviation": "oz",
+      "aliases": [
+        "oz",
+        "avoirdupois_ounce",
+        "avdp_ounce"
+      ],
+      "definition": "0.028349523125000005 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "particle",
       "dimension": "substance",
       "label": "Particle",
@@ -67479,6 +68037,29 @@ window.nomadArtifacts = {
         "Pa"
       ],
       "definition": "1.0 kilogram / meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "pennyweight",
+      "dimension": "mass",
+      "label": "Pennyweight",
+      "abbreviation": "dwt",
+      "aliases": [
+        "dwt"
+      ],
+      "definition": "0.00155517384 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "pint",
+      "dimension": "volume",
+      "label": "Pint",
+      "abbreviation": "liquid_pint",
+      "aliases": [
+        "liquid_pint",
+        "US_pint"
+      ],
+      "definition": "0.0004731764729999999 meter ^ 3",
       "offset": 0.0
     },
     {
@@ -67562,6 +68143,19 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "pound",
+      "dimension": "mass",
+      "label": "Pound",
+      "abbreviation": "lb",
+      "aliases": [
+        "lb",
+        "avoirdupois_pound",
+        "avdp_pound"
+      ],
+      "definition": "0.4535923700000001 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "pound_force_per_square_inch",
       "dimension": "pressure",
       "label": "Pound force per square inch",
@@ -67573,6 +68167,17 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "poundal",
+      "dimension": "force",
+      "label": "Poundal",
+      "abbreviation": "pdl",
+      "aliases": [
+        "pdl"
+      ],
+      "definition": "0.138254954376 kilogram * meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
       "name": "proton_mass",
       "dimension": "mass",
       "label": "Proton mass",
@@ -67581,6 +68186,28 @@ window.nomadArtifacts = {
         "m_p"
       ],
       "definition": "1.67262192369e-27 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "quart",
+      "dimension": "volume",
+      "label": "Quart",
+      "abbreviation": "qt",
+      "aliases": [
+        "qt",
+        "liquid_quart",
+        "US_liquid_quart"
+      ],
+      "definition": "0.0009463529459999998 meter ^ 3",
+      "offset": 0.0
+    },
+    {
+      "name": "quarter",
+      "dimension": "mass",
+      "label": "Quarter",
+      "abbreviation": "quarter",
+      "aliases": [],
+      "definition": "177.80820904 kilogram",
       "offset": 0.0
     },
     {
@@ -67636,6 +68263,19 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "rod",
+      "dimension": "length",
+      "label": "Rod",
+      "abbreviation": "rd",
+      "aliases": [
+        "rd",
+        "pole",
+        "perch"
+      ],
+      "definition": "5.029210058420117 meter",
+      "offset": 0.0
+    },
+    {
       "name": "rutherford",
       "dimension": "frequency",
       "label": "Rutherford",
@@ -67682,6 +68322,27 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "slinch",
+      "dimension": "mass",
+      "label": "Slinch",
+      "abbreviation": "blob",
+      "aliases": [
+        "blob",
+        "slugette"
+      ],
+      "definition": "175.12683524647645 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "slug",
+      "dimension": "mass",
+      "label": "Slug",
+      "abbreviation": "slug",
+      "aliases": [],
+      "definition": "14.59390293720637 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "speed_of_light",
       "dimension": "speed",
       "label": "Speed of light",
@@ -67691,6 +68352,85 @@ window.nomadArtifacts = {
         "c_0"
       ],
       "definition": "299792458.0 meter / second",
+      "offset": 0.0
+    },
+    {
+      "name": "square_foot",
+      "dimension": "area",
+      "label": "Square foot",
+      "abbreviation": "sq_ft",
+      "aliases": [
+        "sq_ft",
+        "square_feet"
+      ],
+      "definition": "0.09290303999999999 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "square_inch",
+      "dimension": "area",
+      "label": "Square inch",
+      "abbreviation": "sq_in",
+      "aliases": [
+        "sq_in",
+        "square_inches"
+      ],
+      "definition": "0.00064516 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "square_league",
+      "dimension": "area",
+      "label": "Square league",
+      "abbreviation": "square_league",
+      "aliases": [],
+      "definition": "23309986.232875686 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "square_mile",
+      "dimension": "area",
+      "label": "Square mile",
+      "abbreviation": "sq_mi",
+      "aliases": [
+        "sq_mi"
+      ],
+      "definition": "2589988.110336 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "square_rod",
+      "dimension": "area",
+      "label": "Square rod",
+      "abbreviation": "sq_rod",
+      "aliases": [
+        "sq_rod",
+        "sq_pole",
+        "sq_perch"
+      ],
+      "definition": "25.29295381171407 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "square_survey_mile",
+      "dimension": "area",
+      "label": "Square survey mile",
+      "abbreviation": "square_survey_mile",
+      "aliases": [
+        "section"
+      ],
+      "definition": "2589998.4703195207 meter ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "square_yard",
+      "dimension": "area",
+      "label": "Square yard",
+      "abbreviation": "sq_yd",
+      "aliases": [
+        "sq_yd"
+      ],
+      "definition": "0.83612736 meter ^ 2",
       "offset": 0.0
     },
     {
@@ -67752,6 +68492,38 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "stone",
+      "dimension": "mass",
+      "label": "Stone",
+      "abbreviation": "stone",
+      "aliases": [],
+      "definition": "6.35029318 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "survey_foot",
+      "dimension": "length",
+      "label": "Survey foot",
+      "abbreviation": "sft",
+      "aliases": [
+        "sft"
+      ],
+      "definition": "0.3048006096012192 meter",
+      "offset": 0.0
+    },
+    {
+      "name": "survey_mile",
+      "dimension": "length",
+      "label": "Survey mile",
+      "abbreviation": "smi",
+      "aliases": [
+        "smi",
+        "us_statute_mile"
+      ],
+      "definition": "1609.3472186944373 meter",
+      "offset": 0.0
+    },
+    {
       "name": "tesla",
       "dimension": "magnetic_field",
       "label": "Tesla",
@@ -67775,12 +68547,59 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
+      "name": "thou",
+      "dimension": "length",
+      "label": "Thou",
+      "abbreviation": "th",
+      "aliases": [
+        "th",
+        "mil_length"
+      ],
+      "definition": "2.5399999999999997e-05 meter",
+      "offset": 0.0
+    },
+    {
+      "name": "ton",
+      "dimension": "mass",
+      "label": "Ton",
+      "abbreviation": "ton",
+      "aliases": [
+        "short_ton"
+      ],
+      "definition": "907.1847400000001 kilogram",
+      "offset": 0.0
+    },
+    {
       "name": "torr",
       "dimension": "pressure",
       "label": "Torr",
       "abbreviation": "torr",
       "aliases": [],
       "definition": "133.32236842105263 kilogram / meter / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "troy_ounce",
+      "dimension": "mass",
+      "label": "Troy ounce",
+      "abbreviation": "toz",
+      "aliases": [
+        "toz",
+        "ozt"
+      ],
+      "definition": "0.03110347680000001 kilogram",
+      "offset": 0.0
+    },
+    {
+      "name": "troy_pound",
+      "dimension": "mass",
+      "label": "Troy pound",
+      "abbreviation": "tlb",
+      "aliases": [
+        "tlb",
+        "lbt"
+      ],
+      "definition": "0.3732417216000001 kilogram",
       "offset": 0.0
     },
     {
@@ -67901,6 +68720,18 @@ window.nomadArtifacts = {
         "Wb"
       ],
       "definition": "1.0 kilogram * meter ^ 2 / ampere / second ^ 2",
+      "offset": 0.0
+    },
+    {
+      "name": "yard",
+      "dimension": "length",
+      "label": "Yard",
+      "abbreviation": "yd",
+      "aliases": [
+        "yd",
+        "international_yard"
+      ],
+      "definition": "0.9144 meter",
       "offset": 0.0
     }
   ],
