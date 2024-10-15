@@ -837,7 +837,7 @@ class Context:
                 return section.section_cls
         return None
 
-    def open_hdf5_file(self, section: MSection):
+    def hdf5_path(self, section: MSection):
         raise NotImplementedError
 
 

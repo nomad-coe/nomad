@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from typing import Any
 import h5py
@@ -22,6 +23,7 @@ import re
 
 import numpy as np
 import pint
+from h5py import File
 
 from nomad.metainfo.data_type import NonPrimitive
 from nomad.utils import get_logger
@@ -42,6 +44,25 @@ def match_hdf5_reference(reference: str):
         return None
 
     return match.groupdict()
+
+
+class HDF5Wrapper:
+    def __init__(self, file: str, path: str):
+        self.file: str = file
+        self.path: str = path
+        self.handler: h5py.File | None = None
+
+    def __enter__(self):
+        self._close()
+        self.handler = h5py.File(self.file, 'a')
+        return self.handler[self.path]
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._close()
+
+    def _close(self):
+        if self.handler:
+            self.handler.close()
 
 
 class HDF5Reference(NonPrimitive):
@@ -120,7 +141,7 @@ class HDF5Dataset(NonPrimitive):
         if not isinstance(value, (str, np.ndarray, h5py.Dataset, pint.Quantity)):
             raise ValueError(f'Invalid HDF5 dataset value: {value}.')
 
-        hdf5_file = section_context.open_hdf5_file(section)
+        hdf5_path: str = section_context.hdf5_path(section)
 
         if isinstance(value, str):
             if not (match := match_hdf5_reference(value)):
@@ -129,7 +150,11 @@ class HDF5Dataset(NonPrimitive):
 
             file, path = match['file_id'], match['path']
 
-            target_dataset = (hdf5_file[file] if file in hdf5_file else hdf5_file)[path]
+            with File(hdf5_path, 'a') as hdf5_file:
+                if file in hdf5_file:
+                    segment = f'{file}/{path}'
+                else:
+                    segment = path
         else:
             if isinstance(value, pint.Quantity):
                 if self._definition.unit is not None:
@@ -137,11 +162,13 @@ class HDF5Dataset(NonPrimitive):
                 else:
                     value = value.magnitude
 
-            target_dataset = hdf5_file.require_dataset(
-                f'{section.m_path()}/{self._definition.name}',
-                shape=getattr(value, 'shape', ()),
-                dtype=getattr(value, 'dtype', None),
-            )
-            target_dataset[...] = value
+            with File(hdf5_path, 'a') as hdf5_file:
+                segment = f'{section.m_path()}/{self._definition.name}'
+                target_dataset = hdf5_file.require_dataset(
+                    segment,
+                    shape=getattr(value, 'shape', ()),
+                    dtype=getattr(value, 'dtype', None),
+                )
+                target_dataset[...] = value
 
-        return target_dataset
+        return HDF5Wrapper(hdf5_path, segment)

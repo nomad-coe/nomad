@@ -84,5 +84,3 @@ def test_hdf5(test_context, quantity_type, value):
         with h5py.File(test_context.upload_files.raw_file(filename, 'rb')) as f:
             quantity = HDF5Reference.read_dataset(archive, value)
             assert (quantity == f[path][()]).all()
-
-    test_context.close()

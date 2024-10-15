@@ -262,9 +262,6 @@ class Context(MetainfoContext):
         self.archives[url] = archive
         self.urls[archive] = url
 
-    def close(self):
-        pass
-
 
 class ServerContext(Context):
     def __init__(self, upload=None):
@@ -412,22 +409,10 @@ class ServerContext(Context):
 
         return response.json()['data']
 
-    def open_hdf5_file(self, section: MSection):
-        upload_id, entry_id = self._get_ids(section.m_root(), required=True)
+    def hdf5_path(self, section: MSection):
+        _, entry_id = self._get_ids(section.m_root(), required=True)
 
-        if not upload_id or not entry_id:
-            return None
-
-        return h5py.File(self.upload_files.archive_hdf5_location(entry_id), 'a')
-
-    def close(self):
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
+        return self.upload_files.archive_hdf5_location(entry_id)
 
 
 def _validate_url(url):
