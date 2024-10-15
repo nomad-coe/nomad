@@ -21,6 +21,9 @@ import json
 import os
 import click
 
+from pint import Unit
+from pint.errors import UndefinedUnitError
+
 from nomad.config import config
 from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.metainfo.elasticsearch_extension import schema_separator
@@ -80,7 +83,7 @@ def get_gui_artifacts_js() -> str:
     from nomad.parsing.parsers import code_metadata
 
     all_metainfo_packages = all_metainfo_packages()
-    unit_list_json, prefixes_json = _generate_units_json(all_metainfo_packages)
+    unit_list_json, prefixes_json = _generate_units_json()
     code_metadata = json.loads(json.dumps(code_metadata, sort_keys=True))
 
     artifactsDict = {
@@ -422,7 +425,7 @@ def example_data(username: str):
     return data
 
 
-def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
+def _generate_units_json() -> Tuple[Any, Any]:
     from pint.converters import ScaleConverter
     from collections import defaultdict
     from nomad.units import ureg
@@ -451,7 +454,7 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
             aliases[unit_long_name].append(unit_name)
 
     # For each defined dimension, get the available units if there are any.
-    def get_unit_data(unit, dimension):
+    def get_unit_data(unit_name, dimension):
         unit_long_name = ureg.get_name(unit_name)
         unit_abbreviation = ureg.get_symbol(unit_name)
         unit_label = unit_long_name.replace('_', ' ')
@@ -465,17 +468,59 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
             'aliases': aliases[unit_long_name],
         }
 
-    dimensions = list(ureg._dimensions.keys())
+    # For some reason, the method ureg.get_compatible_units is not returning all
+    # options (https://github.com/hgrecco/pint/issues/610). This is a workaround
+    # for this problem.
+    dimension_def_name_map = {
+        str(ureg.get_dimensionality(key)): key for key in ureg._dimensions
+    }
+
+    # Define a function to check for an SI prefix
+    si_prefixes = [
+        value['name'] for value in prefixes.values() if len(value['name']) > 2
+    ]
+
+    def is_prefix_only(unit_base_name):
+        unit = ureg.parse_units(unit_base_name)
+        if len(aliases[unit_base_name]) != 0:
+            return False
+
+        # Separate the prefix and base unit
+        for prefix in si_prefixes:
+            if str(unit).startswith(prefix):
+                # Check if the remaining part is a valid base unit
+                base_unit_str = str(unit)[len(prefix) :]
+                try:
+                    ureg.parse_units(base_unit_str)
+                    return True
+                except UndefinedUnitError:
+                    pass
+
+        return False
+
     unit_list = []
-    for dimension in dimensions:
-        try:
-            units = ureg.get_compatible_units(dimension)
-        except KeyError:
+    for unit_str in ureg._units:
+        # Filter out aliases
+        unit_base_name = ureg.get_name(unit_str)
+        if unit_base_name != unit_str:
             continue
-        else:
-            for unit in units:
-                unit_name = str(unit)
-                unit_list.append(get_unit_data(unit_name, dimension))
+        # Filter out units with prefixes that do not have an alias of their own
+        # (Pint defines some of the most common unit prefixes as separate units)
+        if is_prefix_only(unit_str):
+            continue
+        # Filter out delta units
+        if unit_base_name.startswith('delta_'):
+            continue
+        try:
+            unit = getattr(ureg, unit_str)
+        except UndefinedUnitError:
+            continue
+        if not isinstance(unit, Unit):
+            continue
+        if hasattr(unit, 'dimensionality'):
+            dimension_name = dimension_def_name_map.get(str(unit.dimensionality))
+            if dimension_name:
+                unit_list.append(get_unit_data(unit_str, dimension_name))
 
     # Some units need to be added manually.
     unit_list.extend(
