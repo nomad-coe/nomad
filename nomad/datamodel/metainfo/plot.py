@@ -140,7 +140,7 @@ class Figure(MSection):
 
 
 class PlotlyFigureQuantity(Quantity):
-    def __set__(self, obj, value):
+    def __set__(self, obj, value, **kwargs):
         # Make generated json serializable by converting numpy.ndarray to python list
         if value is not None:
             if 'data' in value:
@@ -151,7 +151,7 @@ class PlotlyFigureQuantity(Quantity):
                 else:
                     convert_to_list(all_data)
 
-        super().__set__(obj, value)
+        super().__set__(obj, value, **kwargs)
 
 
 class PlotlyFigure(Figure):
