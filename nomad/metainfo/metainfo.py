@@ -23,6 +23,7 @@ import itertools
 import json
 import re
 import sys
+import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from functools import wraps
@@ -1534,6 +1535,14 @@ class MSection(metaclass=MObjectMeta):
         if sub_section is None:
             return
 
+        if not is_initializing_proto and not isinstance(
+            sub_section, sub_section_def.sub_section.section_cls
+        ):
+            warnings.warn(
+                f'{sub_section} is not derived from its definition {sub_section_def}.',
+                category=SyntaxWarning,
+            )
+
         sub_section.m_parent = self
         sub_section.m_parent_sub_section = sub_section_def
         sub_section.m_parent_index = parent_index
@@ -2608,7 +2617,7 @@ class MSection(metaclass=MObjectMeta):
                 if sub_section_def.repeats:
                     copy.__dict__[sub_section_def.name] = sub_sections_copy
                 elif len(sub_sections_copy) == 1:
-                    copy.__dict__[sub_section_def.name] = sub_sections_copy[0]
+                    copy.m_set(sub_section_def, sub_sections_copy[0])
 
         if a_elasticsearch:
             copy.m_annotations['elasticsearch'] = a_elasticsearch
@@ -3799,9 +3808,18 @@ class Section(Definition):
         for base_section in self.all_base_sections:
             base_props.update(**base_section.all_properties)
 
+        def _common_base(_derived, _base):
+            _derived_mro = _derived.__class__.mro()
+            _base_mro = set(_base.__class__.mro())
+            return next((_item for _item in _derived_mro if _item in _base_mro), None)
+
         for derived_prop in itertools.chain(self.quantities, self.sub_sections):
             if (base_prop := base_props.get(derived_prop.name)) is None:
                 continue
+
+            # ensure both properties are of the same type
+            if _common_base(derived_prop, base_prop) in (None, Property):
+                raise MetainfoError('Cannot inherit from different property types.')
 
             for item in derived_prop.m_def.all_quantities.values():
                 if not derived_prop.m_is_set(item) and base_prop.m_is_set(item):
