@@ -2147,11 +2147,18 @@ class MSection(metaclass=MObjectMeta):
         treat_none_as_nan = kwargs.get('treat_none_as_nan', False)
 
         # need to deserialize the definitions first as they are needed for the rest
-        if 'definitions' in data:
-            self.m_set('definitions', data['definitions'], context=m_context)
+        # need to deserialize the metadata first as they are needed for the rest
+        processed = []
+        for item in ('definitions', 'metadata'):
+            if item in data:
+                try:
+                    self.m_set(item, data[item], context=m_context)
+                    processed.append(item)
+                except (ValueError, MetainfoError):
+                    pass
 
         for name, value in data.items():
-            if name == 'definitions' or name.startswith('m_'):
+            if name in processed or name.startswith('m_'):
                 continue
 
             try:
