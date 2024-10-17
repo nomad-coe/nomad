@@ -62,16 +62,22 @@ def client(
 
 def _create_auth(ctx):
     print(f'Used nomad is {config.client.url}')
-    print(f'Used user is {ctx.obj.user}')
+    print(
+        f'Used user from CLI args is {ctx.obj.user}, using config.client.user {config.client.user}'
+    )
 
     from nomad.client import Auth
 
     if ctx.obj.user is None:
-        return None
-
-    return Auth(
-        user=ctx.obj.user, password=ctx.obj.password, from_api=ctx.obj.token_via_api
-    )
+        return Auth(
+            user=config.client.user,
+            password=config.client.password,
+            from_api=ctx.obj.token_via_api,
+        )
+    else:
+        return Auth(
+            user=ctx.obj.user, password=ctx.obj.password, from_api=ctx.obj.token_via_api
+        )
 
 
 @client.command(help='Runs a few example operations as a test.')
