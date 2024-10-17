@@ -266,7 +266,7 @@ class EQEAnalyzer:
         energy_AM15 = np.array(df_am15[df_am15.columns[1]])
         spectrum_AM15 = np.array(df_am15[df_am15.columns[2]])
         spectrum_AM15G_interp = np.interp(x, energy_AM15, spectrum_AM15)
-        jsc_calc = integrate.cumtrapz(y * spectrum_AM15G_interp, x)
+        jsc_calc = integrate.cumulative_trapezoid(y * spectrum_AM15G_interp, x)
         jsc = max(jsc_calc * q * 1e4)
         return jsc
 
