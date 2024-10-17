@@ -9,6 +9,15 @@ Please follow the format:
 !!! warning "Attention"
     This page is still being updated with older NOMAD tutorials.
 
+- 17.10.2024 [FAIRmat Tutorial 15: Use of pynxtools with Examples from Optical Spectroscopy](https://events.fairmat-nfdi.eu/event/26/){:target="_blank"}
+    + Demonstrates how to use the pynxtools package along with NOMAD to faciliate FAIR research data management for experimental data in materials science. Ellipsometry and Raman spectroscopy data are used as representative examples.
+
+- 10.07.2024 [FAIRmat Tutorial 14: Developing schemas and parsers for FAIR computational data storage using NOMAD-Simulations](https://fairmat-nfdi.github.io/fairmat-tutorial-14-computational-plugins/){:target="_blank"}
+    +  Provides foundational knowledge for customizing NOMAD to fit the specific needs of your computational research project using the `nomad-simulations` schema plugin.
+
+- 15.05.2024 [FAIRmat Tutorial 13: Getting started with NOMAD and NOMAD Oasis for research data management (RDM)](https://github.com/FAIRmat-NFDI/AreaA-Examples/tree/main/tutorial13){:target="_blank"}
+    +  Introduces NOMAD and NOMAD Oasis as essential tools for research data management (RDM), and demonstrates how to utilize these tools for managing experimental materials science data, with a particular focus on synthesis data.
+
 - 14.02.2024 [FAIRmat Tutorial 12: Getting started with NOMAD and NOMAD Oasis for research data management (RDM)](https://events.fairmat-nfdi.eu/event/10/){:target="_blank"}
     + A practical session to go through a Jupyter notebook that demonstrates how to use NOMAD for managing custom data and file types. Based on a simple given dataset, we show how to model the data in a schema, do parsing and normalization, process data, access existing data with NOMAD's API for analysis, and how to add visualization to your data.
 
