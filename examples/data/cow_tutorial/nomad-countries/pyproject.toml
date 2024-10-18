@@ -65,18 +65,7 @@ indent-width = 4
 
 
 [tool.ruff.lint]
-select = [
-    # pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # pyupgrade
-    "UP",
-    # isort
-    "I",
-    # pylint
-    "PL",
-]
+select = []
 
 ignore = [
     "F403", # 'from module import *' used; unable to detect undefined names
