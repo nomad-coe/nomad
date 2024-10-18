@@ -21,7 +21,7 @@
 # https://docs.docker.com/engine/reference/builder/
 
 FROM node:20 AS base_node
-FROM python:3.11-slim AS base_python
+FROM python:3.12-slim AS base_python
 # Keeps Python from buffering stdout and stderr to avoid situations where
 # the application crashes without emitting any logs due to buffering.
 ENV PYTHONUNBUFFERED 1
@@ -213,7 +213,7 @@ COPY --chown=nomad:1000 scripts/run-worker.sh .
 COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
 
 COPY --chown=nomad:1000 --from=dev_package /app/examples/data/uploads /app/examples/data/uploads
-COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyter /usr/local/share/jupyter
 COPY --chown=nomad:1000 --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
@@ -221,7 +221,7 @@ COPY --chown=nomad:1000 --from=builder /usr/local/bin/jupyter* /usr/local/bin/
 
 RUN mkdir -p /app/.volumes/fs \
  && chown -R nomad:1000 /app \
- && chown -R nomad:1000 /usr/local/lib/python3.11/site-packages/nomad
+ && chown -R nomad:1000 /usr/local/lib/python3.12/site-packages/nomad
 
 USER nomad
 

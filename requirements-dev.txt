@@ -5,7 +5,7 @@ alabaster==1.0.0          # via sphinx, -r requirements.txt
 alembic==1.13.3           # via jupyterhub, -r requirements.txt
 amqp==5.2.0               # via kombu, -r requirements.txt
 aniso8601==9.0.1          # via -r requirements.txt, nomad-lab (pyproject.toml)
-anyio==4.6.2              # via httpx, starlette, watchfiles, -r requirements.txt
+anyio==4.6.2.post1        # via httpx, starlette, watchfiles, -r requirements.txt
 arrow==1.3.0              # via isoduration, -r requirements.txt
 ase==3.22.1               # via matid, -r requirements.txt, nomad-lab (pyproject.toml)
 asgiref==3.8.1            # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -19,7 +19,7 @@ bagit==1.8.1              # via -r requirements.txt, nomad-lab (pyproject.toml)
 basicauth==0.4.1          # via -r requirements.txt, nomad-lab (pyproject.toml)
 beautifulsoup4==4.12.3    # via -r requirements.txt, nomad-lab (pyproject.toml)
 billiard==4.2.1           # via celery, -r requirements.txt
-bitarray==2.9.3           # via -r requirements.txt, nomad-lab (pyproject.toml)
+bitarray==3.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 cachetools==5.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 celery==5.4.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, requests, -r requirements.txt
@@ -68,7 +68,7 @@ h5py==3.11.0              # via h5grove, -r requirements.txt, nomad-lab (pyproje
 hjson==3.1.0              # via mkdocs-macros-plugin, super-collections, -r requirements.txt, nomad-lab (pyproject.toml)
 html5lib==1.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
 httpcore==1.0.6           # via httpx, -r requirements.txt
-httptools==0.6.1          # via uvicorn, -r requirements.txt
+httptools==0.6.4          # via uvicorn, -r requirements.txt
 httpx==0.27.2             # via python-keycloak, -r requirements.txt, nomad-lab (pyproject.toml)
 idna==3.10                # via anyio, email-validator, httpx, jsonschema, requests, -r requirements.txt
 imagesize==1.4.1          # via sphinx, -r requirements.txt
@@ -107,8 +107,8 @@ mkdocs-click==0.8.1       # via nomad-lab (pyproject.toml)
 mkdocs-get-deps==0.2.0    # via mkdocs
 mkdocs-git-revision-date-localized-plugin==1.2.9  # via nomad-lab (pyproject.toml)
 mkdocs-glightbox==0.4.0   # via nomad-lab (pyproject.toml)
-mkdocs-macros-plugin==1.3.5  # via nomad-lab (pyproject.toml)
-mkdocs-material==9.5.40   # via nomad-lab (pyproject.toml)
+mkdocs-macros-plugin==1.3.6  # via nomad-lab (pyproject.toml)
+mkdocs-material==9.5.41   # via nomad-lab (pyproject.toml)
 mkdocs-material-extensions==1.3.1  # via mkdocs-material, nomad-lab (pyproject.toml)
 mkdocs-redirects==1.2.1   # via nomad-lab (pyproject.toml)
 mongoengine==0.29.1       # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -137,14 +137,14 @@ pandas==2.2.3             # via nomad-openbis, panedr, pymatgen, xarray, -r requ
 panedr==0.8.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 parmed==4.2.2             # via -r requirements.txt, nomad-lab (pyproject.toml)
 pathspec==0.12.1          # via mkdocs, mkdocs-macros-plugin
-pillow==10.4.0            # via matplotlib, rdkit, -r requirements.txt
+pillow==10.0.1            # via matplotlib, rdkit, -c (workspace), -r requirements.txt
 pint==0.17                # via -r requirements.txt, nomad-lab (pyproject.toml)
 platformdirs==4.3.6       # via mkdocs-get-deps
 plotly==5.24.1            # via pymatgen, -r requirements.txt
 pluggy==1.5.0             # via pytest
 prometheus-client==0.21.0  # via jupyterhub, -r requirements.txt
 prompt-toolkit==3.0.48    # via click-repl, -r requirements.txt
-psutil==6.0.0 ; sys_platform == 'win32'  # via jupyterhub, -r requirements.txt
+psutil==6.1.0 ; sys_platform == 'win32'  # via jupyterhub, -r requirements.txt
 pyasn1==0.6.1             # via pyasn1-modules, rfc3161ng, -r requirements.txt
 pyasn1-modules==0.4.1     # via rfc3161ng, -r requirements.txt
 pybtex==0.24.0            # via pymatgen, -r requirements.txt
@@ -161,7 +161,7 @@ pyrsistent==0.20.0        # via jsonschema, -r requirements.txt
 pytest==7.4.4             # via pytest-asyncio, pytest-cov, pytest-split, pytest-timeout, pytest-xdist, nomad-lab (pyproject.toml)
 pytest-asyncio==0.23.8    # via nomad-lab (pyproject.toml)
 pytest-cov==5.0.0         # via nomad-lab (pyproject.toml)
-pytest-split==0.9.0       # via nomad-lab (pyproject.toml)
+pytest-split==0.10.0      # via nomad-lab (pyproject.toml)
 pytest-timeout==2.3.1     # via nomad-lab (pyproject.toml)
 pytest-xdist==3.6.1       # via nomad-lab (pyproject.toml)
 python-dateutil==2.9.0.post0  # via arrow, celery, elasticsearch-dsl, ghp-import, jupyterhub, matplotlib, mkdocs-macros-plugin, nomad-openbis, pandas, rfc3161ng, -r requirements.txt
@@ -189,11 +189,12 @@ rfc3987==1.3.8            # via jsonschema, -r requirements.txt
 rope==0.21.0              # via nomad-lab (pyproject.toml)
 ruamel-yaml==0.18.6       # via jupyter-telemetry, oauthenticator, pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
 ruamel-yaml-clib==0.2.8 ; python_full_version < '3.13' and platform_python_implementation == 'CPython'  # via ruamel-yaml, -r requirements.txt
-ruff==0.6.9               # via nomad-lab (pyproject.toml)
+ruff==0.7.0               # via nomad-lab (pyproject.toml)
 runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 scikit-learn==1.5.2       # via matid, -r requirements.txt, nomad-lab (pyproject.toml)
 scipy==1.14.1             # via ase, pymatgen, scikit-learn, -r requirements.txt, nomad-lab (pyproject.toml)
 sentinels==1.0.0          # via mongomock, -r requirements.txt
+setuptools==75.2.0        # via nomad-lab (pyproject.toml)
 six==1.16.0               # via asttokens, basicauth, elasticsearch-dsl, html5lib, pybtex, python-dateutil, rdflib, rfc3339-validator, validators, -r requirements.txt
 smmap==5.0.1              # via gitdb, -r requirements.txt
 sniffio==1.3.1            # via anyio, httpx, -r requirements.txt
@@ -207,7 +208,7 @@ sphinxcontrib-htmlhelp==2.1.0  # via sphinx, -r requirements.txt
 sphinxcontrib-jsmath==1.0.1  # via sphinx, -r requirements.txt
 sphinxcontrib-qthelp==2.0.0  # via sphinx, -r requirements.txt
 sphinxcontrib-serializinghtml==2.0.0  # via sphinx, -r requirements.txt
-sqlalchemy==2.0.35        # via alembic, jupyterhub, -r requirements.txt
+sqlalchemy==2.0.36        # via alembic, jupyterhub, -r requirements.txt
 starlette==0.27.0         # via fastapi, -r requirements.txt
 structlog==24.4.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 super-collections==0.5.3  # via mkdocs-macros-plugin
@@ -231,9 +232,9 @@ uncertainties==3.2.2      # via pymatgen, -r requirements.txt
 unidecode==1.3.2          # via -r requirements.txt, nomad-lab (pyproject.toml)
 uri-template==1.3.0       # via jsonschema, -r requirements.txt
 urllib3==1.26.20          # via docker, elasticsearch, nomad-openbis, requests, -r requirements.txt
-uv==0.4.20                # via nomad-lab (pyproject.toml)
-uvicorn==0.31.1           # via h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
-uvloop==0.20.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn, -r requirements.txt
+uv==0.4.24                # via nomad-lab (pyproject.toml)
+uvicorn==0.32.0           # via h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
+uvloop==0.21.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn, -r requirements.txt
 validators==0.18.2        # via -r requirements.txt, nomad-lab (pyproject.toml)
 vine==5.1.0               # via amqp, celery, kombu, -r requirements.txt
 watchdog==5.0.3           # via mkdocs
