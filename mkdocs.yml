@@ -40,6 +40,7 @@ nav:
           - Write a normalizer: howto/plugins/normalizers.md
           - Write a parser: howto/plugins/parsers.md
           - Write a schema package: howto/plugins/schema_packages.md
+          - Write an API: howto/plugins/apis.md
       - Customization:
           - Write a YAML schema package: howto/customization/basics.md
           - Define ELNs: howto/customization/elns.md

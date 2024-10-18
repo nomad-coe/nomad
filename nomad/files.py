@@ -1110,7 +1110,12 @@ class StagingUploadFiles(UploadFiles):
                             shutil.move(element_source_path, element_target_path)
                         else:
                             # Copy the file
-                            shutil.copyfile(element_source_path, element_target_path)
+                            try:
+                                shutil.copyfile(
+                                    element_source_path, element_target_path
+                                )
+                            except shutil.SameFileError:
+                                pass
                         if updated_files is not None:
                             updated_files.add(
                                 os.path.join(target_dir, element_relative_path)
