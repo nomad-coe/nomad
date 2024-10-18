@@ -4,7 +4,7 @@ alabaster==1.0.0          # via sphinx
 alembic==1.13.3           # via jupyterhub
 amqp==5.2.0               # via kombu
 aniso8601==9.0.1          # via nomad-lab (pyproject.toml)
-anyio==4.6.2              # via httpx, starlette, watchfiles
+anyio==4.6.2.post1        # via httpx, starlette, watchfiles
 arrow==1.3.0              # via isoduration
 ase==3.22.1               # via matid, nomad-lab (pyproject.toml)
 asgiref==3.8.1            # via nomad-lab (pyproject.toml)
@@ -16,7 +16,7 @@ bagit==1.8.1              # via nomad-lab (pyproject.toml)
 basicauth==0.4.1          # via nomad-lab (pyproject.toml)
 beautifulsoup4==4.12.3    # via nomad-lab (pyproject.toml)
 billiard==4.2.1           # via celery
-bitarray==2.9.3           # via nomad-lab (pyproject.toml)
+bitarray==3.0.0           # via nomad-lab (pyproject.toml)
 cachetools==5.5.0         # via nomad-lab (pyproject.toml)
 celery==5.4.0             # via nomad-lab (pyproject.toml)
 certifi==2024.8.30        # via elasticsearch, httpcore, httpx, netcdf4, requests
@@ -59,7 +59,7 @@ h5py==3.11.0              # via h5grove, nomad-lab (pyproject.toml)
 hjson==3.1.0              # via nomad-lab (pyproject.toml)
 html5lib==1.1             # via nomad-lab (pyproject.toml)
 httpcore==1.0.6           # via httpx
-httptools==0.6.1          # via uvicorn
+httptools==0.6.4          # via uvicorn
 httpx==0.27.2             # via python-keycloak, nomad-lab (pyproject.toml)
 idna==3.10                # via anyio, email-validator, httpx, jsonschema, requests
 imagesize==1.4.1          # via sphinx
@@ -111,12 +111,12 @@ pamela==1.2.0 ; sys_platform != 'win32'  # via jupyterhub
 pandas==2.2.3             # via nomad-openbis, panedr, pymatgen, xarray, nomad-lab (pyproject.toml)
 panedr==0.8.0             # via nomad-lab (pyproject.toml)
 parmed==4.2.2             # via nomad-lab (pyproject.toml)
-pillow==10.4.0            # via matplotlib, rdkit
+pillow==10.0.1            # via matplotlib, rdkit, -c (workspace)
 pint==0.17                # via nomad-lab (pyproject.toml)
 plotly==5.24.1            # via pymatgen
 prometheus-client==0.21.0  # via jupyterhub
 prompt-toolkit==3.0.48    # via click-repl
-psutil==6.0.0 ; sys_platform == 'win32'  # via jupyterhub
+psutil==6.1.0 ; sys_platform == 'win32'  # via jupyterhub
 pyasn1==0.6.1             # via pyasn1-modules, rfc3161ng
 pyasn1-modules==0.4.1     # via rfc3161ng
 pybtex==0.24.0            # via pymatgen
@@ -167,7 +167,7 @@ sphinxcontrib-htmlhelp==2.1.0  # via sphinx
 sphinxcontrib-jsmath==1.0.1  # via sphinx
 sphinxcontrib-qthelp==2.0.0  # via sphinx
 sphinxcontrib-serializinghtml==2.0.0  # via sphinx
-sqlalchemy==2.0.35        # via alembic, jupyterhub
+sqlalchemy==2.0.36        # via alembic, jupyterhub
 starlette==0.27.0         # via fastapi
 structlog==24.4.0         # via nomad-lab (pyproject.toml)
 sympy==1.13.3             # via pymatgen
@@ -188,8 +188,8 @@ uncertainties==3.2.2      # via pymatgen
 unidecode==1.3.2          # via nomad-lab (pyproject.toml)
 uri-template==1.3.0       # via jsonschema
 urllib3==1.26.20          # via docker, elasticsearch, nomad-openbis, requests
-uvicorn==0.31.1           # via h5grove, nomad-lab (pyproject.toml)
-uvloop==0.20.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn
+uvicorn==0.32.0           # via h5grove, nomad-lab (pyproject.toml)
+uvloop==0.21.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn
 validators==0.18.2        # via nomad-lab (pyproject.toml)
 vine==5.1.0               # via amqp, celery, kombu
 watchfiles==0.24.0        # via uvicorn

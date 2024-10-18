@@ -169,10 +169,10 @@ and the "Allow GitHub Actions to create and approve pull requests" options and c
 ## Setting up the python environment
 
 ### Creating a virtual environment
-Before we can start developing we recommend to create a virtual environment using Python 3.11
+Before we can start developing we recommend to create a virtual environment using Python 3.12
 
 ```sh
-python3.11 -m venv .pyenv
+python3.12 -m venv .pyenv
 source .pyenv/bin/activate
 ```
 

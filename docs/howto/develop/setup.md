@@ -50,21 +50,21 @@ This branch can be pushed to the repo, and then later may be merged to the relev
 
 ### Set up a Python environment
 
-The NOMAD code currently requires Python 3.11. You should work in a Python virtual environment.
+The NOMAD code currently requires Python 3.12. You should work in a Python virtual environment.
 
 For developers using VSCode, in case you encounter any issues with breakpoints not [triggering](https://github.com/microsoft/debugpy/issues/1284), consider upgrading to py3.12.
 
 #### Pyenv
 
 If your host machine has an older version installed,
-you can use [pyenv](https://github.com/pyenv/pyenv){:target="_blank"} to use Python 3.11 in parallel with your
+you can use [pyenv](https://github.com/pyenv/pyenv){:target="_blank"} to use Python 3.12 in parallel with your
 system's Python.
 
 #### Virtualenv
 
 Create a virtual environment. It allows you
 to keep NOMAD and its dependencies separate from your system's Python installation.
-Make sure that the virtual environment is based on Python 3.11.
+Make sure that the virtual environment is based on Python 3.12.
 Use either the built-in `venv` module (see example) or [virtualenv](https://pypi.org/project/virtualenv/){:target="_blank"}.
 
 ```shell
@@ -78,7 +78,7 @@ If you are a conda user, there is an equivalent, but you have to install `pip` a
 right Python version while creating the environment.
 
 ```shell
-conda create --name nomad_env pip python=3.11
+conda create --name nomad_env pip python=3.12
 conda activate nomad_env
 ```
 
