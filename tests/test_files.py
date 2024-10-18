@@ -246,9 +246,18 @@ class UploadFilesContract(UploadFilesFixtures):
         _, entries, upload_files = test_upload
         for entry in entries:
             for file_path in entry.files:
-                mode = 'rb' if file_path.endswith('.h5') else 'r'
+                mode = 'rb' if file_path.endswith('.h5') else 'rt'
                 with upload_files.raw_file(file_path, mode) as f:
                     assert len(f.read()) > 0
+                if 't' in mode:
+                    with upload_files.raw_file(file_path, mode, encoding='utf-8') as f:
+                        content = f.read()
+                        assert isinstance(
+                            content, str
+                        ), 'Content should be a string in text mode'
+                        assert (
+                            len(content) > 0
+                        ), f'File {file_path} with utf-8 encoding should not be empty'
 
     def test_rawfile_size(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
