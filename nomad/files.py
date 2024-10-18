@@ -1778,13 +1778,15 @@ class PublicUploadFiles(UploadFiles):
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
         if 'mode' in kwargs:
             del kwargs['mode']
+
+        encoding = kwargs.pop('encoding', None)
         mode = mode if mode else 'rb'
 
         try:
             zf = self._open_raw_zip_file()
             f = zf.open(file_path, 'r', **kwargs)
             if 't' in mode:
-                return io.TextIOWrapper(f)
+                return io.TextIOWrapper(f, encoding=encoding)
             else:
                 return f
         except FileNotFoundError:
