@@ -508,7 +508,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.reaction.reaction_mechanism',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'initial_states', ...termQuantity},
