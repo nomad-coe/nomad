@@ -675,9 +675,14 @@ class TestM1:
             test_quantity = Quantity(type=np.dtype('int32'))
 
         test_section = TestSection()
-        test_section.test_quantity = 12
-        assert test_section.test_quantity == 12
-        assert type(test_section.test_quantity) is np.int32
+
+        for value in [12, np.array([12], dtype=np.int32)]:
+            test_section.test_quantity = value
+            assert test_section.test_quantity == 12
+            assert type(test_section.test_quantity) is np.int32
+
+        with pytest.raises(ValueError):
+            test_section.test_quantity = np.array([12, 13], dtype=np.int32)
 
     def test_scalar_float(self):
         class TestSection(MSection):
