@@ -95,9 +95,9 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
       // Check for missing values. This check is required because there is no
       // value set when a new widget is created, and pressing the done button
       // without filling a value should raise an error.
-      const xEmpty = isEmptyString(settings?.x?.quantity)
+      const xEmpty = isEmptyString(settings?.x?.search_quantity)
       if (xEmpty) {
-        handleErrorQuantity('x.quantity', 'Please specify a value.')
+        handleErrorQuantity('x.search_quantity', 'Please specify a value.')
       }
 
       if (!independentErrors && !xEmpty) {
@@ -116,20 +116,20 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
           <InputMetainfo
-            label="quantity"
-            value={settings.x?.quantity}
-            error={errors['x.quantity']}
-            onChange={(value) => handleChange('x.quantity', value)}
-            onAccept={(value) => handleAcceptQuantity('x.quantity', value)}
-            onSelect={(value) => handleAcceptQuantity('x.quantity', value)}
-            onError={(value) => handleErrorQuantity('x.quantity', value)}
+            label="Search quantity"
+            value={settings.x?.search_quantity}
+            error={errors['x.search_quantity']}
+            onChange={(value) => handleChange('x.search_quantity', value)}
+            onAccept={(value) => handleAcceptQuantity('x.search_quantity', value)}
+            onSelect={(value) => handleAcceptQuantity('x.search_quantity', value)}
+            onError={(value) => handleErrorQuantity('x.search_quantity', value)}
             dtypes={dtypes}
             dtypesRepeatable={dtypes}
           />
         </WidgetEditOption>
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings.x?.title}
             onChange={(event) => handleChange('x.title', event.target.value)}
@@ -137,14 +137,14 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <UnitInput
-            label='unit'
+            label='Unit'
             value={settings.x?.unit}
             onChange={(value) => handleChange('x.unit', value)}
             onSelect={(value) => handleAccept('x.unit', value)}
             onAccept={(value) => handleAccept('x.unit', value)}
             error={errors['x.unit']}
             onError={(value) => handleError('x.unit', value)}
-            dimension={dimensions['x.quantity'] || null}
+            dimension={dimensions['x.search_quantity'] || null}
             optional
             disableGroup
           />
@@ -155,7 +155,7 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
           <TextField
             select
             fullWidth
-            label="scale"
+            label="Scale"
             variant="filled"
             value={settings.y?.scale}
             onChange={(event) => { handleChange('y.scale', event.target.value) }}
@@ -169,7 +169,7 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
       <WidgetEditGroup title="general">
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings?.title}
             onChange={(event) => handleChange('title', event.target.value)}
@@ -200,7 +200,7 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <FormControlLabel
-            control={<Checkbox checked={settings.showinput} onChange={(event, value) => handleChange('showinput', value)}/>}
+            control={<Checkbox checked={settings.show_input} onChange={(event, value) => handleChange('show_input', value)}/>}
             label='Show input fields'
           />
         </WidgetEditOption>
@@ -218,5 +218,5 @@ export const schemaWidgetHistogram = schemaWidget.shape({
   y: schemaAxisBase.required('Y-axis configuration is required.'),
   nbins: number().integer().required(),
   autorange: bool(),
-  showinput: bool()
+  show_input: bool()
 })

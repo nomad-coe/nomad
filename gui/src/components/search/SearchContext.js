@@ -70,9 +70,9 @@ import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import UploadStatusIcon from '../uploads/UploadStatusIcon'
 import { getWidgetsObject } from './widgets/Widget'
-import { inputSectionContext } from './input/InputSection'
+import { inputSectionContext } from './input/InputNestedObject'
 import { SearchSuggestion } from './SearchSuggestion'
-import { withFilters } from './FilterRegistry'
+import { withSearchQuantities } from './FilterRegistry'
 import { useUnitContext } from '../units/UnitContext'
 
 const useWidthConstrainedStyles = makeStyles(theme => ({
@@ -209,11 +209,10 @@ export const SearchContextRaw = React.memo(({
   initialFiltersLocked,
   initialColumns,
   initialRows,
-  initialFilterMenus,
+  initialMenu,
   initialPagination,
   initialDashboard,
-  initialFilterData,
-  initialFilterGroups,
+  initialSearchQuantities,
   initialFilterValues,
   initialSearchSyntaxes,
   id,
@@ -239,10 +238,10 @@ export const SearchContextRaw = React.memo(({
   // Initialize the set of filters that are available in this context
   const {initialFilterPaths, initialFilterAbbreviations} = useMemo(() => {
     return {
-      initialFilterPaths: new Set(Object.keys(initialFilterData)),
-      initialFilterAbbreviations: getAbbreviations(initialFilterData)
+      initialFilterPaths: new Set(Object.keys(initialSearchQuantities)),
+      initialFilterAbbreviations: getAbbreviations(initialSearchQuantities)
     }
-  }, [initialFilterData])
+  }, [initialSearchQuantities])
 
   // The final set of columns
   const columns = useMemo(() => {
@@ -255,7 +254,7 @@ export const SearchContextRaw = React.memo(({
         throw Error(`Invalid JMESPath query in the app columns: ${option.quantity}`)
       }
       option.sortable = parseResults.quantity === option.quantity
-      const filter = initialFilterData[parseResults.quantity]
+      const filter = initialSearchQuantities[parseResults.quantity]
       const storageUnit = filter?.unit
       const displayUnit = option.unit
       const finalUnit = (storageUnit || displayUnit)
@@ -364,11 +363,11 @@ export const SearchContextRaw = React.memo(({
 
     // Add key, defaults, and custom overrides
     options = options.map((column) => ({...column, key: column.quantity}))
-    addColumnDefaults(options, undefined, initialFilterData)
+    addColumnDefaults(options, undefined, initialSearchQuantities)
     options = options.map((column) => ({...column, ...(overrides[column.quantity] || {})}))
 
     return options
-  }, [initialFilterData, initialColumns, user, units])
+  }, [initialSearchQuantities, initialColumns, user, units])
 
   // The final row configuration
   const rows = useMemo(() => {
@@ -376,9 +375,9 @@ export const SearchContextRaw = React.memo(({
   }, [initialRows])
 
   // The final menu configuration
-  const filterMenus = useMemo(() => {
-    return initialFilterMenus || undefined
-  }, [initialFilterMenus])
+  const menu = useMemo(() => {
+    return initialMenu
+  }, [initialMenu])
 
   // The final dashboard configuration
   const dashboard = useMemo(() => {
@@ -391,7 +390,7 @@ export const SearchContextRaw = React.memo(({
   // default values as specified in filter registry are loaded
   const [initialQuery, initialAggs, filterDefaults] = useMemo(() => {
     const filterDefaults = {}
-    for (const [key, value] of Object.entries(initialFilterData)) {
+    for (const [key, value] of Object.entries(initialSearchQuantities)) {
       if (!isNil(value.default)) {
         filterDefaults[key] = value.default
       }
@@ -403,11 +402,11 @@ export const SearchContextRaw = React.memo(({
       }
     }
     return [
-      parseQueries(initialFilterValues, initialFilterData, initialFilterAbbreviations.filterFullnames),
+      parseQueries(initialFilterValues, initialSearchQuantities, initialFilterAbbreviations.filterFullnames),
       initialAggs,
       filterDefaults
     ]
-  }, [initialFilterData, initialFilterAbbreviations, initialFilterValues, initialFilterPaths])
+  }, [initialSearchQuantities, initialFilterAbbreviations, initialFilterValues, initialFilterPaths])
 
   // Atoms + setters and getters are used instead of regular React states to
   // avoid re-rendering components that are not depending on these values. The
@@ -537,7 +536,7 @@ export const SearchContextRaw = React.memo(({
     // modified later.
     const filtersDataState = atom({
       key: `filtersData_${contextID}`,
-      default: initialFilterData
+      default: initialSearchQuantities
     })
 
     const filterNamesState = selector({
@@ -587,7 +586,7 @@ export const SearchContextRaw = React.memo(({
       default: initialPagination
     })
 
-    const guiLocked = parseQueries(initialFiltersLocked, initialFilterData, initialFilterAbbreviations.filterFullnames)
+    const guiLocked = parseQueries(initialFiltersLocked, initialSearchQuantities, initialFilterAbbreviations.filterFullnames)
     const lockedFamily = atomFamily({
       key: `lockedFamily_${contextID}`,
       default: (name) => guiLocked?.[name]
@@ -1200,7 +1199,7 @@ export const SearchContextRaw = React.memo(({
     resource,
     contextID,
     initialQuery,
-    initialFilterData,
+    initialSearchQuantities,
     initialFilterAbbreviations,
     initialFiltersLocked,
     initialPagination,
@@ -1674,10 +1673,9 @@ export const SearchContextRaw = React.memo(({
       resource,
       columns,
       rows,
-      filterMenus,
+      menu,
       filters,
       filterData: filtersData,
-      filterGroups: initialFilterGroups,
       filterFullnames,
       filterAbbreviations,
       searchSyntaxes: initialSearchSyntaxes,
@@ -1725,10 +1723,9 @@ export const SearchContextRaw = React.memo(({
     resource,
     rows,
     columns,
-    filterMenus,
+    menu,
     filters,
     filtersData,
-    initialFilterGroups,
     filterFullnames,
     filterAbbreviations,
     initialSearchSyntaxes,
@@ -1790,11 +1787,10 @@ SearchContextRaw.propTypes = {
   initialFiltersLocked: PropTypes.object,
   initialColumns: PropTypes.arrayOf(PropTypes.object),
   initialRows: PropTypes.object,
-  initialFilterMenus: PropTypes.object,
+  initialMenu: PropTypes.object,
   initialPagination: PropTypes.object,
   initialDashboard: PropTypes.object,
-  initialFilterData: PropTypes.object, // Determines which filters are available
-  initialFilterGroups: PropTypes.object, // Maps filter groups to a set of filter names
+  initialSearchQuantities: PropTypes.object, // Determines which quantities are available for search
   initialFilterValues: PropTypes.object, // Here one can provide default filter values
   initialSearchSyntaxes: PropTypes.object, // Determines which syntaxes are supported
   children: PropTypes.node,
@@ -1806,8 +1802,8 @@ SearchContextRaw.defaultProps = {
   suggestionHistorySize: 20
 }
 
-export const FreeformSearchContext = withFilters(SearchContextRaw)
-export const SearchContext = compose(withQueryString, withFilters)(SearchContextRaw)
+export const FreeformSearchContext = withSearchQuantities(SearchContextRaw)
+export const SearchContext = compose(withQueryString, withSearchQuantities)(SearchContextRaw)
 
 /**
  * Hook for accessing the current SearchContext.

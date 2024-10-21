@@ -20,8 +20,7 @@ import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { Box } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-import FilterMainMenu from './menus/FilterMainMenu'
-import { collapsedMenuWidth } from './menus/FilterMenu'
+import SearchMenu from './SearchMenu'
 import SearchBar from './SearchBar'
 import Query from './Query.js'
 import { SearchResults } from './SearchResults'
@@ -46,9 +45,6 @@ const useStyles = makeStyles(theme => {
       flexGrow: 0,
       height: '100%',
       zIndex: 2
-    },
-    leftColumnCollapsed: {
-      maxWidth: `${collapsedMenuWidth}rem`
     },
     center: {
       flexGrow: 1,
@@ -86,23 +82,12 @@ const SearchPage = React.memo(({
   header
 }) => {
   const styles = useStyles()
-  const {
-    useIsMenuOpen,
-    useSetIsMenuOpen,
-    useIsCollapsed,
-    useSetIsCollapsed
-  } = useSearchContext()
+  const {useIsMenuOpen, useSetIsMenuOpen} = useSearchContext()
   const [isMenuOpen, setIsMenuOpen] = [useIsMenuOpen(), useSetIsMenuOpen()]
-  const [isCollapsed, setIsCollapsed] = [useIsCollapsed(), useSetIsCollapsed()]
 
   return <div className={styles.root}>
-    <div className={clsx(styles.leftColumn, isCollapsed && styles.leftColumnCollapsed)}>
-      <FilterMainMenu
-        open={isMenuOpen}
-        onOpenChange={setIsMenuOpen}
-        collapsed={isCollapsed}
-        onCollapsedChange={setIsCollapsed}
-      />
+    <div className={clsx(styles.leftColumn)}>
+      <SearchMenu/>
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
       <Box margin={2.5} paddingBottom={3}>

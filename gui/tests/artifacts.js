@@ -3601,10 +3601,10 @@ window.nomadArtifacts = {
       "type": {
         "type_kind": "enum",
         "type_data": [
-          "",
           "MaxEnt",
           "Pade",
-          "SVD"
+          "SVD",
+          "Stochastic"
         ]
       },
       "shape": [],
@@ -36087,10 +36087,10 @@ window.nomadArtifacts = {
                 "type": {
                   "type_kind": "enum",
                   "type_data": [
-                    "",
                     "MaxEnt",
                     "Pade",
-                    "SVD"
+                    "SVD",
+                    "Stochastic"
                   ]
                 },
                 "shape": []

@@ -38,7 +38,6 @@ country = AppEntryPoint(
         dashboard=Dashboard(
             widgets=[
                 WidgetScatterPlot(
-                    type='scatterplot',
                     layout={'lg': Layout(h=6, w=8, x=0, y=0)},
                     x=Axis(quantity=f'data.literacy#{schema}'),
                     y=Axis(quantity=f'data.industry#{schema}'),
@@ -46,7 +45,6 @@ country = AppEntryPoint(
                     autorange=True,
                 ),
                 WidgetScatterPlot(
-                    type='scatterplot',
                     layout={'lg': Layout(h=6, w=8, x=8, y=0)},
                     x=Axis(quantity=f'data.literacy#{schema}'),
                     y=Axis(quantity=f'data.agriculture#{schema}'),
@@ -54,7 +52,6 @@ country = AppEntryPoint(
                     autorange=True,
                 ),
                 WidgetScatterPlot(
-                    type='scatterplot',
                     layout={'lg': Layout(h=6, w=8, x=16, y=0)},
                     x=Axis(quantity=f'data.literacy#{schema}'),
                     y=Axis(quantity=f'data.service#{schema}'),
@@ -62,30 +59,27 @@ country = AppEntryPoint(
                     autorange=True,
                 ),
                 WidgetHistogram(
-                    type='histogram',
                     layout={'lg': Layout(h=3, w=8, x=0, y=6)},
                     quantity=f'data.phones#{schema}',
                     scale='1/2',
                     nbins=30,
-                    showinput=False,
+                    show_input=False,
                     autorange=True,
                 ),
                 WidgetHistogram(
-                    type='histogram',
                     layout={'lg': Layout(h=3, w=8, x=8, y=6)},
                     quantity=f'data.birthrate#{schema}',
                     scale='linear',
                     nbins=30,
-                    showinput=False,
+                    show_input=False,
                     autorange=True,
                 ),
                 WidgetHistogram(
-                    type='histogram',
                     layout={'lg': Layout(h=3, w=8, x=16, y=6)},
                     quantity=f'data.net_migration#{schema}',
                     scale='linear',
                     nbins=30,
-                    showinput=False,
+                    show_input=False,
                     autorange=True,
                 ),
             ]

@@ -15,60 +15,115 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import userEvent from '@testing-library/user-event'
-import { waitFor } from '@testing-library/dom'
-import { startAPI, closeAPI, screen } from '../../conftest.spec'
-import {
-  renderSearchEntry,
-  expectPeriodicTable,
-  expectPeriodicTableItems,
-  expectElement
-} from '../conftest.spec'
+import React, { useMemo } from 'react'
+import { render, screen } from '../../conftest.spec'
+import { Filter } from '../Filter'
 import InputPeriodicTable from './InputPeriodicTable'
+import userEvent from '@testing-library/user-event'
+import { useSearchContext, SearchContextRaw } from '../SearchContext'
 
-const quantity = 'results.material.elements'
-const stateName = 'tests.states.search.search'
+// We set an initial mock for the SearchContext module
+const mockSetFilter = jest.fn()
+jest.mock('../SearchContext', () => ({
+    ...jest.requireActual('../SearchContext'),
+    useSearchContext: jest.fn()
+}))
 
 describe('', () => {
-  beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/inputperiodictable')
-    renderSearchEntry(<InputPeriodicTable
-      quantity={quantity}
-      visible
-    />
-    )
+  // Provide a default implementation for the search context mock
+  beforeEach(() => {
+    useSearchContext.mockImplementation(() => ({
+        ...jest.requireActual('../SearchContext').useSearchContext(),
+        useAgg: (quantity, visible, id, config) => {
+          return useMemo(() => {
+            return visible
+              ? {data: [{value: 'H', count: 123}]}
+              : undefined
+          }, [visible])
+        },
+        useFilterState: (quantity) => {
+          const response = useMemo(() => {
+            return [undefined, mockSetFilter]
+          }, [])
+          return response
+        }
+    }))
   })
-  afterEach(() => closeAPI())
 
-  test('initial state is loaded correctly', async () => {
-    await expectPeriodicTable(quantity, false, ['H', 'C', 'N', 'I', 'Pb', 'Ti', 'Zr', 'Nb', 'Hf', 'Ta'])
+  describe('test showHeader', () => {
+    test.each([
+      ['show header', {showHeader: true}],
+      ['do not show header', {showHeader: false}]
+    ])('%s', async (name, config) => {
+      renderPeriodicTable(config, new Filter(undefined, {quantity: 'test'}))
+      if (config.showHeader) {
+        expect(screen.getByText('Test')).toBeInTheDocument()
+      } else {
+        expect(screen.queryByText('Test')).not.toBeInTheDocument()
+      }
+    })
+  })
+
+  describe('test title', () => {
+    test.each([
+      ['default title', {}, 'Test'],
+      ['custom title', {title: 'Custom title'}, 'Custom title']
+    ])('%s', async (name, config, expected) => {
+      renderPeriodicTable(config, new Filter(undefined, {quantity: 'test'}))
+      expect(screen.getByText(expected)).toBeInTheDocument()
+    })
+  })
+
+  describe('test showStatistics', () => {
+    test.each([
+      ['show statistics', {showStatistics: true}],
+      ['do not show statistics', {showStatistics: false}]
+    ])('%s', async (name, config) => {
+      renderPeriodicTable(config, new Filter(undefined, {quantity: 'test'}))
+
+      const option = screen.queryAllByText('123')
+      const scaling = screen.queryByText('linear')
+      if (config.showStatistics) {
+        expect(option).toHaveLength(1)
+        expect(scaling).toBeInTheDocument()
+      } else {
+        expect(option).toHaveLength(0)
+        expect(scaling).not.toBeInTheDocument()
+      }
+    })
+  })
+
+  describe('test selection', () => {
+    test.each([
+      ['show statistics', {showStatistics: true}],
+      ['do not show statistics', {showStatistics: false}]
+    ])('%s', async (name, config) => {
+      renderPeriodicTable(config, new Filter(undefined, {quantity: 'test'}))
+
+      // Click on hydrogen
+      const cButton = screen.getByTestId('Hydrogen')
+      await userEvent.click(cButton)
+
+      // setFilter is called
+      expect(mockSetFilter.mock.calls).toHaveLength(1)
+      const argument = mockSetFilter.mock.calls[0][0]()
+      const expectedArgument = new Set(['H'])
+      expect(argument.size === expectedArgument.size).toBe(true)
+      expect([...argument].every((x) => expectedArgument.has(x))).toBe(true)
+    })
   })
 })
 
-describe('', () => {
-  beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/inputperiodictable-edit')
-    renderSearchEntry(<InputPeriodicTable
-      quantity={quantity}
-      visible
-    />
-    )
-  })
-  afterEach(() => closeAPI())
-
-  test('selecting an element in both non-exclusive and exclusive mode correctly updates the table', async () => {
-    // Wait for hydrogen to become selectable
-    await waitFor(() => expectElement('Hydrogen', false))
-
-    // Test that after selecting C, only the correct elements are selectable.
-    const cButton = screen.getByTestId('Carbon')
-    await userEvent.click(cButton)
-    await expectPeriodicTableItems(['H', 'C', 'N', 'I', 'Pb'])
-
-    // Test that after enabling exclusive search, only C is selectable
-    const exclusiveCheckbox = screen.getByRole('checkbox')
-    await userEvent.click(exclusiveCheckbox)
-    await expectPeriodicTableItems(['C'])
-  })
-})
+// Helper function for rendering
+function renderPeriodicTable(config, filter) {
+  const searchQuantities = {test: filter}
+  render(
+    <SearchContextRaw
+      resource="entries"
+      id='entries'
+      initialSearchQuantities={searchQuantities}
+    >
+      <InputPeriodicTable visible searchQuantity={filter.quantity} {...config}/>
+    </SearchContextRaw>
+  )
+}

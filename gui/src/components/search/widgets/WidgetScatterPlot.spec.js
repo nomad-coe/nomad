@@ -96,9 +96,9 @@ describe('test different combinations of x/y/color produced with JMESPath', () =
     const config = {
       id: '0',
       scale: 'linear',
-      x: {quantity: x},
-      y: {quantity: y},
-      markers: {color: {quantity: color}}
+      x: {search_quantity: x},
+      y: {search_quantity: y},
+      markers: {color: {search_quantity: color}}
     }
     renderSearchEntry(<WidgetScatterPlot {...config} />)
     await expectWidgetScatterPlot(config, false)
@@ -107,19 +107,19 @@ describe('test different combinations of x/y/color produced with JMESPath', () =
 
 describe('test custom axis titles', () => {
   test.each([
-    ['x, no unit', {x: {title: 'My Title', quantity: 'results.material.n_elements'}}, 'My Title'],
-    ['y, no unit', {y: {title: 'My Title', quantity: 'results.material.n_elements'}}, 'My Title'],
-    ['color, no unit', {markers: {color: {title: 'My Title', quantity: 'results.material.n_elements'}}}, 'My Title'],
-    ['x, with unit', {x: {title: 'My Title', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'My Title (eV)'],
-    ['y, with unit', {y: {title: 'My Title', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'My Title (eV)'],
-    ['color, with unit', {markers: {color: {title: 'My Title', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}}, 'My Title (eV)']
+    ['x, no unit', {x: {title: 'My Title', search_quantity: 'results.material.n_elements'}}, 'My Title'],
+    ['y, no unit', {y: {title: 'My Title', search_quantity: 'results.material.n_elements'}}, 'My Title'],
+    ['color, no unit', {markers: {color: {title: 'My Title', search_quantity: 'results.material.n_elements'}}}, 'My Title'],
+    ['x, with unit', {x: {title: 'My Title', search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'My Title (eV)'],
+    ['y, with unit', {y: {title: 'My Title', search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'My Title (eV)'],
+    ['color, with unit', {markers: {color: {title: 'My Title', search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}}, 'My Title (eV)']
   ])('%s', async (name, config, title) => {
     const configFinal = {
       id: '0',
       scale: 'linear',
-      x: {quantity: 'results.material.n_elements'},
-      y: {quantity: 'results.material.n_elements'},
-      markers: {color: {quantity: 'results.material.n_elements'}},
+      x: {search_quantity: 'results.material.n_elements'},
+      y: {search_quantity: 'results.material.n_elements'},
+      markers: {color: {search_quantity: 'results.material.n_elements'}},
       ...config
     }
     renderSearchEntry(<WidgetScatterPlot {...configFinal} />)
@@ -129,16 +129,16 @@ describe('test custom axis titles', () => {
 
 describe('test custom axis units', () => {
   test.each([
-    ['x', {x: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final energy difference (Ha)'],
-    ['y', {y: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final energy difference (Ha)'],
-    ['color', {markers: {color: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}}, 'Final energy difference (Ha)']
+    ['x', {x: {unit: 'Ha', search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final energy difference (Ha)'],
+    ['y', {y: {unit: 'Ha', search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final energy difference (Ha)'],
+    ['color', {markers: {color: {unit: 'Ha', search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}}, 'Final energy difference (Ha)']
   ])('%s', async (name, config, title) => {
     const configFinal = {
       id: '0',
       scale: 'linear',
-      x: {quantity: 'results.material.n_elements'},
-      y: {quantity: 'results.material.n_elements'},
-      markers: {color: {quantity: 'results.material.n_elements'}},
+      x: {search_quantity: 'results.material.n_elements'},
+      y: {search_quantity: 'results.material.n_elements'},
+      markers: {color: {search_quantity: 'results.material.n_elements'}},
       ...config
     }
     renderSearchEntry(<WidgetScatterPlot {...configFinal} />)
@@ -149,17 +149,17 @@ describe('test custom axis units', () => {
 describe('test different colors', () => {
   test.each([
     ['empty', undefined, undefined, []],
-    ['scalar integer', 'results.material.n_elements', {quantity: 'results.material.n_elements'}, []],
-    ['scalar float', 'results.properties.geometry_optimization.final_energy_difference', {quantity: 'results.properties.geometry_optimization.final_energy_difference'}, []],
+    ['scalar integer', 'results.material.n_elements', {search_quantity: 'results.material.n_elements'}, []],
+    ['scalar float', 'results.properties.geometry_optimization.final_energy_difference', {search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}, []],
     ['scalar string', 'results.material.chemical_formula_hill', undefined, ['Si2', 'CO2']],
     ['array string', 'results.material.elements', undefined, ['Si', 'C, O']]
   ])('%s', async (name, axis, colorTitle, legend) => {
     const config = {
       id: '0',
       scale: 'linear',
-      x: {quantity: 'results.material.n_elements'},
-      y: {quantity: 'results.material.n_elements'},
-      markers: {color: {quantity: axis}}
+      x: {search_quantity: 'results.material.n_elements'},
+      y: {search_quantity: 'results.material.n_elements'},
+      markers: {color: {search_quantity: axis}}
     }
     renderSearchEntry(<WidgetScatterPlot {...config} />)
     await expectWidgetScatterPlot(config, false, colorTitle, legend)
@@ -173,9 +173,9 @@ describe('test error messages', () => {
     const config = {
       id: '0',
       scale: 'linear',
-      x: {quantity: axis},
-      y: {quantity: axis},
-      markers: {color: {quantity: axis}}
+      x: {search_quantity: axis},
+      y: {search_quantity: axis},
+      markers: {color: {search_quantity: axis}}
     }
     renderSearchEntry(<WidgetScatterPlot {...config} />)
     screen.getByText(message, {exact: false})

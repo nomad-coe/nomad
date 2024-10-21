@@ -102,15 +102,15 @@ export const WidgetTerms = React.memo((
   id,
   title,
   description,
-  quantity,
+  search_quantity,
   scale,
-  showinput,
+  show_input,
   className,
   'data-testid': testID
 }) => {
   const {useAgg, useFilterState, filterData} = useSearchContext()
   const styles = useStyles()
-  const [filter, setFilter] = useFilterState(quantity)
+  const [filter, setFilter] = useFilterState(search_quantity)
   const { height, ref } = useResizeDetector()
   const { useSetWidget } = useSearchContext()
   const setWidget = useSetWidget(id)
@@ -122,11 +122,11 @@ export const WidgetTerms = React.memo((
     // If a fixed list of options is used, we must restrict the aggregation
     // return values with 'include'. Otherwise the returned results may not
     // contain the correct values.
-    const options = filterData[quantity]?.options
+    const options = filterData[search_quantity]?.options
     if (options) config.include = Object.keys(options)
     return config
-  }, [aggSize, filterData, quantity])
-  const agg = useAgg(quantity, !isNil(height), id, aggConfig)
+  }, [aggSize, filterData, search_quantity])
+  const agg = useAgg(search_quantity, !isNil(height), id, aggConfig)
   const max = agg ? Math.max(...agg.data.map(option => option.nested_count)) : 0
 
   const handleChange = useCallback((event, key, selected) => {
@@ -188,7 +188,7 @@ export const WidgetTerms = React.memo((
 
   return <Widget
     id={id}
-    quantity={quantity}
+    quantity={search_quantity}
     title={title}
     description={description}
     onEdit={handleEdit}
@@ -205,10 +205,10 @@ export const WidgetTerms = React.memo((
     <InputTooltip>
       <div className={clsx(styles.outerContainer)}>
         <div className={clsx(styles.innerContainer)}>
-          {showinput
+          {show_input
             ? <InputTextQuantity
                 className={styles.textField}
-                quantity={quantity}
+                quantity={search_quantity}
                 disabled={false}
                 disableSuggestions={false}
                 fullWidth
@@ -238,11 +238,11 @@ WidgetTerms.propTypes = {
   id: PropTypes.string.isRequired,
   title: PropTypes.string,
   description: PropTypes.string,
-  quantity: PropTypes.string,
+  search_quantity: PropTypes.string,
   nbins: PropTypes.number,
   scale: PropTypes.string,
   autorange: PropTypes.bool,
-  showinput: PropTypes.bool,
+  show_input: PropTypes.bool,
   className: PropTypes.string,
   'data-testid': PropTypes.string
 }
@@ -307,12 +307,12 @@ export const WidgetTermsEdit = React.memo((props) => {
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
           <InputMetainfo
-            label="quantity"
-            value={settings.quantity}
-            error={errors.quantity}
-            onChange={(value) => handleChange('quantity', value)}
-            onSelect={(value) => handleAccept('quantity', value)}
-            onError={(value) => handleError('quantity', value)}
+            label="Search quantity"
+            value={settings.search_quantity}
+            error={errors.search_quantity}
+            onChange={(value) => handleChange('search_quantity', value)}
+            onSelect={(value) => handleAccept('search_quantity', value)}
+            onError={(value) => handleError('search_quantity', value)}
             dtypes={dtypes}
             dtypesRepeatable={dtypes}
             disableNonAggregatable
@@ -336,7 +336,7 @@ export const WidgetTermsEdit = React.memo((props) => {
       <WidgetEditGroup title="general">
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings?.title}
             onChange={(event) => handleChange('title', event.target.value)}
@@ -344,7 +344,7 @@ export const WidgetTermsEdit = React.memo((props) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <FormControlLabel
-            control={<Checkbox checked={settings.showinput} onChange={(event, value) => handleChange('showinput', value)}/>}
+            control={<Checkbox checked={settings.show_input} onChange={(event, value) => handleChange('show_input', value)}/>}
             label='Show input field'
           />
         </WidgetEditOption>
@@ -356,16 +356,16 @@ WidgetTermsEdit.propTypes = {
   id: PropTypes.string.isRequired,
   editing: PropTypes.bool,
   visible: PropTypes.bool,
-  quantity: PropTypes.string,
+  search_quantity: PropTypes.string,
   scale: PropTypes.string,
   nbins: PropTypes.number,
   autorange: PropTypes.bool,
-  showinput: PropTypes.bool,
+  show_input: PropTypes.bool,
   onClose: PropTypes.func
 }
 
 export const schemaWidgetTerms = schemaWidget.shape({
-  quantity: string().required('Quantity is required.'),
+  search_quantity: string().required('Search quantity is required.'),
   scale: string().required('Scale is required.'),
-  showinput: bool()
+  show_input: bool()
 })

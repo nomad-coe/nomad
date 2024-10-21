@@ -24,9 +24,9 @@ import { WidgetHistogramEdit } from './WidgetHistogramEdit'
 describe('test edit dialog error messages', () => {
   test.each([
     ['missing x', {x: {}}, 'Please specify a value.'],
-    ['unavailable x', {x: {quantity: 'results.material.not_a_quantity'}}, 'The quantity "results.material.not_a_quantity" is not available.'],
-    ['invalid x unit', {x: {quantity: 'results.material.topology.cell.a', unit: 'nounit'}}, 'Unit "nounit" not found.'],
-    ['incompatible x unit', {x: {quantity: 'results.material.topology.cell.a', unit: 'joule'}}, 'Unit "joule" is incompatible with dimension "length".']
+    ['unavailable x', {x: {search_quantity: 'results.material.not_a_quantity'}}, 'The quantity "results.material.not_a_quantity" is not available.'],
+    ['invalid x unit', {x: {search_quantity: 'results.material.topology.cell.a', unit: 'nounit'}}, 'Unit "nounit" not found.'],
+    ['incompatible x unit', {x: {search_quantity: 'results.material.topology.cell.a', unit: 'joule'}}, 'Unit "joule" is incompatible with dimension "length".']
   ])('%s', async (name, config, error) => {
     const finalConfig = {
       id: '0',

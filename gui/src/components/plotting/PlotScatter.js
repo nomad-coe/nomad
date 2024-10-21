@@ -82,6 +82,9 @@ const useStyles = makeStyles(theme => ({
   },
   colorlabel: {
     transform: 'rotate(90deg)'
+  },
+  axisTitle: {
+    fontSize: '0.75rem'
   }
 }))
 const PlotScatter = React.memo(forwardRef((
@@ -101,6 +104,7 @@ const PlotScatter = React.memo(forwardRef((
 }, canvas) => {
   const styles = useStyles()
   const theme = useTheme()
+  const titleClasses = {text: styles.axisTitle}
   const [finalData, setFinalData] = useState(!data ? data : undefined)
   const history = useHistory()
 
@@ -131,7 +135,7 @@ const PlotScatter = React.memo(forwardRef((
     // If dealing with a quantized color, each group is separated into it's own
     // trace which has a legend as well.
     const traces = []
-    if (colorAxis?.quantity && discrete) {
+    if (colorAxis?.search_quantity && discrete) {
       const options = [...new Set(data.color)]
       const nOptions = options.length
       const scale = d3.scaleSequential([0, 1], d3.interpolateTurbo)
@@ -178,7 +182,7 @@ const PlotScatter = React.memo(forwardRef((
         })
       }
     // When dealing with a continuous color, display a colormap
-    } else if (colorAxis?.quantity && !discrete) {
+    } else if (colorAxis?.search_quantity && !discrete) {
       traces.push({
         x: data.x,
         y: data.y,
@@ -247,7 +251,7 @@ const PlotScatter = React.memo(forwardRef((
       })
     }
     setFinalData(traces)
-  }, [colorAxis?.quantity, colorAxis?.title, colorAxis?.unit, data, discrete, theme, xAxis.title, xAxis.unit, yAxis.title, yAxis.unit])
+  }, [colorAxis?.search_quantity, colorAxis?.title, colorAxis?.unit, data, discrete, theme, xAxis.title, xAxis.unit, yAxis.title, yAxis.unit])
 
   const layout = useMemo(() => {
     return {
@@ -314,10 +318,11 @@ const PlotScatter = React.memo(forwardRef((
   return <div className={styles.root}>
     <div className={styles.yaxis}>
       <FilterTitle
+        variant="subtitle2"
+        classes={titleClasses}
         quantity={yAxis.quantity}
         label={yAxis.title}
         unit={yAxis.unit}
-        variant="caption"
         rotation="up"
       />
     </div>
@@ -340,21 +345,23 @@ const PlotScatter = React.memo(forwardRef((
     <div className={styles.square} />
     <div className={styles.xaxis}>
       <FilterTitle
+        variant="subtitle2"
+        classes={titleClasses}
         quantity={xAxis.quantity}
         label={xAxis.title}
         unit={xAxis.unit}
-        variant="caption"
       />
     </div>
     {!discrete && colorAxis &&
       <div className={styles.color}>
         <FilterTitle
+          variant="subtitle2"
+          classes={titleClasses}
           rotation="down"
           quantity={colorAxis.quantity}
           unit={colorAxis.unit}
           label={colorAxis.title}
           description=""
-          variant="caption"
         />
       </div>
     }

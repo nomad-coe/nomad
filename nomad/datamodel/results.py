@@ -1994,7 +1994,7 @@ class DMFT(MSection):
             a_elasticsearch=[Elasticsearch(material_entry_type)]
         )
     analytical_continuation = Quantity(
-        type=MEnum('Pade', 'MaxEnt', 'SVD', ''),
+        type=MEnum('Pade', 'MaxEnt', 'SVD', 'Stochastic'),
         shape=[],
         description="""
         Analytical continuation used to continuate the imaginary space Green's functions into

@@ -269,7 +269,7 @@ function QueryEditQuantity({quantityDef, onChange, value, storeInArchive, index,
       initialPagination={context?.pagination}
       initialColumns={columns}
       initialRows={rows}
-      initialFilterMenus={context?.filter_menus}
+      initialMenu={context?.menu}
       initialFiltersLocked={undefined}
       initialFilterValues={filters}
       initialSearchSyntaxes={context?.search_syntaxes}

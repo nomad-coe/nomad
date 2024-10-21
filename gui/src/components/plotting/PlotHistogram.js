@@ -150,6 +150,9 @@ const useStyles = makeStyles(theme => ({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-start'
+  },
+  axisTitle: {
+    fontSize: '0.75rem'
   }
 }))
 const PlotHistogram = React.memo(({
@@ -178,7 +181,7 @@ const PlotHistogram = React.memo(({
   maxXInclusive,
   className,
   classes,
-  showinput,
+  showInput,
   minError,
   maxError,
   minInput,
@@ -191,6 +194,7 @@ const PlotHistogram = React.memo(({
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
+  const titleClasses = {text: styles.axisTitle}
   const useDynamicStyles = makeStyles((theme) => {
     const color = highlight ? theme.palette.secondary.main : theme.palette.primary.main
     return {
@@ -531,11 +535,11 @@ const PlotHistogram = React.memo(({
 
   const titleComp = <div className={styles.title}>
     <FilterTitle
+      variant="subtitle2"
+      classes={titleClasses}
       quantity={xAxis.quantity}
       label={xAxis.title}
       unit={xAxis.unit}
-      variant="caption"
-      className={styles.titletext}
       noWrap={false}
     />
   </div>
@@ -545,7 +549,7 @@ const PlotHistogram = React.memo(({
       {!disableHistogram && <div className={clsx(styles.histogram, classes?.histogram)}>{histComp}</div>}
       {!disableXTitle && titleComp}
       <div className={styles.row}>
-        {showinput
+        {showInput
           ? <>
             {inputMinField}
             {(disableHistogram && !isTime)
@@ -609,7 +613,6 @@ PlotHistogram.propTypes = {
   onMaxChange: PropTypes.func,
   onMinSubmit: PropTypes.func,
   onMaxSubmit: PropTypes.func,
-  showinput: PropTypes.bool,
   maxError: PropTypes.any,
   minError: PropTypes.any,
   maxInput: PropTypes.any,

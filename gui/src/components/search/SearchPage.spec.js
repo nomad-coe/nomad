@@ -16,21 +16,43 @@
  * limitations under the License.
  */
 
-import React from 'react'
-import { render, startAPI, closeAPI } from '../conftest.spec'
-import { expectFilterMainMenu, expectSearchResults } from './conftest.spec'
+import React, { useMemo } from 'react'
+import { render, screen } from '../conftest.spec'
+import { expectMenu, expectSearchResults } from './conftest.spec'
 import { ui } from '../../config'
 import { SearchContext } from './SearchContext'
 import SearchPage from './SearchPage'
-import { minutes } from '../../setupTests'
+
+// We set an initial mock for the SearchContext module
+const mockSetFilter = jest.fn()
+const mockUseMemo = useMemo
+jest.mock('./SearchContext', () => ({
+    ...jest.requireActual('./SearchContext'),
+    useSearchContext: () => ({
+      ...jest.requireActual('./SearchContext').useSearchContext(),
+      useAgg: (quantity, visible, id, config) => {
+        const response = mockUseMemo(() => {
+          return undefined
+        }, [])
+        return response
+      },
+      useFilterState: jest.fn((quantity) => {
+        const response = mockUseMemo(() => {
+          return [undefined, mockSetFilter]
+        }, [])
+        return response
+      }),
+      useResults: jest.fn((quantity) => {
+        const response = mockUseMemo(() => {
+          return {data: [{}], pagination: {total: 1}}
+        }, [])
+        return response
+      })
+    })
+}))
 
 describe('', () => {
-  beforeAll(async () => {
-    await startAPI('tests.states.search.search', 'tests/data/search/searchpage')
-  })
-  afterAll(() => closeAPI())
-
-  test('renders search page correctly', async () => {
+  test('render search page components', async () => {
     const context = ui.apps.options.entries
     render(
       <SearchContext
@@ -38,7 +60,7 @@ describe('', () => {
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
-          initialFilterMenus={context.filter_menus}
+          initialMenu={context.menu}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
           initialSearchSyntaxes={context?.search_syntaxes}
@@ -47,8 +69,16 @@ describe('', () => {
         <SearchPage />
       </SearchContext>
     )
+    // Test that menu is shown
+    await expectMenu(context.menu)
 
-    await expectFilterMainMenu(context)
-    await expectSearchResults(context)
-  }, 5 * minutes)
+    // Test that search bar is shown
+    screen.getByPlaceholderText('Type your query or keyword here')
+
+    // Test that query is shown
+    screen.getByText('Your query will be shown here')
+
+    // Test that results table is shown
+    await expectSearchResults(context.columns)
+  })
 })

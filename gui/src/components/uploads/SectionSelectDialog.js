@@ -30,7 +30,7 @@ import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'
 import {useEntryStore} from '../entry/EntryContext'
 import {traverse, useGlobalMetainfo} from '../archive/metainfo'
-import { defaultFilterGroups, quantityNameSearch } from '../search/FilterRegistry'
+import { quantityNameSearch } from '../search/FilterRegistry'
 import { SearchResults } from '../search/SearchResults'
 import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
@@ -43,12 +43,6 @@ import {getItemLabelKey} from '../archive/ArchiveBrowser'
 const searchDialogContext = React.createContext()
 const context = cloneDeep(ui?.apps?.options?.entries)
 context.search_syntaxes.exclude = undefined
-
-const allFilters = new Set(defaultFilterGroups && (Object.keys(context?.filter_menus?.options))
-  .map(filter => {
-    const group = defaultFilterGroups?.[filter]
-    return group ? Array.from(group) : []
-  }).flat())
 
 const useStyles = makeStyles(theme => ({
   dialog: {
@@ -218,20 +212,19 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
   const {
     useSetFilter,
     useFilters,
-    useFiltersLocked,
+    filters: filterNames,
     useUpdateFilter,
     filters: filterList
   } = useSearchContext()
-  const filtersLocked = useFiltersLocked()
-  const filters = useFilters([...allFilters]
+  const filters = useFilters([...filterNames]
     .filter(
       filter => filter !== 'visibility' &&
       filter !== 'processed' &&
       filter !== 'upload_id' &&
       filter !== 'published' &&
-      filter !== 'main_author.user_id' &&
-      !filtersLocked[filter]
-    ))
+      filter !== 'main_author.user_id'
+    )
+  )
   const updateFilter = useUpdateFilter()
   const uploadContext = useUploadPageContext()
   const entryContext = useEntryStore()
@@ -416,7 +409,7 @@ function SectionSelectDialog(props) {
     initialPagination={context?.pagination}
     initialColumns={columns}
     initialRows={rows}
-    initialFilterMenus={context?.filter_menus}
+    initialMenu={context?.menu}
     initialFiltersLocked={filtersLocked}
     initialSearchSyntaxes={context?.search_syntaxes}
     id='sectionselect'

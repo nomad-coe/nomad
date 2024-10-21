@@ -51,7 +51,7 @@ describe('searchbar queries', function() {
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
-          initialFilterMenus={context.filter_menus}
+          initialMenu={context?.menu}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
           initialSearchSyntaxes={context?.search_syntaxes}
@@ -91,7 +91,7 @@ describe('suggestions: history', function() {
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
-          initialFilterMenus={context.filter_menus}
+          initialMenu={context?.menu}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
           initialSearchSyntaxes={context?.search_syntaxes}
@@ -116,7 +116,7 @@ describe('suggestions: history', function() {
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
-          initialFilterMenus={context.filter_menus}
+          initialMenu={context?.menu}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
           initialSearchSyntaxes={context?.search_syntaxes}
@@ -140,7 +140,7 @@ describe('suggestions: history', function() {
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
-          initialFilterMenus={context.filter_menus}
+          initialMenu={context?.menu}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
           initialSearchSyntaxes={context?.search_syntaxes}

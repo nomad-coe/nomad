@@ -21,9 +21,10 @@ import clsx from 'clsx'
 import { isNil } from 'lodash'
 import elementData from '../../../elementData'
 import { useResizeDetector } from 'react-resize-detector'
-import { Tooltip } from '@material-ui/core'
+import { Box, Tooltip } from '@material-ui/core'
 import InputHeader from './InputHeader'
-import InputCheckbox from './InputCheckbox'
+// eslint-disable-next-line no-unused-vars
+import InputTerms from './InputTerms'
 import { makeStyles, useTheme, lighten } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
 import { approxInteger } from '../../../utils'
@@ -165,6 +166,7 @@ Element.propTypes = {
 /**
  * Displays an interactive periodic table.
 */
+const options = {true: {label: 'only compositions that exclusively contain these atoms'}}
 const usePeriodicTableStyles = makeStyles(theme => ({
   root: {
     minHeight: 0, // added min-height: 0 to prevent relayouting when within flexbox
@@ -177,6 +179,7 @@ const usePeriodicTableStyles = makeStyles(theme => ({
     position: 'absolute',
     top: theme.spacing(-0.2),
     left: '10%',
+    right: '20%',
     textAlign: 'center'
   }
 }))
@@ -262,10 +265,14 @@ export const PeriodicTable = React.memo(({
       }
     </svg>
     <div className={styles.container}>
-      <InputCheckbox
-        quantity="exclusive"
-        label="only compositions that exclusively contain these atoms"
-      ></InputCheckbox>
+      <InputTerms
+        visible={visible}
+        searchQuantity="exclusive"
+        options={options}
+        showHeader={false}
+        showInput={false}
+        showStatistics={false}
+      />
     </div>
   </div>
 })
@@ -295,65 +302,75 @@ PeriodicTable.defaultProps = {
 const useInputPeriodicTableStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    height: '30rem'
   }
 }))
 const InputPeriodicTable = React.memo(({
-    quantity,
-    label,
-    description,
-    visible,
-    initialScale,
-    anchored,
-    disableStatistics,
-    aggId,
-    className
-  }) => {
+  searchQuantity,
+  title,
+  description,
+  visible,
+  scale,
+  anchored,
+  showHeader,
+  showStatistics,
+  aggId,
+  className
+}) => {
   const styles = useInputPeriodicTableStyles()
-  const [scale, setScale] = useState(initialScale)
-  const {filterData} = useSearchContext()
+  const [scaleState, setScaleState] = useState(scale)
+  const {filterData, useIsStatisticsEnabled} = useSearchContext()
+  const isStatisticsEnabled = useIsStatisticsEnabled()
+  showStatistics = isStatisticsEnabled && showStatistics
 
   // Determine the description and title
-  const def = filterData[quantity]
+  const def = filterData[searchQuantity]
   const descFinal = description || def?.description || ''
-  const labelFinal = label || def?.label
+  const labelFinal = title || def?.label
 
   return <div className={clsx(styles.root, className)}>
-    <InputHeader
-      quantity={quantity}
-      label={labelFinal}
-      description={descFinal}
-      scale={scale}
-      onChangeScale={setScale}
-      disableStatistics={disableStatistics}
-      disableAggSize
-      anchored={anchored}
-    />
+    {showHeader
+      ? <InputHeader
+        quantity={searchQuantity}
+        label={labelFinal}
+        description={descFinal}
+        scale={scaleState}
+        onChangeScale={setScaleState}
+        disableStatistics={!showStatistics}
+        disableAggSize
+        anchored={anchored}
+      />
+      : <Box marginTop={1.5}/>
+    }
     <PeriodicTable
-      quantity={quantity}
+      quantity={searchQuantity}
       visible={visible}
-      scale={scale}
+      scale={scaleState}
       anchored={anchored}
-      disableStatistics={disableStatistics}
+      disableStatistics={!showStatistics}
       aggId={aggId}
     />
   </div>
 })
 
 InputPeriodicTable.propTypes = {
-  quantity: PropTypes.string,
-  label: PropTypes.string,
+  searchQuantity: PropTypes.string,
+  title: PropTypes.string,
   description: PropTypes.string,
+  scale: PropTypes.string,
+  showHeader: PropTypes.bool,
+  showStatistics: PropTypes.bool,
   visible: PropTypes.bool,
-  initialScale: PropTypes.string,
   anchored: PropTypes.bool,
-  disableStatistics: PropTypes.bool,
   aggId: PropTypes.string,
   className: PropTypes.string
 }
 
 InputPeriodicTable.defaultProps = {
-  initialScale: 'linear'
+  scale: 'linear',
+  showHeader: true,
+  showStatistics: true
 }
 
 export default InputPeriodicTable

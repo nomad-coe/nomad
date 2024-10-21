@@ -40,8 +40,8 @@ test.each([
         initialPagination={context.pagination}
         initialColumns={context.columns}
         initialRows={context.rows}
-        initialFilters={context?.filters}
-        initialFilterMenus={context.filter_menus}
+        initialSearchQuantities={context?.search_quantities}
+        initialMenu={context?.menu}
         initialFiltersLocked={context.filters_locked}
         initialDashboard={context?.dashboard}
         initialSearchSyntaxes={context?.search_syntaxes}

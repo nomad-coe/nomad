@@ -80,7 +80,7 @@ describe('test search columns', () => {
       <SearchContextRaw
         resource="entries"
         id='entries'
-        initialFilterData={{
+        initialSearchQuantities={{
           'my_float': new Filter(undefined, {quantity: 'my_float', dtype: DType.Float}),
           'my_boolean': new Filter(undefined, {quantity: 'my_boolean', dtype: DType.Boolean}),
           'my_float_array': new Filter(undefined, {quantity: 'my_float_array', dtype: DType.Float, shape: '*'}),

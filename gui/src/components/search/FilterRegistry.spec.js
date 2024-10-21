@@ -17,10 +17,10 @@
  */
 import React from 'react'
 import { render, screen } from '../conftest.spec'
-import { withFilters } from './FilterRegistry'
+import { withSearchQuantities } from './FilterRegistry'
 
-const TestComponent = withFilters(({initialFilterData}) => {
-  return Object.keys(initialFilterData).map((filter) => <div key={filter}>{filter}</div>)
+const TestComponent = withSearchQuantities(({initialSearchQuantities}) => {
+  return Object.keys(initialSearchQuantities).map((filter) => <div key={filter}>{filter}</div>)
 })
 
 test.each([
@@ -28,7 +28,7 @@ test.each([
   ['nomad include', {include: ['mainfile']}, ['mainfile'], []],
   ['nomad exclude', {exclude: ['mainfile']}, [], ['mainfile']]
 ])('%s', async (name, config, include, exclude) => {
-  render(<TestComponent initialFilters={config}/>)
+  render(<TestComponent initialSearchQuantities={config}/>)
   for (const filter of include) {
     expect(await screen.findByText(filter, {exact: true})).toBeInTheDocument()
   }

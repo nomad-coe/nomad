@@ -30,7 +30,6 @@ import { format } from 'date-fns'
 import { DType, getDisplayLabel, parseJMESPath } from '../../utils'
 import { Unit } from '../units/Unit'
 import { ui } from '../../config'
-import { menuMap } from './menus/FilterMainMenu'
 
 /*****************************************************************************/
 // Renders
@@ -129,7 +128,7 @@ export async function expectWidgetTerms(widget, loaded, items, prompt, root = sc
     )
 
     // Test immediately displayed elements
-    await expectFilterTitle(widget.quantity)
+    await expectFilterTitle(widget.search_quantity)
 
     // Check that placeholder disappears
     if (!loaded) {
@@ -154,19 +153,41 @@ export async function expectWidgetTerms(widget, loaded, items, prompt, root = sc
 }
 
 /**
+ * Tests that an InputItem is displayed.
+ *
+ * @param {string} item The item specification
+ * @param {object} root The container to work on.
+ */
+export async function expectInputItem(item, root = screen) {
+  root.getByText(item.label)
+}
+
+/**
+ * Tests that a WidgetHistogram is rendered with the given contents.
+ * @param {object} widget The widget setup
+ * @param {bool} loaded Whether the data is already loaded
+ */
+export async function expectWidgetHistogram(widget, root = screen) {
+    // Test immediately displayed elements
+    const xAxis = widget.x
+    const {quantity: x} = parseJMESPath(xAxis.search_quantity)
+    await expectFilterTitle(x, xAxis.title, xAxis.unit, undefined, undefined, root)
+}
+
+/**
  * Tests that a WidgetScatterPlot is rendered with the given contents.
  * @param {object} widget The widget setup
  * @param {bool} loaded Whether the data is already loaded
  */
 export async function expectWidgetScatterPlot(widget, loaded, colorTitle, legend, root = screen) {
     // Test immediately displayed elements
-    const {quantity: x} = parseJMESPath(widget.x.quantity)
-    const {quantity: y} = parseJMESPath(widget.y.quantity)
+    const {quantity: x} = parseJMESPath(widget.x.search_quantity)
+    const {quantity: y} = parseJMESPath(widget.y.search_quantity)
     await expectFilterTitle(x)
     await expectFilterTitle(y)
     if (colorTitle) {
-      if (colorTitle.quantity) {
-        await expectFilterTitle(colorTitle.quantity)
+      if (colorTitle.search_quantity) {
+        await expectFilterTitle(colorTitle.search_quantity)
       } else {
         await expectFilterTitle(undefined, colorTitle.title, colorTitle.unit)
       }
@@ -190,7 +211,7 @@ export async function expectWidgetScatterPlot(widget, loaded, colorTitle, legend
  */
 export async function expectInputRange(widget, loaded, histogram, anchored, min, max, root = screen) {
     // Test header
-    await expectInputHeader(widget.x.quantity, true)
+    await expectInputHeader(widget.x.search_quantity, true)
 
     // Check histogram
     if (histogram) {
@@ -202,7 +223,7 @@ export async function expectInputRange(widget, loaded, histogram, anchored, min,
 
     // Test text elements if the component is not anchored
     if (!anchored) {
-      const data = defaultFilterData[widget.x.quantity]
+      const data = defaultFilterData[widget.x.search_quantity]
       const dtype = data.dtype
       if (dtype === DType.Timestamp) {
         expect(root.getByText('Start time')).toBeInTheDocument()
@@ -285,51 +306,23 @@ export async function expectPeriodicTableItems(elements, root = screen) {
 }
 
 /**
- * Tests that the correct FilterMainMenu items are displayed.
+ * Tests that the menu is displayed.
  * @param {object} context The used search context
  * @param {object} root The root element to perform the search on.
  */
-export async function expectFilterMainMenu(context, root = screen) {
-    // Check that menu item labels are displayed
-    const menuConfig = context.filter_menus
-    const menuItems = (menuConfig.include || Object.keys(menuConfig.options))
-      .filter(key => !menuConfig?.exclude?.includes(key))
-      .map(key => ({key, ...menuConfig.options[key]}))
-    for (const menuItem of menuItems) {
-      const label = menuItem.label
-      if (label) {
-        const labelElement = screen.getByTestId(`menu-item-label-${menuItem.key}`)
-        expect(labelElement).toBeInTheDocument()
-        expect(within(labelElement).getByText(label)).toBeInTheDocument()
-      }
-    }
+export async function expectMenu(menu, root = screen) {
+  // Main title should be shown
+  screen.getByText('Filters')
 
-    // Check that action labels are displayed
-    const actionItems = []
-    for (const menuItem of menuItems) {
-      for (const key of menuItem?.actions?.include || []) {
-        actionItems.push(menuItem.actions.options[key])
+  // Check that submenu buttons are displayed
+  for (const menuItem of menu.items) {
+    if (menuItem.type === 'menu') {
+      const title = menuItem.title
+      if (title) {
+        screen.getAllByText(title)
       }
     }
-    for (const actionItem of actionItems) {
-      const actionLabel = actionItem.label
-      if (actionLabel) {
-        const labelElement = screen.getByText(actionLabel)
-        expect(labelElement).toBeInTheDocument()
-        expect(within(labelElement).getByText(actionLabel)).toBeInTheDocument()
-      }
-    }
-
-    // Check that clicking the menu items with a submenu opens up the menu
-    for (const menuItem of menuItems) {
-      if (menuMap[menuItem.key]) {
-        const labelMenu = screen.getByTestId(`menu-item-label-${menuItem.key}`)
-        const labelSubMenu = await screen.findByTestId(`filter-menu-header-${menuItem.key}`)
-        expect(labelSubMenu).not.toBeVisible()
-        await userEvent.click(labelMenu)
-        expect(labelSubMenu).toBeVisible()
-      }
-    }
+  }
 }
 
 /**
@@ -337,7 +330,7 @@ export async function expectFilterMainMenu(context, root = screen) {
  * @param {object} context The used search context
  * @param {object} root The root element to perform the search on.
  */
-export async function expectSearchResults(context, root = screen) {
+export async function expectSearchResults(columns, root = screen) {
     // Wait until search results are in
     expect(await screen.findByText("search result", {exact: false})).toBeInTheDocument()
 
@@ -347,7 +340,7 @@ export async function expectSearchResults(context, root = screen) {
     const container = within(screen.getByTestId('search-results'))
 
     // Check that correct columns are displayed
-    const columnLabels = context.columns
+    const columnLabels = columns
       .filter((column) => column.selected)
       .map((column) => {
         const quantity = column.quantity

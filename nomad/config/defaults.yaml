@@ -857,6 +857,7 @@ ui:
             optimade:
               label: Optimade
               size: m
+
       calculations:
         label: Calculations
         path: calculations
@@ -983,7 +984,7 @@ ui:
               xxl: {h: 9, minH: 3, minW: 3, w: 6, x: 30, y: 0}
             quantity: results.material.symmetry.space_group_symbol
             scale: linear
-            showinput: true
+            show_input: true
             type: terms
           - layout:
               lg: {h: 6, minH: 3, minW: 3, w: 5, x: 19, y: 0}
@@ -993,7 +994,7 @@ ui:
               xxl: {h: 9, minH: 3, minW: 3, w: 6, x: 19, y: 0}
             quantity: results.material.structural_type
             scale: log
-            showinput: false
+            show_input: false
             type: terms
           - layout:
               lg: {h: 6, minH: 3, minW: 3, w: 5, x: 14, y: 0}
@@ -1003,7 +1004,7 @@ ui:
               xxl: {h: 9, minH: 3, minW: 3, w: 6, x: 13, y: 0}
             quantity: results.method.simulation.program_name
             scale: log
-            showinput: true
+            show_input: true
             type: terms
           - layout:
               lg: {h: 5, minH: 3, minW: 3, w: 5, x: 14, y: 6}
@@ -1013,7 +1014,7 @@ ui:
               xxl: {h: 9, minH: 3, minW: 3, w: 5, x: 25, y: 0}
             quantity: results.material.symmetry.crystal_system
             scale: linear
-            showinput: false
+            show_input: false
             type: terms
       materials:
         label: Materials

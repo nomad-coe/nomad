@@ -21,7 +21,7 @@ import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useSearchContext } from './SearchContext'
-import { inputSectionContext } from './input/InputSection'
+import { inputSectionContext } from './input/InputNestedObject'
 import { Unit } from '../units/Unit'
 import { useUnitContext } from '../units/UnitContext'
 import Ellipsis from '../visualization/Ellipsis'
@@ -36,8 +36,7 @@ const useStaticStyles = makeStyles(theme => ({
   },
   text: {
   },
-  title: {
-    fontWeight: 600,
+  subtitle2: {
     color: theme.palette.grey[800]
   },
   right: {
@@ -83,7 +82,7 @@ const FilterTitle = React.memo(({
       let finalUnit
       if (unit) {
         finalUnit = new Unit(unit).label()
-      } else if (filterData[quantity]?.unit) {
+      } else if (quantity && filterData[quantity]?.unit) {
         finalUnit = new Unit(filterData[quantity].unit).toSystem(units).label()
       }
       if (finalUnit) {
@@ -94,17 +93,14 @@ const FilterTitle = React.memo(({
   }, [filterData, quantity, units, label, unit, disableUnit])
 
   // Determine the final description
-  const finalDescription = description || filterData[quantity]?.description || ''
-  let tooltip = ''
-  if (finalDescription && quantity) {
-    tooltip = (
-      <>
-        <Typography>{finalLabel}</Typography>
-        <b>Description: </b>{finalDescription}<br/>
-        <b>Path: </b>{quantity}
-      </>
-    )
-  }
+  const finalDescription = description || (quantity && filterData[quantity]?.description) || ''
+  const tooltip = (quantity)
+    ? <>
+      <Typography>{finalLabel}</Typography>
+      <b>Description: </b>{finalDescription || '-'}<br/>
+      <b>Path: </b>{quantity}
+    </>
+    : finalDescription || ''
 
   return <Tooltip title={tooltip} interactive enterDelay={400} enterNextDelay={400} {...(TooltipProps || {})}>
     <div className={clsx(className, styles.root,
@@ -114,7 +110,7 @@ const FilterTitle = React.memo(({
     )}>
       <Typography
         noWrap={noWrap}
-        className={clsx(styles.text, (!section) && styles.title)}
+        className={clsx(styles.text, (!section) && (variant === "subtitle2") && styles.subtitle2)}
         variant={variant}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}

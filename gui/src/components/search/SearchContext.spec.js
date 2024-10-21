@@ -134,7 +134,7 @@ describe.only('test that final column information is generated correctly', funct
   ])('%s', async (name, column, filter, label) => {
     const quantity = 'test_filter'
     const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: (props) => <Wrapper
-      initialFilterData={{[quantity]: filter}}
+      initialSearchQuantities={{[quantity]: filter}}
       initialColumns={[{quantity, ...column}]}
       {...props}
     />})
