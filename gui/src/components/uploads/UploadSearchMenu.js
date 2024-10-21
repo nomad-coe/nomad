@@ -31,7 +31,10 @@ const UploadSearchMenu = React.memo(({
   }
   const menu = filteredMenus[0]
     return (
-      <MenuBarRoute menu={menu} label={'Search in this upload'} initialFilters={{upload_id: uploadId}}>
+      <MenuBarRoute
+        menu={menu}
+        label={'Search in this upload'}
+        initialFilters={{upload_id: uploadId}}>
         <SearchIcon/>
       </MenuBarRoute>
     )

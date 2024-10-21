@@ -46,7 +46,7 @@ describe('displaying an initial widget and removing it', () => {
       'terms',
       {
         type: 'terms',
-        quantity: 'results.material.structural_type',
+        search_quantity: 'results.material.structural_type',
         scale: 'linear',
         editing: false,
         visible: true,
@@ -70,7 +70,7 @@ describe('displaying an initial widget and removing it', () => {
       {
         type: 'histogram',
         title: 'Test title',
-        x: {quantity: 'results.material.n_elements'},
+        x: {search_quantity: 'results.material.n_elements'},
         y: {scale: 'linear'},
         editing: false,
         visible: true,
@@ -85,13 +85,13 @@ describe('displaying an initial widget and removing it', () => {
       async (widget, loaded) => await expectInputRange(widget, loaded, true, true)
     ],
     [
-      'scatterplot',
+      'scatter_plot',
       {
-        type: 'scatterplot',
+        type: 'scatter_plot',
         title: 'Test title',
-        x: {quantity: 'results.properties.optoelectronic.solar_cell.open_circuit_voltage'},
-        y: {quantity: 'results.properties.optoelectronic.solar_cell.efficiency'},
-        markers: {color: {quantity: 'results.properties.optoelectronic.solar_cell.short_circuit_current_density'}},
+        x: {search_quantity: 'results.properties.optoelectronic.solar_cell.open_circuit_voltage'},
+        y: {search_quantity: 'results.properties.optoelectronic.solar_cell.efficiency'},
+        markers: {color: {search_quantity: 'results.properties.optoelectronic.solar_cell.short_circuit_current_density'}},
         size: 1000,
         autorange: true,
         editing: false,
@@ -107,10 +107,10 @@ describe('displaying an initial widget and removing it', () => {
       async (widget, loaded) => await expectWidgetScatterPlot(widget, loaded)
     ],
     [
-      'periodictable',
+      'periodic_table',
       {
-        type: 'periodictable',
-        quantity: 'results.material.elements',
+        type: 'periodic_table',
+        search_quantity: 'results.material.elements',
         scale: 'linear',
         editing: false,
         visible: true,
@@ -123,7 +123,7 @@ describe('displaying an initial widget and removing it', () => {
         }
       },
       async (widget, loaded) => {
-        await expectInputHeader(widget.quantity)
+        await expectInputHeader(widget.search_quantity)
         // TODO: For some reason this test works out fine locally, but always
         // fails in the CI. Could not be resolved even by making the tests wait
         // much longer.
@@ -148,7 +148,7 @@ describe('displaying an initial widget and removing it', () => {
     // Remove widget, check that it is gone. A test id is used to fetch the
     // remove button since it is an icon that may appear in several locations.
     const removeButton = screen.getByTestId(`0-remove-widget`)
-    const label = widget.title || defaultFilterData[widget.quantity].label
+    const label = widget.title || defaultFilterData[widget.search_quantity].label
     expect(screen.queryByText(label, {exact: false})).toBeInTheDocument()
     await userEvent.click(removeButton)
     expect(screen.queryByText(label, {exact: false})).not.toBeInTheDocument()

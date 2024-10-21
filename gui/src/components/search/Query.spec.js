@@ -35,7 +35,7 @@ test.each([
         initialPagination={context.pagination}
         initialColumns={context.columns}
         initialRows={context.rows}
-        initialFilterMenus={context.filter_menus}
+        initialMenu={context?.menu}
         initialFiltersLocked={context.filters_locked}
         initialDashboard={context?.dashboard}
         initialFilterValues={{[quantity]: input}}

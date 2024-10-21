@@ -27,7 +27,6 @@ import { Typography, Box } from '@material-ui/core'
 import { useErrors } from '../errors'
 
 // Containers for filter information
-export const defaultFilterGroups = {} // Mapping from a group name -> set of filter names
 export const defaultFilterData = {} // Stores data for each registered filter
 const dtypeMap = {
   [DType.Int]: 'int',
@@ -36,45 +35,6 @@ const dtypeMap = {
   [DType.String]: 'str',
   [DType.Enum]: 'str',
   [DType.Boolean]: 'bool'
-}
-
-// Ids for the filter menus: used to tie filter chips to a specific menu.
-const idElements = 'elements'
-const idStructure = 'structure'
-const idMethod = 'method'
-const idDFT = 'dft'
-const idTB = 'tb'
-const idGW = 'gw'
-const idBSE = 'bse'
-const idDMFT = 'dmft'
-const idPrecision = 'precision'
-const idProperties = 'properties'
-const idElectronic = 'electronic'
-const idSolarCell = 'solarcell'
-const idCatalyst = 'heterogeneouscatalyst'
-const idVibrational = 'vibrational'
-const idMechanical = 'mechanical'
-const idSpectroscopic = 'spectroscopic'
-const idMolecularDynamics = 'molecular_dynamics'
-const idGeometryOptimization = 'geometry_optimization'
-const idELN = 'eln'
-const idCustomQuantities = 'custom_quantities'
-const idAuthor = 'author'
-const idMetadata = 'metadata'
-const idOptimade = 'optimade'
-
-/**
- * Associates the given quantity name with the given group name in the filter
- * group data.
- *
- * @param {object} groups The groups to work on.
- * @param {str} groupName
- * @param {str} quantityName
- */
-function addToGroup(groups, groupName, quantityName) {
-  groups[groupName]
-    ? groups[groupName].add(quantityName)
-    : groups[groupName] = new Set([quantityName])
 }
 
 /**
@@ -94,17 +54,21 @@ function addToGroup(groups, groupName, quantityName) {
  *  components.
  *
  * @param {string} name Name of the filter.
- * @param {string} group The group into which the filter belongs to. Groups
- * are used to e.g. in showing FilterSummaries about a group of filters.
  * @param {obj} config Data object containing options for the filter.
  */
-function saveFilter(name, group, config, parent) {
+function saveFilter(name, config, parent) {
   if (defaultFilterData[name]) {
     throw Error(`Trying to register filter "${name}"" multiple times.`)
   }
   const def = searchQuantities[name]
   const {path: quantity, schema} = parseQuantityName(name)
-  const newConf = {...(config || {}), quantity, schema, name: config?.name || def?.name || name, aggregatable: def?.aggregatable, group: group}
+  const newConf = {
+    ...(config || {}),
+    quantity,
+    schema,
+    name: config?.name || def?.name || name,
+    aggregatable: def?.aggregatable
+  }
   const data = defaultFilterData[name] || new Filter(def, newConf, parent)
   defaultFilterData[name] = data
   return data
@@ -114,12 +78,12 @@ function saveFilter(name, group, config, parent) {
  * Used to register a filter value for an individual metainfo quantity or
  * section.
  */
-function registerFilter(name, group, config, subQuantities) {
-  const parent = saveFilter(name, group, config)
+function registerFilter(name, config, subQuantities) {
+  const parent = saveFilter(name, config)
   if (subQuantities) {
     for (const subConfig of subQuantities) {
       const subname = `${name}.${subConfig.name}`
-      saveFilter(subname, group, subConfig, parent)
+      saveFilter(subname, subConfig, parent)
     }
   }
 }
@@ -127,11 +91,10 @@ function registerFilter(name, group, config, subQuantities) {
 /**
  * Used to register a filter that is based on a subset of quantity values.
  */
-function registerFilterOptions(name, group, target, label, description, options) {
+function registerFilterOptions(name, target, label, description, options) {
   const keys = Object.keys(options)
   registerFilter(
     name,
-    group,
     {
       aggs: {
         terms: {
@@ -179,7 +142,6 @@ const numberHistogramQuantity = {multiple: false, exclusive: false}
 // Filters that directly correspond to a metainfo value
 registerFilter(
   'results.material.structural_type',
-  idStructure,
   {
     ...termQuantity,
     scale: 'log',
@@ -188,32 +150,30 @@ registerFilter(
   }
 )
 
-registerFilter('results.material.functional_type', idStructure, termQuantityNonExclusive)
-registerFilter('results.material.compound_type', idStructure, termQuantityNonExclusive)
-registerFilter('results.material.material_name', idStructure, termQuantity)
-registerFilter('results.material.chemical_formula_hill', idElements, {...termQuantity, placeholder: "E.g. H2O2, C2H5Br"})
-registerFilter('results.material.chemical_formula_iupac', idElements, {...termQuantity, placeholder: "E.g. GaAs, SiC", label: 'Chemical formula IUPAC'})
-registerFilter('results.material.chemical_formula_reduced', idElements, {...termQuantity, placeholder: "E.g. H2NaO, ClNa"})
-registerFilter('results.material.chemical_formula_anonymous', idElements, {...termQuantity, placeholder: "E.g. A2B, A3B2C2"})
-registerFilter('results.material.n_elements', idElements, {...numberHistogramQuantity})
-registerFilter('results.material.symmetry.bravais_lattice', idStructure, termQuantity)
-registerFilter('results.material.symmetry.crystal_system', idStructure, termQuantity)
+registerFilter('results.material.functional_type', termQuantityNonExclusive)
+registerFilter('results.material.compound_type', termQuantityNonExclusive)
+registerFilter('results.material.material_name', termQuantity)
+registerFilter('results.material.chemical_formula_hill', {...termQuantity, placeholder: "E.g. H2O2, C2H5Br"})
+registerFilter('results.material.chemical_formula_iupac', {...termQuantity, placeholder: "E.g. GaAs, SiC", label: 'Chemical formula IUPAC'})
+registerFilter('results.material.chemical_formula_reduced', {...termQuantity, placeholder: "E.g. H2NaO, ClNa"})
+registerFilter('results.material.chemical_formula_anonymous', {...termQuantity, placeholder: "E.g. A2B, A3B2C2"})
+registerFilter('results.material.n_elements', {...numberHistogramQuantity})
+registerFilter('results.material.symmetry.bravais_lattice', termQuantity)
+registerFilter('results.material.symmetry.crystal_system', termQuantity)
 registerFilter(
   'results.material.symmetry.structure_name',
-  idStructure,
   {
     ...termQuantity,
     options: getEnumOptions('results.material.symmetry.structure_name', ['not processed', 'cubic perovskite'])
   }
 )
-registerFilter('results.material.symmetry.strukturbericht_designation', idStructure, termQuantity)
-registerFilter('results.material.symmetry.space_group_symbol', idStructure, {...termQuantity, placeholder: "E.g. Pnma, Fd-3m, P6_3mc"})
-registerFilter('results.material.symmetry.point_group', idStructure, {...termQuantity, placeholder: "E.g. 6mm, m-3m, 6/mmm"})
-registerFilter('results.material.symmetry.hall_symbol', idStructure, {...termQuantity, placeholder: "E.g. F 4d 2 3 -1d"})
-registerFilter('results.material.symmetry.prototype_aflow_id', idStructure, {...termQuantity, placeholder: "E.g. A_cF8_227_a"})
+registerFilter('results.material.symmetry.strukturbericht_designation', termQuantity)
+registerFilter('results.material.symmetry.space_group_symbol', {...termQuantity, placeholder: "E.g. Pnma, Fd-3m, P6_3mc"})
+registerFilter('results.material.symmetry.point_group', {...termQuantity, placeholder: "E.g. 6mm, m-3m, 6/mmm"})
+registerFilter('results.material.symmetry.hall_symbol', {...termQuantity, placeholder: "E.g. F 4d 2 3 -1d"})
+registerFilter('results.material.symmetry.prototype_aflow_id', {...termQuantity, placeholder: "E.g. A_cF8_227_a"})
 registerFilter(
   'results.material.topology',
-  idStructure,
   nestedQuantity,
   [
     {name: 'label', ...termQuantity},
@@ -264,7 +224,6 @@ registerFilter(
 )
 registerFilter(
   'results.material.elemental_composition',
-  idStructure,
   nestedQuantity,
   [
     {name: 'element', ...termQuantity},
@@ -274,7 +233,6 @@ registerFilter(
 )
 registerFilter(
   'results.material.topology.elemental_composition',
-  idStructure,
   nestedQuantity,
   [
     {name: 'element', ...termQuantity},
@@ -285,7 +243,6 @@ registerFilter(
 )
 registerFilter(
   'results.material.topology.active_orbitals',
-  idStructure,
   nestedQuantity,
   [
     {name: 'n_quantum_number', ...termQuantity},
@@ -300,19 +257,19 @@ registerFilter(
     {name: 'degeneracy', ...termQuantity}
   ]
 )
-registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: 'log'})
-registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.program_version', idMethod, termQuantity)
-registerFilter('results.method.simulation.program_version_internal', idMethod, termQuantity)
-registerFilter('results.method.simulation.precision.native_tier', idPrecision, {...termQuantity, placeholder: "E.g. VASP - accurate", label: 'Code-specific tier'})
-registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...numberHistogramQuantity, scale: 'log', label: 'k-line density'})
-registerFilter('results.method.simulation.precision.basis_set', idPrecision, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.precision.planewave_cutoff', idPrecision, {...numberHistogramQuantity, label: 'Plane-wave cutoff', scale: 'log'})
-registerFilter('results.method.simulation.precision.apw_cutoff', idPrecision, {...numberHistogramQuantity, label: 'APW cutoff', scale: 'log'})
-registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
-registerFilter('results.method.simulation.dft.jacobs_ladder', idDFT, {...termQuantity, scale: 'log', label: 'Jacob\'s ladder'})
-registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
+registerFilter('results.method.method_name', {...termQuantity, scale: 'log'})
+registerFilter('results.method.workflow_name', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.program_name', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.program_version', termQuantity)
+registerFilter('results.method.simulation.program_version_internal', termQuantity)
+registerFilter('results.method.simulation.precision.native_tier', {...termQuantity, placeholder: "E.g. VASP - accurate", label: 'Code-specific tier'})
+registerFilter('results.method.simulation.precision.k_line_density', {...numberHistogramQuantity, scale: 'log', label: 'k-line density'})
+registerFilter('results.method.simulation.precision.basis_set', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.precision.planewave_cutoff', {...numberHistogramQuantity, label: 'Plane-wave cutoff', scale: 'log'})
+registerFilter('results.method.simulation.precision.apw_cutoff', {...numberHistogramQuantity, label: 'APW cutoff', scale: 'log'})
+registerFilter('results.method.simulation.dft.core_electron_treatment', termQuantity)
+registerFilter('results.method.simulation.dft.jacobs_ladder', {...termQuantity, scale: 'log', label: 'Jacob\'s ladder'})
+registerFilter('results.method.simulation.dft.xc_functional_type', {
   ...termQuantity,
   scale: 'log',
   label: 'Jacob\'s ladder',
@@ -324,14 +281,14 @@ registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
     'hybrid': {label: 'Hybrid'}
   }
 })
-registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: 'log', label: 'XC functional names'})
-registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: 'log'})
-registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', idDFT, {...numberHistogramQuantity, scale: 'log'})
-registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
-registerFilter('results.method.simulation.tb.type', idTB, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.tb.localization_type', idTB, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW type'})
-registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
+registerFilter('results.method.simulation.dft.xc_functional_names', {...termQuantityNonExclusive, scale: 'log', label: 'XC functional names'})
+registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dft.relativity_method', termQuantity)
+registerFilter('results.method.simulation.tb.type', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.tb.localization_type', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.gw.type', {...termQuantity, label: 'GW type'})
+registerFilter('results.method.simulation.gw.starting_point_type', {
   ...termQuantity,
   scale: 'log',
   options: {
@@ -343,10 +300,10 @@ registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
     'HF': {label: 'HF'}
   }
 })
-registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.bse.type', idBSE, termQuantity)
-registerFilter('results.method.simulation.bse.solver', idBSE, termQuantity)
-registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
+registerFilter('results.method.simulation.gw.basis_set_type', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.bse.type', termQuantity)
+registerFilter('results.method.simulation.bse.solver', termQuantity)
+registerFilter('results.method.simulation.bse.starting_point_type', {
   ...termQuantity,
   scale: 'log',
   options: {
@@ -358,47 +315,48 @@ registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
     'HF': {label: 'HF'}
   }
 })
-registerFilter('results.method.simulation.bse.basis_set_type', idBSE, {...termQuantity, scale: 'log'})
-registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: 'log', label: `GW type`})
-registerFilter('results.method.simulation.dmft.impurity_solver_type', idDMFT, {...termQuantity})
-registerFilter('results.method.simulation.dmft.magnetic_state', idDMFT, {...termQuantity})
-registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: 'log'})
-registerFilter('results.method.simulation.dmft.u', idDMFT, {...numberHistogramQuantity, scale: 'log'})
-registerFilter('results.method.simulation.dmft.jh', idDMFT, {...numberHistogramQuantity, label: `JH`, scale: 'log'})
-registerFilter('results.method.simulation.dmft.analytical_continuation', idDMFT, {...termQuantity})
-registerFilter('results.eln.sections', idELN, termQuantity)
-registerFilter('results.eln.tags', idELN, termQuantity)
-registerFilter('results.eln.methods', idELN, termQuantity)
-registerFilter('results.eln.instruments', idELN, termQuantity)
-registerFilter('results.eln.lab_ids', idELN, {...termQuantity, label: 'Lab IDs'})
-registerFilter('results.eln.names', idELN, noAggQuantity)
-registerFilter('results.eln.descriptions', idELN, noAggQuantity)
-registerFilter('external_db', idAuthor, {...termQuantity, label: 'External database', scale: 'log'})
-registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author name'})
-registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: 'log'})
-registerFilter('entry_create_time', idAuthor, {...numberHistogramQuantity, scale: 'log'})
-registerFilter('datasets.dataset_name', idAuthor, {...termQuantityLarge, label: 'Dataset name'})
-registerFilter('datasets.doi', idAuthor, {...termQuantity, label: 'Dataset DOI'})
-registerFilter('datasets.dataset_id', idAuthor, termQuantity)
-registerFilter('domain', idMetadata, termQuantity)
-registerFilter('entry_id', idMetadata, termQuantity)
-registerFilter('entry_name', idMetadata, termQuantity)
-registerFilter('mainfile', idMetadata, termQuantity)
-registerFilter('upload_id', idMetadata, termQuantity)
-registerFilter('upload_name', idMetadata, termQuantity)
-registerFilter('published', idMetadata, termQuantity)
-registerFilter('main_author.user_id', idMetadata, termQuantity)
-registerFilter('quantities', idMetadata, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
-registerFilter('sections', idMetadata, {...noAggQuantity, label: 'Metainfo sections', queryMode: 'all'})
-registerFilter('section_defs.definition_qualified_name', idMetadata, {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
-registerFilter('entry_references.target_entry_id', idMetadata, {...noAggQuantity, label: 'Entry references target entry id', queryMode: 'all'})
-registerFilter('entry_type', idMetadata, {...noAggQuantity, label: 'Entry type', queryMode: 'all'})
-registerFilter('entry_name.prefix', idMetadata, {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
-registerFilter('results.material.material_id', idMetadata, termQuantity)
-registerFilter('optimade_filter', idOptimade, {multiple: true, queryMode: 'all'})
-registerFilter('processed', idMetadata, {label: 'Processed', queryMode: 'all'})
-registerFilter('text_search_contents', idMetadata, {multiple: true, queryMode: 'all'})
-registerFilter('custom_quantities', idCustomQuantities, {
+registerFilter('results.method.simulation.bse.basis_set_type', {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.bse.gw_type', {...termQuantity, scale: 'log', label: `GW type`})
+registerFilter('results.method.simulation.dmft.impurity_solver_type', {...termQuantity})
+registerFilter('results.method.simulation.dmft.magnetic_state', {...termQuantity})
+registerFilter('results.method.simulation.dmft.inverse_temperature', {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dmft.u', {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dmft.jh', {...numberHistogramQuantity, label: `JH`, scale: 'log'})
+registerFilter('results.method.simulation.dmft.analytical_continuation', {...termQuantity})
+registerFilter('results.eln.sections', termQuantity)
+registerFilter('results.eln.tags', termQuantity)
+registerFilter('results.eln.methods', termQuantity)
+registerFilter('results.eln.instruments', termQuantity)
+registerFilter('results.eln.lab_ids', {...termQuantity, label: 'Lab IDs'})
+registerFilter('results.eln.names', noAggQuantity)
+registerFilter('results.eln.descriptions', noAggQuantity)
+registerFilter('external_db', {...termQuantity, label: 'External database', scale: 'log'})
+registerFilter('authors.name', {...termQuantityNonExclusive, label: 'Author name'})
+registerFilter('upload_create_time', {...numberHistogramQuantity, scale: 'log'})
+registerFilter('entry_create_time', {...numberHistogramQuantity, scale: 'log'})
+registerFilter('datasets.dataset_name', {...termQuantityLarge, label: 'Dataset name'})
+registerFilter('datasets.doi', {...termQuantity, label: 'Dataset DOI'})
+registerFilter('datasets.dataset_id', termQuantity)
+registerFilter('domain', termQuantity)
+registerFilter('entry_id', termQuantity)
+registerFilter('entry_name', termQuantity)
+registerFilter('mainfile', termQuantity)
+registerFilter('upload_id', termQuantity)
+registerFilter('upload_name', termQuantity)
+registerFilter('published', termQuantity)
+registerFilter('main_author.user_id', termQuantity)
+registerFilter('quantities', {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
+registerFilter('sections', {...noAggQuantity, label: 'Metainfo sections', queryMode: 'all'})
+registerFilter('files', {...noAggQuantity, queryMode: 'all'})
+registerFilter('section_defs.definition_qualified_name', {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
+registerFilter('entry_references.target_entry_id', {...noAggQuantity, label: 'Entry references target entry id', queryMode: 'all'})
+registerFilter('entry_type', {...noAggQuantity, label: 'Entry type', queryMode: 'all'})
+registerFilter('entry_name.prefix', {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
+registerFilter('results.material.material_id', termQuantity)
+registerFilter('optimade_filter', {multiple: true, queryMode: 'all'})
+registerFilter('processed', {label: 'Processed', queryMode: 'all'})
+registerFilter('text_search_contents', {multiple: true, queryMode: 'all'})
+registerFilter('custom_quantities', {
   serializerExact: value => {
     const jsonStr = JSON.stringify(value)
     const result = encodeURIComponent(jsonStr)
@@ -426,7 +384,6 @@ registerFilter('custom_quantities', idCustomQuantities, {
 })
 registerFilter(
   'results.properties.spectroscopic.spectra.provenance.eels',
-  idSpectroscopic,
   {...nestedQuantity, label: 'Electron energy loss spectrum (EELS)'},
   [
     {name: 'detector_type', ...termQuantity},
@@ -437,7 +394,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.band_structure_electronic',
-  idElectronic,
   {...nestedQuantity, label: 'Band structure'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
@@ -445,7 +401,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.dos_electronic',
-  idElectronic,
   {...nestedQuantity, label: 'Density of states'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
@@ -453,7 +408,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.band_structure_electronic.band_gap',
-  idElectronic,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -462,17 +416,15 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.band_gap',
-  idElectronic,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
     {name: 'value', ...numberHistogramQuantity, scale: 'log'}
   ]
 )
-registerFilter('results.properties.electronic.band_gap.provenance.label', idElectronic, termQuantity)
+registerFilter('results.properties.electronic.band_gap.provenance.label', termQuantity)
 registerFilter(
   'results.properties.optoelectronic.solar_cell',
-  idSolarCell,
   nestedQuantity,
   [
     {name: 'efficiency', ...numberHistogramQuantity, scale: 'log'},
@@ -493,7 +445,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.catalyst',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'characterization_methods', ...termQuantity},
@@ -505,7 +456,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.reaction',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'name', ...termQuantity},
@@ -514,7 +464,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.reaction.reaction_conditions',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'temperature', ...numberHistogramQuantity, scale: 'linear'},
@@ -527,7 +476,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.reaction.products',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'name', ...termQuantityAllNonExclusive},
@@ -538,7 +486,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.reaction.reactants',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'name', ...termQuantityAllNonExclusive},
@@ -549,7 +496,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.catalytic.reaction.rates',
-  idCatalyst,
   nestedQuantity,
   [
     {name: 'name', ...termQuantityAllNonExclusive},
@@ -573,7 +519,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.mechanical.bulk_modulus',
-  idMechanical,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -582,7 +527,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.mechanical.shear_modulus',
-  idMechanical,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -591,12 +535,10 @@ registerFilter(
 )
 registerFilter(
   'results.properties.available_properties',
-  idProperties,
   termQuantityAll
 )
 registerFilter(
   'results.properties.mechanical.energy_volume_curve',
-  idMechanical,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity}
@@ -604,7 +546,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.geometry_optimization',
-  idGeometryOptimization,
   nestedQuantity,
   [
     {name: 'final_energy_difference', ...numberHistogramQuantity, scale: 'log'},
@@ -614,7 +555,6 @@ registerFilter(
 )
 registerFilter(
   'results.properties.thermodynamic.trajectory',
-  idMolecularDynamics,
   nestedQuantity,
   [
     {name: 'available_properties', ...termQuantityAll},
@@ -627,7 +567,6 @@ registerFilter(
 // query itself.
 registerFilter(
   'visibility',
-  idMetadata,
   {
     ...noQueryQuantity,
     default: 'visible',
@@ -639,7 +578,6 @@ registerFilter(
 // entries.
 registerFilter(
   'combine',
-  undefined,
   {
     ...noQueryQuantity,
     default: true,
@@ -650,9 +588,9 @@ registerFilter(
 // Exclusive: controls the way elements search is done.
 registerFilter(
   'exclusive',
-  undefined,
   {
     ...noQueryQuantity,
+    dtype: DType.Boolean,
     default: false,
     description: "Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
   }
@@ -662,11 +600,10 @@ registerFilter(
 // into a single string.
 registerFilter(
   'results.material.elements',
-  idElements,
   {
     widget: {
-      quantity: 'results.material.elements',
-      type: 'periodictable',
+      search_quantity: 'results.material.elements',
+      type: 'periodic_table',
       scale: 'log',
       layout: {
         sm: {w: 12, h: 8, minW: 12, minH: 8},
@@ -697,7 +634,6 @@ registerFilter(
 // Electronic properties: subset of results.properties.available_properties
 registerFilterOptions(
   'electronic_properties',
-  idElectronic,
   'results.properties.available_properties',
   'Electronic properties',
   'The electronic properties that are present in an entry.',
@@ -713,7 +649,6 @@ registerFilterOptions(
 // Vibrational properties: subset of results.properties.available_properties
 registerFilterOptions(
   'vibrational_properties',
-  idVibrational,
   'results.properties.available_properties',
   'Vibrational properties',
   'The vibrational properties that are present in an entry.',
@@ -728,7 +663,6 @@ registerFilterOptions(
 // Mechanical properties: subset of results.properties.available_properties
 registerFilterOptions(
   'mechanical_properties',
-  idMechanical,
   'results.properties.available_properties',
   'Mechanical properties',
   'The mechanical properties that are present in an entry.',
@@ -742,7 +676,6 @@ registerFilterOptions(
 // Spectroscopic properties: subset of results.properties.available_properties
 registerFilterOptions(
   'spectroscopic_properties',
-  idSpectroscopic,
   'results.properties.available_properties',
   'Spectroscopic properties',
   'The spectroscopic properties that are present in an entry.',
@@ -754,7 +687,6 @@ registerFilterOptions(
 // Thermodynamical properties: subset of results.properties.available_properties
 registerFilterOptions(
   'thermodynamic_properties',
-  idMolecularDynamics,
   'results.properties.available_properties',
   'Thermodynamic properties',
   'The thermodynamic properties that are present.',
@@ -800,16 +732,16 @@ export function getStaticSuggestions(quantities, filterData) {
 }
 
 /**
- * HOC that is used to preload search filters from all required schemas. This
+ * HOC that is used to preload search quantities from all required schemas. This
  * simplifies the rendering logic by first loading all schemas before rendering
  * any components that rely on them.
  */
-export const withFilters = (WrappedComponent) => {
-  const WithFilters = ({initialFilters, ...rest}) => {
+export const withSearchQuantities = (WrappedComponent) => {
+  const WithFilters = ({initialSearchQuantities, ...rest}) => {
     // Here we load the python schemas, and determine which YAML/Nexus schemas
     // to load later.
-    const [yamlOptions, nexusOptions, initialFilterData, initialFilterGroups] = useMemo(() => {
-      const options = getOptions(initialFilters)
+    const [yamlOptions, nexusOptions, initialFilterData] = useMemo(() => {
+      const options = getOptions(initialSearchQuantities)
       const yamlOptions = options.filter((name) => name.includes(`#${yamlSchemaPrefix}`))
       const nexusOptions = options.filter((name) => name.startsWith('nexus.'))
 
@@ -817,44 +749,37 @@ export const withFilters = (WrappedComponent) => {
       // default filters.
       const defaultFilters = {}
       for (const [key, value] of Object.entries(defaultFilterData)) {
-        if (glob(key, [key], initialFilters?.exclude)) {
+        if (glob(key, [key], initialSearchQuantities?.exclude)) {
           defaultFilters[key] = value
-          if (value.group) {
-            addToGroup(defaultFilterGroups, value.group, key)
-          }
         }
       }
 
       // Load the python filters from plugins
       const pythonFilterData = {}
-      const mergedFilterGroups = {...defaultFilterGroups}
       for (const [name, def] of Object.entries(searchQuantities)) {
-        if (def.dynamic && glob(name, initialFilters?.include, initialFilters?.exclude)) {
+        if (def.dynamic && glob(name, initialSearchQuantities?.include, initialSearchQuantities?.exclude)) {
           const {path, schema} = parseQuantityName(name)
           const params = {
             name: path,
-            quantity: path,
+            quantity: name,
             schema,
             aggregatable: def.aggregatable
           }
           pythonFilterData[name] = new Filter(def, params)
-          addToGroup(mergedFilterGroups, idCustomQuantities, name)
         }
       }
 
       return [
         yamlOptions,
         nexusOptions,
-        {...defaultFilters, ...pythonFilterData},
-        mergedFilterGroups
+        {...defaultFilters, ...pythonFilterData}
       ]
-    }, [initialFilters])
+    }, [initialSearchQuantities])
 
     const metainfo = useGlobalMetainfo()
     const [loadingYaml, setLoadingYaml] = useState(yamlOptions.length)
     const [loadingNexus, setLoadingNexus] = useState(nexusOptions.length)
     const [filters, setFilters] = useState(initialFilterData)
-    const [filterGroups, setFilterGroups] = useState({...initialFilterGroups})
     const { raiseError } = useErrors()
 
     // Nexus metainfo is loaded here once metainfo is ready
@@ -863,7 +788,6 @@ export const withFilters = (WrappedComponent) => {
       const pkg = metainfo._packageDefs['nexus']
       const sections = pkg.section_definitions
       const nexusFilters = {}
-      const nexusFilterGroups = {}
       for (const section of sections) {
         const sectionPath = `nexus.${section.name}`
 
@@ -874,14 +798,14 @@ export const withFilters = (WrappedComponent) => {
         if (section?.more?.nx_category !== 'application') continue
 
         // Sections from which no quantities are included are skipped
-        if (!glob(sectionPath, initialFilters?.include, initialFilters?.exclude) && !initialFilters?.include.some(x => x.includes(sectionPath))) {
+        if (!glob(sectionPath, initialSearchQuantities?.include, initialSearchQuantities?.exclude) && !initialSearchQuantities?.include.some(x => x.includes(sectionPath))) {
           continue
         }
 
         // Add all included quantities recursively
         for (const [def, path, repeats] of getQuantities(section)) {
           const filterPath = `${sectionPath}.${path}`
-          const included = glob(filterPath, initialFilters?.include, initialFilters?.exclude)
+          const included = glob(filterPath, initialSearchQuantities?.include, initialSearchQuantities?.exclude)
           if (!included) continue
           const dtype = dtypeMap[getDatatype(def)]
           // TODO: For some Nexus quantities, the data types cannot be fetched.
@@ -895,28 +819,17 @@ export const withFilters = (WrappedComponent) => {
             repeats: repeats
           }
           nexusFilters[filterPath] = new Filter(def, params)
-          addToGroup(nexusFilterGroups, idCustomQuantities, filterPath)
         }
       }
       setFilters((old) => ({...old, ...nexusFilters}))
-      setFilterGroups((old) => {
-        const newGroups = {...old}
-        for (const [groupName, names] of Object.entries(nexusFilterGroups)) {
-          for (const quantityName of [...names]) {
-            addToGroup(newGroups, groupName, quantityName)
-          }
-        }
-        return newGroups
-      })
       setLoadingNexus(false)
-    }, [metainfo, nexusOptions, initialFilters])
+    }, [metainfo, nexusOptions, initialSearchQuantities])
 
     // YAML schemas are loaded here asynchronously
     useEffect(() => {
       if (!yamlOptions.length || !metainfo) return
       async function fetchSchemas(options) {
         const yamlFilters = {}
-        const yamlFilterGroups = {}
         for (const schemaPath of options) {
           let schemaDefinition
           try {
@@ -935,24 +848,14 @@ export const withFilters = (WrappedComponent) => {
               throw Error(`Unable to load the data type for ${path}.`)
             }
             const filterPath = `data.${path}${schemaSeparator}${schemaPath}`
-            const included = glob(filterPath, initialFilters?.include, initialFilters?.exclude)
+            const included = glob(filterPath, initialSearchQuantities?.include, initialSearchQuantities?.exclude)
             if (!included) continue
             const apiPath = `${filterPath}${dtypeSeparator}${dtype}`
             const {path: quantity, schema} = parseQuantityName(filterPath)
             yamlFilters[filterPath] = new Filter(def, {name: path, schema, quantity, requestQuantity: apiPath})
-            addToGroup(yamlFilterGroups, idCustomQuantities, filterPath)
           }
         }
         setFilters((old) => ({...old, ...yamlFilters}))
-        setFilterGroups((old) => {
-          const newGroups = {...old}
-          for (const [groupName, names] of Object.entries(yamlFilterGroups)) {
-            for (const quantityName of [...names]) {
-              addToGroup(newGroups, groupName, quantityName)
-            }
-          }
-          return newGroups
-        })
         setLoadingYaml(false)
       }
 
@@ -960,18 +863,18 @@ export const withFilters = (WrappedComponent) => {
       // and the required filters are registered from each.
       const yamlSchemas = new Set(yamlOptions.map(x => x.split('#').pop()))
       fetchSchemas(yamlSchemas)
-    }, [yamlOptions, metainfo, raiseError, initialFilters])
+    }, [yamlOptions, metainfo, raiseError, initialSearchQuantities])
 
     return (loadingYaml || loadingNexus)
       ? <Box margin={1}>
           <Typography>Loading the required schemas...</Typography>
         </Box>
-      : <WrappedComponent {...rest} initialFilterData={filters} initialFilterGroups={filterGroups}/>
+      : <WrappedComponent {...rest} initialSearchQuantities={filters}/>
   }
 
   WithFilters.displayName = `withFilter(${WrappedComponent.displayName || WrappedComponent.name})`
   WithFilters.propTypes = {
-    initialFilters: PropTypes.object // Determines which filters are available
+    initialSearchQuantities: PropTypes.object // Determines which filters are available
   }
 
   return WithFilters

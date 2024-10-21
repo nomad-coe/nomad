@@ -102,13 +102,13 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
       // Check for missing values. This check is required because there is no
       // value set when a new widget is created, and pressing the done button
       // without filling a value should raise an error.
-      const xEmpty = isEmptyString(settings?.x?.quantity)
+      const xEmpty = isEmptyString(settings?.x?.search_quantity)
       if (xEmpty) {
-        handleErrorQuantity('x.quantity', 'Please specify a value.')
+        handleErrorQuantity('x.search_quantity', 'Please specify a value.')
       }
-      const yEmpty = isEmptyString(settings?.y?.quantity)
+      const yEmpty = isEmptyString(settings?.y?.search_quantity)
       if (yEmpty) {
-        handleErrorQuantity('y.quantity', 'Please specify a value.')
+        handleErrorQuantity('y.search_quantity', 'Please specify a value.')
       }
 
       if (!independentErrors && !xEmpty && !yEmpty) {
@@ -127,20 +127,20 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
           <InputJMESPath
-            label="quantity"
-            value={settings.x?.quantity}
-            onChange={(value) => handleChange('x.quantity', value)}
-            onSelect={(value) => handleAcceptQuantity('x.quantity', value)}
-            onAccept={(value) => handleAcceptQuantity('x.quantity', value)}
-            error={errors['x.quantity']}
-            onError={(value) => handleErrorQuantity('x.quantity', value)}
+            label="Search quantity"
+            value={settings.x?.search_quantity}
+            onChange={(value) => handleChange('x.search_quantity', value)}
+            onSelect={(value) => handleAcceptQuantity('x.search_quantity', value)}
+            onAccept={(value) => handleAcceptQuantity('x.search_quantity', value)}
+            error={errors['x.search_quantity']}
+            onError={(value) => handleErrorQuantity('x.search_quantity', value)}
             dtypes={dtypesNumeric}
             dtypesRepeatable={dtypesNumeric}
           />
         </WidgetEditOption>
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings.x?.title}
             onChange={(event) => handleChange('x.title', event.target.value)}
@@ -148,14 +148,14 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <UnitInput
-            label='unit'
+            label='Unit'
             value={settings.x?.unit}
             onChange={(value) => handleChange('x.unit', value)}
             onSelect={(value) => handleAccept('x.unit', value)}
             onAccept={(value) => handleAccept('x.unit', value)}
             error={errors['x.unit']}
             onError={(value) => handleError('x.unit', value)}
-            dimension={dimensions['x.quantity'] || null}
+            dimension={dimensions['x.search_quantity'] || null}
             optional
             disableGroup
           />
@@ -164,7 +164,7 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
           <TextField
             select
             fullWidth
-            label="scale"
+            label="Scale"
             variant="filled"
             value={settings.x?.scale}
             onChange={(event) => { handleChange('x.scale', event.target.value) }}
@@ -178,20 +178,20 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
       <WidgetEditGroup title="y axis">
         <WidgetEditOption>
           <InputJMESPath
-            label="quantity"
-            value={settings.y?.quantity}
-            onChange={(value) => handleChange('y.quantity', value)}
-            onSelect={(value) => handleAcceptQuantity('y.quantity', value)}
-            onAccept={(value) => handleAcceptQuantity('y.quantity', value)}
-            error={errors['y.quantity']}
-            onError={(value) => handleErrorQuantity('y.quantity', value)}
+            label="Search quantity"
+            value={settings.y?.search_quantity}
+            onChange={(value) => handleChange('y.search_quantity', value)}
+            onSelect={(value) => handleAcceptQuantity('y.search_quantity', value)}
+            onAccept={(value) => handleAcceptQuantity('y.search_quantity', value)}
+            error={errors['y.search_quantity']}
+            onError={(value) => handleErrorQuantity('y.search_quantity', value)}
             dtypes={dtypesNumeric}
             dtypesRepeatable={dtypesNumeric}
           />
         </WidgetEditOption>
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings.y?.title}
             onChange={(event) => handleChange('y.title', event.target.value)}
@@ -199,14 +199,14 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <UnitInput
-            label='unit'
+            label='Unit'
             value={settings.y?.unit}
             onChange={(value) => handleChange('y.unit', value)}
             onSelect={(value) => handleAccept('y.unit', value)}
             onAccept={(value) => handleAccept('y.unit', value)}
             error={errors['y.unit']}
             onError={(value) => handleError('y.unit', value)}
-            dimension={dimensions['y.quantity'] || null}
+            dimension={dimensions['y.search_quantity'] || null}
             optional
             disableGroup
           />
@@ -215,7 +215,7 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
           <TextField
             select
             fullWidth
-            label="scale"
+            label="Scale"
             variant="filled"
             value={settings.y?.scale}
             onChange={(event) => { handleChange('y.scale', event.target.value) }}
@@ -229,13 +229,13 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
       <WidgetEditGroup title="marker color">
         <WidgetEditOption>
           <InputJMESPath
-            label="quantity"
-            value={settings?.markers?.color?.quantity}
-            onChange={(value) => handleChange('markers.color.quantity', value)}
-            onSelect={(value) => handleAcceptQuantity('markers.color.quantity', value)}
-            onAccept={(value) => handleAcceptQuantity('markers.color.quantity', value)}
-            error={errors['markers.color.quantity']}
-            onError={(value) => handleErrorQuantity('markers.color.quantity', value)}
+            label="Search quantity"
+            value={settings?.markers?.color?.search_quantity}
+            onChange={(value) => handleChange('markers.color.search_quantity', value)}
+            onSelect={(value) => handleAcceptQuantity('markers.color.search_quantity', value)}
+            onAccept={(value) => handleAcceptQuantity('markers.color.search_quantity', value)}
+            error={errors['markers.color.search_quantity']}
+            onError={(value) => handleErrorQuantity('markers.color.search_quantity', value)}
             dtypes={dtypesColor}
             dtypesRepeatable={dtypesColor}
             optional
@@ -243,7 +243,7 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings.markers?.color?.title}
             onChange={(event) => handleChange('markers.color.title', event.target.value)}
@@ -251,23 +251,23 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <UnitInput
-            label='unit'
+            label='Unit'
             value={settings.markers?.color?.unit}
             onChange={(value) => handleChange('markers.color.unit', value)}
             onSelect={(value) => handleAccept('markers.color.unit', value)}
             onAccept={(value) => handleAccept('markers.color.unit', value)}
             error={errors['markers.color.unit']}
             onError={(value) => handleError('markers.color.unit', value)}
-            dimension={dimensions['markers.color.quantity'] || null}
+            dimension={dimensions['markers.color.search_quantity'] || null}
             optional
             disableGroup
           />
         </WidgetEditOption>
       </WidgetEditGroup>
-      <WidgetEditGroup title="general">
+      <WidgetEditGroup title="General">
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings?.title}
             onChange={(event) => handleChange('title', event.target.value)}
@@ -296,8 +296,8 @@ WidgetScatterPlotEdit.propTypes = {
 }
 
 export const schemaWidgetScatterPlot = schemaWidget.shape({
-  x: schemaAxis.required('Quantity for the x axis is required.'),
-  y: schemaAxis.required('Quantity for the y axis is required.'),
+  x: schemaAxis.required('Search quantity for the x axis is required.'),
+  y: schemaAxis.required('Search quantity for the y axis is required.'),
   markers: schemaMarkers,
   size: number().integer().required('Size is required.'),
   autorange: bool()

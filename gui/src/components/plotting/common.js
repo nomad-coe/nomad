@@ -39,7 +39,8 @@ import {
   eachQuarterOfInterval
 } from 'date-fns'
 import { scale as chromaScale } from 'chroma-js'
-import { scale as scaleUtils, add, DType, formatNumber } from '../../utils.js'
+import { scale as scaleUtils, add, DType, formatNumber, getDisplayLabel, parseJMESPath } from '../../utils.js'
+import { Unit } from '../units/Unit'
 
 export const scales = {
   'linear': 'linear',
@@ -484,4 +485,29 @@ export function getPlotTracesVertical(plots, theme) {
     }
   }
   return size(traces) ? traces : undefined
+}
+
+/**
+ * Returns a fully configured axis object for plotting.
+ *
+ * @param {object} axis The original axis configuration.
+ * @param {object} filterData Filters registered in the current search context.
+ * @param {object} units Units in current unit system.
+ */
+export function getAxisConfig(axis, filterData, units) {
+    const {quantity} = parseJMESPath(axis?.search_quantity)
+    const filter = filterData[quantity]
+    const title = axis.title || filter?.label || getDisplayLabel(filter)
+    const dtype = filter?.dtype
+    const unit = axis.unit
+      ? new Unit(axis.unit)
+      : new Unit(filter?.unit || 'dimensionless').toSystem(units)
+
+    return {
+      ...axis,
+      title,
+      unit,
+      dtype,
+      quantity: quantity
+    }
 }

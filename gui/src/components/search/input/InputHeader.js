@@ -66,6 +66,7 @@ const useStyles = makeStyles(theme => ({
 const InputHeader = React.memo(({
   quantity,
   label,
+  unit,
   description,
   disableWidget,
   disableStatistics,
@@ -154,6 +155,7 @@ const InputHeader = React.memo(({
         <FilterTitle
           quantity={quantity}
           label={label}
+          unit={unit}
           description={description}
           TooltipProps={tooltipProps}
         />
@@ -168,8 +170,9 @@ const InputHeader = React.memo(({
 })
 
 InputHeader.propTypes = {
-  quantity: PropTypes.string.isRequired,
+  quantity: PropTypes.string,
   label: PropTypes.string,
+  unit: PropTypes.string,
   description: PropTypes.string,
   disableWidget: PropTypes.bool,
   disableStatistics: PropTypes.bool,

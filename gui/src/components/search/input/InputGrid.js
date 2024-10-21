@@ -15,13 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
 import {
   Grid,
   Divider,
   makeStyles
 } from '@material-ui/core'
+import { inputSectionContext } from './InputNestedObject'
 
 /**
  * For displaying a grid of input properties.
@@ -30,24 +32,33 @@ import {
  * prevent horizontal overflow. A padding is applied to the parent element as
  * described in https://v4.mui.com/components/grid/#negative-margin
  */
-const inputGridSpacing = 2
-const useInputGridStyles = makeStyles(theme => ({
-  root: {
-    paddingLeft: theme.spacing(inputGridSpacing / 2),
-    paddingRight: theme.spacing(inputGridSpacing / 2)
+
+/**
+ * For displaying an individual input filter, typically within a InputGrid.
+ */
+export const inputItemPaddingHorizontal = 0.75
+export const inputItemPaddingVertical = 1
+const useStyles = makeStyles(theme => ({
+  root: {},
+  padding: {
+    paddingLeft: theme.spacing(inputItemPaddingHorizontal),
+    paddingRight: theme.spacing(inputItemPaddingHorizontal)
   }
 }))
-export function InputGrid({children}) {
-  const styles = useInputGridStyles()
-  return <div className={styles.root}>
-    <Grid container spacing={inputGridSpacing} style={{marginTop: 0}}>
+
+export function InputGrid({className, disablePadding, children}) {
+  const styles = useStyles()
+  return <div className={clsx(className, styles.root, !disablePadding && styles.padding)}>
+    <Grid container spacing={0}>
       {children}
     </Grid>
   </div>
 }
 
 InputGrid.propTypes = {
-  children: PropTypes.any
+  children: PropTypes.any,
+  disablePadding: PropTypes.bool,
+  className: PropTypes.string
 }
 
 /**
@@ -55,25 +66,36 @@ InputGrid.propTypes = {
  */
 const useInputGridItemStyles = makeStyles(theme => ({
   root: {
-    marginBottom: theme.spacing(inputGridSpacing / 2)
   },
-  content: {
-    paddingLeft: theme.spacing(inputGridSpacing / 4),
-    paddingRight: theme.spacing(inputGridSpacing / 4)
+  padding: {
+    padding: theme.spacing(inputItemPaddingVertical, inputItemPaddingHorizontal, inputItemPaddingVertical, inputItemPaddingHorizontal)
   },
   divider: {
-    marginLeft: theme.spacing(-inputGridSpacing / 2),
-    marginRight: theme.spacing(-inputGridSpacing / 2),
-    marginTop: theme.spacing(-inputGridSpacing / 2),
-    marginBottom: theme.spacing(inputGridSpacing / 4),
     backgroundColor: theme.palette.grey[300]
+  },
+  paddingEnabledDivider: {
+    marginTop: theme.spacing(-inputItemPaddingVertical),
+    marginRight: theme.spacing(-2 * inputItemPaddingHorizontal),
+    marginLeft: theme.spacing(-2 * inputItemPaddingHorizontal)
+  },
+  paddingDisabled: {
+    marginRight: theme.spacing(-inputItemPaddingHorizontal),
+    marginLeft: theme.spacing(-inputItemPaddingHorizontal)
+  },
+  section: {
+    marginTop: theme.spacing(-2)
   }
 }))
-export function InputGridItem({classes, children, ...other}) {
+export function InputGridItem({classes, children, disablePadding, ...other}) {
+  const sectionContext = useContext(inputSectionContext)
+  const section = sectionContext?.section
   const styles = useInputGridItemStyles({classes: classes})
-  return <Grid item {...other} className={styles.root}>
-    <Divider className={styles.divider}/>
-    <div className={styles.content}>
+  return <Grid item {...other} className={clsx(styles.root, !disablePadding && styles.padding)}>
+    {section
+      ? <div className={styles.section}></div>
+      : <Divider className={clsx(styles.divider, disablePadding ? styles.paddingDisabled : styles.paddingEnabledDivider)}/>
+    }
+    <div className={clsx(disablePadding && styles.paddingDisabled)}>
       {children}
     </div>
   </Grid>
@@ -81,8 +103,10 @@ export function InputGridItem({classes, children, ...other}) {
 
 InputGridItem.propTypes = {
   classes: PropTypes.object,
-  children: PropTypes.any
+  children: PropTypes.any,
+  disablePadding: PropTypes.any
 }
 
 InputGridItem.defaultProps = {
+  xs: 12
 }

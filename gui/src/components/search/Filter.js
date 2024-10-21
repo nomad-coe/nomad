@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isNil, isArray, isEmpty } from 'lodash'
+import { isNil, isArray, isEmpty, capitalize, split } from 'lodash'
 import { searchQuantities } from '../../config'
 import {
   getDatatype,
@@ -23,7 +23,8 @@ import {
   getDeserializer,
   getDisplayLabel,
   DType,
-  multiTypes
+  multiTypes,
+  parseQuantityName
 } from '../../utils'
 import { Unit } from '../units/Unit'
 
@@ -139,7 +140,12 @@ export class Filter {
     this.description = params?.description || def?.description
     this.unit = params?.unit || def?.unit
     this.dimension = def?.unit ? new Unit(def?.unit).dimension() : 'dimensionless'
-    this.label = params?.label || getDisplayLabel(def)
+    function getLabel(quantity) {
+      if (isNil(quantity)) return ''
+      const {path} = parseQuantityName(quantity)
+      return capitalize(split(path, '.').slice(-1)[0].replace(/_/g, ' '))
+    }
+    this.label = params?.label || getDisplayLabel(def) || getLabel(this.quantity)
     this.parent = parent
     this.group = params.group
     this.placeholder = params?.placeholder
@@ -148,7 +154,7 @@ export class Filter {
       : params?.multiple
     this.exclusive = params?.exclusive === undefined ? true : params?.exclusive
     this.queryMode = params?.queryMode || (this.multiple ? 'any' : undefined)
-    this.options = params?.options || getEnumOptions(def)
+    this.options = params?.options || getEnumOptions(this.quantity)
     this.default = params?.default
     this.suggestion = !isNil(params?.suggestion) ? params.suggestion : (!isNil(def?.suggestion) ? def.suggestion : false)
     this.scale = params?.scale || 'linear'
@@ -184,7 +190,7 @@ export class Filter {
  */
 export function getEnumOptions(quantity, exclude = ['not processed']) {
   const metainfoOptions = searchQuantities?.[quantity]?.type?.type_data
-  if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
+  if (isArray(metainfoOptions) && metainfoOptions.length > 0 && metainfoOptions.length <= 20) {
     const opt = {}
     for (const name of metainfoOptions) {
       opt[name] = {label: name}
@@ -206,11 +212,11 @@ export function getEnumOptions(quantity, exclude = ['not processed']) {
 export const getWidgetConfig = (quantity, dtype, aggregatable, scale) => {
   if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
     return {
-      x: {quantity},
+      x: {search_quantity: quantity},
       y: {scale: 'linear'},
       type: 'histogram',
       scale,
-      showinput: false,
+      show_input: false,
       autorange: false,
       nbins: 30,
       layout: {
@@ -223,10 +229,10 @@ export const getWidgetConfig = (quantity, dtype, aggregatable, scale) => {
     }
   } else if (aggregatable) {
     return {
-      quantity,
+      search_quantity: quantity,
       type: 'terms',
       scale: scale,
-      showinput: false,
+      show_input: false,
       layout: {
         sm: {w: 6, h: 9, minW: 3, minH: 3},
         md: {w: 6, h: 9, minW: 3, minH: 3},

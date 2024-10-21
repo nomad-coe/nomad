@@ -294,8 +294,10 @@ const WidgetGrid = React.memo(({
         .sort((a, b) => b[1].index - a[1].index)
         .map(([id, value]) => {
           const Comp = {
-            scatterplot: WidgetScatterPlot,
-            periodictable: WidgetPeriodicTable,
+            scatter_plot: WidgetScatterPlot,
+            scatterplot: WidgetScatterPlot, // Deprecated misspelling
+            periodic_table: WidgetPeriodicTable,
+            periodictable: WidgetPeriodicTable, // Deprecated misspelling
             histogram: WidgetHistogram,
             terms: WidgetTerms
           }[value.type]

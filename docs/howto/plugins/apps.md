@@ -46,13 +46,13 @@ The entry point instance should then be added to the `[project.entry-points.'nom
 myapp = "nomad_example.apps:myapp"
 ```
 
-## `App` class
+## Creating an `App`
 
 The definition fo the actual app is given as an instance of the `App` class specified as part of the entry point. A full breakdown of the model is given below in the [app reference](#app-reference), but here is a small example:
 
 ```python
 from nomad.config.models.plugins import AppEntryPoint
-from nomad.config.models.ui import App, Column, FilterMenu, FilterMenus, Filters
+from nomad.config.models.ui import App, Column, Menu, MenuItemPeriodicTable, MenuItemHistogram, MenuItemTerms, SearchQuantities
 
 schema = 'nomad_example.schema_packages.mypackage.MySchema'
 myapp = AppEntryPoint(
@@ -69,12 +69,12 @@ myapp = AppEntryPoint(
         description='An app customized for me.',
         # Longer description that can also use markdown
         readme='Here is a much longer description of this app.',
-        # Controls the available search filters. If you want to filter by
-        # quantities in a schema package, you need to load the schema package
-        # explicitly here. Note that you can use a glob syntax to load the
-        # entire package, or just a single schema from a package.
-        filters=Filters(
-            include=[f'*#{schema}'],
+        # If you want to use quantities from a custom schema, you need to load
+        # the search quantities from it first here. Note that you can use a glob
+        # syntax to load the entire package, or just a single schema from a
+        # package.
+        search_quantities=SearchQuantities(
+            include=['*#nomad_example.schema_packages.mypackage.MySchema'],
         ),
         # Controls which columns are shown in the results table
         columns=[
@@ -97,18 +97,39 @@ myapp = AppEntryPoint(
         filters_locked={
             "section_defs.definition_qualified_name:all": [schema]
         },
-        # Controls the filter menus shown on the left
-        filter_menus=FilterMenus(
-            options={
-                'material': FilterMenu(label="Material"),
-            }
-        ),
+        # Controls the menu shown on the left
+        menu = Menu(
+            title='Material',
+            items=[
+                Menu(
+                    title='elements',
+                    items=[
+                        MenuItemPeriodicTable(
+                            quantity='results.material.elements',
+                        ),
+                        MenuItemTerms(
+                            quantity='results.material.chemical_formula_hill',
+                            width=6,
+                            options=0,
+                        ),
+                        MenuItemTerms(
+                            quantity='results.material.chemical_formula_iupac',
+                            width=6,
+                            options=0,
+                        ),
+                        MenuItemHistogram(
+                            x='results.material.n_elements',
+                        )
+                    ]
+                )
+            ]
+        )
         # Controls the default dashboard shown in the search interface
         dashboard={
             'widgets': [
                 {
                     'type': 'histogram',
-                    'showinput': False,
+                    'show_input': False,
                     'autorange': True,
                     'nbins': 30,
                     'scale': 'linear',
@@ -151,19 +172,15 @@ myapp = AppEntryPoint(
         )
     ```
 
-### Loading custom quantity definitions into an app
+### Loading quantity definitions into an app
 
-By default, none of the quantities from custom schemas are available in an app, and they need to be explicitly added. Each app may define additional **filters** that should be enabled in it. Filters have a special meaning in the app context: filters are pieces of (meta)info that can be queried in the search interface of the app, but also targeted in the rest of the app configuration as explained below in.
+By default, quantities from custom schemas are not available in an app, and they need to be explicitly added. Each app may define the quantities to load by using the **search_quantities** field in the app config. Once loaded, these search quantities can be queried in the search interface, but also targeted in the rest of the app configuration as explained below.
 
-!!! note
+!!! important
 
-    Note that not all of the quantities from a custom schema can be exposed as
-    filters. At the moment we only support targeting **scalar** quantities from
-    custom schemas.
+    Note that not all of the quantities from a custom schema can be loaded into the search. At the moment we only support loading **scalar** quantities from custom schemas.
 
-Each schema has a unique name within the NOMAD ecosystem, which is needed to
-target them in the configuration. The name depends on the resource in which the
-schema is defined in:
+Each schema has a unique name within the NOMAD ecosystem, which is needed to target them in the configuration. The name depends on the resource in which the schema is defined in:
 
 - Python schemas are identified by the python path for the class that inherits
 from `Schema`. For example, if you have a python package called `nomad_example`,
@@ -182,7 +199,7 @@ include all filters from the Python schema defined in the class
 `nomad_example.schema_packages.mypackage.MySchema`, you could use:
 
 ```python
-filters=Filters(
+search_quantities=SearchQuantities(
     include=['*#nomad_example.schema_packages.mypackage.MySchema']
 )
 ```
@@ -190,12 +207,12 @@ filters=Filters(
 The same thing for a YAML schema could be achieved with:
 
 ```python
-filters=Filters(
+search_quantities=SearchQuantities(
     include=['*#entry_id:<entry_id>.MySchema']
 )
 ```
 
-Once quantities from a schema are included in an app as filters, they can be targeted in the rest of the app. The app configuration often refers to specific filters to configure parts of the user interface. For example, one could configure the results table to show a new column using one of the schema quantities with:
+Once search quantities are loaded, they can be targeted in the rest of the app. The app configuration often refers to specific search quantities to configure parts of the user interface. For example, one could configure the results table to show a new column using one of the search quantities with:
 
 ```python
 columns=[
@@ -217,6 +234,56 @@ by a hashtag (#), for example `data.mysection.myquantity#entry_id:<entry_id>.MyS
 - Quantities that are common for all NOMAD entries can be targeted by using only
 the path without the need for specifying a schema, e.g. `results.material.symmetry.space_group`.
 
+### Menu
+
+The `menu` field controls the structure of the menu shown on the left side of the search interface. Menus have a controllable width, and they contains items that are displayed on a 12-based grid. You can also nest menus within each other. For example, this defines a menu with two levels:
+
+```python
+# This is a top level menu that is always visible. It shows two items: a terms
+# item and a submenu beneath it.
+menu = Menu(
+    size='sm',
+    items=[
+        MenuItemTerms(
+            search_quantity='authors.name',
+            options=5
+        ),
+        # This is a submenu whose items become visible once selected. It
+        # contains three items: one full-width histogram and two terms items
+        # which are displayed side-by-side.
+        Menu(
+            title='Submenu'
+            size='md',
+            items=[
+                MenuItemHistogram(
+                    search_quantity='upload_create_time'
+                ),
+                # These items target data from a custom schema
+                MenuItemTerms(
+                    width=6,
+                    search_quantity='data.quantity1#nomad_example.schema_packages.mypackage.MySchema'
+                ),
+                MenuItemTerms(
+                    width=6,
+                    search_quantity='data.quantity2#nomad_example.schema_packages.mypackage.MySchema'
+                )
+            ]
+        )
+    ]
+)
+```
+
+The following items are supported in menus, and you can read more about them in the App reference:
+
+ - [`Menu`](#menu_1): Defines a nested submenu.
+ - [`MenuItemTerms`](#menuitemterms): Used to display a set of possible text options.
+ - [`MenuItemHistogram`](#menuitemhistogram): Histogram of numerical values.
+ - [`MenuItemPeriodictable`](#menuitemperiodictable): Displays a periodic table.
+ - [`MenuItemOptimade`](#menuitemoptimade): OPTIMADE query field.
+ - [`MenuItemVisibility`](#menuitemvisibility): Controls for the query visibility.
+ - [`MenuItemDefinitions`](#menuitemdefinitions): Shows a tree of available definitions from which items can be selected for the query.
+ - [`MenuItemCustomQuantities`](#menuitemcustomquantities): Form for querying custom quantities coming from any schema.
+ - [`MenuItemNestedObject`](#menuitemnestedobject): Used to group together menu items so that their query is performed using an Elasticsearch nested query. Note that you cannot yet use nested queries for search quantities originating from custom schemas.
 
 ## App reference
 

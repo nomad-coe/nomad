@@ -107,11 +107,9 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
-      // x: {scale: 'linear'},
-      // y: {scale: 'linear'},
       size: 1000,
       autorange: true,
-      type: 'scatterplot'
+      type: 'scatter_plot'
     }
     addWidget(id, value)
   }, [addWidget])
@@ -133,8 +131,8 @@ const Dashboard = React.memo(() => {
         xxl: {...layout}
       },
       scale: 'linear',
-      quantity: 'results.material.elements',
-      type: 'periodictable'
+      search_quantity: 'results.material.elements',
+      type: 'periodic_table'
     }
     addWidget(id, value)
   }, [addWidget])
@@ -255,8 +253,10 @@ const Dashboard = React.memo(() => {
     {widgets && Object.entries(widgets).map(([id, value]) => {
       if (!value.editing) return null
       const comp = {
-        scatterplot: <WidgetScatterPlotEdit key={id} widget={value}/>,
-        periodictable: <WidgetPeriodicTableEdit key={id} {...value}/>,
+        scatter_plot: <WidgetScatterPlotEdit key={id} widget={value}/>,
+        scatterplot: <WidgetScatterPlotEdit key={id} widget={value}/>, // Deprecated misspelling
+        periodic_table: <WidgetPeriodicTableEdit key={id} {...value}/>,
+        periodictable: <WidgetPeriodicTableEdit key={id} {...value}/>, // Deprecated misspelling
         histogram: <WidgetHistogramEdit key={id} widget={value}/>,
         terms: <WidgetTermsEdit key={id} {...value}/>
       }[value.type]
@@ -283,8 +283,10 @@ DashboardAction.propTypes = {
 }
 
 const schemas = {
-  scatterplot: schemaWidgetScatterPlot,
-  periodictable: schemaWidgetPeriodicTable,
+  scatterplot: schemaWidgetScatterPlot, // Deprecated misspelling
+  scatter_plot: schemaWidgetScatterPlot,
+  periodictable: schemaWidgetPeriodicTable, // Deprecated misspelling
+  periodic_table: schemaWidgetPeriodicTable,
   histogram: schemaWidgetHistogram,
   terms: schemaWidgetTerms
 }

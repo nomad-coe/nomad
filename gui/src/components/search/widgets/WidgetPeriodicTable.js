@@ -24,8 +24,12 @@ import { Widget, schemaWidget } from './Widget'
 import { ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { InputTextField } from '../input/InputText'
+import { InputMetainfo } from '../input/InputMetainfo'
 import { PeriodicTable } from '../input/InputPeriodicTable'
 import { scales } from '../../plotting/common'
+import { DType } from '../../../utils'
+
+const dtypes = new Set([DType.String, DType.Enum])
 
 /**
  * Displays a periodic table as a widget.
@@ -35,7 +39,7 @@ export const WidgetPeriodicTable = React.memo((
   id,
   title,
   description,
-  quantity,
+  search_quantity,
   scale,
   className
 }) => {
@@ -52,7 +56,7 @@ export const WidgetPeriodicTable = React.memo((
 
   return <Widget
     id={id}
-    quantity={quantity}
+    quantity={search_quantity}
     title={title}
     description={description}
     onEdit={handleEdit}
@@ -67,10 +71,9 @@ export const WidgetPeriodicTable = React.memo((
     }
   >
     <PeriodicTable
-      quantity={quantity}
+      quantity={search_quantity}
       scale={scale}
       anchored={true}
-      disableStatistics={true}
       visible={true}
       // Can't use the same aggregation identifier as the periodic table in the
       // filter menu: due to rendering order the aggregation may otherwise get
@@ -84,7 +87,7 @@ WidgetPeriodicTable.propTypes = {
   id: PropTypes.string.isRequired,
   title: PropTypes.string,
   description: PropTypes.string,
-  quantity: PropTypes.string,
+  search_quantity: PropTypes.string,
   scale: PropTypes.string,
   className: PropTypes.string
 }
@@ -144,6 +147,19 @@ export const WidgetPeriodicTableEdit = React.memo((props) => {
       >
       <WidgetEditGroup title="Elements">
         <WidgetEditOption>
+          <InputMetainfo
+            label="Search quantity"
+            value={settings.search_quantity}
+            error={errors.search_quantity}
+            onChange={(value) => handleChange('search_quantity', value)}
+            onSelect={(value) => handleAccept('search_quantity', value)}
+            onError={(value) => handleError('search_quantity', value)}
+            dtypes={dtypes}
+            dtypesRepeatable={dtypes}
+            disableNonAggregatable
+          />
+        </WidgetEditOption>
+        <WidgetEditOption>
           <TextField
             select
             fullWidth
@@ -164,7 +180,7 @@ export const WidgetPeriodicTableEdit = React.memo((props) => {
       <WidgetEditGroup title="General">
         <WidgetEditOption>
           <InputTextField
-            label="title"
+            label="Title"
             fullWidth
             value={settings?.title}
             onChange={(event) => handleChange('title', event.target.value)}
@@ -184,6 +200,6 @@ WidgetPeriodicTableEdit.propTypes = {
 }
 
 export const schemaWidgetPeriodicTable = schemaWidget.shape({
-  quantity: string().required('Quantity is required.'),
+  search_quantity: string().required('Search quantity is required.'),
   scale: string().required('Scale is required.')
 })

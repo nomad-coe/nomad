@@ -58,11 +58,11 @@ describe('initial state is loaded correctly', () => {
       [],
       undefined
     ]
-  ])('%s', async (name, quantity, items, prompt) => {
+  ])('%s', async (name, search_quantity, items, prompt) => {
     const widget = {
       id: '0',
       scale: 'linear',
-      quantity: quantity
+      search_quantity: search_quantity
     }
     renderSearchEntry(<WidgetTerms {...widget} />)
     await expectWidgetTerms(widget, false, items, prompt)

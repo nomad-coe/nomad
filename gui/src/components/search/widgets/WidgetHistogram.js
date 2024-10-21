@@ -20,10 +20,8 @@ import PropTypes from 'prop-types'
 import { useSearchContext } from '../SearchContext'
 import { Widget } from './Widget'
 import { ActionCheckbox, ActionSelect } from '../../Actions'
-import { Range } from '../input/InputRange'
-import { scales } from '../../plotting/common'
-import {getDisplayLabel} from '../../../utils'
-import { Unit } from '../../units/Unit'
+import { Histogram } from '../input/InputHistogram'
+import { getAxisConfig, scales } from '../../plotting/common'
 import { useUnitContext } from '../../units/UnitContext'
 
 /**
@@ -39,7 +37,7 @@ export const WidgetHistogram = React.memo((
   y,
   nbins,
   autorange,
-  showinput,
+  show_input,
   className
 }) => {
   const { filterData, useSetWidget } = useSearchContext()
@@ -47,21 +45,7 @@ export const WidgetHistogram = React.memo((
   const setWidget = useSetWidget(id)
 
   // Create final axis config for the plot
-  const xAxis = useMemo(() => {
-    const xFilter = filterData[x.quantity]
-    const xTitle = x.title || getDisplayLabel(xFilter)
-    const xType = xFilter?.dtype
-    const xUnit = x.unit
-      ? new Unit(x.unit)
-      : new Unit(xFilter.unit || 'dimensionless').toSystem(units)
-
-    return {
-      ...x,
-      title: xTitle,
-      unit: xUnit,
-      dtype: xType
-    }
-  }, [filterData, x, units])
+  const xAxis = useMemo(() => getAxisConfig(x, filterData, units), [x, filterData, units])
 
   const handleEdit = useCallback(() => {
     setWidget(old => { return {...old, editing: true } })
@@ -92,14 +76,15 @@ export const WidgetHistogram = React.memo((
       />
     </>}
   >
-    <Range
-      xAxis={xAxis}
-      yAxis={y}
+    <Histogram
+      x={xAxis}
+      y={y}
       visible={true}
       nBins={nbins}
       anchored={true}
       autorange={autorange}
-      showinput={showinput}
+      showInput={show_input}
+      showStatistics={true}
       aggId={id}
     />
   </Widget>
@@ -113,6 +98,6 @@ WidgetHistogram.propTypes = {
   y: PropTypes.object,
   nbins: PropTypes.number,
   autorange: PropTypes.bool,
-  showinput: PropTypes.bool,
+  show_input: PropTypes.bool,
   className: PropTypes.string
 }

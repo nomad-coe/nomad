@@ -245,6 +245,15 @@ export function titleCase(str) {
   return splitStr.join(' ')
 }
 
+/**
+ * Converts snake case variable names to camel case.
+ * @param {*} str Variable name in snake_case
+ * @returns Variable name in camelCase
+ */
+export function camelCase(str) {
+  return str.toLowerCase().replace(/[-_][a-z]/g, (group) => group.slice(-1).toUpperCase())
+}
+
 export function nameList(users, expanded) {
   const names = users.map(user => titleCase(user.name)).filter(name => name !== '')
   if (names.length > 3 && !expanded) {
@@ -837,19 +846,6 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     : `${number} `}${isNil(prefix)
     ? ''
     : `${prefix} `}${form}`
-}
-
-/**
- * Used to create a formatted label for a metainfo name or value. Replaces
- * underscores with whitespace and capitalizes the first letters.
- *
- * @param {str} name Metainfo name
- * @returns A formatted label constructed from the metainfo name.
- */
-export function formatLabel(label) {
-  label = label.replace(/_/g, ' ')
-  label = startCase(label)
-  return label
 }
 
 /**

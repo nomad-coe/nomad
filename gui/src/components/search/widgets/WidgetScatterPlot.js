@@ -34,10 +34,11 @@ import { Action, ActionCheckbox } from '../../Actions'
 import { CropFree, PanTool, Fullscreen, Replay } from '@material-ui/icons'
 import { autorangeDescription } from './WidgetHistogram'
 import { styled } from '@material-ui/core/styles'
-import {DType, parseJMESPath, getDisplayLabel} from '../../../utils'
+import {DType, parseJMESPath} from '../../../utils'
 import { Quantity } from '../../units/Quantity'
 import { Unit } from '../../units/Unit'
 import { useUnitContext } from '../../units/UnitContext'
+import { getAxisConfig } from '../../plotting/common'
 
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   '& .MuiToggleButtonGroup-grouped': {
@@ -93,52 +94,38 @@ export const WidgetScatterPlot = React.memo((
   const { useSetWidget, useHits, filterData, useSetFilter } = useSearchContext()
 
   // Parse additional JMESPath config
-  const [xParsed, yParsed, colorParsed, error] = useMemo(() => {
-    const xParsed = parseJMESPath(x?.quantity)
-    const yParsed = parseJMESPath(y?.quantity)
-    const colorParsed = markers?.color?.quantity ? parseJMESPath(markers.color.quantity) : {}
-    if (xParsed.error || yParsed.error || colorParsed.error) {
-      return [{}, {}, {}, 'Invalid JMESPath query, please check your syntax.']
-    }
-    return [xParsed, yParsed, colorParsed, undefined]
-  }, [markers?.color?.quantity, x?.quantity, y?.quantity])
-
-  // Parse units
-  const {unitXObj, unitYObj, unitColorObj, displayUnitX, displayUnitY, displayUnitColor, discrete} = useMemo(() => {
-    if (error) return {}
-    const unitXObj = new Unit(filterData[xParsed.quantity].unit || 'dimensionless')
-    const unitYObj = new Unit(filterData[yParsed.quantity].unit || 'dimensionless')
-    const unitColorObj = new Unit(filterData[colorParsed?.quantity]?.unit || 'dimensionless')
-    const displayUnitX = x.unit ? new Unit(x.unit) : unitXObj.toSystem(units)
-    const displayUnitY = y.unit ? new Unit(y.unit) : unitYObj.toSystem(units)
-    const displayUnitColor = markers?.color?.unit ? new Unit(markers?.color?.unit) : unitColorObj.toSystem(units)
+  const [xParsed, yParsed, colorParsed, discrete, error] = useMemo(() => {
+    const xParsed = parseJMESPath(x?.search_quantity)
+    const yParsed = parseJMESPath(y?.search_quantity)
+    const colorParsed = markers?.color?.search_quantity ? parseJMESPath(markers.color.search_quantity) : {}
     const discrete = colorParsed?.quantity && new Set([DType.String, DType.Enum]).has(filterData[colorParsed.quantity]?.dtype)
-    return {unitXObj, unitYObj, unitColorObj, displayUnitX, displayUnitY, displayUnitColor, discrete}
-  }, [filterData, x.unit, xParsed.quantity, y.unit, yParsed.quantity, markers?.color?.unit, colorParsed?.quantity, units, error])
+    if (xParsed.error || yParsed.error || colorParsed.error) {
+      return [{}, {}, {}, undefined, 'Invalid JMESPath query, please check your syntax.']
+    }
+    return [xParsed, yParsed, colorParsed, discrete, undefined]
+  }, [markers?.color?.search_quantity, x?.search_quantity, y?.search_quantity, filterData])
+
+  // Get storage unit for API communication
+  const {storageUnitX, storageUnitY, storageUnitColor} = useMemo(() => {
+    if (error) return {}
+    const storageUnitX = new Unit(filterData[xParsed.quantity].unit || 'dimensionless')
+    const storageUnitY = new Unit(filterData[yParsed.quantity].unit || 'dimensionless')
+    const storageUnitColor = new Unit(filterData[colorParsed?.quantity]?.unit || 'dimensionless')
+    return {storageUnitX, storageUnitY, storageUnitColor}
+  }, [filterData, xParsed.quantity, yParsed.quantity, colorParsed?.quantity, error])
 
   // Create final axis config for the plot
   const {xAxis, yAxis, colorAxis} = useMemo(() => {
-    if (error) return {}
-    const xFilter = filterData[xParsed.quantity]
-    const yFilter = filterData[yParsed.quantity]
-    const colorFilter = filterData[colorParsed.quantity]
-    const xTitle = x.title || xFilter?.label || getDisplayLabel(xFilter)
-    const yTitle = y.title || yFilter?.label || getDisplayLabel(yFilter)
-    const xType = xFilter?.dtype
-    const yType = yFilter?.dtype
-    const colorTitle = markers?.color?.title || colorFilter?.label || getDisplayLabel(colorFilter)
-    const unitLabelX = displayUnitX.label()
-    const unitLabelY = displayUnitY.label()
-    const unitLabelColor = displayUnitColor.label()
+    if (error) return {xAxis: {}, yAxis: {}, colorAxis: {}}
     return {
-      xAxis: {...x, ...xParsed, title: xTitle, unit: unitLabelX, type: xType},
-      yAxis: {...y, ...yParsed, title: yTitle, unit: unitLabelY, type: yType},
-      colorAxis: markers?.color ? {...markers.color, ...colorParsed, title: colorTitle, unit: unitLabelColor} : {}
+      xAxis: getAxisConfig(x, filterData, units),
+      yAxis: getAxisConfig(y, filterData, units),
+      colorAxis: markers?.color ? getAxisConfig(markers.color, filterData, units) : {}
     }
-  }, [colorParsed, displayUnitColor, displayUnitX, displayUnitY, filterData, markers?.color, x, xParsed, y, yParsed, error])
+  }, [error, filterData, markers.color, x, units, y])
 
-  const setXFilter = useSetFilter(xParsed.quantity)
-  const setYFilter = useSetFilter(yParsed.quantity)
+  const setXFilter = useSetFilter(xAxis.search_quantity)
+  const setYFilter = useSetFilter(yAxis.search_quantity)
 
   const setWidget = useSetWidget(id)
   const pagination = useMemo(() => ({
@@ -279,16 +266,16 @@ export const WidgetScatterPlot = React.memo((
     if (!dataRaw) return
     const x = xAxis.type === DType.Timestamp
       ? dataRaw.x
-      : new Quantity(dataRaw.x, unitXObj).to(displayUnitX).value()
+      : new Quantity(dataRaw.x, storageUnitX).to(xAxis.unit).value()
     const y = yAxis.type === DType.Timestamp
       ? dataRaw.y
-      : new Quantity(dataRaw.y, unitYObj).to(displayUnitY).value()
+      : new Quantity(dataRaw.y, storageUnitY).to(yAxis.unit).value()
     const color = dataRaw.color && (discrete
       ? dataRaw.color
-      : new Quantity(dataRaw.color, unitColorObj).to(displayUnitColor).value()
+      : new Quantity(dataRaw.color, storageUnitColor).to(colorAxis.unit).value()
     )
     return {x, y, color, id: dataRaw.id}
-  }, [dataRaw, displayUnitColor, displayUnitX, displayUnitY, unitColorObj, unitXObj, unitYObj, discrete, xAxis, yAxis])
+  }, [dataRaw, xAxis.type, xAxis.unit, storageUnitX, yAxis.type, yAxis.unit, storageUnitY, discrete, storageUnitColor, colorAxis.unit])
 
   const handleEdit = useCallback(() => {
     setWidget(old => { return {...old, editing: true } })
@@ -315,15 +302,15 @@ export const WidgetScatterPlot = React.memo((
     const range = data?.range
     if (!range) return
     setXFilter({
-      gte: new Quantity(range.x[0], displayUnitX),
-      lte: new Quantity(range.x[1], displayUnitX)
+      gte: new Quantity(range.x[0], xAxis.unit),
+      lte: new Quantity(range.x[1], xAxis.unit)
     })
     setYFilter({
-      gte: new Quantity(range.y[0], displayUnitY),
-      lte: new Quantity(range.y[1], displayUnitY)
+      gte: new Quantity(range.y[0], yAxis.unit),
+      lte: new Quantity(range.y[1], yAxis.unit)
     })
     onSelected?.(data)
-  }, [onSelected, setXFilter, setYFilter, displayUnitX, displayUnitY])
+  }, [setXFilter, xAxis.unit, setYFilter, yAxis.unit, onSelected])
 
   const handleDeselect = useCallback(() => {
     onSelected?.(undefined)

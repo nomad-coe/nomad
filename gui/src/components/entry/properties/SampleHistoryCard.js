@@ -76,7 +76,7 @@ const SampleHistoryUsingCard = memo(({ index }) => {
       initialPagination={context?.pagination}
       initialColumns={context?.columns}
       initialRows={context?.rows}
-      initialFilterMenus={context?.filter_menus}
+      initialMenu={context?.menu}
       initialFiltersLocked={filtersLocked}
       initialSearchSyntaxes={context?.search_syntaxes}
     >

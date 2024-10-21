@@ -90,6 +90,7 @@ const WidgetHeader = React.memo(({
         onMouseUp={handleMouseUp}
       >
         <FilterTitle
+          variant="subtitle2"
           quantity={quantity}
           label={label}
           description={description}
