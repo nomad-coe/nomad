@@ -290,15 +290,21 @@ class Primitive(Datatype):
         if self.is_scalar:
             given_type = type(value)
             if given_type is np.ndarray:
-                given_type = value.dtype.type
+                if value.size != 1:
+                    raise ValueError(
+                        f'Cannot set {value} for the scalar quantity {self._definition}.'
+                    )
 
-            # no conversion and type mismatch
-            if self._disable_auto_conversion and given_type != self._dtype:
-                raise ValueError(f'Cannot set {value} for {self._definition}.')
+                value = value[0]
+                given_type = value.dtype.type
 
             # type match, no need to consider conversion
             if given_type == self._dtype:
                 return value
+
+            # no conversion and type mismatch
+            if self._disable_auto_conversion:
+                raise ValueError(f'Cannot set {value} for {self._definition}.')
 
             # conversion is allowed, explicitly convertable
             if self.convertible_from(given_type):
