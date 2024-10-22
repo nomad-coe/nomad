@@ -1,3 +1,59 @@
+## 1.3.10 (2024-10-18)
+
+### Fixed (1 change)
+
+- [Resolve "processing published entries fails when using encoding keyword"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f03ad0cd630e5694a4a4142d2d441efa27236d1b) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2140))
+
+## 1.3.9 (2024-10-15)
+
+### Added (4 changes)
+
+- [Added several UK and US unit definitions (e.g. inch, mile, pound) to the GUI unit system.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/0d487496d998ea1bfd91559f7a48960ce728e82d) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2155))
+
+## 1.3.8 (2024-10-11)
+
+### Added (7 changes)
+
+- [Added a new section for adding actions that are triggerable through ELNs.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/061db9b974329eeb8d1bc9c1b77b2e13a9b4e7a7) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2135))
+- [Added support for using JMESPath syntax to target data in the search result table columns.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/2fd92ff0118baa21f2e33c5b63c2921b016b6285) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2121))
+- [Added molar_mass and monoisotopic_mass to PureSubstanceSection](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1bba058aeb3d940a070dd9115763c8d7a30306ed) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2118))
+
+### Fixed (4 changes)
+
+- [Fixed reference resolution in `ArchiveBrowser` when the referenced data...](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/4bbf5a210493653daa06c773f3cbc48d4bfa1a9e) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2146))
+- [Fixed an issue with creating and reading URLs with queries containing custom quantities.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f49b9fa1b56e38aaa98cef4c33cdc9257b7a6cd9) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2137))
+- [Disable the Assign DOI button from the UI, if datacite is not enabled in](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/042cf45a920130b82f839798117902ad1d395c62) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2131))
+
+### Changed (3 changes)
+
+- [Remove all deployments from nomad-FAIR](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/553925efd228454aeb737cd2cc00ffb7a0caccdf) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/1991))
+- [Add lower bounds for packages](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f95e7b760f9cb577acd3f2d9a85edbae6e560021) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2126))
+
+## 1.3.7 (2024-09-20)
+
+### Added (10 changes)
+
+- [Add group search to upload members dialog](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/20877d677867866afcf98b5cb5da6f9bf246969b) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2044))
+- [Resolve "Default shown plots annotation (new feature)"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/3464bdd6f8eeececafa655af2171dfc71c6810c6) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2082))
+- [Added explanation about federation and oasis.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/bf8e138279208671cd976b7a6cccb3f649292d4a) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2067))
+
+### Fixed (10 changes)
+
+- [matching parser is failing to parse comments from excel files.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6c36e9fc450143ec7bb9f97327b370b603f74fb1) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2113))
+- [extra_fields on elabftw fails to be parsed. new schema on elabftw side causes breaking the parser.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/47cd33837c4ef28c176cb1ffdabfd120adb0fbe8) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2112))
+- [Resolve "rework elabftw parser"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/b10e1206868aa4d0a6fb4428696f66b8d16236fa) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2095))
+- [Resolve "Reference tab has two scrolling bars"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/278e69a9acf54842e27977bc6cf2e518128b8923) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2078))
+- [Add context manager to file parser](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/3e981d34ffbd96be2cf703cee0d6c328f5c088f9) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2074))
+- [Resolve "reading xlsx data in MatchingParser fails"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/26a9be3790c0a2de6dbd7a8ee1f04f431020a46e) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2065))
+
+### Changed (9 changes)
+
+- [Use simulation pypi pkgs](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/e77ca3add1ca4fe83e77f88e89a6601c1415a610) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2097))
+- [Remove simulation-specific packages](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/cc623b116fa7df90a11bf2a791b855f73b90cd4a) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2094))
+- [Remove example plugins](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7f4c4f2854724fb0ab381d179c9126f91f67199e) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2085))
+- [Remove remaining submodules](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/4181017b5169a312f3ef70a347a1f277fdd78b58) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2077))
+- [Update parsers ref](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/5782f9c171e5b41836a4f110d91035f428257f41) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2070))
+- [Remove parsers submodule](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/cc563e81c8b313ea1bbfd7497ed8d57905619760) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2050))
 
 ## 1.3.6 (2024-08-29)
 
@@ -151,7 +207,7 @@ No changes.
 - [Resolve "Cannot plot a Datetime Quantity"](nomad-lab/nomad-FAIR@1ec90b819dc5ab5f9ef5d5e3201f6aef159047ca) ([merge request](nomad-lab/nomad-FAIR!1533))
 - [Add additional ruff check to print linting errors to console](nomad-lab/nomad-FAIR@9bef0af7d80ea500adcee907a4164962dd0bcb8c) ([merge request](nomad-lab/nomad-FAIR!1547))
 - [Fixed issue with hashtag not being included in query string](nomad-lab/nomad-FAIR@8e19a647d8a03417450fe7fced4d347ccd33a3a4) ([merge request](nomad-lab/nomad-FAIR!1546))
-- [Resolve "View Data in the Archive Button  in plots does not work"](nomad-lab/nomad-FAIR@eec0fb7a1bb040d92245f61544067b744cbf8579) ([merge request](nomad-lab/nomad-FAIR!1521))
+- [Resolve "View Data in the Archive Button in plots does not work"](nomad-lab/nomad-FAIR@eec0fb7a1bb040d92245f61544067b744cbf8579) ([merge request](nomad-lab/nomad-FAIR!1521))
 - [Resolve "Some tabular parser modifications to make it more flexible"](nomad-lab/nomad-FAIR@b5a7cd008b6bbdcce9705bf654b125565e0b735f) ([merge request](nomad-lab/nomad-FAIR!1528))
 - [Fixed issue with search interface not syncing with URL query string.](nomad-lab/nomad-FAIR@726f8b3ff29c5f281b695b03047896ae7bc3f7f8) ([merge request](nomad-lab/nomad-FAIR!1534))
 - [Replace the celery-based example data usage with the ExampleData](nomad-lab/nomad-FAIR@84c8df12d28a5537e2788feb5b8053e7d7476ca3) ([merge request](nomad-lab/nomad-FAIR!1406))
