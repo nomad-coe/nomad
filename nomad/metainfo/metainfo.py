@@ -41,6 +41,7 @@ import docstring_parser
 import jmespath
 import pint
 from pydantic import parse_obj_as, ValidationError, BaseModel, Field
+from typing_extensions import deprecated  # type: ignore
 
 from nomad.config import config
 from nomad.metainfo.data_type import (
@@ -551,6 +552,7 @@ class Reference:
 
         raise TypeError(f'{value} is not a valid value of {self._definition}.')
 
+    # noinspection PyUnusedLocal
     def normalize(self, value, *, section=None, **kwargs):
         def _convert(_v):
             if isinstance(_v, list):
@@ -4517,6 +4519,14 @@ SubSection.__init_cls__()
 is_initializing_proto = False  # noqa
 
 
+warnings.filterwarnings(
+    'always',
+    'Usage of Environment is deprecated and will be removed in the future.',
+    category=DeprecationWarning,
+)
+
+
+@deprecated('Usage of Environment is deprecated and will be removed in the future.')
 class Environment(MSection):
     """Environments allow to manage many metainfo packages and quickly access all definitions.
 
