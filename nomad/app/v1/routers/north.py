@@ -21,6 +21,7 @@ import requests
 
 from typing import List, Dict, Optional
 from enum import Enum
+from nomad.groups import get_group_ids
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, status, HTTPException
 from mongoengine.queryset.visitor import Q
@@ -187,8 +188,14 @@ async def start_tool(
 
     upload_mount_dir = None
     user_id = str(user.user_id)
+    group_ids = get_group_ids(user.user_id, include_all=False)
+
     upload_query = Q()
-    upload_query &= Q(main_author=user_id) | Q(coauthors=user_id)
+    upload_query &= (
+        Q(main_author=user_id)
+        | Q(coauthors=user.user_id)
+        | Q(coauthor_groups__in=group_ids)
+    )
     upload_query &= Q(publish_time=None)
 
     uploads: List[Dict] = []
