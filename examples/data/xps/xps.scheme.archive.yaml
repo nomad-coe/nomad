@@ -8,7 +8,7 @@ definitions:
       m_annotations:
         template:
           reader: xps
-          nxdl: NXmpes.nxdl
+          nxdl: NXmpes
         eln:
           hide: []
         title:

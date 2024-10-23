@@ -20,7 +20,7 @@ from __future__ import annotations
 import hashlib
 import re
 from difflib import SequenceMatcher
-from typing import Any
+from typing import Any, Optional
 
 import pint
 
@@ -270,84 +270,149 @@ def convert_to(from_magnitude, from_unit: ureg.Unit | None, to_unit: ureg.Unit |
     return from_quantity.to(to_unit).m
 
 
-def __similarity_match(candidates: list, name: str):
+def get_namefit(name: str, concept_name: str, name_any: bool = False) -> int:
     """
-    Use similarity to find the best match for a name.
+    Checks if a given name corresponds to a specified concept name.
+
+    The function evaluates whether the provided `name` matches the `concept_name`, allowing
+    for certain variations. A group of uppercase letters in the `concept_name` is treated
+    as a freely choosable part of this name.
+
+    If a match is found, this function returns twice the length of the `concept_name` for an
+    exact match. Otherwise, it returns the number of matching characters (case insensitive) or
+    zero if `name_any` is set to True. If no match is found, it returns -1.
+
+    The function treats uppercase groups independently and counts lowercase matches without
+    regard to uppercase group lengths. For example, calling `get_namefit("my_fancy_yet_long_name", "my_SOME_name")`
+    would yield a score of 8 for the lowercase matches `my_..._name`.
+
+    All characters in `[a-zA-Z0-9_.]` are considered for matching against uppercase letters.
+    Using any other character in the `name` will result in a return value of -1.
+    Periods at the beginning or end of the `name` are not allowed, and only exact matches will be considered.
+
+    Examples:
+
+        * `get_namefit("test_name", "TEST_name")` returns 9
+        * `get_namefit("te_name", "TEST_name")` returns 7
+        * `get_namefit("my_other_name", "TEST_name")` returns 5
+        * `get_namefit("test_name", "test_name")` returns 18
+        * `get_namefit("test_other", "test_name")` returns -1
+        * `get_namefit("something", "XXXX")` returns 0
+        * `get_namefit("something", "OTHER")` returns 1
+
+    Args:
+        name (str): The name to check for matching.
+        concept_name (str): The concept name to match against.
+        name_any (bool, optional):
+            If True, accepts any name and returns either 0 (match) or -1 (no match).
+            Defaults to False.
+
+    Returns:
+        int: -1 if no match is found, the number of matching characters (case insensitive),
+             or twice the length of `concept_name` for an exact match.
     """
-    similarity: list = [
-        SequenceMatcher(None, v.name.upper(), name.upper()).ratio() for v in candidates
-    ]
+    if concept_name == name:
+        return len(concept_name) * 2
+    if name.startswith('.') or name.endswith('.'):
+        # Don't match anything with a dot at the beginning or end
+        return -1
 
-    return candidates[similarity.index(max(similarity))]
+    uppercase_parts_pattern = re.compile(r'[A-Z]+(?:_[A-Z]+)*')
+    uppercase_parts = uppercase_parts_pattern.findall(concept_name)
+
+    path_regex = r'([a-zA-Z0-9_.]+)'
+    regex_name = concept_name
+    uppercase_count = sum(len(part) for part in uppercase_parts)
+
+    for up in uppercase_parts:
+        regex_name = regex_name.replace(up, path_regex)
+
+    # Compile the full regex for matching the HDF name
+    name_regex = re.compile(rf'^{regex_name}$')
+    name_match = name_regex.fullmatch(name)
+
+    if name_match is None:
+        return 0 if name_any else -1
+
+    match_count = sum(
+        1
+        for up, match in zip(uppercase_parts, name_match.groups())
+        for s1, s2 in zip(up.upper(), match.upper())
+        if s1 == s2
+    )
+
+    return len(concept_name) + match_count - uppercase_count
 
 
-def resolve_variadic_name(definitions: dict, name: str, hint: str | None = None):
+def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = None):
     """
+    Resolves a property name with variadic patterns to its corresponding definition in the schema.
+
     For properties with variadic names, it is necessary to check all possible definitions
     in the schema to find the unique and correct definition that matches the naming pattern.
 
-    In the schema defines a property with the name 'FOO_bar', implying the prefix 'FOO' is
-    merely a placeholder, the actual name in the data can be anything, such as 'a_bar' or 'b_bar'.
+    In the schema, definitions may include properties with placeholders that can match any
+    naming segment. For example, the definition name 'FOO_bar' indicates that 'FOO' is a
+    placeholder, meaning the actual name in the data could be anything like 'a_bar' or 'b_bar'.
 
-    This method checks each definition name by replacing the placeholder with '.*' and then check if
-    the property name matches the pattern. If it does, it returns the corresponding definition.
+    This function checks each definition to find matches based on the following criteria:
 
-    For example, the definition name 'FOO_bar' will be replaced by '.*_bar', which further matches
-    'a_bar', 'aa_bar', etc.
+    1. **Exact Match**: If the provided name exactly matches a definition, that definition is returned.
+    2. **Pattern Matching**: Definitions that match the naming pattern derived from the name are collected.
+    3. **Candidate Collection**: All candidates matching the pattern are gathered.
+    4. **Hint Prioritization**: Candidates containing the hint attribute are prioritized.
+    5. **Similarity Assessment**: If multiple candidates exist, name similarity is used to determine the best match.
 
     In case of multiple quantities with identical template/variadic patterns, the following strategy
     is used:
         1. Check all quantities and collect all qualified quantities that match the naming pattern
-            in a candidate list.
+           in a candidate dictionary, with the values being an integer indicating how big the match is.
         2. Use the optionally provided hint string, which shall be one of attribute names of the desired
             quantity. Check all candidates if this attribute exists. The existence of a hint attribute
-            prioritize this quantity, and it will be put into a prioritized list.
-        3. If the prioritized candidate list contains multiple matches, use name similarity determine
-            which to be used.
+            prioritize this quantity, and it will be put into a prioritized dictionary.
+        3. If the prioritized candidate dictionary contains multiple matches, the strongest match is selected
+           (i.e., the one with the highest integer returned by `get_namefit`.
         4. If no hint is provided, or no candidate has the hint attribute, check all quantities in the
-            first candidate list and use name similarity to determine which to be used.
+            first candidate dictionary and select the strongest match.
 
+    Args:
+        definitions (dict): A dictionary of definitions where keys are property names and values are their corresponding definitions.
+        name (str): The property name to resolve against the definitions.
+        hint (Optional[str]): An optional hint that, if present in the candidate attributes, prioritizes that candidate.
+
+    Returns:
+        The best-matching definition based on the criteria.
+
+    Raises:
+        ValueError: If the definitions dictionary is empty or if no proper definition can be found for the given name.
     """
+    if len(definitions) == 0:
+        raise ValueError('The definitions dictionary cannot be empty.')
 
-    # check the exact name match
+    # Check for an exact name match
     if name in definitions:
         return definitions[name]
 
-    # check naming pattern match
-    candidates: list = []
-    for definition in set(definitions.values()):
-        if not definition.variable:
-            continue
+    candidates = {}
+    hint_candidates = {}
 
-        name_pattern = re.sub(
-            r'^([a-z0-9_]*)[A-Z0-9]+([a-z0-9_]*)$', r'\1[a-z0-9]+\2', definition.name
-        )
-        if re.match(name_pattern, name):
-            candidates.append(definition)
+    for definition in definitions:
+        match_score = get_namefit(name, definition)
+        if match_score > 0:
+            candidates[definition] = match_score
+            # Check if the hint exists in the definition
+            if hint and hint in definition.all_attributes:
+                hint_candidates[definition] = match_score
 
-    if len(candidates) == 0:
-        raise ValueError(f'Cannot find a proper definition for name "{name}".')
+    # Prioritize hint candidates if any
+    if hint_candidates:
+        return definitions[max(hint_candidates, key=hint_candidates.get)]
 
-    if len(candidates) == 1:
-        return candidates[0]
+    # If no hint candidates, find the best candidate from all
+    if candidates:
+        return definitions[max(candidates, key=candidates.get)]
 
-    hinted_candidates: list = []
-    if hint is not None:
-        for definition in candidates:
-            try:
-                if resolve_variadic_name(definition.all_attributes, hint):
-                    hinted_candidates.append(definition)
-            except ValueError:
-                pass
-
-    if len(hinted_candidates) == 1:
-        return hinted_candidates[0]
-
-    # multiple matches, check similarity
-    if len(hinted_candidates) > 1:
-        return __similarity_match(hinted_candidates, name)
-
-    return __similarity_match(candidates, name)
+    raise ValueError(f'Cannot find a proper definition for name "{name}".')
 
 
 def validate_allowable_unit(
