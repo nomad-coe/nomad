@@ -29,9 +29,11 @@ import ReferenceEditQuantity from './ReferenceEditQuantity'
 import AuthorEditQuantity from './AuthorEditQuantity'
 import { RadioEnumEditQuantity } from './RadioEnumEditQuantity'
 import QueryEditQuantity from "./QueryEditQuantity"
+import {SliderEditQuantity} from "./SliderEditQuantity"
 
 export const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
+  SliderEditQuantity: SliderEditQuantity,
   StringEditQuantity: StringEditQuantity,
   URLEditQuantity: URLEditQuantity,
   EnumEditQuantity: EnumEditQuantity,
