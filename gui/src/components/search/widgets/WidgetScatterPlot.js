@@ -122,7 +122,7 @@ export const WidgetScatterPlot = React.memo((
       yAxis: getAxisConfig(y, filterData, units),
       colorAxis: markers?.color ? getAxisConfig(markers.color, filterData, units) : {}
     }
-  }, [error, filterData, markers.color, x, units, y])
+  }, [error, filterData, markers?.color, x, units, y])
 
   const setXFilter = useSetFilter(xAxis.search_quantity)
   const setYFilter = useSetFilter(yAxis.search_quantity)

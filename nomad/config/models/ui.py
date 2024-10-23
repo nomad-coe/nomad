@@ -259,13 +259,16 @@ class Column(ConfigBaseModel):
      - Show instance that matches a criterion: `repeating_section[?label=='target'].quantity`
     """
 
-    quantity: Optional[str] = Field(
+    search_quantity: Optional[str] = Field(
         description="""
         Path of the targeted quantity. Note that you can most of the features
         JMESPath syntax here to further specify a selection of values. This
         becomes especially useful when dealing with repeated sections or
         statistical values.
         """
+    )
+    quantity: Optional[str] = Field(
+        deprecated='The "quantity" field is deprecated, use "search_quantity" instead.'
     )
     selected: bool = Field(
         False, description="""Is this column initially selected to be shown."""
@@ -287,6 +290,13 @@ class Column(ConfigBaseModel):
 
     @root_validator(pre=True)
     def _validate(cls, values):
+        # Backwards compatibility for quantity.
+        quantity = values.get('quantity')
+        search_quantity = values.get('search_quantity')
+        if quantity is not None and search_quantity is None:
+            values['search_quantity'] = quantity
+            del values['quantity']
+
         # Backwards compatibility for label
         label = values.get('label')
         title = values.get('title')

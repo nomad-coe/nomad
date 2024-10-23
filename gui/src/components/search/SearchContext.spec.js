@@ -125,22 +125,22 @@ describe('reading query from URL', function() {
   })
 })
 
-describe.only('test that final column information is generated correctly', function() {
+describe('test that final column information is generated correctly', function() {
   test.each([
     ['default unit, default label', {}, new Filter({name: 'test_filter'}, {group: 'test', unit: 'joule'}), 'Test filter (eV)'],
     ['custom label, default unit', {title: 'Testing'}, new Filter(undefined, {group: 'test', unit: 'joule'}), 'Testing (eV)'],
     ['default label, custom unit', {}, new Filter({name: 'test_filter'}, {group: 'test', unit: 'joule'}), 'Test filter (eV)'],
     ['custom label, custom unit', {title: 'Testing', unit: 'Ha'}, new Filter(undefined, {group: 'test', unit: 'joule'}), 'Testing (Ha)']
   ])('%s', async (name, column, filter, label) => {
-    const quantity = 'test_filter'
+    const search_quantity = 'test_filter'
     const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: (props) => <Wrapper
-      initialSearchQuantities={{[quantity]: filter}}
-      initialColumns={[{quantity, ...column}]}
+      initialSearchQuantities={{[search_quantity]: filter}}
+      initialColumns={[{search_quantity, ...column}]}
       {...props}
     />})
     const columns = resultUseSearchContext.current.columns
     for (const column of columns) {
-      if (column.quantity === quantity) {
+      if (column.search_quantity === search_quantity) {
         expect(column.label).toBe(label)
       }
     }

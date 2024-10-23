@@ -148,18 +148,19 @@ describe('test custom axis units', () => {
 
 describe('test different colors', () => {
   test.each([
-    ['empty', undefined, undefined, []],
-    ['scalar integer', 'results.material.n_elements', {search_quantity: 'results.material.n_elements'}, []],
-    ['scalar float', 'results.properties.geometry_optimization.final_energy_difference', {search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}, []],
-    ['scalar string', 'results.material.chemical_formula_hill', undefined, ['Si2', 'CO2']],
-    ['array string', 'results.material.elements', undefined, ['Si', 'C, O']]
-  ])('%s', async (name, axis, colorTitle, legend) => {
+    ['empty markers', undefined, undefined, []],
+    ['empty color', {}, undefined, []],
+    ['scalar integer', {color: {search_quantity: 'results.material.n_elements'}}, {search_quantity: 'results.material.n_elements'}, []],
+    ['scalar float', {color: {search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, {search_quantity: 'results.properties.geometry_optimization.final_energy_difference'}, []],
+    ['scalar string', {color: {search_quantity: 'results.material.chemical_formula_hill'}}, undefined, ['Si2', 'CO2']],
+    ['array string', {color: {search_quantity: 'results.material.elements'}}, undefined, ['Si', 'C, O']]
+  ])('%s', async (name, markers, colorTitle, legend) => {
     const config = {
       id: '0',
       scale: 'linear',
       x: {search_quantity: 'results.material.n_elements'},
       y: {search_quantity: 'results.material.n_elements'},
-      markers: {color: {search_quantity: axis}}
+      markers: markers
     }
     renderSearchEntry(<WidgetScatterPlot {...config} />)
     await expectWidgetScatterPlot(config, false, colorTitle, legend)

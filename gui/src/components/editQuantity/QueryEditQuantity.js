@@ -44,7 +44,7 @@ const shownColumns = [
 ]
 const rows = context?.rows
 const columns = (context?.columns || [])
-  .map((column) => ({...column, selected: shownColumns.includes(column.quantity)}))
+  .map((column) => ({...column, selected: shownColumns.includes(column.search_quantity)}))
 rows.details = {enabled: false}
 rows.actions = {enabled: false}
 
