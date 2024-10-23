@@ -1603,12 +1603,11 @@ class MSection(metaclass=MObjectMeta):
         quantity_def: str | Quantity,
         name: str,
         value: Any,
-        quantity: Quantity = None,
     ) -> None:
         """
         Set attribute for the given quantity.
         """
-        self.__set_attribute(quantity_def, name, value, quantity=quantity)
+        self.__set_attribute(quantity_def, name, value)
 
     @metainfo_modifier
     def __set_attribute(
@@ -1616,7 +1615,6 @@ class MSection(metaclass=MObjectMeta):
         tgt_property: str | None | Definition,
         attr_name: str,
         attr_value: Any,
-        quantity: Quantity = None,
     ):
         """
         Set attribute for current section for a quantity of the current section.
@@ -1642,9 +1640,7 @@ class MSection(metaclass=MObjectMeta):
         if isinstance(tgt_def, Quantity) and tgt_def.use_full_storage:
             m_storage: dict | None = self.__dict__.get(tgt_def.name, None)
             m_quantity: MQuantity | None = (
-                m_storage.get(tgt_property if quantity is None else quantity.name, None)
-                if m_storage
-                else None
+                m_storage.get(tgt_property, None) if m_storage else None
             )
             if m_quantity is None:
                 m_quantity = MQuantity(tgt_name, None)

@@ -81,6 +81,10 @@ sample:
   - C 3.6
   method: experiment
   alias: Si
+  identifier:
+    service: undefined
+    identifier: 'Si in sample'
+    is_persistent: false
   grain_diameter:
     unit: µm
     value: 200.
@@ -103,6 +107,10 @@ sample:
 specimen:
   method: experiment
   alias: usa_denton_smith_si
+  identifier:
+    service: undefined
+    identifier: 'Si in specimen'
+    is_persistent: false
   description: '<p>normal</p>
 
     <p><em>bold</em></p>

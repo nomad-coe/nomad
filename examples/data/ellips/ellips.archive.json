@@ -4,7 +4,7 @@
         "reader": "ellips",
         "nxdl": "NXellipsometry",
         "input_files": [
-            "test-data.data",
+            "test-data.dat",
             "eln_data.yaml"
         ],
         "output": "SiO2onSi.ellips.nxs",

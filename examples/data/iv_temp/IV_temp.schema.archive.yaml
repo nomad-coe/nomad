@@ -8,7 +8,7 @@ definitions:
       m_annotations:
         template:
           reader: json_map
-          nxdl: NXiv_temp.nxdl
+          nxdl: NXiv_temp
           input_files": [
             "IV_temp.mapping.json",
             "IV_temp.pickle"
