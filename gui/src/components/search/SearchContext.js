@@ -249,11 +249,11 @@ export const SearchContextRaw = React.memo(({
 
     let options = cloneDeep(initialColumns)
     options.forEach(option => {
-      const parseResults = parseJMESPath(option.quantity)
+      const parseResults = parseJMESPath(option.search_quantity)
       if (parseResults.error) {
-        throw Error(`Invalid JMESPath query in the app columns: ${option.quantity}`)
+        throw Error(`Invalid JMESPath query in the app columns: ${option.search_quantity}`)
       }
-      option.sortable = parseResults.quantity === option.quantity
+      option.sortable = parseResults.quantity === option.search_quantity
       const filter = initialSearchQuantities[parseResults.quantity]
       const storageUnit = filter?.unit
       const displayUnit = option.unit
@@ -362,9 +362,9 @@ export const SearchContextRaw = React.memo(({
     }
 
     // Add key, defaults, and custom overrides
-    options = options.map((column) => ({...column, key: column.quantity}))
+    options = options.map((column) => ({...column, key: column.search_quantity}))
     addColumnDefaults(options, undefined, initialSearchQuantities)
-    options = options.map((column) => ({...column, ...(overrides[column.quantity] || {})}))
+    options = options.map((column) => ({...column, ...(overrides[column.search_quantity] || {})}))
 
     return options
   }, [initialSearchQuantities, initialColumns, user, units])

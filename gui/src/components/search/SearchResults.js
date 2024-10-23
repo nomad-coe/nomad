@@ -71,7 +71,7 @@ export const SearchResults = React.memo(({
   const shownColumns = columns
     ? columns
       .filter((column) => column.selected)
-      .map((column) => column.quantity)
+      .map((column) => column.search_quantity)
     : []
 
   useEffect(() => {

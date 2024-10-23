@@ -27,14 +27,14 @@ import { ui } from "../../../config"
 
 const context = cloneDeep(ui?.apps?.options?.entries)
 const columns = [
-  {quantity: 'entry_name', title: 'Name', align: 'left', selected: true},
-  {quantity: 'entry_type', title: 'Entry type', align: 'left', selected: true},
-  {quantity: 'entry_create_time', title: 'Entry creation time', align: 'left', selected: true},
-  {quantity: 'upload_name', title: 'Upload name', align: 'left'},
-  {quantity: 'upload_id', title: 'Upload id', align: 'left'},
-  {quantity: 'upload_create_time', title: 'Upload time', align: 'left'},
-  {quantity: 'authors', title: 'Authors', align: 'left', sortable: false},
-  {quantity: 'results.eln.lab_ids', title: 'IDs'}
+  {search_quantity: 'entry_name', title: 'Name', align: 'left', selected: true},
+  {search_quantity: 'entry_type', title: 'Entry type', align: 'left', selected: true},
+  {search_quantity: 'entry_create_time', title: 'Entry creation time', align: 'left', selected: true},
+  {search_quantity: 'upload_name', title: 'Upload name', align: 'left'},
+  {search_quantity: 'upload_id', title: 'Upload id', align: 'left'},
+  {search_quantity: 'upload_create_time', title: 'Upload time', align: 'left'},
+  {search_quantity: 'authors', title: 'Authors', align: 'left', sortable: false},
+  {search_quantity: 'results.eln.lab_ids', title: 'IDs'}
 ]
 
 context.colums = columns

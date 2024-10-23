@@ -198,7 +198,7 @@ Details.propTypes = {
 }
 
 const columns = (context?.columns || [])
-  .map((column) => ({...column, selected: shownColumns.includes(column.quantity)}))
+  .map((column) => ({...column, selected: shownColumns.includes(column.search_quantity)}))
 const rows = context?.rows
 rows.details = {enabled: true, render: Details}
 rows.actions = {enabled: false}

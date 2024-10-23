@@ -343,9 +343,9 @@ export async function expectSearchResults(columns, root = screen) {
     const columnLabels = columns
       .filter((column) => column.selected)
       .map((column) => {
-        const quantity = column.quantity
-        const unit = column.unit || defaultFilterData[quantity]?.unit
-        const label = column.label || defaultFilterData[quantity]?.label || getDisplayLabel({name: quantity.split('.').slice(-1)[0]})
+        const searchQuantity = column.search_quantity
+        const unit = column.unit || defaultFilterData[searchQuantity]?.unit
+        const label = column.label || defaultFilterData[searchQuantity]?.label || getDisplayLabel({name: searchQuantity.split('.').slice(-1)[0]})
         return unit
           ? `${label} (${new Unit(unit).label()})`
           : label
