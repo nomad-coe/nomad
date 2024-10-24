@@ -264,10 +264,10 @@ export const WidgetScatterPlot = React.memo((
   // Perform unit conversion, report errors
   const data = useMemo(() => {
     if (!dataRaw) return
-    const x = xAxis.type === DType.Timestamp
+    const x = xAxis.dtype === DType.Timestamp
       ? dataRaw.x
       : new Quantity(dataRaw.x, storageUnitX).to(xAxis.unit).value()
-    const y = yAxis.type === DType.Timestamp
+    const y = yAxis.dtype === DType.Timestamp
       ? dataRaw.y
       : new Quantity(dataRaw.y, storageUnitY).to(yAxis.unit).value()
     const color = dataRaw.color && (discrete
@@ -275,7 +275,7 @@ export const WidgetScatterPlot = React.memo((
       : new Quantity(dataRaw.color, storageUnitColor).to(colorAxis.unit).value()
     )
     return {x, y, color, id: dataRaw.id}
-  }, [dataRaw, xAxis.type, xAxis.unit, storageUnitX, yAxis.type, yAxis.unit, storageUnitY, discrete, storageUnitColor, colorAxis.unit])
+  }, [dataRaw, xAxis.dtype, xAxis.unit, storageUnitX, yAxis.dtype, yAxis.unit, storageUnitY, discrete, storageUnitColor, colorAxis.unit])
 
   const handleEdit = useCallback(() => {
     setWidget(old => { return {...old, editing: true } })

@@ -16,61 +16,28 @@
  * limitations under the License.
  */
 import React, { useMemo, useContext } from 'react'
-import { makeStyles } from '@material-ui/core/styles'
-import { Typography, Tooltip } from '@material-ui/core'
+import { Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
 import { useSearchContext } from './SearchContext'
 import { inputSectionContext } from './input/InputNestedObject'
 import { Unit } from '../units/Unit'
 import { useUnitContext } from '../units/UnitContext'
-import Ellipsis from '../visualization/Ellipsis'
+import { DefinitionTitle } from '../DefinitionTitle'
 
 /**
- * Title for a metainfo quantity or section that is used in a search context.
- * By default the label, description and unit are automatically retrieved from
- * the filter config.
+ * Title for a metainfo quantity or section that is used inside a search
+ * context. By default the label, description and unit are automatically
+ * retrieved from the filter config.
  */
-const useStaticStyles = makeStyles(theme => ({
-  root: {
-  },
-  text: {
-  },
-  subtitle2: {
-    color: theme.palette.grey[800]
-  },
-  right: {
-    overflow: 'hidden'
-  },
-  down: {
-    overflow: 'hidden',
-    writingMode: 'vertical-rl',
-    textOrientation: 'mixed'
-  },
-  up: {
-    overflow: 'hidden',
-    writingMode: 'vertical-rl',
-    textOrientation: 'mixed',
-    transform: 'rotate(-180deg)'
-  }
-}))
 const FilterTitle = React.memo(({
   quantity,
   label,
   description,
   unit,
-  variant,
-  TooltipProps,
-  onMouseDown,
-  onMouseUp,
-  className,
-  classes,
-  rotation,
   disableUnit,
-  noWrap
+  ...rest
 }) => {
-  const styles = useStaticStyles({classes})
-  const { filterData } = useSearchContext()
+  const {filterData} = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const {units} = useUnitContext()
   const section = sectionContext?.section
@@ -93,55 +60,31 @@ const FilterTitle = React.memo(({
   }, [filterData, quantity, units, label, unit, disableUnit])
 
   // Determine the final description
-  const finalDescription = description || (quantity && filterData[quantity]?.description) || ''
-  const tooltip = (quantity)
-    ? <>
-      <Typography>{finalLabel}</Typography>
-      <b>Description: </b>{finalDescription || '-'}<br/>
-      <b>Path: </b>{quantity}
-    </>
-    : finalDescription || ''
+  let finalDescription = description || filterData[quantity]?.description || ''
+  if (finalDescription && quantity) {
+    finalDescription = (
+      <>
+        <Typography>{finalLabel}</Typography>
+        <b>Description: </b>{finalDescription}<br/>
+        <b>Path: </b>{quantity}
+      </>
+    )
+  }
 
-  return <Tooltip title={tooltip} interactive enterDelay={400} enterNextDelay={400} {...(TooltipProps || {})}>
-    <div className={clsx(className, styles.root,
-      rotation === 'right' && styles.right,
-      rotation === 'down' && styles.down,
-      rotation === 'up' && styles.up
-    )}>
-      <Typography
-        noWrap={noWrap}
-        className={clsx(styles.text, (!section) && (variant === "subtitle2") && styles.subtitle2)}
-        variant={variant}
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-      >
-        <Ellipsis>{finalLabel}</Ellipsis>
-      </Typography>
-    </div>
-  </Tooltip>
+  return <DefinitionTitle
+    label={finalLabel}
+    description={finalDescription}
+    section={section}
+    {...rest}
+  />
 })
 
 FilterTitle.propTypes = {
   quantity: PropTypes.string,
   label: PropTypes.string,
-  unit: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   description: PropTypes.string,
-  variant: PropTypes.string,
-  className: PropTypes.string,
-  classes: PropTypes.object,
-  rotation: PropTypes.oneOf(['up', 'right', 'down']),
-  disableUnit: PropTypes.bool,
-  TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
-  onMouseDown: PropTypes.func,
-  onMouseUp: PropTypes.func,
-  placement: PropTypes.string,
-  noWrap: PropTypes.bool
-}
-
-FilterTitle.defaultProps = {
-  variant: 'body2',
-  rotation: 'right',
-  noWrap: true
+  unit: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  disableUnit: PropTypes.bool
 }
 
 export default FilterTitle

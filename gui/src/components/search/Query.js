@@ -236,10 +236,10 @@ const createChips = (name, filterValue, onDelete, filterData, units) => {
       }
     }
 
-    createRangeChip('lte', '<=')
-    createRangeChip('lt', '<')
     createRangeChip('gte', '>=')
     createRangeChip('gt', '>')
+    createRangeChip('lte', '<=')
+    createRangeChip('lt', '<')
   } else {
     chips.push({ comp: createChip(serializer(filterValue), () => onDelete(undefined)), op })
   }
