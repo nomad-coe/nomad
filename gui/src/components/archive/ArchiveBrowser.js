@@ -762,6 +762,16 @@ QuantityItemPreview.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
+const matchH5Path = (path) => {
+  const h5Path = path.match(/(?:\/uploads\/(?<uploadId>.+?)\/(?<source>.+?)\/)*(?<filename>.+?)#(?<path>.+)/)
+  if (!h5Path) {
+    return {}
+  }
+  const h5File = h5Path.groups.filename
+  const source = h5Path.groups.source || ((h5File.endsWith('.h5') || h5File.endsWith('.nxs')) ? 'raw' : 'archive')
+  return {h5UploadId: h5Path.groups.uploadId, h5File: h5File, h5Source: source, h5Path: h5Path.groups.path}
+}
+
 export const QuantityValue = React.memo(function QuantityValue({value, def}) {
   const {uploadId} = useEntryStore() || {}
   const displayUnit = useDisplayUnit(def)
@@ -836,12 +846,9 @@ export const QuantityValue = React.memo(function QuantityValue({value, def}) {
         })}
       </ul>
     } else if (def.type?.type_data === 'nomad.datamodel.hdf5.HDF5Dataset' || def.type?.type_data === 'nomad.datamodel.hdf5.HDF5Reference') {
-      const h5Path = value.match(/(?:\/uploads\/(?<uploadId>.+?)\/(?<source>.+?)\/)*(?<filename>.+?)#(?<path>.+)/)
-      const h5UploadId = h5Path.groups.uploadId || uploadId
-      const h5File = h5Path.groups.filename
-      const h5Source = h5Path.groups.source || ((h5File.endsWith('.h5') || h5File.endsWith('.nxs')) ? 'raw' : 'archive')
+      const {h5UploadId, h5File, h5Source, h5Path} = matchH5Path(value)
       return <Compartment title='hdf5'>
-        <H5Web upload_id={h5UploadId} filename={h5File} initialPath={h5Path.groups.path} source={h5Source} sidebarOpen={false}></H5Web>
+        <H5Web upload_id={h5UploadId || uploadId} filename={h5File} initialPath={h5Path} source={h5Source} sidebarOpen={false}></H5Web>
       </Compartment>
     } else if (def?.type?.type_kind === 'custom' && def?.type?.type_data === 'nomad.datamodel.data.Query') {
       return <Query value={value} def={def}/>
@@ -943,6 +950,49 @@ export function getAllVisibleProperties(sectionDef) {
   const sub_sections = visibleProperties.filter(property => property.m_parent_sub_section === "sub_sections")
   return [...quantities, ...sub_sections]
 }
+
+export function H5WebView({section, def, uploadId, title}) {
+  const h5Web = (section, def) => {
+    const signal = def.m_annotations?.h5web?.[0]?.signal
+    if (!signal || !section[signal]) {
+      return
+    }
+    const {h5UploadId, h5File, h5Source, h5Path} = matchH5Path(section[signal])
+    const sectionPath = h5Path.split('/').slice(0, -1).join('/')
+    return <H5Web key={def.name} upload_id={h5UploadId || uploadId} filename={h5File} initialPath={sectionPath} source={h5Source} sidebarOpen={false}></H5Web>
+  }
+  const resolve = (path, parent) => {
+    let child = parent
+    for (const segment of path.split('/')) {
+      const properties = child?._properties || child
+      if (!properties) {
+        return
+      }
+      const index = parseInt(segment)
+      child = isNaN(index) ? properties[segment] : properties[index] || child
+      child = child?.sub_section || child
+    }
+    return child
+  }
+
+  const paths = def.m_annotations?.h5web?.[0].paths || []
+
+  return <Compartment title={title}>
+    {h5Web(section, def)}
+    {paths.map(path => {
+      const subSection = resolve(path, section)
+      const subSectionDef = resolve(path, def)
+      return subSection && subSectionDef && h5Web(subSection, subSectionDef)
+    })}
+  </Compartment>
+}
+
+H5WebView.propTypes = ({
+  section: PropTypes.object.isRequired,
+  def: PropTypes.object.isRequired,
+  uploadId: PropTypes.string.isRequired,
+  title: PropTypes.string
+})
 
 export function Section({section, def, property, parentRelation, sectionIsEditable, sectionIsInEln}) {
   const {handleArchiveChanged, uploadId, entryId} = useEntryStore() || {}
@@ -1120,6 +1170,7 @@ export function Section({section, def, property, parentRelation, sectionIsEditab
       )}
       {subSectionCompartment}
       {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section} uploadId={uploadId} entryId={entryId}/>}
+      {def.m_annotations?.h5web && <H5WebView section={section} def={def} uploadId={uploadId} title='hdf5'></H5WebView>}
     </React.Fragment>
   } else {
     const attributes = section?.m_attributes || {}
@@ -1138,6 +1189,7 @@ export function Section({section, def, property, parentRelation, sectionIsEditab
         ))}
       </Compartment>}
       {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section} uploadId={uploadId} entryId={entryId}/>}
+      {def.m_annotations?.h5web && <H5WebView section={section} def={def} uploadId={uploadId} title='hdf5'></H5WebView>}
     </React.Fragment>
   }
   const eln = def?.m_annotations?.eln

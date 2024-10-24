@@ -52,6 +52,7 @@ import ReferenceUsingCard from "./properties/ReferenceCard"
 import SampleHistoryUsingCard from "./properties/SampleHistoryCard"
 import { useEntryStore, useEntryContext, useIndex } from './EntryContext'
 import DeleteEntriesButton from '../uploads/DeleteEntriesButton'
+import HDF5DatasetCard from './properties/HDF5DatasetCard'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -190,6 +191,7 @@ const OverviewView = React.memo(() => {
     const cardMap = {
       definitions: DefinitionsCard,
       nexus: NexusCard,
+      hdf5dataset: HDF5DatasetCard,
       material: index?.results?.material?.topology
         ? MaterialCardTopology
         : index?.results?.properties?.structures

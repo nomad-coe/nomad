@@ -139,14 +139,13 @@ with deserialized.data.value as dataset:
 NOMAD clients (e.g. NOMAD UI) can pick up on these HDF5 serialized quantities and
 provide respective functionality (e.g. showing a H5Web view).
 
+The [H5WebAnnotation class](../../reference/annotations#h5web) contains the attributes that NOMAD will include in the HDF5 file.
+
 <figure markdown>
   ![h5reference](../images/hdf5reference.png)
   <figcaption>Visualizing archive HDF5 reference quantity using H5Web.</figcaption>
 </figure>
 
-!!! warning "Attention"
-
-    This part of the documentation is still work in progress.
 
 ## Metadata for large quantities
 

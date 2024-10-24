@@ -281,3 +281,78 @@ class CustomSection(PlotSection, EntryData):
 ```
 
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotAnnotation', heading='### PlotAnnotation (Deprecated)') }}
+
+## H5Web
+The H5WebAnnotation provides a way to control how H5Web renders visualization for
+[HDF5Dataset](../howto/customization/hdf5.html#hdf5dataset) quantities. The annotation values are written to the
+corresponding HDF5 object attributes and are subsequently read by H5Web.
+
+Usage:
+
+- Use this base section as a type in your Quantity.
+- Add addictional annotations to trigger the H5Web visualizer to the section containing the Quantity, and, optionally, to its parent sections.
+
+!!! note
+    If an EntryData class contain the `a_h5web` annotation, the H5Web plot is shown in the [entry overview page](../examples/computational_data/uploading.html#entries-overview-page).
+
+An example of use of H5WebAnnotation in Python schemas:
+
+```python
+from nomad.datamodel.data import ArchiveSection, EntryData
+from nomad.metainfo import Section
+from nomad.datamodel.hdf5 import HDF5Dataset
+from nomad.datamodel.metainfo.annotations import H5WebAnnotation
+
+class A(ArchiveSection):
+
+    m_def = Section(a_h5web=H5WebAnnotation(
+        axes='x',
+        signal='y'
+        auxiliary_signals=['y_err']))
+
+    x = Quantity(
+        type=HDF5Dataset,
+        unit='s',
+        a_h5web = H5WebAnnotation(
+            long_name='my_x_label (s)'
+        ))
+
+    y = Quantity(
+        type=HDF5Dataset,
+        unit='m',
+        a_h5web = H5WebAnnotation(
+            long_name='my_y_label (m)'
+        ))
+
+    y_err = Quantity(
+        type=HDF5Dataset,
+        unit='m',
+        h5web = H5WebAnnotation(
+            long_name='my_y_err_label'
+        ))
+
+class B(EntryData):
+
+    m_def = Section(a_h5web=H5WebAnnotation(
+      axes='value_x', signal='value_y', paths=['a/0']))
+
+    a = SubSection(sub_section=A, repeats=True)
+
+    value_x = Quantity(type=HDF5Dataset)
+
+    value_y = Quantity(type=HDF5Dataset, unit='m')
+```
+
+In this example, an H5Web view of the variables `x`, `y`, and `y_err` is displayed in the page of the subsection `A`.
+The plot of variables `x_value` and `y_value` is also displayed; as the `B` class is an `EntryData`, the plot is shown in the [entry overview page](../examples/computational_data/uploading.html#entries-overview-page). Additionally, alongside with the plot of the class `B`, the overview page presents also the plot contained in the subsection `A`, due to the `paths` attribute. The `paths` attribute allows to show in a parent section or subsection the plots originally contained in children subsections. Parents and children refer here to **composed** object.
+
+!!! note
+    The `paths` variable points in the example above to a [repeated subsection](../howto/plugins/schema_packages.html#schemapackage-class), hence the path provided includes a serial number pointing to the subsection object to be displayed in the entry overview page. To show in the overview page a non-repeatable subsection, no serial number is required in the path.
+
+H5Web implements visualization features through the attributes shown above, they can be attached to datasets and groups of an HDF5 file.
+The conventions for the attributes are rooted in the NeXus language and more explanations can be found in the [NXData documentation page](https://manual.nexusformat.org/classes/base_classes/NXdata.html) and in the [Associating plottable data documentation page](https://manual.nexusformat.org/datarules.html#design-findplottable-niac2014).
+
+### H5WebAnnotation
+
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.H5WebAnnotation', heading = '') }}
+
