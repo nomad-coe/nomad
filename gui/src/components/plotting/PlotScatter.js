@@ -18,12 +18,24 @@
 import React, {useState, useEffect, useMemo, useCallback, forwardRef} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core'
-import { hasWebGLSupport } from '../../utils'
+import { hasWebGLSupport, DType } from '../../utils'
 import * as d3 from 'd3'
-import FilterTitle from '../search/FilterTitle'
+import { DefinitionTitle } from '../DefinitionTitle'
 import Plot from './Plot'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
+
+function getAxisType(type, scale) {
+  return type === DType.Timestamp && scale === 'linear'
+    ? 'date'
+    : scale
+}
+
+function transformData(type, data) {
+  return type === DType.Timestamp
+    ? data.map((iso) => new Date(iso).getTime())
+    : data
+}
 
 /**
  * A Plotly-based interactive scatter plot.
@@ -86,7 +98,9 @@ const useStyles = makeStyles(theme => ({
   axisTitle: {
     fontSize: '0.75rem'
   }
+
 }))
+
 const PlotScatter = React.memo(forwardRef((
 {
   data,
@@ -103,8 +117,8 @@ const PlotScatter = React.memo(forwardRef((
   'data-testid': testID
 }, canvas) => {
   const styles = useStyles()
-  const theme = useTheme()
   const titleClasses = {text: styles.axisTitle}
+  const theme = useTheme()
   const [finalData, setFinalData] = useState(!data ? data : undefined)
   const history = useHistory()
 
@@ -117,6 +131,12 @@ const PlotScatter = React.memo(forwardRef((
       setFinalData(data)
       return
     }
+
+    // Map the data depending on axis types. This manual transformation is
+    // needed because the plotly automatic axis type detection does not work
+    // when scaling option is read from the axis configuration.
+    data.x = transformData(xAxis.dtype, data.x)
+    data.y = transformData(yAxis.dtype, data.y)
 
     const hoverTemplate = (xLabel, yLabel, colorLabel, xUnit, yUnit, colorUnit) => {
       let template = `<b>Click to go to entry page</b>` +
@@ -251,7 +271,7 @@ const PlotScatter = React.memo(forwardRef((
       })
     }
     setFinalData(traces)
-  }, [colorAxis?.search_quantity, colorAxis?.title, colorAxis?.unit, data, discrete, theme, xAxis.title, xAxis.unit, yAxis.title, yAxis.unit])
+  }, [colorAxis?.search_quantity, colorAxis?.title, colorAxis?.unit, data, discrete, theme, xAxis.dtype, xAxis.title, xAxis.unit, yAxis.dtype, yAxis.title, yAxis.unit])
 
   const layout = useMemo(() => {
     return {
@@ -272,12 +292,12 @@ const PlotScatter = React.memo(forwardRef((
         y: 1
       },
       xaxis: {
-        type: xAxis.scale,
+        type: getAxisType(xAxis.dtype, xAxis.scale),
         fixedrange: false,
         autorange: autorange
       },
       yaxis: {
-        type: yAxis.scale,
+        type: getAxisType(yAxis.dtype, yAxis.scale),
         fixedrange: false,
         autorange: autorange
       },
@@ -295,7 +315,7 @@ const PlotScatter = React.memo(forwardRef((
   // both. This is a general problem in trying to 'reactify' a non-react library
   // like Plotly.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autorange, xAxis.scale, yAxis.scale])
+  }, [autorange, xAxis.dtype, xAxis.scale, yAxis.dtype, yAxis.scale])
 
   // Change dragmode
   useEffect(() => {
@@ -317,13 +337,12 @@ const PlotScatter = React.memo(forwardRef((
 
   return <div className={styles.root}>
     <div className={styles.yaxis}>
-      <FilterTitle
-        variant="subtitle2"
-        classes={titleClasses}
-        quantity={yAxis.quantity}
+      <DefinitionTitle
         label={yAxis.title}
-        unit={yAxis.unit}
+        description={yAxis.description}
+        variant="subtitle2"
         rotation="up"
+        classes={titleClasses}
       />
     </div>
     <div className={styles.plot}>
@@ -344,24 +363,21 @@ const PlotScatter = React.memo(forwardRef((
     </div>
     <div className={styles.square} />
     <div className={styles.xaxis}>
-      <FilterTitle
+      <DefinitionTitle
+        label={xAxis.title}
+        description={xAxis.description}
         variant="subtitle2"
         classes={titleClasses}
-        quantity={xAxis.quantity}
-        label={xAxis.title}
-        unit={xAxis.unit}
       />
     </div>
     {!discrete && colorAxis &&
       <div className={styles.color}>
-        <FilterTitle
+        <DefinitionTitle
+          label={colorAxis.title}
+          description={colorAxis.description}
+          rotation="down"
           variant="subtitle2"
           classes={titleClasses}
-          rotation="down"
-          quantity={colorAxis.quantity}
-          unit={colorAxis.unit}
-          label={colorAxis.title}
-          description=""
         />
       </div>
     }

@@ -29,11 +29,11 @@ import { InputTextField } from '../search/input/InputText'
 import Placeholder from '../visualization/Placeholder'
 import PlotAxis from './PlotAxis'
 import PlotBar from './PlotBar'
-import FilterTitle from '../search/FilterTitle'
 import { guiState } from '../GUIMenu'
 import PropTypes from 'prop-types'
 import { getScaler } from './common'
 import { dateFormat } from '../../config'
+import { DefinitionTitle } from '../DefinitionTitle'
 
 /**
  * An interactive histogram for numeric values.
@@ -210,7 +210,6 @@ const PlotHistogram = React.memo(({
     }
   })
   const dynamicStyles = useDynamicStyles()
-
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const oldRangeRef = useRef()
   const artificialRange = 1
@@ -534,12 +533,11 @@ const PlotHistogram = React.memo(({
   }
 
   const titleComp = <div className={styles.title}>
-    <FilterTitle
+    <DefinitionTitle
       variant="subtitle2"
       classes={titleClasses}
-      quantity={xAxis.quantity}
       label={xAxis.title}
-      unit={xAxis.unit}
+      description={xAxis.description}
       noWrap={false}
     />
   </div>

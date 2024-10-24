@@ -246,12 +246,8 @@ export const Histogram = React.memo(({
 
     setPlotData({
       xAxis: {
-        search_quantity: x.search_quantity,
-        quantity: x.quantity,
-        unit: x.unit,
+        ...x,
         unitStorage: unitStorage,
-        dtype: x.dtype,
-        title: x.title,
         min: minLocal,
         max: maxLocal
       },
@@ -259,7 +255,7 @@ export const Histogram = React.memo(({
       step: stepHistogram,
       data: agg.data
     })
-  }, [loading, nBins, agg, minLocal, maxLocal, stepHistogram, unitStorage, x.search_quantity, x.quantity, x.unit, x.dtype, x.title, x.scale, y])
+  }, [loading, nBins, agg, minLocal, maxLocal, stepHistogram, unitStorage, x, y])
 
   // Function for converting search values into the currently selected unit
   // system.

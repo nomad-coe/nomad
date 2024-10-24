@@ -32,11 +32,8 @@ update the v1 materials index according to the performed changes. TODO this is o
 partially implemented.
 """
 
-import fnmatch
 import json
 import math
-import re
-import sys
 from enum import Enum
 from typing import (
     Any,
@@ -47,7 +44,6 @@ from typing import (
     Iterator,
     List,
     Optional,
-    Sequence,
     Tuple,
     Union,
     cast,
@@ -483,35 +479,6 @@ def _es_to_entry_dict(
     Translates an ES hit response into a response data object that is expected
     by the API.
     """
-
-    def filter_hit(hit, include, exclude):
-        """Used to filter the hit based on the required fields."""
-        flattened_dict = utils.flatten_dict(hit, flatten_list=True)
-        keys = list(flattened_dict.keys())
-        key_pattern_map = {key: re.sub(r'\.\d+\.', '.', key) for key in keys}
-        if include is not None:
-            keys = [
-                key
-                for key in keys
-                if any(
-                    fnmatch.fnmatch(key_pattern_map[key], pattern)
-                    for pattern in include
-                )
-            ]
-        if exclude is not None:
-            keys = [
-                key
-                for key in keys
-                if not any(
-                    fnmatch.fnmatch(key_pattern_map[key], pattern)
-                    for pattern in exclude
-                )
-            ]
-        filtered_dict = {key: flattened_dict[key] for key in keys}
-        hit = utils.rebuild_dict(filtered_dict)
-
-        return hit
-
     entry_dict = hit.to_dict()
 
     # Add metadata default values
@@ -602,7 +569,7 @@ def _es_to_entry_dict(
             if required.exclude
             else None
         )
-        entry_dict = filter_hit(entry_dict, include_patterns, exclude_patterns)
+        entry_dict = utils.prune_dict(entry_dict, include_patterns, exclude_patterns)
 
     return entry_dict
 

@@ -15,7 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import React from 'react'
 import { range, size } from 'lodash'
+import { Typography } from '@material-ui/core'
 import { scalePow, scaleLog } from 'd3-scale'
 import {
   format,
@@ -497,17 +499,41 @@ export function getPlotTracesVertical(plots, theme) {
 export function getAxisConfig(axis, filterData, units) {
     const {quantity} = parseJMESPath(axis?.search_quantity)
     const filter = filterData[quantity]
-    const title = axis.title || filter?.label || getDisplayLabel(filter)
     const dtype = filter?.dtype
     const unit = axis.unit
       ? new Unit(axis.unit)
       : new Unit(filter?.unit || 'dimensionless').toSystem(units)
 
+    // Create the final label
+    let title = axis.title || filter?.label || getDisplayLabel(filter)
+    let finalUnit
+    if (unit) {
+      finalUnit = new Unit(unit).label()
+    } else if (filter?.unit) {
+      finalUnit = new Unit(filter.unit).toSystem(units).label()
+    }
+    if (finalUnit) {
+      title = `${title} (${finalUnit})`
+    }
+
+    // Determine the final description
+    let description = axis.description || filter?.description || ''
+    if (description && quantity) {
+      description = (
+        <>
+          <Typography>{title}</Typography>
+          <b>Description: </b>{description}<br/>
+          <b>Path: </b>{quantity}
+        </>
+      )
+    }
+
     return {
       ...axis,
+      description,
       title,
       unit,
       dtype,
-      quantity: quantity
+      quantity
     }
 }

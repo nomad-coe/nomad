@@ -42,6 +42,7 @@ from typing import List, Iterable, Union, Any, Dict
 from collections import OrderedDict
 from functools import reduce
 from itertools import takewhile
+import fnmatch
 import base64
 from contextlib import contextmanager
 import json
@@ -698,6 +699,108 @@ def rebuild_dict(src: dict, separator: str = '.'):
         helper_dict(key, value, ret)
 
     return ret
+
+
+def prune_dict(data, include_patterns=None, exclude_patterns=None):
+    """
+    Prune a nested dictionary based on include and exclude branch patterns.
+
+    Args:
+        data: The nested dictionary to prune.
+        include_patterns: List of branch patterns to include. Supports wildcards
+            like `root.child.*`.
+        exclude_patterns: List of branch patterns to exclude. Supports wildcards
+            like `root.child.*`.
+        parent_key: Used internally for recursion to track the full key path.
+
+    Returns:
+        Pruned dictionary.
+    """
+
+    # Preprocess patterns
+    def process_patterns(patterns):
+        if patterns is None:
+            return []
+        processed = []
+        for pattern in patterns:
+            if pattern.endswith('*'):
+                parts = pattern.rstrip('*').removesuffix('.').split('.')
+                processed.append((parts, True))
+            else:
+                parts = pattern.split('.')
+                processed.append((parts, False))
+        return processed
+
+    include_patterns = process_patterns(include_patterns)
+    exclude_patterns = process_patterns(exclude_patterns)
+
+    def matches(path, patterns):
+        for pattern_parts, wildcard in patterns:
+            if wildcard:
+                if path[: len(pattern_parts)] == tuple(pattern_parts):
+                    return True
+            else:
+                if path == tuple(pattern_parts):
+                    return True
+        return False
+
+    def has_descendant_pattern(path, patterns):
+        for pattern_parts, _ in patterns:
+            if (
+                len(pattern_parts) > len(path)
+                and tuple(pattern_parts[: len(path)]) == path
+            ):
+                return True
+        return False
+
+    def prune(data, path=()):
+        # Check exclude patterns
+        if matches(path, exclude_patterns):
+            return None  # Excluded
+
+        # Check include patterns
+        if include_patterns:
+            if matches(path, include_patterns):
+                include_current = True
+            elif has_descendant_pattern(path, include_patterns):
+                include_current = False  # Need to check deeper
+            else:
+                return None  # Excluded
+        else:
+            include_current = True
+
+        if isinstance(data, dict):
+            new_dict = {}
+            for key, value in data.items():
+                new_path = path + (str(key),)
+                pruned_value = prune(value, new_path)
+                if pruned_value is not None:
+                    new_dict[key] = pruned_value
+            if new_dict:
+                return new_dict
+            elif include_patterns and matches(path, include_patterns):
+                return {}  # Include empty dict if explicitly included
+            else:
+                return None  # Exclude empty dicts
+        elif isinstance(data, list):
+            new_list = []
+            for item in data:
+                pruned_item = prune(item, path)
+                if pruned_item is not None:
+                    new_list.append(pruned_item)
+            if new_list:
+                return new_list
+            elif include_patterns and matches(path, include_patterns):
+                return []  # Include empty list if explicitly included
+            else:
+                return None  # Exclude empty lists
+        else:
+            if include_current:
+                return data
+            else:
+                return None
+
+    return prune(data) or {}
 
 
 def deep_get(dictionary, *keys):

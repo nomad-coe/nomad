@@ -30,6 +30,7 @@ from nomad.utils import (
     structlogging,
     flatten_dict,
     rebuild_dict,
+    prune_dict,
     deep_get,
     dict_to_dataframe,
     dataframe_to_dict,
@@ -165,6 +166,79 @@ def test_dict_flatten_rebuild(data, flatten_list):
     rebuilt = rebuild_dict(flattened)
 
     assert rebuilt == data
+
+
+@pytest.mark.parametrize(
+    'data, include, exclude, expected',
+    [
+        pytest.param(
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            None,
+            None,
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            id='all',
+        ),
+        pytest.param(
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            ['d.f'],
+            None,
+            {'d': [{'f': 4}]},
+            id='include exact',
+        ),
+        pytest.param(
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            ['d.*'],
+            None,
+            {'d': [{'e': 3}, {'f': 4}]},
+            id='include wildcard',
+        ),
+        pytest.param(
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            ['d*'],
+            None,
+            {'d': [{'e': 3}, {'f': 4}]},
+            id='include wildcard no dot',
+        ),
+        pytest.param(
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            None,
+            ['d.f'],
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}]},
+            id='exclude exact',
+        ),
+        pytest.param(
+            {'a': 1, 'b': {'c': 2}, 'd': [{'e': 3}, {'f': 4}]},
+            None,
+            ['d.*'],
+            {'a': 1, 'b': {'c': 2}},
+            id='exclude wildcard',
+        ),
+        pytest.param(
+            {'a': {'b': 1}},
+            None,
+            ['a*'],
+            {},
+            id='exclude wildcard no dot',
+        ),
+        pytest.param(
+            {'a': {'b': 1}},
+            None,
+            ['a.*'],
+            {},
+            id='exclude everything',
+        ),
+        pytest.param(
+            {'a': [], 'b': {}},
+            ['a', 'b'],
+            None,
+            {'a': [], 'b': {}},
+            id='preserve empty structures if they are included',
+        ),
+    ],
+)
+def test_prune_dict(data, include, exclude, expected):
+    pruned = prune_dict(data, include, exclude)
+    assert pruned == expected
 
 
 @pytest.mark.parametrize(
