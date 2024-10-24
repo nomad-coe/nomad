@@ -26,6 +26,7 @@ import pint
 from h5py import File
 
 from nomad.metainfo.data_type import NonPrimitive
+from nomad.datamodel.metainfo.annotations import H5WebAnnotation
 from nomad.utils import get_logger
 
 LOGGER = get_logger(__name__)
@@ -156,19 +157,49 @@ class HDF5Dataset(NonPrimitive):
                 else:
                     segment = path
         else:
+            unit = self._definition.unit
             if isinstance(value, pint.Quantity):
-                if self._definition.unit is not None:
-                    value = value.to(self._definition.unit).magnitude
+                if unit is not None:
+                    value = value.to(unit).magnitude
                 else:
+                    unit = value.units
                     value = value.magnitude
 
+            segment = f'{section.m_path()}/{self._definition.name}'
             with File(hdf5_path, 'a') as hdf5_file:
-                segment = f'{section.m_path()}/{self._definition.name}'
-                target_dataset = hdf5_file.require_dataset(
-                    segment,
+                target_group = hdf5_file.require_group(section.m_path())
+                target_dataset = target_group.require_dataset(
+                    self._definition.name,
                     shape=getattr(value, 'shape', ()),
                     dtype=getattr(value, 'dtype', None),
                 )
                 target_dataset[...] = value
+                # add attrs
+                if unit is not None:
+                    unit = format(unit, '~')
+                    target_dataset.attrs['units'] = unit
+
+                annotation_key = 'h5web'
+                annotation: H5WebAnnotation = section.m_def.m_get_annotation(
+                    annotation_key
+                )
+                if not annotation:
+                    annotation = section.m_get_annotation(annotation_key)
+                if annotation:
+                    target_group.attrs.update(
+                        {
+                            key: val
+                            for key, val in annotation.dict().items()
+                            if val is not None
+                        }
+                    )
+                    target_group.attrs['NX_class'] = 'NXdata'
+
+                q_annotation = self._definition.m_get_annotation(annotation_key)
+                long_name = q_annotation.long_name if q_annotation else None
+                if long_name is None:
+                    long_name = self._definition.name
+                    long_name = f'{long_name} ({unit})' if unit else long_name
+                target_dataset.attrs['long_name'] = long_name
 
         return HDF5Wrapper(hdf5_path, segment)

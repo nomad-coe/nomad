@@ -983,9 +983,47 @@ class PlotAnnotation(AnnotationModel):
         return value
 
 
+class H5WebAnnotation(AnnotationModel):
+    """
+    Provides interface to the H5Web visualizer for HDF5 files.
+    The annotation can be used for section and quantity definitions in order to
+    include group and dataset attributes to the archive HDF5 file.
+
+    Refer to https://h5web.panosc.eu/ for a more detailed description
+    of the annotation fields.
+    """
+
+    axes: Union[str, List[str]] = Field(
+        None,
+        description="""
+        Names of the HDF5Dataset quantities to plot on the independent axes.
+        """,
+    )
+    signal: str = Field(
+        None,
+        description="""
+        Name of the HDF5Dataset quantity to plot on the dependent axis.
+        """,
+    )
+    long_name: str = Field(
+        None,
+        description="""
+        Label for the hdf5 dataset. Note: this attribute will overwrite also the unit.
+        """,
+    )
+    auxiliary_signals: List[str] = Field(
+        None,
+        description="""
+        Additional datasets to include in plot as signal.
+        """,
+    )
+    paths: List[str] = Field([], description="""List of section paths to visualize.""")
+
+
 AnnotationModel.m_registry['eln'] = ELNAnnotation
 AnnotationModel.m_registry['browser'] = BrowserAnnotation
 AnnotationModel.m_registry['tabular_parser'] = TabularParserAnnotation
 AnnotationModel.m_registry['tabular'] = TabularAnnotation
 AnnotationModel.m_registry['hdf5'] = HDF5Annotation
 AnnotationModel.m_registry['plot'] = PlotAnnotation
+AnnotationModel.m_registry['h5web'] = H5WebAnnotation

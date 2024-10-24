@@ -377,6 +377,9 @@ window.nomadEnv = {
           "nexus": {
             "error": "Could not render NeXus card."
           },
+          "hdf5dataset": {
+            "error": "Could not render HDF5Dataset card."
+          },
           "material": {
             "error": "Could not render material card."
           },
