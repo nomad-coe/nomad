@@ -15,6 +15,8 @@ import SearchIcon from '@material-ui/icons/Search'
 import SectionSelectDialog from './SectionSelectDialog'
 import SectionSelectAutocomplete from './SectionSelectAutocomplete'
 
+const path = require('path')
+
 const useStyles = makeStyles(theme => ({
   dialog: {
     width: '100%',
@@ -133,7 +135,7 @@ const CreateEntry = React.memo((props) => {
 
   const handleAdd = useCallback(() => {
     const selectedTemplate = schemaType === 'built-in' ? builtInTemplate : customTemplate
-    api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&overwrite_if_exists=false&wait_for_processing=true`, selectedTemplate.archive)
+    api.put(`uploads/${uploadId}/raw/${path.dirname(name)}?file_name=${path.basename(name)}.archive.json&overwrite_if_exists=false&wait_for_processing=true`, selectedTemplate.archive)
       .then(response => {
         // TODO handle processing errors
         const entryId = response.processing.entry_id
