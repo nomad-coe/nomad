@@ -24,12 +24,6 @@ from nomad.graph.graph_reader import EntryReader, Token
 from nomad.utils.exampledata import ExampleData
 from tests.archive.test_archive import assert_dict
 
-# try:
-#     from rich.pretty import pprint
-# except ImportError:
-#     def pprint(x):
-#         print(x)
-
 
 def assert_path_exists(path, response):
     for segment in path:
@@ -96,7 +90,13 @@ def test_graph_query_random(auth_headers, client, example_data):
         headers={'Accept': 'application/json'} | (user_auth if user_auth else {}),
     )
 
-    print(response.json())
+    assert response.status_code == 200
+
+    data = response.json()
+    assert 'uploads' in data
+    assert 'id_embargo' in data['uploads']
+    assert 'files' in data['uploads']['id_embargo']
+    assert 'entries' in data['uploads']['id_embargo']
 
 
 @pytest.mark.parametrize(

@@ -1,9 +1,12 @@
 import functools
 from collections.abc import Callable
 from importlib.metadata import entry_points
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from nomad.actions import TaskQueue
+
+if TYPE_CHECKING:
+    from nomad.config.models.plugins import ActionEntryPoint
 
 
 class _HasRun(Protocol):
@@ -54,7 +57,7 @@ class Action:
 
 
 @functools.lru_cache
-def get_actions() -> dict[str, Action]:
+def get_actions() -> dict[str, 'ActionEntryPoint']:
     """
     Loads and returns all valid Actions from the 'nomad.plugin' entry points.
 
@@ -69,7 +72,7 @@ def get_actions() -> dict[str, Action]:
 
     nomad_entry_points = entry_points(group='nomad.plugin')
 
-    actions: dict[str, Action] = {}
+    actions: dict[str, ActionEntryPoint] = {}
     invalid_entrypoints: list = []
 
     for plugin_entry_point in nomad_entry_points:
@@ -85,7 +88,7 @@ def get_actions() -> dict[str, Action]:
         if not isinstance(handler, Action):
             invalid_entrypoints.append(str(plugin_entry_point))
         else:
-            actions[plugin_entry_point.value] = handler
+            actions[plugin_entry_point.value] = entry_point
 
     if invalid_entrypoints:
         raise TypeError(

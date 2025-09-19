@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 import re
+import uuid
 from collections import defaultdict
 from typing import Any
 from warnings import warn
@@ -67,10 +68,11 @@ def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
 
 def run_processing(directory, mainfile):
     # create upload with example files
+    upload_id = f'test_upload_id_{uuid.uuid4().hex[:8]}'
     upload_files = create_test_upload_files(
-        'test_upload_id', published=False, raw_files=directory
+        upload_id, published=False, raw_files=directory
     )
-    upload = Upload(upload_id='test_upload_id')
+    upload = Upload(upload_id=upload_id)
 
     # parse
     parser = ArchiveParser()

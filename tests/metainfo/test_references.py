@@ -141,7 +141,6 @@ def test_section_proxy(example_data):
     example_data.referencing.section_reference = MProxy(
         'doesnotexist',
         m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type,
     )
     with pytest.raises(MetainfoReferenceError):
         example_data.referencing.section_reference.str_quantity
@@ -149,7 +148,6 @@ def test_section_proxy(example_data):
     example_data.referencing.section_reference = MProxy(
         '/referenced',
         m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type,
     )
 
     assert_data(example_data)
@@ -160,13 +158,11 @@ def test_quantity_proxy(example_data):
         example_data.referencing.quantity_reference = MProxy(
             'doesnotexist',
             m_proxy_section=example_data.referencing,
-            m_proxy_type=Referencing.section_reference.type,
         )
 
     example_data.referencing.quantity_reference = MProxy(
         '/referenced',
         m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type,
     )
     assert example_data.referencing.quantity_reference == 'test_value'
 

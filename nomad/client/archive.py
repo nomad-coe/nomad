@@ -230,8 +230,6 @@ class ArchiveQuery:
         if self._current_after:
             request['pagination']['page_after_value'] = self._current_after
 
-        # print(f'Current request: {request}')
-
         return request
 
     def _download_request(self, entry_ids: list[str]) -> dict:
@@ -245,8 +243,6 @@ class ArchiveQuery:
             request['query']['and'].append(t_list)
         request['query']['and'].append({'entry_id:any': entry_ids})
         request.setdefault('pagination', {'page_size': len(entry_ids)})
-
-        # print(f'Current request: {request}')
 
         return request
 
@@ -401,7 +397,7 @@ class ArchiveQuery:
             while chunk := list(islice(iterator, chunk_size)):
                 yield chunk
 
-        with progressbar(  # type: ignore
+        with progressbar(
             length=actual_number, label=f'Downloading {actual_number} entries...'
         ) as bar:
             async with AsyncClient(timeout=Timeout(timeout=300)) as session:

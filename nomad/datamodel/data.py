@@ -201,7 +201,7 @@ class UserReference(Reference):
     def serialize_self(self, section):
         return {'type_kind': 'User', 'type_data': 'User'}
 
-    def _normalize_impl(self, section, value):
+    def _normalize_impl(self, value, **kwargs):
         if isinstance(value, User):
             return value
 
@@ -229,7 +229,7 @@ class AuthorReference(Reference):
     def serialize_self(self, section):
         return {'type_kind': 'Author', 'type_data': 'Author'}
 
-    def _normalize_impl(self, section, value):
+    def _normalize_impl(self, value, **kwargs):
         if isinstance(value, Author):
             return value
 

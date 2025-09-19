@@ -57,8 +57,9 @@ def get_nomad_internal_activities() -> list[Callable]:
 
 def get_all_activities(task_queue: TaskQueue) -> list[Callable]:
     activities = []
-    for action in get_actions().values():
-        if action.task_queue == task_queue:
+    for action_entry_point in get_actions().values():
+        if action_entry_point.task_queue == task_queue:
+            action = action_entry_point.load()
             activities.extend(action.activities)
     if task_queue == TaskQueue.NOMAD_INTERNAL_WORKFLOWS:
         activities.extend(get_nomad_internal_activities())

@@ -209,7 +209,7 @@ class DatasetReference(Reference):
     def __init__(self):
         super().__init__(Dataset.m_def)
 
-    def _normalize_impl(self, section, value):
+    def _normalize_impl(self, value, **kwargs):
         if isinstance(value, Dataset):
             return value
 
@@ -218,8 +218,7 @@ class DatasetReference(Reference):
                 if (target := Dataset.m_def.a_mongo.get(dataset_id=value)) is not None:
                     return target
             except Exception:  # noqa
-                pass
-            return value
+                return value
 
         raise ValueError(f'Cannot normalize {value}.')
 

@@ -91,9 +91,9 @@ h5grove_utils.open_file_with_error_fallback.__code__ = open_zipped_h5_file.__cod
 
 
 async def check_user_access(
-    upload_id: str, user: User = Depends(create_user_dependency(required=True))
+    upload_id: str, user: User = Depends(create_user_dependency())
 ):
-    get_upload_with_read_access(upload_id, user)
+    get_upload_with_read_access(upload_id, user, include_others=True)
 
 
 app = FastAPI(dependencies=[Depends(check_user_access)])

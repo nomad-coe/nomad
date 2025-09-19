@@ -25,6 +25,7 @@ from nomad.app import h5grove_app
 from nomad.config import config
 from nomad.files import StagingUploadFiles
 from nomad.utils.exampledata import ExampleData
+from tests.app.v1.routers.common import assert_response
 
 
 @pytest.fixture
@@ -80,3 +81,24 @@ def test_h5grove(
     assert resp.status_code == status_code
     if status_code == 200:
         assert resp.content == b'"test"'
+
+
+def test_h5grove_auth(client, example_data):
+    """
+    Tests that the h5grove endpoint is correctly protected based on upload publication status.
+    """
+    upload_id = 'id_unpublished'
+    entry_id = 'id_unpublished_1'
+    url = f'/h5grove/?upload_id={upload_id}&file={entry_id}&path=/&source=archive'
+
+    # First, check that we can't access it when it is not published
+    response = client.get(url)
+    assert_response(response, 401)
+
+    # Check a published entry is visible
+    upload_id = 'id_published'
+    entry_id = 'id_published_1'
+    url = f'/h5grove/?upload_id={upload_id}&file={entry_id}&path=/&source=archive'
+
+    response = client.get(url)
+    assert_response(response, 200)

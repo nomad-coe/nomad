@@ -115,7 +115,14 @@ def check_mongo():
     names = set(db.list_collection_names())
 
     # 'cache' is also known but should have been removed by setup
-    expected_names = {'upload', 'user_group', 'entry', 'dataset', 'archive'}
+    expected_names = {
+        'upload',
+        'user_group',
+        'entry',
+        'dataset',
+        'archive',
+        'action_document',
+    }
     if not expected_names.issuperset(names):
         logger.warning(
             f'Expected MongoDB collections: {sorted(expected_names)}; '

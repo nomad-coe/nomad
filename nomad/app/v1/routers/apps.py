@@ -40,7 +40,12 @@ from nomad.config.models.ui import (
     WidgetTerms,
 )
 from nomad.datamodel import EntryArchive
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, entry_type
+from nomad.metainfo.elasticsearch_extension import (
+    Elasticsearch,
+    dtype_separator,
+    entry_type,
+    schema_separator,
+)
 
 # Compile the regex once at module load time.
 SCHEMA_REGEX = re.compile(r'#[a-zA-Z0-9_.#]+')
@@ -170,6 +175,31 @@ def get_datatype(type_obj) -> DataType:
         return DataType.UNKNOWN
 
 
+def parse_quantity_name(full_name: str) -> dict[str, str | None]:
+    """
+    Used to split a quantity name into path, schema and dtype.
+    """
+    if not full_name:
+        return {}
+
+    parts = full_name.split(schema_separator, 1)
+    if len(parts) == 2:
+        path, schema = parts
+    else:
+        path, schema = full_name, None
+
+    if schema:
+        dtype_parts = schema.split(dtype_separator, 1)
+        if len(dtype_parts) == 2:
+            schema_new, dtype = dtype_parts
+        else:
+            schema_new, dtype = schema, None
+    else:
+        schema_new, dtype = None, None
+
+    return {'path': path, 'schema': schema_new, 'dtype': dtype}
+
+
 def parse_jmespath(input: str) -> dict[str, Any]:
     """
     Parses a JMESPath expression and extracts the targeted quantity along with additional details.
@@ -192,36 +222,61 @@ def parse_jmespath(input: str) -> dict[str, Any]:
             'schema': '',
         }
 
-    def recurse_ast(node):
-        type_ = node.get('type')
-        name = node.get('name')
-        children = node.get('children', [])
-        field, extras = [], []
-        if children:
-            child_fields, child_extras = [], []
-            for child in children:
-                cf, ce = recurse_ast(child)
-                child_fields.append(cf)
-                child_extras.append(ce)
-            if type_ == 'filter_projection':
-                for cf in child_fields[:2]:
-                    field.extend(cf)
-                extras.append(child_fields[0] + child_fields[2])
-            elif type_ == 'function' and name == 'min_by':
-                field.extend(child_fields[0])
-                extras.append(child_fields[0] + child_fields[1])
-            else:
-                for cf in child_fields:
-                    field.extend(cf)
-                for ce in child_extras:
-                    extras.extend(ce)
-        elif type_ == 'field':
-            return [node['value']], extras
-        return field, extras
+    def traverse(node):
+        # Scalar nodes do not affect paths
+        if not isinstance(node, dict):
+            return [], []
 
-    field, extras_list = recurse_ast(ast)
-    quantity = '.'.join(field) + schema
-    extras = ['.'.join(x) + schema for x in extras_list]
+        # Fields extend the main path
+        if node['type'] == 'field':
+            return [node['value']], []
+
+        # Recursively traverse child nodes to gather their paths
+        children = node.get('children', [])
+        node_type = node.get('type')
+        node_value = node.get('value')
+        child_path_lists = []
+        child_aux_path_list = []
+        main_path_list = []
+        aux_paths = []
+        for child in children:
+            child_path_list, child_aux_paths = traverse(child)
+            child_path_lists.append(child_path_list)
+            child_aux_path_list.append(child_aux_paths)
+        # In map functions we save expression reference in the reverse order
+        if node_type == 'function_expression' and node_value == 'map':
+            child_path_lists.reverse()
+            for child_path in child_path_lists:
+                main_path_list.extend(child_path)
+        # In filter projections we save the filter field in extras
+        elif node_type == 'filter_projection':
+            for child_path in child_path_lists[0:2]:
+                main_path_list.extend(child_path)
+            aux_path = []
+            aux_path.extend(child_path_lists[0])
+            aux_path.extend(child_path_lists[2])
+            aux_paths.append(aux_path)
+        # In *_by we save the referenced variable as an auxiliary path
+        elif node_type == 'function_expression' and node_value in {'min_by', 'max_by'}:
+            main_path_list.extend(child_path_lists[0])
+            aux_path = []
+            aux_path.extend(child_path_lists[0])
+            aux_path.extend(child_path_lists[1])
+            aux_paths.append(aux_path)
+        #  For other types we simply extend definitions and extras in the order they are
+        #  defined in
+        else:
+            for child_path in child_path_lists:
+                main_path_list.extend(child_path)
+            for child_aux_path in child_aux_path_list:
+                aux_paths.extend(child_aux_path)
+
+        return main_path_list, aux_paths
+
+    main_path_list, aux_path_list = traverse(ast)
+    quantity = '.'.join(main_path_list) + schema
+    extras = ['.'.join(x) + schema for x in aux_path_list]
+
     return {
         'quantity': quantity,
         'extras': extras,
@@ -403,7 +458,7 @@ async def get_entry_point(app_path: str):
         if data['error']:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f'Could not parse the search quantity "{name}" defined in {location}.',
+                detail=f'Could not parse the search quantity "{name}" used in {location}.',
             )
         for q in [data['quantity']] + data['extras']:
             add_search(q, location)
@@ -411,17 +466,23 @@ async def get_entry_point(app_path: str):
     def add_search(name: str, location: str | None = None):
         if name in search_quantities:
             return
+
+        # Search quantities with an explicit dtype are not validated
+        parsed = parse_quantity_name(name)
+        if parsed['dtype']:
+            return
+
         sq = all_search_quantities.get(name)
         if sq is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f'Could not load the search quantity "{name}" defined in {location}.',
+                detail=f'Could not load the search quantity "{name}" used in {location}.',
             )
         search_quantities[name] = sq.model_dump()
 
     # columns
     for column in app.columns or []:
-        add_jmespath(column.search_quantity, 'the results table as a column')
+        add_jmespath(column.search_quantity, 'the results table column')
     # widgets
     if app.dashboard and app.dashboard.widgets:
         for widget in app.dashboard.widgets:

@@ -157,6 +157,7 @@ check python dependencies:
     - scripts/check_elastic.sh
     - uv pip install -e ".[dev]"
     - uv pip install -r requirements-plugins.txt -c requirements-dev.txt # remove this after moving to distro
+
 generate pytest timings:
   extends: .base_test
   script:
@@ -171,7 +172,7 @@ generate pytest timings:
       <<: *manual-allow_failure
 
 python tests:
-  parallel: 3
+  parallel: 4
   extends: .base_test
   script:
     - python -m pytest --cov=nomad --cov-report term --cov-config=.coveragerc -sv tests --splits $CI_NODE_TOTAL --group=$CI_NODE_INDEX

@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from nomad.actions import TaskQueue
 from nomad.actions.client import get_client
@@ -7,7 +8,10 @@ from nomad.actions.workers.util import get_worker
 
 async def run_worker():
     client = await get_client()
-    worker = get_worker(client=client, task_queue=TaskQueue.GPU)
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        worker = get_worker(
+            client=client, task_queue=TaskQueue.GPU, activity_executor=executor
+        )
     await worker.run()
 
 

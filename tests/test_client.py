@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import contextlib
 import json
 import os
 
@@ -33,6 +34,25 @@ from tests.fixtures.users import users
 from tests.processing import test_data as test_processing
 
 # TODO: more tests
+
+
+@pytest.fixture(autouse=True)
+def quiet_archivequery_in_ci(monkeypatch):
+    """Silence print and progress bar in CI."""
+    if os.getenv('CI') == 'true':
+        monkeypatch.setattr('builtins.print', lambda *a, **k: None)
+
+        @contextlib.contextmanager
+        def dummy_progressbar(*args, **kwargs):
+            class DummyBar:
+                def __getattr__(self, name):
+                    return lambda *a, **k: None
+
+            yield DummyBar()
+
+        from nomad.client import archive
+
+        monkeypatch.setattr(archive, 'progressbar', dummy_progressbar)
 
 
 def assert_results(

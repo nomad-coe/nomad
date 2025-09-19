@@ -244,7 +244,7 @@ def _get_user_bearer_token_auth(bearer_token: str | None) -> User | None:
         The corresponding User object,
         or None if no bearer_token provided.
     """
-    if bearer_token is None:
+    if not bearer_token or bearer_token == 'undefined':
         return None
 
     try:

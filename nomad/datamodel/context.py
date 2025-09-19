@@ -167,6 +167,9 @@ class Context(MetainfoContext):
         """
         Replace mainfile references with entry-based references.
         """
+        if source is None:
+            return url
+
         url_parts = urlsplit(url)
         fragment = self._normalize_fragment(url_parts.fragment)
         path = url_parts.path

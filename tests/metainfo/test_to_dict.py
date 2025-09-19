@@ -43,7 +43,7 @@ class Child(Abstract):
 
 
 class Root(Abstract):
-    quantity = Quantity()
+    quantity = Quantity(type=int)
     default = Quantity(type=str, default='test_value')
     derived = Quantity(type=str, derived=lambda *args, **kwargs: 'test_value')
 

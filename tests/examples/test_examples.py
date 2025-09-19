@@ -11,7 +11,7 @@ import pytest
         'examples/plugins',
     ],
 )
-def test_metainfo(path):
+def test_metainfo(path, capsys):
     """Runs the python files(s) in the given path."""
     abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../', path))
     if os.path.isdir(abs_path):
@@ -20,6 +20,8 @@ def test_metainfo(path):
         files = [abs_path]
     for file in files:
         runpy.run_path(file)
+
+    capsys.readouterr()  # suppress stdout and stderr
 
 
 def find_py_files(directory):

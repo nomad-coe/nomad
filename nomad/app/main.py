@@ -36,6 +36,7 @@ from nomad.actions.client import get_client
 from nomad.config import config
 from nomad.config.models.plugins import APIEntryPoint
 from nomad.mongo.cache import MongoBackend
+from nomad.utils.structlogging import get_logger
 
 from .static import GuiFiles
 from .static import app as static_files_app
@@ -140,8 +141,10 @@ async def lifespan(app: FastAPI):
             app.state.temporal_client = await get_client()
             yield
         except Exception as e:
-            print(f'Failed to connect to temporal {e}')
-            pass
+            logger = get_logger(__name__)
+
+            logger.error(f'Failed to connect to temporal', exc_info=e)
+            raise
     else:
         yield
 

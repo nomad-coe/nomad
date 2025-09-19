@@ -276,26 +276,26 @@ def test_two_schemas(example_upload_two_schemas, client, user1, proc_infra, no_w
     def tmp(fn: str) -> str:
         return os.path.join(config.fs.tmp, fn)
 
-    def public(fn: str) -> str:
-        return os.path.join(
-            config.fs.public, f'ex/{fn.replace(".zip", "")}/raw-public.plain.zip'
-        )
+    def public(upload_id: str) -> str:
+        return os.path.join(config.fs.public, f'ex/{upload_id}/raw-public.plain.zip')
 
-    archive_name = 'example_upload_two_schemas.zip'
+    upload_id = 'example_upload_two_schemas'
 
-    # 1. pack and process initial archive containing two schemas
-    with ZipFile(tmp(archive_name), 'w') as zipObj:
+    with ZipFile(tmp(f'{upload_id}.zip'), 'w') as zipObj:
         for k, v in example_upload_two_schemas.items():
             zipObj.writestr(f'{k}.archive.json', json.dumps(v))
 
     processed = run_processing(
-        (archive_name.replace('.zip', ''), tmp(archive_name)),
+        (upload_id, tmp(f'{upload_id}.zip')),
         user1,
         publish_directly=True,
     )
 
+    # Use the actual randomized id after `run_processing`
+    upload_id = processed.upload_id
+
     # 2. manually remove schema files
-    with ZipFile(public(archive_name), 'w') as zipObj:
+    with ZipFile(public(upload_id), 'w') as zipObj:
         for k, v in example_upload_two_schemas.items():
             if 'schema' in k:
                 continue

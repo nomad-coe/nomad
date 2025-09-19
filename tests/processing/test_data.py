@@ -20,6 +20,7 @@ import json
 import os.path
 import re
 import shutil
+import uuid
 import zipfile
 from collections.abc import Generator
 
@@ -146,15 +147,16 @@ def uploaded_id_with_warning(
 
 
 def run_processing(uploaded: tuple[str, str], main_author, **kwargs) -> Upload:
-    uploaded_id, uploaded_path = uploaded
-    upload = Upload.create(upload_id=uploaded_id, main_author=main_author, **kwargs)
+    upload_id, upload_path = uploaded
+    upload_id += f'_{uuid.uuid4().hex[:8]}'  # randomize upload ID
+    upload = Upload.create(upload_id=upload_id, main_author=main_author, **kwargs)
     assert upload.process_status == ProcessStatus.READY
     assert upload.last_status_message is None
     upload.process_upload(
         file_operations=[
             dict(
                 op='ADD',
-                path=uploaded_path,
+                path=upload_path,
                 target_dir='',
                 temporary=kwargs.get('temporary', False),
             )
@@ -326,7 +328,8 @@ def test_republish(
 
     processed.publish_upload(embargo_length=36)
     processed.block_until_complete(interval=0.01)
-    assert Upload.get('examples_template') is not None
+    assert processed.upload_id.startswith('examples_template_')
+    assert Upload.get(processed.upload_id) is not None
 
     processed.publish_upload()
     processed.block_until_complete(interval=0.01)

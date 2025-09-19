@@ -75,6 +75,7 @@ def assert_dict(observed, expected):
     observed.pop(GeneralReader.__CACHE__, None)
     observed.pop('m_response', None)
     observed.pop('m_def', None)
+    observed.pop('m_def_id', None)
     # we do not check the definition ID in this file
     # it has been systematically tested in the other test file
     observed.pop('definition_id', None)

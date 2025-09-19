@@ -1,5 +1,6 @@
 import math
 import os
+import uuid
 from datetime import datetime, timezone
 
 import pytest
@@ -98,6 +99,7 @@ def uploaded(example_upload: str, raw_files_function) -> tuple[str, str]:
     Clears files after test.
     """
     example_upload_id = os.path.basename(example_upload).replace('.zip', '')
+    example_upload_id += f'_{uuid.uuid4().hex[:8]}'
     return example_upload_id, example_upload
 
 
@@ -106,6 +108,7 @@ def non_empty_uploaded(
     non_empty_example_upload: str, raw_files_function
 ) -> tuple[str, str]:
     example_upload_id = os.path.basename(non_empty_example_upload).replace('.zip', '')
+    example_upload_id += f'_{uuid.uuid4().hex[:8]}'
     return example_upload_id, non_empty_example_upload
 
 

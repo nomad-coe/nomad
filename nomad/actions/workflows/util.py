@@ -32,8 +32,9 @@ def get_nomad_internal_workflows() -> list:
 def get_all_workflows(task_queue: TaskQueue) -> list:
     workflows: list[Any] = []
 
-    for action in get_actions().values():
-        if action.task_queue == task_queue:
+    for action_entry_point in get_actions().values():
+        if action_entry_point.task_queue == task_queue:
+            action = action_entry_point.load()
             workflows.append(action.workflow)
             workflows.extend(action.child_workflows)
 

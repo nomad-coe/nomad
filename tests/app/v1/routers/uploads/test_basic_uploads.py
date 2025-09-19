@@ -47,6 +47,7 @@ from tests.config.models.test_plugins import (
     mock_plugin_package,
 )
 from tests.fixtures.infrastructure import TemporalWorkerContext
+from tests.processing import test_data as test_processing
 from tests.processing.test_edit_metadata import (
     all_admin_metadata,
     all_coauthor_metadata,
@@ -1794,7 +1795,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             None,
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {'file_name': 'blah.aux'},
@@ -1807,7 +1808,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             None,
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {'file_name': 1},
@@ -1820,7 +1821,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'invalid',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {'file_name': 'blah.aux'},
@@ -1833,7 +1834,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'invalid',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {'file_name': 'blah.aux'},
@@ -1885,7 +1886,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user2',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {},
@@ -1898,7 +1899,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             None,
             '',
             {},
@@ -1911,7 +1912,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'local_path',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {},
@@ -1924,7 +1925,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {},
@@ -1967,7 +1968,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {},
@@ -1980,7 +1981,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             None,
             '',
             {
@@ -1997,7 +1998,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             None,
             '',
             {
@@ -2014,7 +2015,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             None,
             '',
             {
@@ -2031,7 +2032,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             None,
             '',
             {
@@ -2048,7 +2049,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {'file_name': 'blah.aux'},
@@ -2061,7 +2062,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'local_path',
             'user0',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {},
@@ -2074,7 +2075,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             '',
             {'file_name': 'blah.aux'},
@@ -2087,7 +2088,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             'dir1/dir2/dir3',
             {'file_name': 'blah.aux'},
@@ -2100,7 +2101,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_vasp_with_binary,
             'dir1/dir2',
             {'file_name': 'tmp.zip'},
@@ -2117,7 +2118,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             'examples_template',
             {'file_name': 'template.json'},
@@ -2130,7 +2131,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_vasp_with_binary,
             '',
             {'file_name': 'tmp.zip'},
@@ -2147,7 +2148,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             example_file_corrupt_zip,
             '',
             {'file_name': 'tmp.zip'},
@@ -2160,7 +2161,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_aux,
             'examples_template',
             {'wait_for_processing': True},
@@ -2173,7 +2174,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_mainfile_different_atoms,
             'dir1/dir2',
             {'wait_for_processing': True},
@@ -2186,7 +2187,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_mainfile_different_atoms,
             'dir1/dir2',
             {'wait_for_processing': True, 'include_archive': True},
@@ -2199,7 +2200,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_mainfile_different_atoms,
             'examples_template',
             {'wait_for_processing': True},
@@ -2212,7 +2213,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_unparsable,
             'examples_template',
             {'wait_for_processing': True},
@@ -2225,7 +2226,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             example_file_vasp_with_binary,
             'examples_template',
             {'wait_for_processing': True},
@@ -2238,7 +2239,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             [example_file_vasp_with_binary, example_file_aux],
             'dir1',
             {'file_name': 'tmp.zip'},
@@ -2255,7 +2256,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'multipart',
             'user1',
-            'examples_template',
+            None,
             [example_file_aux, example_file_corrupt_zip],
             'dir1',
             {'file_name': 'tmp.zip'},
@@ -2268,7 +2269,7 @@ def test_get_upload_entry_archive(
         pytest.param(
             'stream',
             'user1',
-            'examples_template',
+            None,
             empty_file,
             '',
             {'file_name': 'empty.zip', 'auto_decompress': False},
@@ -2299,6 +2300,8 @@ async def test_put_upload_raw_path(
     expected_status_code,
     expected_mainfiles,
 ):
+    if upload_id is None:
+        upload_id = non_empty_processed_with_temporal.upload_id
     action = 'PUT'
     url = f'uploads/{upload_id}/raw/{target_path}'
     published = False
@@ -2380,7 +2383,7 @@ def test_editing_raw_file(
     user,
     expected_status_code,
 ):
-    upload_id = 'examples_template'
+    upload_id = non_empty_processed.upload_id
     target_path = 'examples_template'
     action = 'PUT'
     path = 'examples_template/template.json'
@@ -2600,7 +2603,7 @@ async def test_post_upload_raw_create_dir_path(
     [
         pytest.param(
             'user1',
-            'examples_template',
+            None,
             'examples_template/1.aux',
             False,
             200,
@@ -2609,19 +2612,17 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             'user1',
-            'examples_template',
+            None,
             'examples_template/template.json',
             False,
             200,
             [],
             id='delete-main-file',
         ),
-        pytest.param(
-            'user1', 'examples_template', '', False, 200, [], id='delete-root'
-        ),
+        pytest.param('user1', None, '', False, 200, [], id='delete-root'),
         pytest.param(
             'user1',
-            'examples_template',
+            None,
             'examples_template',
             False,
             200,
@@ -2630,7 +2631,7 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             'user1',
-            'examples_template',
+            None,
             'examples_template/1.aux',
             True,
             200,
@@ -2639,7 +2640,7 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             'user0',
-            'examples_template',
+            None,
             'examples_template/1.aux',
             False,
             200,
@@ -2648,7 +2649,7 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             'user2',
-            'examples_template',
+            None,
             'examples_template/1.aux',
             False,
             401,
@@ -2657,7 +2658,7 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             None,
-            'examples_template',
+            None,
             'examples_template/1.aux',
             False,
             401,
@@ -2666,7 +2667,7 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             'invalid',
-            'examples_template',
+            None,
             'examples_template/1.aux',
             False,
             401,
@@ -2675,7 +2676,7 @@ async def test_post_upload_raw_create_dir_path(
         ),
         pytest.param(
             'invalid',
-            'examples_template',
+            None,
             'examples_template/1.aux',
             True,
             401,
@@ -2717,6 +2718,8 @@ async def test_delete_upload_raw_path(
     expected_status_code,
     expected_mainfiles,
 ):
+    if upload_id is None:
+        upload_id = non_empty_processed_with_temporal.upload_id
     user_auth = auth_headers[user]
     # Use either token or bearer token for the post operation (never both)
     user_auth_action = user_auth
@@ -3509,14 +3512,12 @@ def test_post_upload_action_publish_to_central_nomad(
 @pytest.mark.parametrize(
     'upload_id, publish, user, expected_status_code',
     [
-        pytest.param('examples_template', True, 'user0', 200, id='published-admin'),
-        pytest.param('examples_template', True, 'user1', 401, id='published-not-admin'),
-        pytest.param('examples_template', False, 'user1', 200, id='not-published'),
-        pytest.param('examples_template', False, None, 401, id='no-credentials'),
-        pytest.param(
-            'examples_template', False, 'invalid', 401, id='invalid-credentials'
-        ),
-        pytest.param('examples_template', False, 'user2', 401, id='no-access'),
+        pytest.param(None, True, 'user0', 200, id='published-admin'),
+        pytest.param(None, True, 'user1', 401, id='published-not-admin'),
+        pytest.param(None, False, 'user1', 200, id='not-published'),
+        pytest.param(None, False, None, 401, id='no-credentials'),
+        pytest.param(None, False, 'invalid', 401, id='invalid-credentials'),
+        pytest.param(None, False, 'user2', 401, id='no-access'),
         pytest.param('id_processing_w', False, 'user1', 400, id='already-processing'),
         pytest.param('silly_value', False, 'user1', 404, id='invalid-upload_id'),
     ],
@@ -3547,6 +3548,9 @@ async def test_post_upload_action_process(
         monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
         monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
         user_auth = auth_headers[user]
+
+        if upload_id is None:
+            upload_id = non_empty_processed_with_temporal.upload_id
 
         response = await asyncio.to_thread(
             lambda: perform_post_upload_action(client, user_auth, upload_id, 'process')
@@ -3853,20 +3857,23 @@ def test_get_upload_bundle(
         pytest.param(True, False, None, dict(), dict(), 401, id='no-credentials'),
     ],
 )
-@pytest.mark.xfail(reason='flaky test')
 def test_post_upload_bundle(
     auth_headers,
     client,
     proc_infra,
-    non_empty_processed,
+    non_empty_uploaded,
     internal_example_user_metadata,
     publish,
     test_duplicate,
     user,
+    users_dict,
     export_args,
     query_args,
     expected_status_code,
 ):
+    non_empty_processed = test_processing.run_processing(
+        non_empty_uploaded, users_dict[user or 'user0']
+    )
     # Create the bundle
     set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
     if publish:

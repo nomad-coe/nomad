@@ -125,10 +125,9 @@ async def logs(request: Request):
             if len(log) > 2 and log.endswith(b'}'):
                 # augment IP address to end of log
                 log = log[:-1] + f', "ip_address": "{ip_address}"}}\n'.encode()
-                # print(f'forward log to central logstash={log}')
-                logstash_socket.send(
-                    log
-                )  # TODO: should check return whether it was successful?
+                # forward log to central logstash
+                # TODO: should check return whether it was successful?
+                logstash_socket.send(log)
             else:
                 pass  # drop log
     except Exception as e:

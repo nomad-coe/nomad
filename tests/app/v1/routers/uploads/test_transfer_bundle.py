@@ -16,7 +16,7 @@ from .common import assert_upload
 
 
 @pytest.fixture(autouse=True)
-def setup_for_transfer_bundle(request, monkeypatch):
+def setup_for_transfer_bundle(request, monkeypatch, mongo_function):
     disable_health_check_patch = request.node.get_closest_marker(
         'disable_health_check_patch'
     )
@@ -424,7 +424,6 @@ def test_transfer_processing_upload(
     assert response.status_code == 400
 
 
-@pytest.mark.xfail(reason='flaky test')
 def test_non_published_upload(
     auth_headers, client: TestClient, non_empty_processed: Upload
 ):
@@ -442,7 +441,6 @@ def test_non_published_upload(
     assert body['detail'] == 'The upload should be published first.'
 
 
-@pytest.mark.xfail(reason='flaky test')
 def test_transfer_duplicated_upload(
     auth_headers,
     client: TestClient,
@@ -474,6 +472,7 @@ def test_transfer_duplicated_upload(
         user_auth,
         error_messages=[
             'Error message from external deployment',
-            'Failed to import bundle: Upload with id examples_template_2 already exists',
+            'Failed to import bundle: Upload with id',
+            'already exists',
         ],
     )

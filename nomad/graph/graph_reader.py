@@ -1202,7 +1202,7 @@ __lock_pool = Lock()
 __package_pool = TTLCache(maxsize=128, ttl=300)
 
 
-def _fetch_package(key: str) -> Package:
+def _fetch_package(key: str) -> Package | None:
     with __lock_pool:
         return __package_pool.get(key, None)
 
@@ -1231,9 +1231,15 @@ class ArchiveLikeReader(GeneralReader):
         In this case, we initialise a new `Package` object and resolve the path.
         It could also be a reference to another entry in another upload.
         In this case, we need to load the archive.
+        If m_def_id is given, try to load it from mongodb.
 
         todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
         """
+
+        def new_context(_id):
+            return ServerContext(
+                get_upload_with_read_access(_id, self.user, include_others=True)
+            )
 
         async def __resolve_definition_in_archive(
             _root,
@@ -1241,17 +1247,17 @@ class ArchiveLikeReader(GeneralReader):
             _upload_id: str | None = None,
             _entry_id: str | None = None,
         ):
+            """
+            This path is no longer used when m_def_id is written to the archive.
+            For which the custom definitions will be directly loaded from the database.
+            """
             cache_key: str = f'{_upload_id}:{_entry_id}'
 
             custom_package: Package | None = _fetch_package(cache_key)
             if custom_package is None:
                 custom_package = Package.m_from_dict(
                     await async_to_json(await goto_child(_root, 'definitions')),
-                    m_context=ServerContext(
-                        get_upload_with_read_access(
-                            _upload_id, self.user, include_others=True
-                        )
-                    ),
+                    m_context=new_context(_upload_id),
                 )
                 # package loaded in this way does not have an attached archive
                 # we manually set the upload_id and entry_id so that
@@ -1262,9 +1268,16 @@ class ArchiveLikeReader(GeneralReader):
                 if (
                     upload := Upload.objects(upload_id=_upload_id).first()  # type: ignore
                 ) is not None and upload.published:
+                    # only cache published data that will not be changed
                     _cache_package(cache_key, custom_package)
 
             return custom_package.m_resolve_path(_path_stack)
+
+        if m_def_id is not None:
+            if new_def := new_context(node.upload_id).resolve_section_definition(
+                m_def, m_def_id
+            ):
+                return new_def.m_def
 
         if m_def is not None:
             if m_def.startswith(('#/', '/')):
@@ -1291,13 +1304,9 @@ class ArchiveLikeReader(GeneralReader):
                     archive, tokens, upload_id, entry_id
                 )
 
-        # further consider when only m_def_id is given, etc.
-
-        # this is not likely to be reached
-        # it does not work anyway
-        proxy = MSectionReference().normalize(m_def)
-        proxy.m_proxy_context = ServerContext(
-            get_upload_with_read_access(node.upload_id, self.user, include_others=True)
+        # use the conventional approach
+        proxy = MSectionReference().normalize(
+            m_def, context=new_context(node.upload_id)
         )
         return proxy.section_cls.m_def
 
@@ -2647,6 +2656,10 @@ class ArchiveReader(ArchiveLikeReader):
             if key == GeneralReader.__CONFIG__:
                 continue
 
+            if key == Token.DEFID:
+                # ignore definition ID
+                continue
+
             if key == Token.DEF:
                 if isinstance(node.definition, Quantity):
                     self._log(
@@ -2861,7 +2874,7 @@ class ArchiveReader(ArchiveLikeReader):
             return
 
         for key in node.archive.keys():
-            if key == Token.DEF:
+            if key in (Token.DEF, Token.DEFID):
                 continue
 
             if config.if_include(key) and (
