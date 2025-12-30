@@ -42,7 +42,7 @@ For a general project overview visit the official project page [https://nomad-la
 
 - [get started as a developer](https://nomad-lab.eu/prod/v1/docs/howto/develop/setup.html)
 - [install and use NOMAD as Python package (to use our APIs or parsers)](https://nomad-lab.eu/prod/v1/docs/pythonlib.html)
-- [install NOMAD Oasis](https://nomad-lab.eu/prod/v1/docs/oasis.html)
+- [install NOMAD Oasis](https://nomad-lab.eu/prod/v1/docs/howto/oasis/install.html)
 
 ## Citing NOMAD
 
