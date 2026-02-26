@@ -1426,6 +1426,34 @@ class Archive(ConfigBaseModel):
     )
 
 
+class MolIDSourceEnum(str, Enum):
+    CACHE = 'cache'
+    API = 'api'
+
+
+class MolID(ConfigBaseModel):
+    """
+    Configuration for the MolID integration.
+    """
+
+    enabled: bool = Field(
+        True,
+        description='If True, the MolID service is enabled and may be used to resolve chemical compound information from.',
+    )
+    sources: list[MolIDSourceEnum] = Field(
+        [MolIDSourceEnum.CACHE, MolIDSourceEnum.API],
+        description='List of sources that are queried in the given order when resolving chemical compound information.',
+    )
+    cache_write: bool = Field(
+        True,
+        description='If True, any API reads are persisted to a cache for faster future access.',
+    )
+    cache_path: str | None = Field(
+        None,
+        description='Path to the MolID cache file. If not specified, defaults to a `molid_cache.db` file in the `fs.tmp` directory.',
+    )
+
+
 class Pagination(ConfigBaseModel, PaginationBaseModel):
     pass
 
@@ -1544,6 +1572,10 @@ class Config(ConfigBaseModel):
         default_factory=Archive,
         description='Low-level archive storage and performance tuning options.',
     )
+    molid: MolID = Field(
+        default_factory=MolID,
+        description='Configuration for the chemical compound resolution with MolID.',
+    )
     ui: UI = Field(
         default_factory=UI,
         description='Configuration for the NOMAD web UI and its endpoints.',
@@ -1625,6 +1657,12 @@ class Config(ConfigBaseModel):
             and 'authorized_users' not in values.auth.model_fields_set
         ):
             values.auth.authorized_users = values.oasis.allowed_users
+
+        # Fill in the default MolID cache path if not set
+        molid_cache_path = values.molid.cache_path
+        if molid_cache_path is None:
+            molid_cache_path = os.path.join(values.fs.tmp, 'molid_cache.db')
+            values.molid.cache_path = molid_cache_path
 
         return values
 
