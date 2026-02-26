@@ -48,15 +48,17 @@ def hub():
 
 
 @run.command(help='Run the action cpu worker.')
-@click.option('--workers', type=int, default=None, help='Number of workers.')
-def action_cpu_worker(workers: int | None):
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
+def action_cpu_worker(pool_size: int | None):
     import asyncio
 
     from nomad.actions.workers import cpu
 
     config_dict = config.temporal.cpu_worker.model_dump()
-    if workers is not None:
-        config_dict['workers'] = workers
+    if pool_size is not None:
+        config_dict['pool_size'] = pool_size
 
     worker_config = WorkerConfig.model_validate(config_dict)
 
@@ -64,15 +66,17 @@ def action_cpu_worker(workers: int | None):
 
 
 @run.command(help='Run the action gpu worker.')
-@click.option('--workers', type=int, default=None, help='Number of workers.')
-def action_gpu_worker(workers: int | None):
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
+def action_gpu_worker(pool_size: int | None):
     import asyncio
 
     from nomad.actions.workers import gpu
 
     config_dict = config.temporal.gpu_worker.model_dump()
-    if workers is not None:
-        config_dict['workers'] = workers
+    if pool_size is not None:
+        config_dict['pool_size'] = pool_size
 
     worker_config = WorkerConfig.model_validate(config_dict)
 
@@ -80,7 +84,9 @@ def action_gpu_worker(workers: int | None):
 
 
 @run.command(help='Run the action internal worker.')
-@click.option('--workers', type=int, default=None, help='Number of workers.')
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
 @click.option(
     '--max-tasks-per-child',
     type=int,
@@ -94,19 +100,21 @@ def action_gpu_worker(workers: int | None):
     help='Maximum number of concurrent activities for the internal worker.',
 )
 def action_internal_worker(
-    workers: int | None,
+    pool_size: int | None,
     max_tasks_per_child: int | None,
     max_concurrent_activities: int | None,
 ):
     run_action_internal_worker(
-        workers=workers,
+        pool_size=pool_size,
         max_tasks_per_child=max_tasks_per_child,
         max_concurrent_activities=max_concurrent_activities,
     )
 
 
 @run.command(help='Run the action internal worker.')
-@click.option('--workers', type=int, default=None, help='Number of workers.')
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
 @click.option(
     '--max-tasks-per-child',
     type=int,
@@ -120,12 +128,12 @@ def action_internal_worker(
     help='Maximum number of concurrent activities for the internal worker.',
 )
 def worker(
-    workers: int | None,
+    pool_size: int | None,
     max_tasks_per_child: int | None,
     max_concurrent_activities: int | None,
 ):
     run_action_internal_worker(
-        workers=workers,
+        pool_size=pool_size,
         max_tasks_per_child=max_tasks_per_child,
         max_concurrent_activities=max_concurrent_activities,
     )
@@ -153,7 +161,7 @@ def app(with_gui: bool, **kwargs):
 
 def run_action_internal_worker(
     *,
-    workers: int | None = None,
+    pool_size: int | None = None,
     max_tasks_per_child: int | None = None,
     max_concurrent_activities: int | None = None,
 ):
@@ -162,8 +170,8 @@ def run_action_internal_worker(
     from nomad.actions.workers import internal_worker
 
     config_dict = config.temporal.internal_worker.model_dump()
-    if workers is not None:
-        config_dict['workers'] = workers
+    if pool_size is not None:
+        config_dict['pool_size'] = pool_size
     if max_tasks_per_child is not None:
         config_dict['max_tasks_per_child'] = max_tasks_per_child
     if max_concurrent_activities is not None:
@@ -308,7 +316,7 @@ def run_appworker(
     app_host: str | None = None,
     app_port: int | None = None,
     fastapi_workers: int | None = None,
-    temporal_workers: int | None = None,
+    temporal_pool_size: int | None = None,
     dev: bool = False,
 ):
     import multiprocessing
@@ -317,10 +325,10 @@ def run_appworker(
 
     if dev:
         fastapi_workers = 1
-        temporal_workers = 1
+        temporal_pool_size = 1
 
     tasks: list[tuple[Callable[..., Any], Mapping[str, Any]]] = [
-        (run_action_internal_worker, {'workers': temporal_workers}),
+        (run_action_internal_worker, {'pool_size': temporal_pool_size}),
         (run_app, {'workers': fastapi_workers, 'host': app_host, 'port': app_port}),
     ]
 
@@ -359,7 +367,11 @@ def run_appworker(
     '--fastapi-workers', type=int, default=None, help='Number of FastAPI workers.'
 )
 @click.option(
-    '--temporal-workers', type=int, default=None, help='Number of temporal workers.'
+    '--temporal-pool-size',
+    '--temporal-workers',
+    type=int,
+    default=None,
+    help='Number of temporal workers.',
 )
 @click.option(
     '--dev', is_flag=True, default=False, help='Use one worker (for dev. env.).'
