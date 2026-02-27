@@ -161,7 +161,18 @@ python tests:
   parallel: 4
   extends: .base_test
   script:
-    - python -m pytest -n=3 --dist=loadscope --cov=nomad --cov-report term --cov-config=.coveragerc -sv tests --splits $CI_NODE_TOTAL --group=$CI_NODE_INDEX --splitting-algorithm least_duration
+    - >
+      python -m pytest -sv -n=3
+      --dist=loadscope
+      --disable-socket
+      --allow-hosts=localhost,elastic,mongo,nomad-lab.eu
+      --cov=nomad
+      --cov-report term
+      --cov-config=.coveragerc
+      --splits $CI_NODE_TOTAL
+      --group=$CI_NODE_INDEX
+      --splitting-algorithm least_duration
+      tests
   after_script:
     - cp .coverage .coverage_${CI_NODE_INDEX}
   artifacts:
@@ -181,7 +192,7 @@ python coverage report:
     - coverage combine .coverage_*
     - coverage report
     - coverage xml
-    - coverage html 
+    - coverage html
   coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
   artifacts:
     when: always
