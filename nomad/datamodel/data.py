@@ -17,9 +17,11 @@
 #
 
 import os.path
+import threading
 from typing import TYPE_CHECKING, Any
 
-from cachetools import TTLCache, cached
+import cachetools.keys
+from cachetools import TTLCache
 from pydantic import Field
 
 from nomad.config import config
@@ -179,12 +181,28 @@ class User(Author):
 
     is_oasis_admin = Quantity(type=bool, default=False)
 
+    _user_cache = TTLCache(maxsize=2048, ttl=24 * 3600)
+    _user_cache_lock = threading.Lock()
+
     @staticmethod
-    @cached(TTLCache(maxsize=2048, ttl=24 * 3600))
     def get(*args, **kwargs) -> 'User | None':
         from nomad.auth import user_management
 
-        return user_management.user_management.get_user(*args, **kwargs)
+        key = cachetools.keys.hashkey(*args, **kwargs)
+
+        # Fast lock-free path for cache hits (99% of requests)
+        if key in User._user_cache:
+            return User._user_cache[key]
+
+        # Slow locked path for cache misses to prevent Keycloak stampede
+        with User._user_cache_lock:
+            # Double-check inside lock in case another thread just fetched it
+            if key in User._user_cache:
+                return User._user_cache[key]
+
+            user = user_management.user_management.get_user(*args, **kwargs)
+            User._user_cache[key] = user
+            return user
 
     def full_user(self) -> 'User':
         """Returns a User object with all attributes loaded from the user management system."""
