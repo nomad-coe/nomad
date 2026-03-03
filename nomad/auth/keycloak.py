@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from typing import Literal
 
 from keycloak import KeycloakOpenID
@@ -53,9 +54,12 @@ class Keycloak:
     configuration
     """
 
+    _keycloak_lock = threading.Lock()
+
     def __init__(self) -> None:
         self.__oidc_client: KeycloakOpenID | None = None
         self.__public_keys: dict | None = None
+        self.__issuer: str | None = None
 
     @property
     def _oidc_client(self) -> KeycloakOpenID:
@@ -66,7 +70,6 @@ class Keycloak:
                 realm_name=config.keycloak.realm_name,
                 client_secret_key=config.keycloak.client_secret,
             )
-
         return self.__oidc_client
 
     @property
@@ -75,18 +78,26 @@ class Keycloak:
             import jwt
 
             try:
-                jwks = self._oidc_client.certs()
-                self.__public_keys = {}
-                for jwk in jwks['keys']:
-                    kid = jwk['kid']
-                    self.__public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(  # type: ignore[index]
-                        json.dumps(jwk)
-                    )
+                with Keycloak._keycloak_lock:
+                    jwks = self._oidc_client.certs()
+                    keys = {}
+                    for jwk in jwks['keys']:
+                        kid = jwk['kid']
+                        keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(  # type: ignore[index]
+                            json.dumps(jwk)
+                        )
+                    self.__public_keys = keys
             except Exception as e:
-                self.__public_keys = None
                 raise e
 
         return self.__public_keys
+
+    @property
+    def _issuer(self) -> str:
+        if self.__issuer is None:
+            with Keycloak._keycloak_lock:
+                self.__issuer = self._oidc_client.well_known()['issuer']
+        return self.__issuer
 
     def refresh_token(self, refresh_token: str) -> OIDCToken:
         """
@@ -137,7 +148,7 @@ class Keycloak:
                 key=key,
                 algorithms=['RS256'],
                 options=dict(verify_aud=False),
-                issuer=self._oidc_client.well_known()['issuer'],
+                issuer=self._issuer,
             )
         except jwt.InvalidTokenError as e:
             logger.error('Keycloak token validation failed', exc_info=e)
