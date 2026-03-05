@@ -28,6 +28,7 @@ import pandas as pd
 import pint
 import pytest
 
+from nomad.datamodel.metainfo.eln import ELNAnnotation
 from nomad.metainfo import (
     Annotation,
     AnnotationModel,
@@ -49,6 +50,7 @@ from nomad.metainfo.metainfo import (
     SubSection,
     derived,
 )
+from nomad.metainfo.util import SCHEMA_ENDPOINT
 from nomad.units import ureg
 from tests.metainfo import MTypes
 
@@ -1117,30 +1119,36 @@ def test_serialise_as_dict(as_dict, add_key, str_type, dup_key):
 
 class Simulation(MSection):
     m_def = Section(description='Definition for test.')
-    program_name = Quantity(type=str, default='test', description='Quantity for test.')
+    program_name = Quantity(type=str, description='Quantity for test.')
 
 
-quantity = Quantity(type=str, default='test', description='Quantity for test.')
-subsection_repeat = SubSection(sub_section=Simulation.m_def, repeats=True)
-subsection_norepeat = SubSection(sub_section=Simulation.m_def, repeats=False)
+quantity = Quantity(type=str, description='Quantity for test.')
+unit_quantity = Quantity(
+    type=float, unit='m', description='Quantity with unit for test.'
+)
 
 
 class QuantityOnly(MSection):
     m_def = Section(description='Test Quantity only MSection.')
-    quantity = quantity
+    quantity = Quantity(type=str, description='Quantity for test.')
 
 
 class SubSectionOnly(MSection):
     m_def = Section(description='Test SubSection only MSection.')
-    subsection_repeat = subsection_repeat
-    subsection_norepeat = subsection_norepeat
+    subsection_repeat = SubSection(sub_section=Simulation.m_def, repeats=True)
+    subsection_norepeat = SubSection(sub_section=Simulation.m_def, repeats=False)
 
 
 class SectionWithBoth(MSection):
     m_def = Section(description='Test MSection with both Quantity and SubSection.')
-    quantity = quantity
-    subsection_repeat = subsection_repeat
-    subsection_norepeat = subsection_norepeat
+    quantity = Quantity(type=str, description='Quantity for test.')
+    subsection_repeat = SubSection(sub_section=Simulation.m_def, repeats=True)
+    subsection_norepeat = SubSection(sub_section=Simulation.m_def, repeats=False)
+
+
+class SectionWithInheritance(SectionWithBoth):
+    m_def = Section(description='Test MSection with inheritance.')
+    quantity = Quantity(type=float, description='Overridden quantity for test.')
 
 
 class TestToJsonSchema:
@@ -1148,18 +1156,65 @@ class TestToJsonSchema:
 
     def test_quantity_basics(self):
         quantity = Quantity(
-            type=float, description='Test', unit='m', title='test quantity'
+            type=float,
+            description='Test',
+            unit='m',
+            title='test quantity',
+            default=1.0,
+            a_eln=ELNAnnotation(
+                props=dict(minValue=0.0, maxValue=10.0),
+            ),
         )
-
         schema = quantity.m_to_json_schema()
-        jsonschema.Draft201909Validator.check_schema(schema)
+        jsonschema.Draft202012Validator.check_schema(schema)
 
         json.dumps(schema)
-
         assert 'json-schema.org/' in schema['$schema']
+
+        assert (
+            schema['$id']
+            == f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{quantity.definition_id}'
+        )
         assert schema['title'] == quantity.title
         assert schema['description'] == quantity.description
         assert schema['unit'] == quantity.unit
+        assert schema['default'] == quantity.default
+        assert schema['minimum'] == quantity.m_annotations['eln'].props['minValue']
+        assert schema['maximum'] == quantity.m_annotations['eln'].props['maxValue']
+
+        enum_quantity = Quantity(
+            type=MEnum(['test_1', 'test_2', 'test_3']), description='Test enum quantity'
+        )
+
+        enum_schema = enum_quantity.m_to_json_schema()
+        jsonschema.Draft202012Validator.check_schema(enum_schema)
+
+        assert enum_schema['type'] == 'string'
+        assert enum_schema['enum'] == ['test_1', 'test_2', 'test_3']
+
+    def test_subsection_basics(self):
+        subsection_norepeat = SubSection(sub_section=Simulation.m_def, repeats=False)
+        schema = subsection_norepeat.m_to_json_schema()
+        jsonschema.Draft202012Validator.check_schema(schema)
+
+        json.dumps(schema)
+
+        assert schema['type'] == 'object'
+        assert (
+            schema['$ref']
+            == f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}'
+        )
+
+        subsection_repeat = SubSection(sub_section=Simulation.m_def, repeats=True)
+        repeat_schema = subsection_repeat.m_to_json_schema()
+        jsonschema.Draft202012Validator.check_schema(repeat_schema)
+        json.dumps(repeat_schema)
+
+        assert repeat_schema['type'] == 'array'
+        assert (
+            repeat_schema['items']['$ref']
+            == f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}'
+        )
 
     @pytest.mark.parametrize(
         'shape, expected_subschema',
@@ -1283,7 +1338,7 @@ class TestToJsonSchema:
     def test_quantity_shape(self, shape, expected_subschema):
         quantity = Quantity(type=float, shape=shape)
         schema = quantity.m_to_json_schema()
-        jsonschema.Draft201909Validator.check_schema(schema)
+        jsonschema.Draft202012Validator.check_schema(schema)
 
         json.dumps(schema)
 
@@ -1317,7 +1372,7 @@ class TestToJsonSchema:
         for type_ in m_types:
             quantity = Quantity(type=type_)
             schema = quantity.m_to_json_schema()
-            jsonschema.Draft201909Validator.check_schema(schema)
+            jsonschema.Draft202012Validator.check_schema(schema)
 
             json.dumps(schema)
 
@@ -1328,6 +1383,74 @@ class TestToJsonSchema:
                 assert schema['type'] == expected_type
 
     @pytest.mark.parametrize(
+        'quantity, expected',
+        [
+            pytest.param(
+                quantity,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{quantity.definition_id}',
+                    'description': 'Quantity for test.',
+                    'type': 'string',
+                },
+                id='quantity-with-no-unit',
+            ),
+            pytest.param(
+                unit_quantity,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{unit_quantity.definition_id}',
+                    'description': 'Quantity with unit for test.',
+                    'properties': {
+                        'value': {'type': 'number', 'unit': 'meter'},
+                        'unit': {'type': 'string', 'enum': ['meter']},
+                    },
+                    'allOf': [{'$ref': 'https://schema.local/definitions/UnitValue'}],
+                    '$defs': {
+                        'UnitValue': {
+                            '$id': 'https://schema.local/definitions/UnitValue',
+                            'properties': {
+                                'value': {'type': 'number'},
+                                'unit': {'type': 'string'},
+                            },
+                        }
+                    },
+                },
+                id='quantity-with-unit',
+            ),
+        ],
+    )
+    def test_unit_quantity(self, quantity, expected):
+        schema = quantity.m_to_json_schema(add_unit_value=True)
+        jsonschema.Draft202012Validator.check_schema(schema)
+        json.dumps(schema)
+        assert schema == expected
+
+    def test_arrays_with_units(self):
+        quantity = Quantity(type=float, shape=['*', '*'], unit='m', description='Test')
+        schema = quantity.m_to_json_schema()
+        jsonschema.Draft202012Validator.check_schema(schema)
+        json.dumps(schema)
+
+        assert schema['items']['items']['type'] == 'number'
+        assert schema['items']['items']['unit'] == 'meter'
+
+        quantity = Quantity(type=float, shape=['*', '*'], unit='m', description='Test')
+        schema = quantity.m_to_json_schema(add_unit_value=True)
+        jsonschema.Draft202012Validator.check_schema(schema)
+        json.dumps(schema)
+
+        sub_schema = schema['items']['items']
+        assert (
+            sub_schema['allOf'][0]['$ref']
+            == 'https://schema.local/definitions/UnitValue'
+        )
+        assert sub_schema['properties']['value']['type'] == 'number'
+        assert sub_schema['properties']['value']['unit'] == 'meter'
+        assert sub_schema['properties']['unit']['type'] == 'string'
+        assert sub_schema['properties']['unit']['enum'] == ['meter']
+
+    @pytest.mark.parametrize(
         'section, expected',
         [
             pytest.param(
@@ -1336,8 +1459,11 @@ class TestToJsonSchema:
                     '$schema': 'https://json-schema.org/draft/2020-12/schema',
                     'title': 'QuantityOnly',
                     'type': 'object',
+                    'description': 'Test Quantity only MSection.',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.QuantityOnly@{QuantityOnly.m_def.definition_id}',
                     'properties': {
                         'quantity': {
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.QuantityOnly.quantity@{QuantityOnly.quantity.definition_id}',
                             'type': 'string',
                             'description': 'Quantity for test.',
                         }
@@ -1351,23 +1477,32 @@ class TestToJsonSchema:
                     '$schema': 'https://json-schema.org/draft/2020-12/schema',
                     'title': 'SubSectionOnly',
                     'type': 'object',
+                    'description': 'Test SubSection only MSection.',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SubSectionOnly@{SubSectionOnly.m_def.definition_id}',
                     'properties': {
                         'subsection_repeat': {
                             'type': 'array',
-                            'items': {'$ref': '#/$defs/Simulation'},
+                            'items': {
+                                '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}'
+                            },
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SubSectionOnly.subsection_repeat@{SubSectionOnly.subsection_repeat.definition_id}',
                             'description': 'Definition for test.',
                         },
                         'subsection_norepeat': {
-                            '$ref': '#/$defs/Simulation',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SubSectionOnly.subsection_norepeat@{SubSectionOnly.subsection_norepeat.definition_id}',
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
                             'description': 'Definition for test.',
                         },
                     },
                     '$defs': {
-                        'Simulation': {
+                        'tests.metainfo.test_metainfo.Simulation': {
                             'title': 'Simulation',
                             'type': 'object',
+                            'description': 'Definition for test.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
                             'properties': {
                                 'program_name': {
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}',
                                     'type': 'string',
                                     'description': 'Quantity for test.',
                                 }
@@ -1383,27 +1518,37 @@ class TestToJsonSchema:
                     '$schema': 'https://json-schema.org/draft/2020-12/schema',
                     'title': 'SectionWithBoth',
                     'type': 'object',
+                    'description': 'Test MSection with both Quantity and SubSection.',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
                     'properties': {
                         'quantity': {
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}',
                             'type': 'string',
                             'description': 'Quantity for test.',
                         },
                         'subsection_repeat': {
                             'type': 'array',
-                            'items': {'$ref': '#/$defs/Simulation'},
+                            'items': {
+                                '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}'
+                            },
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_repeat@{SectionWithBoth.subsection_repeat.definition_id}',
                             'description': 'Definition for test.',
                         },
                         'subsection_norepeat': {
-                            '$ref': '#/$defs/Simulation',
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@{SectionWithBoth.subsection_norepeat.definition_id}',
                             'description': 'Definition for test.',
                         },
                     },
                     '$defs': {
-                        'Simulation': {
+                        'tests.metainfo.test_metainfo.Simulation': {
                             'title': 'Simulation',
                             'type': 'object',
+                            'description': 'Definition for test.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
                             'properties': {
                                 'program_name': {
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}',
                                     'type': 'string',
                                     'description': 'Quantity for test.',
                                 }
@@ -1413,12 +1558,125 @@ class TestToJsonSchema:
                 },
                 id='section-with-both',
             ),
+            pytest.param(
+                SectionWithInheritance,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    'title': 'SectionWithInheritance',
+                    'type': 'object',
+                    'description': 'Test MSection with inheritance.',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}',
+                    'allOf': [
+                        {
+                            '$comment': 'SectionWithBoth :Test MSection with both Quantity and SubSection.',
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                        }
+                    ],
+                    'properties': {
+                        'quantity': {
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance.quantity@{SectionWithInheritance.quantity.definition_id}',
+                            'type': 'number',
+                            'description': 'Overridden quantity for test.',
+                        },
+                    },
+                    '$defs': {
+                        'tests.metainfo.test_metainfo.Simulation': {
+                            'title': 'Simulation',
+                            'type': 'object',
+                            'description': 'Definition for test.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
+                            'properties': {
+                                'program_name': {
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}',
+                                    'type': 'string',
+                                    'description': 'Quantity for test.',
+                                }
+                            },
+                        },
+                        'tests.metainfo.test_metainfo.SectionWithBoth': {
+                            'title': 'SectionWithBoth',
+                            'type': 'object',
+                            'description': 'Test MSection with both Quantity and SubSection.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                            'properties': {
+                                'quantity': {
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}',
+                                    'type': 'string',
+                                    'description': 'Quantity for test.',
+                                },
+                                'subsection_repeat': {
+                                    'type': 'array',
+                                    'items': {
+                                        '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}'
+                                    },
+                                    'description': 'Definition for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_repeat@{SectionWithBoth.subsection_repeat.definition_id}',
+                                },
+                                'subsection_norepeat': {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
+                                    'description': 'Definition for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@{SectionWithBoth.subsection_norepeat.definition_id}',
+                                },
+                            },
+                        },
+                    },
+                },
+                id='section-with-inheritance',
+            ),
         ],
     )
     def test_definition(self, section, expected):
         schema = section.m_def.m_to_json_schema()
-        jsonschema.Draft201909Validator.check_schema(schema)
+        jsonschema.Draft202012Validator.check_schema(schema)
 
         json.dumps(schema)
+        assert schema == expected
 
+    @pytest.mark.parametrize(
+        'section, exclude, expected',
+        [
+            pytest.param(
+                SectionWithInheritance,
+                [
+                    'tests.metainfo.test_metainfo.SectionWithInheritance.quantity',
+                    'tests.metainfo.test_metainfo.SectionWithBoth.subsection_repeat',
+                    'tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat',
+                ],
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    'title': 'SectionWithInheritance',
+                    'type': 'object',
+                    'description': 'Test MSection with inheritance.',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}',
+                    'allOf': [
+                        {
+                            '$comment': 'SectionWithBoth :Test MSection with both Quantity and SubSection.',
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                        }
+                    ],
+                    '$defs': {
+                        'tests.metainfo.test_metainfo.SectionWithBoth': {
+                            'title': 'SectionWithBoth',
+                            'type': 'object',
+                            'description': 'Test MSection with both Quantity and SubSection.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                            'properties': {
+                                'quantity': {
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}',
+                                    'type': 'string',
+                                    'description': 'Quantity for test.',
+                                },
+                            },
+                        },
+                    },
+                },
+                id='exclude-subsections',
+            )
+        ],
+    )
+    def test_definition_exclude(self, section, exclude, expected):
+        schema = section.m_def.m_to_json_schema(exclude=exclude)
+        jsonschema.Draft202012Validator.check_schema(schema)
+
+        json.dumps(schema)
         assert schema == expected

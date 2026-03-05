@@ -45,6 +45,7 @@ from .routers import (
     materials,
     metainfo,
     north,
+    schemas,
     suggestions,
     systems,
     uploads,
@@ -139,6 +140,7 @@ app.include_router(materials.router, prefix='/materials')
 app.include_router(metainfo.router, prefix='/metainfo')
 if config.north.enabled:
     app.include_router(north.router, prefix='/north')
+app.include_router(schemas.router, prefix='/schemas')
 app.include_router(suggestions.router, prefix='/suggestions')
 app.include_router(systems.router, prefix='/systems')
 app.include_router(uploads.router, prefix='/uploads')

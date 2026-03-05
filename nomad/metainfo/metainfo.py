@@ -65,6 +65,8 @@ from nomad.metainfo.util import (
     convert_to,
     default_hash,
     dict_to_named_list,
+    metainfo_to_json_schema,
+    quantity_to_json_schema,
     resolve_variadic_name,
     to_dict,
 )
@@ -2831,55 +2833,14 @@ class Definition(MSection):
 
         return streamable_dict(nested())
 
-    def m_to_json_schema(self) -> dict[str, Any]:
+    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
         """
         Generate JSON Schema for this Section, referencing each
         property (Quantity or SubSection) via `$defs`.
         """
-        schema: dict[str, Any] = {
-            '$schema': 'https://json-schema.org/draft/2020-12/schema',
-            'title': self.name,
-            'type': 'object',
-        }
-
-        properties: dict = {}
-        defs: dict = {}
-
-        # Add Quantities inline
-        for quantity in self.quantities:
-            quantity_schema = quantity.m_to_json_schema()
-            quantity_schema.pop('$schema', None)
-            properties[quantity.name] = quantity_schema
-
-        # Add SubSection to `$ref`
-        for subsection in self.sub_sections:
-            name = subsection.name
-            child_section = subsection.sub_section
-
-            # Recursively get JSON schema
-            child_schema = child_section.m_to_json_schema()
-            child_schema.pop('$schema', None)
-
-            defs[child_section.name] = child_schema
-
-            # Reference it in properties
-            if subsection.repeats:
-                properties[name] = {
-                    'type': 'array',
-                    'items': {'$ref': f'#/$defs/{child_section.name}'},
-                }
-            else:
-                properties[name] = {'$ref': f'#/$defs/{child_section.name}'}
-
-            if child_section.description is not None:
-                properties[name]['description'] = child_section.description
-
-        if properties:
-            schema['properties'] = properties
-        if defs:
-            schema['$defs'] = defs  # for Quantity it's empty
-
-        return schema
+        return metainfo_to_json_schema(
+            m_def=self, add_unit_value=add_unit_value, exclude=exclude
+        )
 
     def _hash_seed(self) -> str:
         """
@@ -3367,64 +3328,11 @@ class Quantity(Property):
             + ('T' if self.virtual else 'F')
         )
 
-    def m_to_json_schema(self) -> dict[str, Any]:
+    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
         """
-        Generate JSON Schema for a Quantity instance.
+        Generate a JSON Schema (Draft 2020-12) for this Quantity.
         """
-
-        def shape_to_json_schema(shape: list, base_type: str) -> dict[str, Any]:
-            """Recursively convert shape and base type to nested JSON Schema arrays."""
-
-            def parse_dim(dim):
-                if isinstance(dim, int):
-                    return {'minItems': dim, 'maxItems': dim}
-                if dim == '*':
-                    return {}
-                if isinstance(dim, str):
-                    if match := re.fullmatch(r'(\d+)?\.\.(\d+|\*)?', dim):
-                        min_, max_ = match.groups()
-                        out = {}
-                        if min_ is not None:
-                            out['minItems'] = int(min_)
-                        if max_ and max_ != '*':
-                            out['maxItems'] = int(max_)
-                        return out
-
-                    # Assume `shape` to be name of another `Quantity` in the Section
-                    return parse_dim('*')
-
-                raise TypeError(f'Unsupported shape dimension: {dim}')
-
-            def build(dimensions: list) -> dict[str, Any]:
-                if not dimensions:
-                    return {'type': base_type}
-                dim_spec = parse_dim(dimensions[0])
-                return {'type': 'array', **dim_spec, 'items': build(dimensions[1:])}
-
-            return build(shape)
-
-        # Determine base type
-        base_schema = to_json_schema_type(self.type)
-        base_type = base_schema['type']
-
-        if self.is_scalar:
-            schema: dict[str, Any] = {
-                '$schema': 'https://json-schema.org/draft/2019-09/schema',
-                **base_schema,
-            }
-        else:
-            schema = shape_to_json_schema(self.shape, base_type)
-            schema['$schema'] = 'https://json-schema.org/draft/2019-09/schema'
-
-        # Optional fields
-        if getattr(self, 'title', None):
-            schema['title'] = self.title
-        if getattr(self, 'description', None):
-            schema['description'] = self.description
-        if self.unit is not None:
-            schema['unit'] = str(self.unit)
-
-        return schema
+        return quantity_to_json_schema(self, add_unit_value=add_unit_value)
 
 
 class DirectQuantity(Quantity):
