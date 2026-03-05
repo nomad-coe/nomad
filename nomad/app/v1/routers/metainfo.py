@@ -64,7 +64,7 @@ class PackageDefinitionResponse(BaseModel):
 
 
 @router.get(
-    '/{section_definition_id}',
+    '/{definition_id}',
     tags=[APITag.DEFAULT],
     summary='Get the definition of package that contains the target ID based section definition.',
     response_model=PackageDefinitionResponse,
@@ -83,7 +83,7 @@ class PackageDefinitionResponse(BaseModel):
     response_model_exclude_none=True,
 )
 def get_package_definition(
-    section_definition_id: Annotated[
+    definition_id: Annotated[
         str,
         Path(
             regex=PackageDefinition.id_pattern,
@@ -95,13 +95,13 @@ def get_package_definition(
     """
     Retrieve the package that contains the target section.
     """
-    mongo_package = PackageDefinition.get_by(section_definition_id)
+    mongo_package = PackageDefinition.get_by(definition_id)
 
     return PackageDefinitionResponse(
         entry_id=mongo_package['entry_id'],
         upload_id=mongo_package['upload_id'],
         snapshot_package_id=mongo_package['snapshot_package_id'],
-        snapshot_section_id=section_definition_id,
+        snapshot_section_id=definition_id,
         snapshot_section_ids=mongo_package['snapshot_section_ids'],
         data=mongo_package['package_definition'],
     )
