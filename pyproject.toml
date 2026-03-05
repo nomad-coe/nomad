@@ -69,7 +69,7 @@ infrastructure = [
   "starlette>=0.48.0", # see MR !2813, `HTTP_422_UNPROCESSABLE_CONTENT`
   "fastapi-cache2",
   "gunicorn",
-  "h5grove[fastapi]<3", # see issue 2539, breaking change in 3
+  "h5grove[fastapi]>=3", # interface change in 3
   "jupyterhub<5.0.0", # Connection issues with newer versions
   "mongoengine",
   "oauthenticator<16.0.0", # Connection issues with newer versions

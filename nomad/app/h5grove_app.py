@@ -21,14 +21,14 @@ import re
 import traceback
 import urllib.parse
 from collections.abc import Callable
-from typing import IO, Any
+from typing import Any
 
 import h5py
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from h5grove import fastapi_utils as h5grove_router
-from h5grove import utils as h5grove_utils
+from h5grove.utils import open_file_with_error_fallback
 
 from nomad import utils
 from nomad.app.v1.models import User
@@ -44,7 +44,7 @@ def open_zipped_h5_file(
     filepath: str,
     create_error: Callable[[int, str], Exception],
     h5py_options: dict[str, Any] = {},
-) -> h5py.File:
+):
     """
     Patched h5grove utils function open_file_with_error_fallback in order to open h5 file
     in zipped folder.
@@ -66,18 +66,16 @@ def open_zipped_h5_file(
         raise create_error(404, 'File not found!')
     path_or_id = match['path_or_id']
     try:
-        file_object: IO | str
         if match['directory'] == 'raw':
-            # todo: this is leaking resources, needs further refinement
-            # todo: track https://github.com/silx-kit/h5grove/pull/110
-            file_object = upload_files._raw_fileobj(path_or_id, 'rb')  # noqa
+            with (
+                upload_files.raw_file(path_or_id, 'rb') as file_object,
+                h5py.File(file_object, **h5py_options) as f,
+            ):
+                yield f
         else:
             file_object = upload_files.archive_hdf5_location(path_or_id)
-    except Exception:
-        raise create_error(404, 'File not found!')
-
-    try:
-        f = h5py.File(file_object, **h5py_options)
+            with h5py.File(file_object, **h5py_options) as f:
+                yield f
     except OSError as e:
         if isinstance(e, FileNotFoundError) or 'No such file or directory' in str(e):
             raise create_error(404, 'File not found!')
@@ -86,11 +84,11 @@ def open_zipped_h5_file(
         if isinstance(e, io.UnsupportedOperation):
             raise create_error(404, 'File not found!')
         raise e
+    except Exception:
+        raise create_error(404, 'File not found!')
 
-    return f
 
-
-h5grove_utils.open_file_with_error_fallback.__code__ = open_zipped_h5_file.__code__
+open_file_with_error_fallback.__closure__[0].cell_contents = open_zipped_h5_file  # noqa
 
 
 async def check_user_access(
@@ -120,6 +118,9 @@ async def add_upload_folder_path(request: Request, call_next):
     path = request.query_params['path']
     source = request.query_params['source']
 
+    if file.startswith('/uploads/'):
+        return await call_next(request)
+
     upload_path = f'/uploads/{upload_id}/{source}/'
     if source == 'archive' and isinstance(
         UploadFiles.get(upload_id), PublicUploadFiles
@@ -133,9 +134,6 @@ async def add_upload_folder_path(request: Request, call_next):
         old_file.encode('utf-8'), new_file.encode('utf-8')
     )
     query_string = scope['query_string'].decode('utf-8')
-    query_string = re.sub(
-        r'file=.+?(?:&|\Z)', f'file={upload_path}{file}&', query_string
-    )
     query_string = re.sub(
         r'path=.+?(?:&|\Z)', f'path={urllib.parse.quote(path)}&', query_string
     )

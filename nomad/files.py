@@ -638,13 +638,6 @@ class UploadFiles(DirectoryObject):
     ) -> Iterable[RawPathInfo]:
         return self.raw_listdir(path, recursive, files_only, depth)
 
-    def _raw_fileobj(self, file_path: str, *args, **kwargs):
-        """
-        Hack to bypass automatic resource management.
-        !!!DO NOT USE!!!
-        """
-        raise NotImplementedError()
-
     @contextmanager
     def raw_file(self, file_path: str, *args, **kwargs):
         """
@@ -806,20 +799,17 @@ class StagingUploadFiles(UploadFiles):
                 access='unpublished',
             )
 
-    def _raw_fileobj(self, file_path: str, *args, **kwargs):
+    @contextmanager
+    def raw_file(self, file_path: str, *args, **kwargs):
         assert is_safe_relative_path(file_path)
 
         full_path = self.raw_file_object(file_path).os_path
 
         try:
-            return self._fs.open(full_path, *args, **kwargs)
+            with self._fs.open(full_path, *args, **kwargs) as f:
+                yield f
         except (FileNotFoundError, IsADirectoryError) as e:
             raise KeyError(full_path) from e
-
-    @contextmanager
-    def raw_file(self, file_path: str, *args, **kwargs):
-        with self._raw_fileobj(file_path, *args, **kwargs) as f:
-            yield f
 
     def raw_file_size(self, file_path: str) -> int:
         assert is_safe_relative_path(file_path)
@@ -1414,22 +1404,6 @@ class PublicUploadFiles(UploadFiles):
                     size=zip_fs.size(target) if isfile else zip_fs.du(target),
                     access=self.access,
                 )
-
-    def _raw_fileobj(self, file_path: str, *args, **kwargs):
-        assert is_safe_relative_path(file_path)
-        mode = kwargs.pop('mode', None)
-        if len(args) > 0:
-            mode = args[0]
-        mode = mode or 'rb'
-        encoding = kwargs.pop('encoding', None)
-
-        try:
-            f = ZipFileSystem(self.raw_zip_file_object().os_path).open(
-                file_path, **kwargs
-            )
-            return io.TextIOWrapper(f, encoding=encoding) if 't' in mode else f
-        except (FileNotFoundError, IsADirectoryError, KeyError) as e:
-            raise KeyError(file_path) from e
 
     @contextmanager
     def raw_file(self, file_path: str, *args, **kwargs):
