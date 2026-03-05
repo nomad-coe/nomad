@@ -2379,7 +2379,9 @@ class FileSystemReader(GeneralReader):
         is_current_path_file: bool = node.archive.raw_isfile(full_path_str)
 
         if not is_current_path_file:
-            await _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
+            await _populate_result(
+                node.result_root, full_path + ['m_is'], 'Directory', path_like=True
+            )
 
         if Token.ENTRY in required:
             # implicit resolve
@@ -2389,7 +2391,7 @@ class FileSystemReader(GeneralReader):
                 )
             ):
                 await _populate_result(
-                    node.result_root, full_path + [Token.ENTRY], results
+                    node.result_root, full_path + [Token.ENTRY], results, path_like=True
                 )
 
         for key, value in required.items():
@@ -2426,7 +2428,9 @@ class FileSystemReader(GeneralReader):
 
         os_path: str = '/'.join(abs_path)
         if not node.archive.raw_isfile(os_path):
-            await _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
+            await _populate_result(
+                node.result_root, full_path + ['m_is'], 'Directory', path_like=True
+            )
 
         ref_path = ['/'.join(self._root_path)]
         if ref_path[0]:
