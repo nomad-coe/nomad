@@ -75,7 +75,7 @@ class Users(BaseModel):
     responses=create_responses(_authentication_required_response),
     response_model=User,
 )
-async def read_users_me(
+def read_users_me(
     current_user: Annotated[
         User,
         Depends(get_current_user([Scope.USERS_READ], allow_anonymous=False)),
@@ -100,7 +100,7 @@ async def read_users_me(
     response_model_exclude_none=True,
     response_model=Users,
 )
-async def get_users(
+def get_users(
     prefix: Annotated[
         str | None,
         Query(
@@ -188,7 +188,7 @@ class PublicUserInfo(BaseModel):
     response_model_exclude_none=True,
     response_model=PublicUserInfo,
 )
-async def get_user(user_id: str):
+def get_user(user_id: str):
     return datamodel.User.get(user_id=str(user_id)).m_to_dict(
         with_out_meta=True, include_derived=True
     )
@@ -201,7 +201,7 @@ async def get_user(user_id: str):
     responses=create_responses(_authentication_required_response, _bad_invite_response),
     response_model=User,
 )
-async def invite_user(
+def invite_user(
     user: User,
     _current_user: Annotated[
         User,

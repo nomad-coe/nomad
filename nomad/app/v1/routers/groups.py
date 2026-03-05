@@ -171,7 +171,7 @@ def check_mutually_exclusive_members_fields(user_group_edit: UserGroupEdit):
     summary='List user groups.',
     response_model=UserGroupResponse,
 )
-async def get_user_groups(
+def get_user_groups(
     request: Request,
     query: Annotated[UserGroupQuery, Depends(user_group_query_parameters)],
     pagination: Annotated[
@@ -198,7 +198,7 @@ async def get_user_groups(
     summary='Get data about user group.',
     response_model=UserGroup,
 )
-async def get_user_group(group_id: str):
+def get_user_group(group_id: str):
     """Get data about user group."""
     user_group = get_user_group_or_404(group_id)
 
@@ -212,7 +212,7 @@ async def get_user_group(group_id: str):
     summary='Create user group.',
     response_model=UserGroup,
 )
-async def create_user_group(
+def create_user_group(
     user_group_edit: UserGroupEdit,
     user: Annotated[
         User,
@@ -239,7 +239,7 @@ async def create_user_group(
     summary='Update user group.',
     response_model=UserGroup,
 )
-async def update_user_group(
+def update_user_group(
     group_id: str,
     user_group_edit: UserGroupEdit,
     user: Annotated[
@@ -274,7 +274,7 @@ async def update_user_group(
     status_code=status.HTTP_204_NO_CONTENT,
     summary='Delete user group.',
 )
-async def delete_user_group(
+def delete_user_group(
     group_id: str,
     user: Annotated[
         User,

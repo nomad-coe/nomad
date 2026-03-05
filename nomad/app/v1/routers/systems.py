@@ -300,7 +300,7 @@ _serialization_error_response = (
         _file_response, _not_found_response, _serialization_error_response
     ),
 )
-async def get_entry_raw_file(
+def get_entry_raw_file(
     user: Annotated[User, Depends(get_current_user([Scope.SYSTEMS_READ]))],
     entry_id: Annotated[
         str,

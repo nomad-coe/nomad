@@ -751,7 +751,7 @@ and publish your data."""
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_command_examples(
+def get_command_examples(
     user: Annotated[
         User,
         Depends(get_current_user([Scope.TOKENS_CREATE], allow_anonymous=False)),
@@ -792,7 +792,7 @@ async def get_command_examples(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_uploads(
+def get_uploads(
     request: Request,
     query: Annotated[UploadProcDataQuery, Depends(upload_proc_data_query_parameters)],
     pagination: Annotated[
@@ -864,7 +864,7 @@ async def get_uploads(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload(
+def get_upload(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to retrieve.')
     ],
@@ -890,7 +890,7 @@ async def get_upload(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_entries(
+def get_upload_entries(
     request: Request,
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to retrieve entries for.')
@@ -966,7 +966,7 @@ async def get_upload_entries(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_entry(
+def get_upload_entry(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     entry_id: Annotated[
         str,
@@ -1009,7 +1009,7 @@ async def get_upload_entry(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_rawdir_path(
+def get_upload_rawdir_path(
     request: Request,
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
@@ -1129,7 +1129,7 @@ async def get_upload_rawdir_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_raw(
+def get_upload_raw(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
@@ -1175,7 +1175,7 @@ async def get_upload_raw(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_raw_path(
+def get_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     files_params: Annotated[Files, Depends(files_parameters)],
@@ -1724,7 +1724,7 @@ async def put_upload_raw_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def delete_upload_raw_path(
+def delete_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     user: Annotated[
@@ -1789,7 +1789,7 @@ async def delete_upload_raw_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_raw_create_dir_path(
+def post_upload_raw_create_dir_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     user: Annotated[
@@ -1839,7 +1839,7 @@ async def post_upload_raw_create_dir_path(
     response_model_exclude_none=True,
     responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload),
 )
-async def get_upload_entry_archive_mainfile(
+def get_upload_entry_archive_mainfile(
     user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     mainfile: Annotated[
@@ -1870,7 +1870,7 @@ async def get_upload_entry_archive_mainfile(
     response_model_exclude_none=True,
     responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload),
 )
-async def get_upload_entry_archive(
+def get_upload_entry_archive(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     entry_id: Annotated[str, Path(description='The unique entry id.')],
     user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
@@ -2159,7 +2159,7 @@ async def post_upload_edit(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def delete_upload(
+def delete_upload(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to delete.')
     ],
@@ -2210,7 +2210,7 @@ async def delete_upload(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_publish(
+def post_upload_action_publish(
     user: Annotated[
         User,
         Depends(get_current_user([Scope.UPLOADS_PUBLISH], allow_anonymous=False)),
@@ -2328,7 +2328,7 @@ async def post_upload_action_publish(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_process(
+def post_upload_action_process(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to process.')
     ],
@@ -2362,7 +2362,7 @@ async def post_upload_action_process(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_delete_entry_files(
+def post_upload_action_delete_entry_files(
     data: DeleteEntryFilesRequest,
     upload_id: Annotated[
         str,
@@ -2438,7 +2438,7 @@ async def post_upload_action_delete_entry_files(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_lift_embargo(
+def post_upload_action_lift_embargo(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to lift the embargo for.')
     ],
@@ -2496,7 +2496,7 @@ async def post_upload_action_lift_embargo(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_bundle(
+def get_upload_bundle(
     user: Annotated[
         User,
         Depends(get_current_user([Scope.UPLOADS_BUNDLE_READ])),
@@ -2779,7 +2779,7 @@ async def post_upload_bundle(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def transfer_upload_bundle(
+def transfer_upload_bundle(
     transfer_options: TransferBundleRequest,
     upload_id: Annotated[
         str,
@@ -3257,7 +3257,7 @@ def _check_external_deployment_status(deployment_url: str):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def stop_upload_processing(
+def stop_upload_processing(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     user: Annotated[
         User,

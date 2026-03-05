@@ -82,7 +82,7 @@ class PackageDefinitionResponse(BaseModel):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_package_definition(
+def get_package_definition(
     section_definition_id: Annotated[
         str,
         Path(

@@ -279,7 +279,7 @@ class DatasetCreate(BaseModel):  # type: ignore
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_datasets(
+def get_datasets(
     request: Request,
     pagination: Annotated[DatasetPagination, Depends(dataset_pagination_parameters)],
     _user: Annotated[
@@ -331,7 +331,7 @@ async def get_datasets(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_dataset(
+def get_dataset(
     dataset_id: Annotated[
         str, Path(description='The unique dataset id of the dataset to retrieve.')
     ],
@@ -364,7 +364,7 @@ async def get_dataset(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_datasets(
+def post_datasets(
     create: DatasetCreate,
     user: Annotated[
         User,
@@ -462,7 +462,7 @@ async def post_datasets(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def delete_dataset(
+def delete_dataset(
     dataset_id: Annotated[
         str, Path(description='The unique dataset id of the dataset to delete.')
     ],
@@ -515,7 +515,7 @@ async def delete_dataset(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def assign_doi(
+def assign_doi(
     dataset_id: Annotated[
         str, Path(description='The unique dataset id of the dataset to assign DOI.')
     ],
