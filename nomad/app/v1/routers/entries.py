@@ -524,8 +524,7 @@ def perform_search(*args, **kwargs):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_entries_metadata_query(
-    request: Request,
+def post_entries_metadata_query(
     data: Metadata,
     user: Annotated[
         User,
@@ -570,7 +569,7 @@ async def post_entries_metadata_query(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_entries_metadata(
+def get_entries_metadata(
     request: Request,
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     pagination: Annotated[MetadataPagination, Depends(metadata_pagination_parameters)],
@@ -828,8 +827,7 @@ _entries_rawdir_query_docstring = strip(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_entries_rawdir_query(
-    request: Request,
+def post_entries_rawdir_query(
     data: EntriesRawDir,
     user: Annotated[
         User,
@@ -856,7 +854,7 @@ async def post_entries_rawdir_query(
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response_unauthorized),
 )
-async def get_entries_rawdir(
+def get_entries_rawdir(
     request: Request,
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     pagination: Annotated[MetadataPagination, Depends(metadata_pagination_parameters)],
@@ -904,7 +902,7 @@ _entries_raw_query_docstring = strip(
     response_class=StreamingResponse,
     responses=create_responses(_raw_response, _bad_owner_response_unauthorized),
 )
-async def post_entries_raw_query(
+def post_entries_raw_query(
     data: EntriesRaw,
     user: Annotated[
         User,
@@ -927,7 +925,7 @@ async def post_entries_raw_query(
     response_class=StreamingResponse,
     responses=create_responses(_raw_response, _bad_owner_response_unauthorized),
 )
-async def get_entries_raw(
+def get_entries_raw(
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     files: Annotated[Files, Depends(files_parameters)],
     user: Annotated[
@@ -950,7 +948,7 @@ async def get_entries_raw(
     response_class=StreamingResponse,
     responses=create_responses(_bad_owner_response_unauthorized),
 )
-async def export_entries_metadata(
+def export_entries_metadata(
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     required: Annotated[MetadataRequired, Depends(metadata_required_parameters)],
     user: Annotated[
@@ -1364,7 +1362,7 @@ _entries_archive_download_docstring = strip(
         _bad_archive_required_response,
     ),
 )
-async def post_entries_archive_download_query(
+def post_entries_archive_download_query(
     data: EntriesArchiveDownload,
     user: Annotated[
         User,
@@ -1392,7 +1390,7 @@ async def post_entries_archive_download_query(
         _bad_archive_required_response,
     ),
 )
-async def get_entries_archive_download(
+def get_entries_archive_download(
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     files: Annotated[Files, Depends(files_parameters)],
     user: Annotated[
@@ -1418,7 +1416,7 @@ async def get_entries_archive_download(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_entry_metadata(
+def get_entry_metadata(
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve metadata from.'),
@@ -1459,7 +1457,7 @@ async def get_entry_metadata(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_entry_rawdir(
+def get_entry_rawdir(
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve raw data from.'),
@@ -1500,7 +1498,7 @@ async def get_entry_rawdir(
     response_class=StreamingResponse,
     responses=create_responses(_bad_id_response, _raw_response),
 )
-async def get_entry_raw(
+def get_entry_raw(
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve raw data from.'),
@@ -1542,7 +1540,7 @@ async def get_entry_raw(
         _bad_id_response, _bad_path_response, _raw_file_response
     ),
 )
-async def get_entry_raw_file(
+def get_entry_raw_file(
     user: Annotated[
         User,
         Depends(get_current_user([Scope.ENTRIES_READ])),
@@ -1700,7 +1698,7 @@ def answer_entry_archive_request(
         _bad_edit_request_unauthorized,
     ),
 )
-async def post_entry_edit(
+def post_entry_edit(
     data: EntryEdit,
     entry_id: Annotated[
         str, Path(description='The unique entry id of the entry to edit.')
@@ -1833,7 +1831,7 @@ async def post_entry_edit(
     response_model_exclude_none=True,
     responses=create_responses(_bad_id_response),
 )
-async def get_entry_archive(
+def get_entry_archive(
     entry_id: Annotated[
         str,
         Path(
@@ -1859,7 +1857,7 @@ async def get_entry_archive(
     summary='Get the archive for an entry by its id as plain archive json',
     responses=create_responses(_bad_id_response, _archive_download_response),
 )
-async def get_entry_archive_download(
+def get_entry_archive_download(
     entry_id: Annotated[
         str,
         Path(
@@ -1896,7 +1894,7 @@ async def get_entry_archive_download(
     response_model_exclude_none=True,
     responses=create_responses(_bad_id_response, _bad_archive_required_response),
 )
-async def post_entry_archive_query(
+def post_entry_archive_query(
     data: EntryArchiveRequest,
     user: Annotated[
         User,
@@ -2002,7 +2000,7 @@ _editable_quantities = {
     response_model_exclude_none=True,
     responses=create_responses(_bad_metadata_edit_response),
 )
-async def post_entry_metadata_edit(
+def post_entry_metadata_edit(
     response: Response,
     data: EntryMetadataEdit,
     user: Annotated[
