@@ -383,7 +383,7 @@ def test_entries_all_metrics(client, example_data):
 
 @pytest.mark.parametrize(
     'aggregation, total, size, status_code, user',
-    aggregation_test_parameters_default('entries'),
+    aggregation_test_parameters_default(),
 )
 def test_entries_aggregations(
     auth_headers, client, example_data, aggregation, total, size, status_code, user
@@ -397,7 +397,6 @@ def test_entries_aggregations(
         size,
         status_code,
         user,
-        resource='entries',
     )
 
 
@@ -479,15 +478,12 @@ def test_entries_aggregations_dynamic(
         size,
         status_code,
         user,
-        resource='entries',
     )
 
 
 @pytest.mark.parametrize(
     'query,agg_data,total,status_code',
-    aggregation_exclude_from_search_test_parameters(
-        resource='entries', total_per_entity=1, total=23
-    ),
+    aggregation_exclude_from_search_test_parameters(total_per_entity=1, total=23),
 )
 def test_entries_aggregations_exclude_from_search(
     client, example_data, query, agg_data, total, status_code
