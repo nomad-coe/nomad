@@ -42,7 +42,6 @@ from .routers import (
     graph,
     groups,
     info,
-    materials,
     metainfo,
     north,
     schemas,
@@ -136,7 +135,6 @@ app.include_router(federation.router, prefix='/federation')
 app.include_router(graph.router, prefix='/graph')
 app.include_router(groups.router, prefix='/groups')
 app.include_router(info.router, prefix='/info')
-app.include_router(materials.router, prefix='/materials')
 app.include_router(metainfo.router, prefix='/metainfo')
 if config.north.enabled:
     app.include_router(north.router, prefix='/north')
