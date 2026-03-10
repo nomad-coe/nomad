@@ -53,8 +53,10 @@ class Scope(str, Enum):
     # apps
     APPS_READ = 'apps:read'
 
-    # create custom NOMAD tokens
+    # Personal access tokens (PAT) and custom NOMAD tokens
     TOKENS_CREATE = 'tokens:create'
+    TOKENS_READ = 'tokens:read'
+    TOKENS_DELETE = 'tokens:delete'
 
     # datasets
     DATASETS_READ = 'datasets:read'

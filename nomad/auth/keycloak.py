@@ -169,7 +169,7 @@ class Keycloak:
         try:
             payload = self.decode_access_token(access_token)
 
-            user_id: str = payload.get('sub')
+            user_id: str | None = payload.get('sub')
             if user_id is None:
                 raise KeycloakError(
                     utils.strip(

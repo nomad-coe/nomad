@@ -18,6 +18,7 @@
 
 import urllib
 from collections.abc import Callable, Collection
+from datetime import datetime
 from enum import Enum
 from inspect import Parameter, Signature
 from typing import Annotated
@@ -26,18 +27,24 @@ import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from fastapi import Query as FastApiQuery
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
+from pydantic import BaseModel, field_validator
 
 from nomad import datamodel
 from nomad.auth.keycloak import KeycloakError, OIDCToken, keycloak
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import (
-    AppToken,
     AuthResult,
-    SignatureToken,
+    PATMetadata,
+    authenticate_pat,
+    create_pat,
     generate_simple_token,
+    get_pat,
     get_user_from_keycloak_token,
     get_user_from_simple_token,
     get_user_from_upload_token,
+    list_pat,
+    revoke_pat,
+    rotate_pat,
 )
 from nomad.config import config
 from nomad.config.models.config import ModeEnum
@@ -71,12 +78,16 @@ def _resolve_user_with_scopes(
     allow_anonymous: bool,
     request: Request | None = None,
     keycloak_token: str | None = None,
+    personal_access_token: str | None = None,
     simple_token: str | None = None,
     upload_token: str | None = None,
 ) -> User | None:
     """Resolve User/scopes from token and validate."""
     # Resolve user and extract scopes from (simple->keycloak->upload) token
     auth_result: AuthResult | None = None
+
+    # TODO: after deprecated custom tokens are removed,
+    # cleanup the token detection path
 
     # Resolve user from simple token
     if auth_result is None and simple_token:
@@ -103,6 +114,21 @@ def _resolve_user_with_scopes(
 
         if keycloak_token is not None:
             auth_result = get_user_from_keycloak_token(keycloak_token)
+
+    # Resolve user from personal access token
+    if auth_result is None and personal_access_token:
+        pat = authenticate_pat(personal_access_token)
+
+        if pat is not None:
+            user = datamodel.User.get(pat.user_id)
+            if user:
+                auth_result = AuthResult(user=user, scopes=pat.scopes)
+            else:
+                # The user was deleted, but their PAT still exists
+                logger.warning(f'Valid PAT used for missing user_id: {pat.user_id}')
+
+                # Self-heal: remove the orphaned token
+                revoke_pat(user_id=pat.user_id, pat_id=str(pat.id))
 
     # Resolve user from upload token
     if auth_result is None and upload_token:
@@ -159,6 +185,11 @@ def _resolve_user_with_scopes(
             else:
                 scopes = config.auth.unauthorized_user_scopes_resolved
 
+    # TODO: should check user CURRENT "roles"
+    # 1. currently any user could require any scope
+    # 2. imagine someone was admin before but not anymore,
+    # they shouldn't be able to use old tokens with admin permission
+
     # Enforce backend scopes
     if missing_scopes := required_scopes - set(scopes):
         raise HTTPException(
@@ -174,6 +205,7 @@ def get_current_user(
     *,
     allow_anonymous: bool = True,
     allow_keycloak_token: bool = True,
+    allow_personal_access_token: bool = True,
     allow_simple_token: bool = True,
     allow_upload_token: bool = False,
 ) -> Callable:
@@ -196,6 +228,7 @@ def get_current_user(
             allow_anonymous=allow_anonymous,
             request=kwargs.get('request'),
             keycloak_token=kwargs.get('keycloak_token'),
+            personal_access_token=kwargs.get('personal_access_token'),
             simple_token=kwargs.get('simple_token'),
             upload_token=kwargs.get('upload_token'),
         )
@@ -214,6 +247,16 @@ def get_current_user(
         parameters.append(
             Parameter(
                 name='keycloak_token',
+                annotation=str | None,
+                default=Depends(oauth2_scheme),
+                kind=Parameter.KEYWORD_ONLY,
+            )
+        )
+
+    if allow_personal_access_token:
+        parameters.append(
+            Parameter(
+                name='personal_access_token',
                 annotation=str | None,
                 default=Depends(oauth2_scheme),
                 kind=Parameter.KEYWORD_ONLY,
@@ -297,7 +340,198 @@ async def get_token(
         )
 
 
-# NOMAD custom token (endpoints and generation functions)
+# NOMAD Personal Access Token (PAT)
+
+
+class PATCreateRequest(BaseModel):
+    """Payload for creating a new token."""
+
+    metadata: PATMetadata
+    expires_in_days: int | None = 30
+
+
+class PATResponse(BaseModel):
+    """Standard representation of a token (safe to return to user)."""
+
+    id: str
+    name: str
+    scopes: list[str]
+    description: str | None = None
+    revoked: bool
+
+    created_at: datetime
+    expired_at: datetime | None = None
+    last_used_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_objectid_to_str(cls, value):
+        """Forces MongoDB ObjectIds to cleanly serialize into strings."""
+        return str(value)
+
+
+class PATCreationResponse(BaseModel):
+    """Returned ONLY upon creation or rotation."""
+
+    pat: PATResponse
+    raw_token: str
+
+
+@router.post(
+    '/pats',
+    response_model=PATCreationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary='Create a personal access token',
+)
+def create_pat_endpoint(
+    request: PATCreateRequest,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.TOKENS_CREATE], allow_anonymous=False)),
+    ],
+):
+    """
+    Creates a new PAT.
+
+    **WARNING**: The `raw_token` field in the response is only visible once.
+
+    Raises:
+        400 Bad Request: If `expires_in_days` is invalid (e.g., negative).
+    """
+    try:
+        return create_pat(
+            user_id=user.user_id,
+            metadata=request.metadata,
+            expires_in_days=request.expires_in_days,
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post(
+    '/pats/{pat_id}/rotate',
+    response_model=PATCreationResponse,
+    summary='Rotate a personal access token',
+)
+def rotate_pat_endpoint(
+    pat_id: str,
+    user: Annotated[
+        User,
+        Depends(
+            get_current_user(
+                [Scope.TOKENS_CREATE, Scope.TOKENS_DELETE], allow_anonymous=False
+            )
+        ),
+    ],
+):
+    """
+    Rotates an existing PAT (could be expired as long as not cleaned up).
+
+    This revokes the old token and issues a new one,
+    copying the original metadata and calculating
+    a new expiration date based on the original token's lifespan.
+
+    Raises:
+        404 Not Found: If the target token does not exist.
+    """
+    result = rotate_pat(user_id=user.user_id, pat_id=pat_id)
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Token not found or does not belong to the user.',
+        )
+
+    return result
+
+
+@router.get(
+    '/pats', response_model=list[PATResponse], summary='List personal access tokens'
+)
+def list_pat_endpoint(
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.TOKENS_READ], allow_anonymous=False)),
+    ],
+):
+    """
+    Retrieves all valid (non-revoked/expired) personal access tokens for the user.
+    Results are ordered by creation date.
+    """
+    return list_pat(user_id=user.user_id)
+
+
+@router.get(
+    '/pats/{pat_id}',
+    response_model=PATResponse,
+    summary='Retrieve metadata for a personal access token',
+)
+def get_pat_endpoint(
+    pat_id: str,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.TOKENS_READ], allow_anonymous=False)),
+    ],
+):
+    """
+    Retrieves metadata for a specific PAT owned by the user.
+
+    Raises:
+        400 bad request: If the token ID format is invalid.
+        404 Not Found: If the token does not exist or belongs to another user.
+    """
+
+    pat = get_pat(user_id=user.user_id, pat_id=pat_id)
+
+    if pat is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Token not found or does not belong to the user.',
+        )
+
+    return pat
+
+
+@router.delete(
+    '/pats/{pat_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary='Revoke a personal access token',
+)
+def revoke_pat_endpoint(
+    pat_id: str,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.TOKENS_DELETE], allow_anonymous=False)),
+    ],
+):
+    """
+    Revokes a personal access token.
+
+    Raises:
+        404 Not Found: If the target token does not exist.
+    """
+    success = revoke_pat(user_id=user.user_id, pat_id=pat_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Token not found or does not belong to the user.',
+        )
+
+
+# NOMAD custom token (DEPRECATED)
+
+
+class SignatureToken(BaseModel):
+    signature_token: str
+
+
+class AppToken(BaseModel):
+    app_token: str
 
 
 @router.get(
