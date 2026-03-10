@@ -39,13 +39,6 @@ class Scope(str, Enum):
       (e.g. `read`, `write`, `delete`, `run`).
     """
 
-    # Baseline read access to the NOMAD API.
-    # - API discovery endpoints (e.g. OpenAPI schema, Swagger UI, ReDoc)
-    # - General informational and metadata endpoints
-    # - Any API surface that requires authentication but does not belong to a
-    #   more specific resource domain
-    BASIC_READ = 'basic:read'
-
     # actions
     ACTIONS_READ = 'actions:read'
     ACTIONS_RUN = 'actions:run'
@@ -91,6 +84,9 @@ class Scope(str, Enum):
     # north
     NORTH_READ = 'north:read'
     NORTH_RUN = 'north:run'
+
+    # schemas
+    SCHEMAS_READ = 'schemas:read'
 
     # suggestions
     SUGGESTIONS_READ = 'suggestions:read'

@@ -481,10 +481,10 @@ def test_scopes_anonymous_allowed_with_permission(monkeypatch):
 
     monkeypatch.setattr(
         'nomad.app.v1.routers.auth.config.auth.unauthenticated_user_scopes',
-        {'include': [Scope.BASIC_READ]},
+        {'include': [Scope.UPLOADS_READ]},
     )
 
-    dep = get_current_user(required_scopes=[Scope.BASIC_READ], allow_anonymous=True)
+    dep = get_current_user(required_scopes=[Scope.UPLOADS_READ], allow_anonymous=True)
 
     assert dep() is None
 
@@ -496,10 +496,10 @@ def test_scopes_anonymous_not_allowed(monkeypatch):
 
     monkeypatch.setattr(
         'nomad.app.v1.routers.auth.config.auth.unauthenticated_user_scopes',
-        {'include': [Scope.BASIC_READ]},
+        {'include': [Scope.UPLOADS_READ]},
     )
 
-    dep = get_current_user(required_scopes=[Scope.BASIC_READ], allow_anonymous=False)
+    dep = get_current_user(required_scopes=[Scope.UPLOADS_READ], allow_anonymous=False)
 
     with pytest.raises(HTTPException, match='Authentication required') as exc:
         dep()
@@ -516,7 +516,7 @@ def test_scopes_authenticated_missing_scope(monkeypatch, allowed_user, patch_use
     patch_user_get(allowed_user)
     monkeypatch.setattr(
         'nomad.app.v1.routers.auth.get_user_from_keycloak_token',
-        lambda _token: AuthResult(allowed_user, {Scope.BASIC_READ}),
+        lambda _token: AuthResult(allowed_user, {Scope.UPLOADS_READ}),
     )
 
     dep = get_current_user(
@@ -563,7 +563,7 @@ def test_scopes_simple_token_missing_scope(monkeypatch, allowed_user, patch_user
 
     monkeypatch.setattr(
         'nomad.app.v1.routers.auth.get_user_from_simple_token',
-        lambda _token: AuthResult(allowed_user, {Scope.BASIC_READ}),
+        lambda _token: AuthResult(allowed_user, {Scope.UPLOADS_READ}),
     )
 
     dep = get_current_user(
@@ -994,8 +994,8 @@ def test_pat_endpoints_missing_scopes(
     """
     patch_user_get(allowed_user)
 
-    # Simulate missing scope (only have `basic:read`)
-    restricted_auth = AuthResult(allowed_user, {Scope.BASIC_READ})
+    # Simulate missing scope
+    restricted_auth = AuthResult(allowed_user, set())
 
     monkeypatch.setattr(
         'nomad.app.v1.routers.auth.get_user_from_keycloak_token',

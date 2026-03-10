@@ -19,8 +19,12 @@ import importlib
 from enum import Enum
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
+
+from nomad.app.v1.models import User
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 
 router = APIRouter()
 
@@ -40,6 +44,7 @@ class SerializationFormat(str, Enum):
     summary='Return a serialization of a specific data schema.',
 )
 async def get_schema(
+    _user: Annotated[User, Depends(get_current_user([Scope.SCHEMAS_READ]))],
     schema_id: Annotated[
         str,
         Path(
