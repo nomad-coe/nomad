@@ -177,6 +177,7 @@ def get_user_groups(
     pagination: Annotated[
         UserGroupPagination, Depends(user_group_pagination_parameters)
     ],
+    user: Annotated[User, Depends(get_current_user([Scope.GROUPS_READ]))],
 ):
     """Get data about user groups."""
     db_groups = MongoUserGroup.get_by_query(query)
@@ -198,7 +199,10 @@ def get_user_groups(
     summary='Get data about user group.',
     response_model=UserGroup,
 )
-def get_user_group(group_id: str):
+def get_user_group(
+    group_id: str,
+    _user: Annotated[User, Depends(get_current_user([Scope.GROUPS_READ]))],
+):
     """Get data about user group."""
     user_group = get_user_group_or_404(group_id)
 

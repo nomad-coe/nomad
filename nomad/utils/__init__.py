@@ -38,7 +38,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.strip
 """
 
-from typing import Any
+from typing import Any, overload
 from collections.abc import Iterable
 from collections import OrderedDict
 import fnmatch
@@ -541,7 +541,15 @@ class RestrictedDict(OrderedDict):
         return hash(hash_str)
 
 
-def strip(docstring):
+@overload
+def strip(docstring: None) -> None: ...
+
+
+@overload
+def strip(docstring: str) -> str: ...
+
+
+def strip(docstring: str | None) -> str | None:
     """Removes any unnecessary whitespaces from a multiline doc string or description."""
     if docstring is None:
         return None

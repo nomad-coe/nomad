@@ -16,9 +16,12 @@
 # limitations under the License.
 #
 
+
 from tempfile import NamedTemporaryFile
 
 import pytest
+from fastapi.routing import APIRoute
+from starlette.routing import Mount
 
 from nomad.app.v1.models.models import User
 from nomad.auth.scopes import Scope, _resolve_scopes
@@ -149,7 +152,7 @@ def test_authenticated_missing_scope(
 ):
     patch_user_get(allowed_user)
 
-    patch_keycloak_result({Scope.BASIC_READ})
+    patch_keycloak_result({Scope.UPLOADS_READ})
 
     response = client.get('/api/v1/apps/entry-points', headers=auth_headers['user1'])
     assert response.status_code == 403
@@ -167,7 +170,7 @@ def test_authenticated_success(
     force_keycloak_path,
 ):
     patch_user_get(allowed_user)
-    patch_keycloak_result({Scope.BASIC_READ, Scope.APPS_READ})
+    patch_keycloak_result({Scope.APPS_READ})
 
     response = client.get('/api/v1/apps/entry-points', headers=auth_headers['user1'])
     assert response.status_code == 200
@@ -238,3 +241,64 @@ def test_external_app_dcat(
     # TODO: here I didn't manage to do a "success" case test because
     # dcat doesn't seem to have any lightweight endpoint and would
     # always need some data (see `test_dcat.py`)
+
+
+# Ensure all endpoints have auth dependency
+
+
+def test_all_endpoints_have_user_dependency():
+    from nomad.app.main import app
+
+    ignored_mounts = {'/optimade', '/dcat', '/h5grove'}
+
+    whitelisted_endpoints = {
+        '/alive',
+        '/-/health',
+    }
+    expected_unprotected = {'/api/v1/auth/token'}
+
+    missing_auth_routes = []
+    unexpected_auth_routes = []
+
+    def inspect_routes(routes, prefix=''):
+        for route in routes:
+            if isinstance(route, Mount):
+                if route.path in ignored_mounts:
+                    continue
+                if hasattr(route.app, 'routes'):
+                    inspect_routes(route.app.routes, prefix + route.path)
+
+            elif isinstance(route, APIRoute):
+                full_path = prefix + route.path
+
+                if full_path in whitelisted_endpoints:
+                    continue
+
+                # Introspect the dependency tree
+                has_auth = False
+                if hasattr(route, 'dependant'):
+                    for dep in route.dependant.dependencies:
+                        callable_name = getattr(dep.call, '__name__', '')
+                        if callable_name == 'current_user':
+                            has_auth = True
+                            break
+
+                method = list(route.methods)[0] if route.methods else 'UNKNOWN'
+
+                if full_path in expected_unprotected:
+                    if has_auth:
+                        unexpected_auth_routes.append(f'{method} {full_path}')
+                else:
+                    if not has_auth:
+                        missing_auth_routes.append(f'{method} {full_path}')
+
+    inspect_routes(app.routes)
+
+    assert not missing_auth_routes, (
+        'The following endpoints are missing the auth dependency:\n'
+        + '\n'.join(missing_auth_routes)
+    )
+    assert not unexpected_auth_routes, (
+        "The following endpoints require auth but shouldn't:\n"
+        + '\n'.join(unexpected_auth_routes)
+    )

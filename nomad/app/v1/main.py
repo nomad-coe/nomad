@@ -18,7 +18,7 @@
 
 import traceback
 
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, ORJSONResponse, RedirectResponse
 from pyinstrument import Profiler
 from starlette.middleware import Middleware
@@ -27,8 +27,6 @@ from starlette.responses import HTMLResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from nomad import utils
-from nomad.app.v1.routers.auth import get_current_user
-from nomad.auth.scopes import Scope as AuthScope
 from nomad.config import config
 
 from .common import root_path
@@ -91,13 +89,6 @@ app = FastAPI(
     middleware=[
         Middleware(LoggingMiddleware),
         Middleware(BaseHTTPMiddleware, dispatch=profile_request),
-    ],
-    dependencies=[
-        Depends(
-            get_current_user(
-                {AuthScope.BASIC_READ},
-            )
-        )
     ],
 )
 

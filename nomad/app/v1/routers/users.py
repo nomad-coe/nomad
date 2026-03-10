@@ -101,6 +101,10 @@ def read_users_me(
     response_model=Users,
 )
 def get_users(
+    _current_user: Annotated[
+        User,
+        Depends(get_current_user([Scope.USERS_READ])),
+    ],
     prefix: Annotated[
         str | None,
         Query(
@@ -188,7 +192,13 @@ class PublicUserInfo(BaseModel):
     response_model_exclude_none=True,
     response_model=PublicUserInfo,
 )
-def get_user(user_id: str):
+def get_user(
+    user_id: str,
+    _current_user: Annotated[
+        User,
+        Depends(get_current_user([Scope.USERS_READ])),
+    ],
+):
     return datamodel.User.get(user_id=str(user_id)).m_to_dict(
         with_out_meta=True, include_derived=True
     )
