@@ -13,11 +13,11 @@ beautifulsoup4==4.12.3    # via nomad-lab (pyproject.toml)
 bibtexparser==1.4.4       # via pymatgen
 bitarray==3.8.0           # via nomad-lab (pyproject.toml)
 blinker==1.9.0            # via nomad-lab (pyproject.toml)
-cachetools==7.0.1         # via nomad-lab (pyproject.toml)
+cachetools==7.0.5         # via nomad-lab (pyproject.toml)
 certifi==2026.2.25        # via elasticsearch, httpcore, httpx, requests
 certipy==0.2.2            # via jupyterhub
 cffi==2.0.0 ; platform_python_implementation != 'PyPy'  # via cryptography
-charset-normalizer==3.4.4  # via requests
+charset-normalizer==3.4.5  # via requests
 click==8.3.1              # via molid, uvicorn, nomad-lab (pyproject.toml)
 colorama==0.4.6 ; sys_platform == 'win32'  # via click, tqdm, uvicorn
 contourpy==1.3.2 ; python_full_version < '3.11'  # via matplotlib
@@ -35,17 +35,17 @@ email-validator==2.3.0    # via pydantic
 escapism==1.1.0           # via dockerspawner
 et-xmlfile==2.0.0         # via openpyxl
 exceptiongroup==1.3.1 ; python_full_version < '3.11'  # via anyio
-fastapi==0.133.1          # via fastapi-cache2, h5grove, nomad-lab (pyproject.toml)
+fastapi==0.135.1          # via fastapi-cache2, h5grove, nomad-lab (pyproject.toml)
 fastapi-cache2==0.2.2     # via nomad-lab (pyproject.toml)
 flexcache==0.3            # via pint
 flexparser==0.4           # via pint
-fonttools==4.61.1         # via matplotlib
+fonttools==4.62.0         # via matplotlib
 fsspec==2026.2.0          # via nomad-lab (pyproject.toml)
 greenlet==3.3.2 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'  # via sqlalchemy
 gunicorn==25.1.0          # via nomad-lab (pyproject.toml)
 h11==0.16.0               # via httpcore, uvicorn
 h5grove==3.0.0            # via nomad-lab (pyproject.toml)
-h5py==3.15.1              # via h5grove, nomad-lab (pyproject.toml)
+h5py==3.16.0              # via h5grove, nomad-lab (pyproject.toml)
 httpcore==1.0.9           # via httpx
 httptools==0.7.1          # via uvicorn
 httpx==0.27.2             # via python-keycloak, nomad-lab (pyproject.toml)
@@ -63,7 +63,7 @@ jupyter-telemetry==0.1.0  # via jupyterhub
 jupyterhub==4.1.6         # via dockerspawner, oauthenticator, nomad-lab (pyproject.toml)
 jwcrypto==1.5.6           # via python-keycloak
 kaleido==0.2.1            # via nomad-lab (pyproject.toml)
-kiwisolver==1.4.9         # via matplotlib
+kiwisolver==1.5.0         # via matplotlib
 lark==1.3.1               # via optimade
 lxml==6.0.2               # via nomad-lab (pyproject.toml)
 mako==1.3.10              # via alembic
@@ -98,7 +98,7 @@ pendulum==3.2.0           # via fastapi-cache2
 pillow==12.1.1            # via matplotlib
 pint==0.24.4 ; python_full_version < '3.11'  # via nomad-lab (pyproject.toml)
 pint==0.25.2 ; python_full_version >= '3.11'  # via nomad-lab (pyproject.toml)
-platformdirs==4.9.2       # via pint
+platformdirs==4.9.4       # via pint
 plotly==5.24.1            # via pymatgen, nomad-lab (pyproject.toml)
 prometheus-client==0.24.1  # via jupyterhub
 protobuf==6.33.5          # via temporalio
@@ -116,14 +116,14 @@ pymatgen==2025.10.7       # via nomad-lab (pyproject.toml)
 pymongo==4.16.0           # via mongoengine, optimade
 pyparsing==3.3.2          # via bibtexparser, matplotlib, rdflib
 python-dateutil==2.9.0.post0  # via elasticsearch-dsl, jupyterhub, matplotlib, pandas, pendulum, rfc3161ng, temporalio
-python-dotenv==1.2.1      # via pydantic-settings, uvicorn
+python-dotenv==1.2.2      # via pydantic-settings, uvicorn
 python-json-logger==4.0.0  # via jupyter-telemetry
 python-keycloak==7.1.1    # via nomad-lab (pyproject.toml)
 python-logstash==0.4.8    # via nomad-lab (pyproject.toml)
 python-magic==0.4.27 ; sys_platform != 'win32'  # via nomad-lab (pyproject.toml)
 python-magic-bin==0.4.14 ; sys_platform == 'win32'  # via nomad-lab (pyproject.toml)
 python-multipart==0.0.22  # via nomad-lab (pyproject.toml)
-pytz==2025.2              # via mongomock, pandas
+pytz==2026.1.post1        # via mongomock, pandas
 pywin32==311 ; sys_platform == 'win32'  # via docker
 pyyaml==6.0.3             # via uvicorn, nomad-lab (pyproject.toml)
 rdflib==5.0.0             # via nomad-lab (pyproject.toml)
@@ -142,16 +142,16 @@ six==1.17.0               # via elasticsearch-dsl, python-dateutil, rdflib
 sniffio==1.3.1            # via httpx
 soupsieve==2.8.3          # via beautifulsoup4
 spglib==2.7.0             # via matid, pymatgen
-sqlalchemy==2.0.47        # via alembic, jupyterhub
+sqlalchemy==2.0.48        # via alembic, jupyterhub
 starlette==0.52.1         # via fastapi, nomad-lab (pyproject.toml)
 structlog==25.5.0         # via nomad-lab (pyproject.toml)
 sympy==1.14.0             # via pymatgen
-tabulate==0.9.0           # via pymatgen, nomad-lab (pyproject.toml)
+tabulate==0.10.0          # via pymatgen, nomad-lab (pyproject.toml)
 temporalio==1.23.0        # via nomad-lab (pyproject.toml)
 tenacity==9.1.4           # via plotly
 threadpoolctl==3.6.0      # via scikit-learn
 tifffile==2025.5.10 ; python_full_version < '3.11'  # via h5grove
-tifffile==2026.2.24 ; python_full_version >= '3.11'  # via h5grove
+tifffile==2026.3.3 ; python_full_version >= '3.11'  # via h5grove
 tomli==2.4.0 ; python_full_version < '3.11'  # via alembic
 tornado==6.5.4            # via jupyterhub
 tqdm==4.67.3              # via molid, pymatgen
