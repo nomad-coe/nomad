@@ -313,7 +313,7 @@ class Auth(ConfigBaseModel):
             `unathorized_user_scopes`.
         """,
     )
-    authorized_users: list[str] = Field(
+    authorized_users: list[str] | None = Field(
         None,
         description="""
             A list of usernames or user account emails that are authorized to access this
@@ -366,6 +366,24 @@ class Auth(ConfigBaseModel):
         """Contains a concrete set of scopes for unauthorized users as resolved from
         unauthorized_user_scopes."""
         return resolve_scopes_valid(self.unauthorized_user_scopes)
+
+    # Personal access token (PAT) related
+
+    pat_pruning_time: float = Field(
+        365,
+        gt=0,
+        description='Number of days to keep expired and revoked tokens before cleanup.',
+    )
+    pat_max_lifetime: float | None = Field(
+        default=365,
+        gt=0,
+        description='Max token lifetime in days. None allows infinite lifetime.',
+    )
+    pat_max_active_per_user: int = Field(
+        default=100,
+        gt=1,
+        description='Max number of active tokens (not expired/revoked) for each user.',
+    )
 
 
 class FooterLink(ConfigBaseModel):
@@ -453,7 +471,7 @@ class Oasis(ConfigBaseModel):
         False,
         description='Set to `True` to indicate that this deployment is a NOMAD Oasis.',
     )
-    allowed_users: list[str] = Field(
+    allowed_users: list[str] | None = Field(
         None,
         description='Use `auth.authorized_users` instead.',
         deprecated=True,
@@ -1227,7 +1245,7 @@ class RFC3161Timestamp(ConfigBaseModel):
     server: str = Field(
         'http://zeitstempel.dfn.de', description='The rfc3161ng timestamping host.'
     )
-    cert: str = Field(
+    cert: str | None = Field(
         None,
         description='Path to the optional rfc3161ng timestamping server certificate.',
     )
@@ -1270,7 +1288,7 @@ class BundleExport(ConfigBaseModel):
             General default settings.
         """,
     )
-    default_settings_cli: BundleExportSettings = Field(
+    default_settings_cli: BundleExportSettings | None = Field(
         None,
         description="""
             Additional default settings, applied when exporting using the CLI. This allows

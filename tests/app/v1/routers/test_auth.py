@@ -17,12 +17,13 @@
 #
 
 import pytest
-from fastapi import HTTPException, Request
+from bson import ObjectId
+from fastapi import HTTPException, Request, status
 
 from nomad.app.v1.models.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
-from nomad.auth.tokens import AuthResult
+from nomad.auth.tokens import PAT, PAT_PREFIX, AuthResult, _hash_token
 from nomad.config.models.config import ModeEnum
 
 # Tests for OIDC authentication endpoints
@@ -130,19 +131,31 @@ def patch_user_get(monkeypatch):
     return _patch
 
 
+class MockPAT:
+    """A simple mock to mimic the MongoEngine PAT object needed by the dependency."""
+
+    def __init__(self, user_id: str):
+        self.user_id = user_id
+        self.scopes: list[str] = []
+
+
 @pytest.mark.parametrize('allow_keycloak_token', [True, False])
 @pytest.mark.parametrize('allow_simple_token', [True, False])
 @pytest.mark.parametrize('allow_upload_token', [True, False])
+@pytest.mark.parametrize('allow_personal_access_token', [True, False])
 @pytest.mark.parametrize('get_user_from_keycloak_token', [True, False])
 @pytest.mark.parametrize('get_user_from_simple_token', [True, False])
 @pytest.mark.parametrize('get_user_from_upload_token', [True, False])
+@pytest.mark.parametrize('authenticate_pat', [True, False])
 def test_get_current_user_auth_methods(
     allow_keycloak_token: bool,
     allow_simple_token: bool,
     allow_upload_token: bool,
+    allow_personal_access_token: bool,
     get_user_from_keycloak_token: bool,
     get_user_from_simple_token: bool,
     get_user_from_upload_token: bool,
+    authenticate_pat: bool,
     allowed_user,
     patch_user_get,
     monkeypatch,
@@ -171,6 +184,10 @@ def test_get_current_user_auth_methods(
             AuthResult(allowed_user, set()) if get_user_from_upload_token else None
         ),
     )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.authenticate_pat',
+        lambda _token: MockPAT(allowed_user.user_id) if authenticate_pat else None,
+    )
 
     patch_user_get(allowed_user)
 
@@ -180,6 +197,7 @@ def test_get_current_user_auth_methods(
         allow_keycloak_token=allow_keycloak_token,
         allow_simple_token=allow_simple_token,
         allow_upload_token=allow_upload_token,
+        allow_personal_access_token=allow_personal_access_token,
     )
 
     if any(
@@ -187,6 +205,7 @@ def test_get_current_user_auth_methods(
             allow_keycloak_token and get_user_from_keycloak_token,
             allow_simple_token and get_user_from_simple_token,
             allow_upload_token and get_user_from_upload_token,
+            allow_personal_access_token and authenticate_pat,
         ]
     ):
         assert (
@@ -194,6 +213,7 @@ def test_get_current_user_auth_methods(
                 keycloak_token='abc' if allow_keycloak_token else None,
                 simple_token='def' if allow_simple_token else None,
                 upload_token='ghi' if allow_upload_token else None,
+                personal_access_token='jkl' if allow_personal_access_token else None,
             )
             == allowed_user
         )
@@ -408,6 +428,46 @@ def test_get_current_user(
             assert reveived_user == allowed_user
 
 
+def test_get_current_user_deleted_user_auto_revokes_pat(mongo_function, monkeypatch):
+    """
+    Test that if a valid PAT is used but the associated user is missing,
+    the dependency rejects the request and auto-revokes the PAT.
+    """
+    raw_token = f'{PAT_PREFIX}pat_mock_secret_token_for_test'
+    token_digest = _hash_token(raw_token)
+
+    # Manually insert an orphaned PAT
+    pat = PAT(
+        user_id='deleted_user_123',
+        name='Orphaned Token',
+        token_digest=token_digest,
+        scopes=['uploads:read'],
+    )
+    pat.save()
+    assert PAT.objects.filter(id=pat.id).count() == 1
+
+    # Simulate the user missing from Keycloak
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.datamodel.User.get', lambda *args, **kwargs: None
+    )
+
+    dep = get_current_user(
+        required_scopes=[],
+        allow_anonymous=False,
+        allow_keycloak_token=False,
+    )
+
+    # Attempt to authenticate using the orphaned token
+    with pytest.raises(HTTPException) as exc:
+        dep(personal_access_token=raw_token)
+
+    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # Verify the self-healing (token should be revoked)
+    pat.reload()
+    assert pat.revoked is True
+
+
 # Tests for scope enforcing (`_resolve_user_with_scopes`)
 
 # Anonymous users
@@ -586,3 +646,373 @@ def test_scopes_upload_token_missing_non_upload_scope(
         dep(upload_token='dummy-upload-token')
     assert exc.value.status_code == 403
     assert Scope.GROUPS_READ in str(exc.value.detail)
+
+
+# Tests for personal access token (PAT) endpoints
+
+
+def test_create_pat_success(client, auth_headers, mongo_function):
+    """Successful creation of a PAT."""
+    payload = {
+        'metadata': {
+            'name': 'API Test Token',
+            'scopes': ['uploads:read'],
+            'description': 'Created via test',
+        },
+        'expires_in_days': 30,
+    }
+
+    headers = auth_headers['user1']
+    response = client.post('auth/pats', json=payload, headers=headers)
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+    data = response.json()
+    assert 'raw_token' in data
+    assert 'pat' in data
+    assert data['pat']['name'] == 'API Test Token'
+    assert data['pat']['description'] == 'Created via test'
+    assert data['pat']['scopes'] == ['uploads:read']
+    assert data['pat']['revoked'] is False
+
+    # Ensure token digest are dropped (only raw token)
+    assert 'token_digest' not in data['pat']
+
+
+def test_create_pat_invalid_lifespan(client, auth_headers, mongo_function):
+    """Test that the API rejects negative lifespans with a 400 Bad Request."""
+    payload = {
+        'metadata': {'name': 'Invalid Lifespan Token', 'scopes': []},
+        'expires_in_days': -5,
+    }
+
+    headers = auth_headers['user1']
+    response = client.post('auth/pats', json=payload, headers=headers)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'already expired' in response.json()['detail']
+
+
+def test_get_pat_success(client, auth_headers, mongo_function):
+    """Test retrieving a single PAT by ID."""
+    headers = auth_headers['user1']
+
+    # Create a token
+    create_resp = client.post(
+        'auth/pats',
+        json={'metadata': {'name': 'Get Me', 'scopes': []}, 'expires_in_days': 30},
+        headers=headers,
+    )
+    pat_id = create_resp.json()['pat']['id']
+
+    # Retrieve it
+    response = client.get(f'auth/pats/{pat_id}', headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data['id'] == pat_id
+    assert data['name'] == 'Get Me'
+
+
+@pytest.mark.parametrize(
+    'pat_id',
+    [
+        pytest.param('invalid-pat-id', id='invalid-format'),
+        pytest.param(str(ObjectId()), id='valid-format-non-existent'),
+    ],
+)
+def test_get_pat_non_existent_invalid(client, auth_headers, mongo_function, pat_id):
+    """Test retrieving a PAT with an invalid format, and a valid but non-existent ID."""
+    user1_headers = auth_headers['user1']
+
+    response = client.get(f'auth/pats/{pat_id}', headers=user1_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+def test_get_pat_cross_user(client, auth_headers, mongo_function):
+    """Retrieve a PAT belonging to another user."""
+    user1_headers = auth_headers['user1']
+    user2_headers = auth_headers['user2']
+
+    # Create a token as User 1
+    create_resp = client.post(
+        'auth/pats',
+        json={
+            'metadata': {'name': 'User 1 Private Token', 'scopes': []},
+            'expires_in_days': 30,
+        },
+        headers=user1_headers,
+    )
+    assert create_resp.status_code == status.HTTP_201_CREATED
+    pat_id = create_resp.json()['pat']['id']
+
+    # Attempt to retrieve it as User 2
+    response = client.get(f'auth/pats/{pat_id}', headers=user2_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+def test_list_pat_success(client, auth_headers, mongo_function):
+    """Test listing all active PATs for a user, ensuring no cross-user leakage."""
+
+    headers_user1 = auth_headers['user1']
+    headers_user2 = auth_headers['user2']
+
+    # Create two tokens for User 1
+    client.post(
+        'auth/pats',
+        json={'metadata': {'name': 'Token 1', 'scopes': []}, 'expires_in_days': 30},
+        headers=headers_user1,
+    )
+    client.post(
+        'auth/pats',
+        json={'metadata': {'name': 'Token 2', 'scopes': []}, 'expires_in_days': 30},
+        headers=headers_user1,
+    )
+
+    # Create one token for User 2
+    client.post(
+        'auth/pats',
+        json={
+            'metadata': {'name': 'User 2 Secret Token', 'scopes': []},
+            'expires_in_days': 30,
+        },
+        headers=headers_user2,
+    )
+
+    # List tokens as User 1
+    response = client.get('auth/pats', headers=headers_user1)
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+
+    for token in data:
+        assert 'token_digest' not in token
+
+    # User 1 should only get 2 tokens back, not User 2's token
+    assert len(data) == 2
+    assert {t['name'] for t in data} == {'Token 1', 'Token 2'}
+
+
+def test_rotate_pat_success(client, auth_headers, mongo_function):
+    """Test rotating an existing PAT."""
+    headers = auth_headers['user1']
+
+    # Create initial token
+    create_resp = client.post(
+        'auth/pats',
+        json={'metadata': {'name': 'Rotate Me', 'scopes': []}, 'expires_in_days': 30},
+        headers=headers,
+    )
+    old_pat_id = create_resp.json()['pat']['id']
+    old_raw_token = create_resp.json()['raw_token']
+
+    # Rotate it
+    response = client.post(f'auth/pats/{old_pat_id}/rotate', headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    new_pat_id = data['pat']['id']
+    new_raw_token = data['raw_token']
+
+    # Verify
+    assert new_pat_id != old_pat_id
+    assert new_raw_token != old_raw_token
+    assert data['pat']['name'] == 'Rotate Me'
+
+    # Ensure old token is revoked in DB
+    old_pat_req = client.get(f'auth/pats/{old_pat_id}', headers=headers)
+    assert old_pat_req.json()['revoked'] is True
+
+
+def test_rotate_pat_cross_user(client, auth_headers, mongo_function):
+    """Test that a user cannot rotate another user's PAT."""
+    user1_headers = auth_headers['user1']
+    user2_headers = auth_headers['user2']
+
+    # Create a token as User 1
+    create_resp = client.post(
+        'auth/pats',
+        json={
+            'metadata': {'name': 'User 1 Token', 'scopes': []},
+            'expires_in_days': 30,
+        },
+        headers=user1_headers,
+    )
+    pat_id = create_resp.json()['pat']['id']
+
+    # Attempt to rotate it as User 2
+    response = client.post(f'auth/pats/{pat_id}/rotate', headers=user2_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+@pytest.mark.parametrize(
+    'pat_id',
+    [
+        pytest.param('invalid-pat-id', id='invalid-format'),
+        pytest.param(str(ObjectId()), id='valid-format-non-existent'),
+    ],
+)
+def test_rotate_pat_non_existent_invalid(client, auth_headers, mongo_function, pat_id):
+    """Test rotating a PAT with an invalid format, and a valid but non-existent ID."""
+    user1_headers = auth_headers['user1']
+
+    response = client.post(f'auth/pats/{pat_id}/rotate', headers=user1_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+def test_revoke_pat_success(client, auth_headers, mongo_function):
+    """Test revoking a PAT."""
+    headers = auth_headers['user1']
+
+    # Create a token
+    create_resp = client.post(
+        'auth/pats',
+        json={'metadata': {'name': 'Revoke Me', 'scopes': []}, 'expires_in_days': 30},
+        headers=headers,
+    )
+    pat_id = create_resp.json()['pat']['id']
+
+    # Revoke it
+    response = client.delete(f'auth/pats/{pat_id}', headers=headers)
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Verify it is revoked
+    check_resp = client.get(f'auth/pats/{pat_id}', headers=headers)
+    assert check_resp.json()['revoked'] is True
+
+    # Second Revoke: Should also succeed (idempotent)
+    response_2 = client.delete(f'auth/pats/{pat_id}', headers=headers)
+    assert response_2.status_code == status.HTTP_204_NO_CONTENT
+
+
+def test_revoke_pat_cross_user(client, auth_headers, mongo_function):
+    """Test that a user cannot revoke another user's PAT."""
+    user1_headers = auth_headers['user1']
+    user2_headers = auth_headers['user2']
+
+    # Create a token as User 1
+    create_resp = client.post(
+        'auth/pats',
+        json={
+            'metadata': {'name': 'User 1 Token', 'scopes': []},
+            'expires_in_days': 30,
+        },
+        headers=user1_headers,
+    )
+    pat_id = create_resp.json()['pat']['id']
+
+    # Attempt to revoke it as User 2
+    response = client.delete(f'auth/pats/{pat_id}', headers=user2_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+@pytest.mark.parametrize(
+    'pat_id',
+    [
+        pytest.param('invalid-pat-id', id='invalid-format'),
+        pytest.param(str(ObjectId()), id='valid-format-non-existent'),
+    ],
+)
+def test_revoke_pat_non_existent_invalid(client, auth_headers, mongo_function, pat_id):
+    """Test revoking a PAT with an invalid format, and a valid but non-existent ID."""
+    user1_headers = auth_headers['user1']
+
+    response = client.delete(f'auth/pats/{pat_id}', headers=user1_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+@pytest.mark.parametrize(
+    'method, endpoint, payload',
+    [
+        ('POST', '/pats', {'metadata': {'name': 'Unauth Test'}, 'expires_in_days': 30}),
+        ('POST', '/pats/dummy-pat-id/rotate', None),
+        ('GET', '/pats', None),
+        ('GET', '/pats/dummy-pat-id', None),
+        ('DELETE', '/pats/dummy-pat-id', None),
+    ],
+    ids=['create_pat', 'rotate_pat', 'list_pat', 'get_pat', 'revoke_pat'],
+)
+def test_pat_endpoints_unauthenticated(
+    client,
+    method,
+    endpoint,
+    payload,
+):
+    """
+    Test that all PAT endpoints correctly reject requests
+    that lack authentication.
+    """
+    url = f'auth{endpoint}'
+
+    # NOT including any headers here
+    request_kwargs = {}
+    if payload:
+        request_kwargs['json'] = payload
+
+    response = client.request(method, url, **request_kwargs)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert 'Authentication required.' in response.json()['detail']
+
+
+@pytest.mark.parametrize(
+    'method, endpoint, payload',
+    [
+        ('POST', '/pats', {'metadata': {'name': 'Scope Test'}, 'expires_in_days': 30}),
+        ('POST', '/pats/dummy-pat-id/rotate', None),
+        ('GET', '/pats', None),
+        ('GET', '/pats/dummy-pat-id', None),
+        ('DELETE', '/pats/dummy-pat-id', None),
+    ],
+    ids=['create_pat', 'rotate_pat', 'list_pat', 'get_pat', 'revoke_pat'],
+)
+def test_pat_endpoints_missing_scopes(
+    client,
+    auth_headers,
+    monkeypatch,
+    allowed_user,
+    patch_user_get,
+    method,
+    endpoint,
+    payload,
+):
+    """
+    Test that all PAT endpoints correctly reject authenticated users
+    who lack TOKEN scopes.
+    """
+    patch_user_get(allowed_user)
+
+    # Simulate missing scope (only have `basic:read`)
+    restricted_auth = AuthResult(allowed_user, {Scope.BASIC_READ})
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.get_user_from_keycloak_token',
+        lambda _token: restricted_auth,
+    )
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.jwt.decode',
+        lambda *args, **kwargs: {'sub': allowed_user.user_id, 'exp': 3600},
+    )
+
+    url = f'auth{endpoint}'
+    request_kwargs = {'headers': auth_headers['user1']}
+    if payload:
+        request_kwargs['json'] = payload
+
+    response = client.request(method, url, **request_kwargs)
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert 'Missing scopes' in response.json()['detail']
