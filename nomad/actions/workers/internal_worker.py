@@ -33,8 +33,12 @@ async def run_worker(worker_config: WorkerConfig):
         logger.info('Received SIGTERM. Preparing for graceful shutdown')
         stop_event.set()
 
-    loop.add_signal_handler(signal.SIGTERM, _signal_handler)
-    loop.add_signal_handler(signal.SIGINT, _signal_handler)
+    if sys.platform == 'win32':
+        signal.signal(signal.SIGTERM, lambda s, f: _signal_handler())
+        signal.signal(signal.SIGINT, lambda s, f: _signal_handler())
+    else:
+        loop.add_signal_handler(signal.SIGTERM, _signal_handler)
+        loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
     client = await get_client()
     executor_kwargs = {'max_workers': worker_config.pool_size, 'initializer': setup}
