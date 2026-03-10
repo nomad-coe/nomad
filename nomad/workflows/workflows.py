@@ -6,8 +6,20 @@ import asyncio
 from datetime import timedelta
 
 from temporalio import workflow
-from temporalio.common import RetryPolicy
+from temporalio.common import Priority, RetryPolicy
 from temporalio.exceptions import ActivityError
+
+EDIT_UPLOAD_METADATA_PRIORITY = Priority(priority_key=1)
+PUBLISH_UPLOAD_PRIORITY = Priority(priority_key=2)
+PUBLISH_EXTERNALLY_PRIORITY = Priority(priority_key=2)
+DELETE_UPLOAD_PRIORITY = Priority(priority_key=3)
+IMPORT_BUNDLE_PRIORITY = Priority(priority_key=4)
+PROCESS_EXAMPLE_UPLOAD_PRIORITY = Priority(priority_key=4)
+BATCH_PROCESS_ENTRIES_PRIORITY = Priority(priority_key=4)
+PROCESS_UPLOAD_PRIORITY = Priority(priority_key=4)
+UPDATE_UPLOAD_PRIORITY = Priority(priority_key=4)
+BATCH_PROCESS_ENTRY_PRIORITY = Priority(priority_key=4)
+PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
 
 with workflow.unsafe.imports_passed_through():
     from nomad.config import config
@@ -70,6 +82,7 @@ class DeleteUploadWorkflow:
             schedule_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat_timeout,
             retry_policy=retry_policy,
+            priority=DELETE_UPLOAD_PRIORITY,
         )
         await workflow.execute_activity(
             delete_upload_files_activity,
@@ -77,6 +90,7 @@ class DeleteUploadWorkflow:
             schedule_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat_timeout,
             retry_policy=retry_policy,
+            priority=DELETE_UPLOAD_PRIORITY,
         )
         await workflow.execute_activity(
             delete_upload_entries_activity,
@@ -84,6 +98,7 @@ class DeleteUploadWorkflow:
             schedule_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat_timeout,
             retry_policy=retry_policy,
+            priority=DELETE_UPLOAD_PRIORITY,
         )
         await workflow.execute_activity(
             delete_upload_record_activity,
@@ -91,6 +106,7 @@ class DeleteUploadWorkflow:
             schedule_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat_timeout,
             retry_policy=retry_policy,
+            priority=DELETE_UPLOAD_PRIORITY,
         )
 
 
@@ -113,6 +129,7 @@ class ProcessEntryWorkflow:
                     seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
                 ),
                 retry_policy=retry_policy,
+                priority=PROCESS_ENTRY_PRIORITY,
             )
         except ActivityError as e:
             if 'heartbeat timeout' in str(e.cause):
@@ -122,6 +139,7 @@ class ProcessEntryWorkflow:
                     schedule_to_close_timeout=timedelta(
                         seconds=config.temporal.processing_timeouts.process_entry_timeout
                     ),
+                    priority=PROCESS_ENTRY_PRIORITY,
                 )
             raise e
 
@@ -166,6 +184,7 @@ class BatchProcessEntriesWorkflow:
                             seconds=config.temporal.processing_timeouts.next_level_entries_timeout
                         ),
                         retry_policy=retry_policy,
+                        priority=BATCH_PROCESS_ENTRIES_PRIORITY,
                     )
                     # Recursively process this batch (which may further subdivide if >1000 entries)
                     await workflow.execute_child_workflow(
@@ -177,6 +196,7 @@ class BatchProcessEntriesWorkflow:
                         id=f'{workflow.info().workflow_id}-file-batch-{batch_id}',
                         parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
                         retry_policy=retry_policy,
+                        priority=BATCH_PROCESS_ENTRIES_PRIORITY,
                     )
 
             # Each sub-batch will be processed with up to 1000 concurrent entries
@@ -263,6 +283,7 @@ class BatchProcessEntriesWorkflow:
                         seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
                     ),
                     retry_policy=retry_policy,
+                    priority=BATCH_PROCESS_ENTRY_PRIORITY,
                 )
                 return result
 
@@ -275,6 +296,7 @@ class BatchProcessEntriesWorkflow:
                     schedule_to_close_timeout=timedelta(
                         seconds=config.temporal.processing_timeouts.process_entry_timeout
                     ),
+                    priority=BATCH_PROCESS_ENTRIES_PRIORITY,
                 )
             raise e
 
@@ -306,6 +328,7 @@ class ProcessUploadWorkflow:
             ),
             heartbeat_timeout=heartbeat_timeout,
             retry_policy=retry_policy,
+            priority=PROCESS_UPLOAD_PRIORITY,
         )
 
         # Step 3: Parse next level
@@ -318,6 +341,7 @@ class ProcessUploadWorkflow:
                 ),
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=retry_policy,
+                priority=PROCESS_UPLOAD_PRIORITY,
             )
 
             # If None returned: no entries exist for this parser level at all
@@ -332,6 +356,7 @@ class ProcessUploadWorkflow:
                 id=f'{workflow_info.workflow_id}-{input.min_level}-batch-processor',
                 parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
                 retry_policy=retry_policy,
+                priority=PROCESS_UPLOAD_PRIORITY,
             )
 
             next_parser_level = (
@@ -348,6 +373,7 @@ class ProcessUploadWorkflow:
             ),
             heartbeat_timeout=heartbeat_timeout,
             retry_policy=retry_policy,
+            priority=PROCESS_UPLOAD_PRIORITY,
         )
 
 
@@ -388,6 +414,7 @@ class UpdateUploadWorkflow:
                     seconds=config.temporal.processing_timeouts.setup_upload_timeout
                 ),
                 retry_policy=retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
 
             # Step 1: Update files
@@ -399,6 +426,7 @@ class UpdateUploadWorkflow:
                 ),
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
 
             if input.trigger_processing:
@@ -425,6 +453,7 @@ class UpdateUploadWorkflow:
                     parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
                     # Disable retries for the child workflow; it handles its own activity failures.
                     retry_policy=RetryPolicy(maximum_attempts=1),
+                    priority=UPDATE_UPLOAD_PRIORITY,
                 )
 
             # Step 5: Mark as successful if the processing was triggered, otherwise will mark as READY
@@ -435,6 +464,7 @@ class UpdateUploadWorkflow:
                     seconds=config.temporal.processing_timeouts.process_upload_success_timeout
                 ),
                 retry_policy=retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
 
         except Exception as e:
@@ -450,6 +480,7 @@ class UpdateUploadWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
             raise e
 
@@ -462,6 +493,7 @@ class UpdateUploadWorkflow:
                     seconds=config.temporal.processing_timeouts.remove_workflow_id_timeout
                 ),
                 retry_policy=retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
             await workflow.execute_activity(
                 cleanup_workflow_tmp_dir_activity,
@@ -470,6 +502,7 @@ class UpdateUploadWorkflow:
                     seconds=config.temporal.processing_timeouts.cleanup_workflow_tmp_dir_timeout
                 ),
                 retry_policy=retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
 
 
@@ -489,6 +522,7 @@ class ProcessExampleUploadWorkflow:
             input,
             schedule_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat_timeout,
+            priority=PROCESS_EXAMPLE_UPLOAD_PRIORITY,
         )
         current_workflow_id = workflow.info().workflow_id
 
@@ -506,6 +540,7 @@ class ProcessExampleUploadWorkflow:
             process_upload_input,
             id=f'process-upload-workflow-{current_workflow_id}-{input.upload_id}',
             parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
+            priority=PROCESS_EXAMPLE_UPLOAD_PRIORITY,
         )
 
 
@@ -536,6 +571,7 @@ class EditUploadMetadataWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
             )
 
             # Edit upload metadata
@@ -545,6 +581,7 @@ class EditUploadMetadataWorkflow:
                 schedule_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
             )
 
             # Mark as successful
@@ -553,6 +590,7 @@ class EditUploadMetadataWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
             )
         except Exception as e:
             # Set upload to failure status
@@ -567,6 +605,7 @@ class EditUploadMetadataWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
             )
             raise e
 
@@ -577,6 +616,7 @@ class EditUploadMetadataWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
             )
 
 
@@ -607,6 +647,7 @@ class ImportBundleWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=IMPORT_BUNDLE_PRIORITY,
             )
 
             # Import bundle
@@ -616,6 +657,7 @@ class ImportBundleWorkflow:
                 schedule_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=retry_policy,
+                priority=IMPORT_BUNDLE_PRIORITY,
             )
 
             # Mark as successful
@@ -624,6 +666,7 @@ class ImportBundleWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=IMPORT_BUNDLE_PRIORITY,
             )
         except Exception as e:
             # Set upload to failure status
@@ -638,6 +681,7 @@ class ImportBundleWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=IMPORT_BUNDLE_PRIORITY,
             )
             raise e
 
@@ -648,6 +692,7 @@ class ImportBundleWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=IMPORT_BUNDLE_PRIORITY,
             )
 
 
@@ -678,6 +723,7 @@ class PublishUploadWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_UPLOAD_PRIORITY,
             )
 
             # Publish upload
@@ -687,6 +733,7 @@ class PublishUploadWorkflow:
                 schedule_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_UPLOAD_PRIORITY,
             )
 
             # Mark as successful
@@ -695,6 +742,7 @@ class PublishUploadWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_UPLOAD_PRIORITY,
             )
 
         except Exception as e:
@@ -710,6 +758,7 @@ class PublishUploadWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_UPLOAD_PRIORITY,
             )
             raise e
 
@@ -720,6 +769,7 @@ class PublishUploadWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_UPLOAD_PRIORITY,
             )
 
 
@@ -750,6 +800,7 @@ class PublishExternallyWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
 
             # Publish externally
@@ -759,6 +810,7 @@ class PublishExternallyWorkflow:
                 schedule_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
 
             # Mark as successful
@@ -767,6 +819,7 @@ class PublishExternallyWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
 
         except Exception as e:
@@ -782,6 +835,7 @@ class PublishExternallyWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
             raise e
 
@@ -792,4 +846,5 @@ class PublishExternallyWorkflow:
                 upload_workflow_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
+                priority=PUBLISH_EXTERNALLY_PRIORITY,
             )

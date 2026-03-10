@@ -80,7 +80,7 @@ infrastructure = [
   "rdflib==5", # breaking changes in DCT.dataset in later versions
   "structlog",
   "tabulate",
-  "temporalio>=1.21.1",
+  "temporalio>=1.23.0",
   "cryptography",
   "uvicorn[standard]",
   "validators",
