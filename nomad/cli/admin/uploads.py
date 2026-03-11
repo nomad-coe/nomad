@@ -1382,9 +1382,7 @@ def import_bundle(ctx, input_path, multi, settings, embargo_length, ignore_error
                 print(f'Skipping, does not look like a bundle: {bundle_path}')
     finally:
         print('-' * 80 + '\nSummary:\n' + '-' * 80)
-        print(
-            f'Number of bundles successfully {"sent to worker" if use_celery else "imported"}: {count - count_failed}'
-        )
+        print(f'Number of bundles successfully imported: {count - count_failed}')
         if count_failed:
             print(f'FAILED to import: {count_failed}')
             if not ignore_errors:
