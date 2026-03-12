@@ -1709,10 +1709,6 @@ class Config(ConfigBaseModel):
         (pkgutil.get_loader will run code in the package root __init__). Instead
         this function should be called to instantiate the plugins before the
         nomad application is started.
-
-        TODO: Once we migrate to Pydantic v2, we should add the computed_field +
-        cached_property decorator to the 'plugins' field instead of using this
-        function.
         """
         from nomad.config import _merge, _plugins
         from nomad.config.models.plugins import NorthToolEntryPoint
@@ -1819,11 +1815,11 @@ class Config(ConfigBaseModel):
                             )
 
             # Assign URL-safe identifiers to all entry points and check for collisions
-            self._assign_url_safe_ids(_plugins['entry_points']['options'])
+            self._assign_url_safe_ids(_plugins['entry_points'])
 
             self.plugins = Plugins.model_validate(_plugins)
 
-    def _assign_url_safe_ids(self, entry_points_options: dict) -> None:
+    def _assign_url_safe_ids(self, entry_points: dict) -> None:
         """Assigns URL-safe identifiers to all entry points.
 
         For each entry point, if a custom id_url_safe is provided, it is validated
@@ -1841,7 +1837,12 @@ class Config(ConfigBaseModel):
             str, tuple[str, str]
         ] = {}  # Maps url_safe_id -> original entry_point_id
 
-        for entry_point_id, config in entry_points_options.items():
+        # Iterate over all the activated entry points to assign URL-safe identifiers and
+        # check for collisions
+        for entry_point_id in Options.model_validate(entry_points).filtered_keys():
+            config = entry_points.get('options', {}).get(entry_point_id)
+            if not config:
+                continue
             # Get id_url_safe, and plugin_type from config (dict or BaseModel)
             if isinstance(config, dict):
                 custom_url_safe_id = config.get('id_url_safe')
