@@ -78,8 +78,8 @@ mako==1.3.10              # via alembic, -r requirements.txt
 markupsafe==3.0.3         # via jinja2, mako, -r requirements.txt
 matid==2.1.6              # via -r requirements.txt, nomad-lab (pyproject.toml)
 matplotlib==3.10.8        # via ase, pymatgen, -r requirements.txt
-molid==0.8.4              # via -r requirements.txt, nomad-lab (pyproject.toml)
-mongoengine==0.29.1       # via -r requirements.txt, nomad-lab (pyproject.toml)
+molid==0.8.5              # via -r requirements.txt, nomad-lab (pyproject.toml)
+mongoengine==0.29.3       # via -r requirements.txt, nomad-lab (pyproject.toml)
 mongomock==4.3.0          # via optimade, -r requirements.txt
 monty==2025.3.3 ; python_full_version < '3.11'  # via pymatgen, -r requirements.txt
 monty==2026.2.18 ; python_full_version >= '3.11'  # via pymatgen, -r requirements.txt
@@ -114,7 +114,7 @@ plotly==5.24.1            # via pymatgen, -r requirements.txt, nomad-lab (pyproj
 pluggy==1.6.0             # via pytest, pytest-cov
 prometheus-client==0.24.1  # via jupyterhub, -r requirements.txt
 protobuf==6.33.5          # via temporalio, -r requirements.txt
-psutil==6.1.1             # via jupyterhub, molid, -r requirements.txt
+psutil==7.2.2             # via jupyterhub, molid, -r requirements.txt
 py-spy==0.4.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
 pyasn1==0.6.2             # via pyasn1-modules, rfc3161ng, -r requirements.txt
 pyasn1-modules==0.4.2     # via rfc3161ng, -r requirements.txt
@@ -175,7 +175,7 @@ threadpoolctl==3.6.0      # via scikit-learn, -r requirements.txt
 tifffile==2025.5.10 ; python_full_version < '3.11'  # via h5grove, -r requirements.txt
 tifffile==2026.3.3 ; python_full_version >= '3.11'  # via h5grove, -r requirements.txt
 tomli==2.4.0 ; python_full_version <= '3.11'  # via alembic, coverage, mypy, pytest, -r requirements.txt
-tornado==6.5.4            # via jupyterhub, -r requirements.txt
+tornado==6.5.5            # via jupyterhub, -r requirements.txt
 tqdm==4.67.3              # via molid, pymatgen, -r requirements.txt
 traitlets==5.14.3         # via jupyter-telemetry, jupyterhub, -r requirements.txt
 types-protobuf==6.32.1.20260221  # via temporalio, -r requirements.txt
