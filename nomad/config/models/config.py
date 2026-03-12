@@ -345,7 +345,7 @@ class Auth(ConfigBaseModel):
                 - Wildcards are supported (e.g. `"*:read"` for read-only, `"*:*"` for all).
 
             For the complete list of scopes (resources/actions), refer to the
-            `nomad.auth.Scope` Enum.
+            `nomad.auth.scopes.Scope` Enum.
         """,
     )
     unauthorized_user_scopes: OptionsGlob = Field(
@@ -361,7 +361,7 @@ class Auth(ConfigBaseModel):
                 - Wildcards are supported (e.g. `"*:read"` for read-only, `"*:*"` for all).
 
             For the complete list of scopes (resources/actions), refer to the
-            `nomad.auth.Scope` Enum.
+            `nomad.auth.scopes.Scope` Enum.
         """,
     )
 
