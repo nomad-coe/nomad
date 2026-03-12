@@ -481,13 +481,39 @@ def action_artifacts_dir() -> str:
     """
     Returns the path to the action artifacts directory.
 
-    Activities can use this directory to store their artifacts.
+    Activities can use this directory to store artifacts that can be used
+    by multiple actions, such as ML training models, global configuration,
+    or reference datasets.
     """
 
-    path = os.path.join(config.fs.tmp, 'action_artifacts')
+    path = os.path.join(config.fs.actions, 'artifacts')
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
     return path
+
+
+def action_instance_artifacts_dir(action_instance_id: str) -> str:
+    """
+    Returns the path to the artifacts directory for a specific instance.
+
+    Activities can use this directory to store artifacts that are generated
+    by a given instance, for example a classification_result for a given input.
+    """
+    action_instance_dir = os.path.join(config.fs.actions, action_instance_id)
+    if not os.path.exists(action_instance_dir):
+        os.makedirs(action_instance_dir, exist_ok=True)
+    return action_instance_dir
+
+
+def action_log_file_path(action_instance_id: str) -> str:
+    """
+    Returns the file path for the logs of a given action instance.
+    Logs are stored in config.fs.action/logs/<action_instance_id>.log.
+    """
+    log_dir = os.path.join(config.fs.actions, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    return os.path.join(log_dir, f'{action_instance_id}.log')
 
 
 async def _async_start_workflow(action, data, workflow_id) -> str:

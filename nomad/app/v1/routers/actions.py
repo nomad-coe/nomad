@@ -1,8 +1,10 @@
 import asyncio
+import os
 from enum import Enum
 from typing import Annotated, Final
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi_cache.decorator import cache
 from pydantic import BaseModel
 
@@ -10,6 +12,7 @@ from nomad.actions.manager import (
     ActionModel,
     ActionModelSummary,
     ActionSchemaInfo,
+    action_log_file_path,
     get_action_result,
     get_action_status,
     get_all_action_schemas,
@@ -277,6 +280,102 @@ async def action(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def stream_logs(log_file: str, action_instance_id: str, user_id: str):
+    with open(log_file) as f:
+        f.seek(0, os.SEEK_END)
+
+        while True:
+            line = await asyncio.to_thread(f.readline)
+
+            if line:
+                yield line
+            else:
+                # check if workflow status is running/pending, otherwise break
+                try:
+                    status = await asyncio.to_thread(
+                        lambda: get_action_status(
+                            action_instance_id=action_instance_id, user_id=user_id
+                        )
+                    )
+                    if status.name not in ('PENDING', 'RUNNING'):
+                        break
+                except Exception:
+                    break
+
+                await asyncio.sleep(1)
+
+
+@router.get(
+    '/{action_instance_id}/logs',
+    tags=[APITag.DEFAULT],
+    summary='Get action logs',
+    description='Retrieves the logs for a specific action instance as a plain text file or stream.',
+    responses=create_responses(_not_authorized),
+)
+async def action_logs(
+    action_instance_id: str,
+    user: Annotated[
+        User,
+        Depends(
+            get_current_user([Scope.ACTIONS_READ], allow_anonymous=False),
+        ),
+    ],
+    stream: bool = False,
+):
+    """
+    Gets the logs of an action instance.
+
+    Args:
+        action_instance_id: The ID of the action instance.
+        user: The authenticated user.
+        stream: Whether to stream the logs as SSE.
+
+    Returns:
+        A FileResponse streaming the log file, or StreamingResponse if stream is True.
+    """
+    try:
+        # First check if the user has access to this action.
+        result = await asyncio.to_thread(
+            lambda: get_user_action(
+                action_instance_id=action_instance_id, user_id=user.user_id
+            )
+        )
+        if result is None:
+            raise HTTPException(status_code=404, detail='Action not found.')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    MAX_LOG_SIZE = 2 * 1024 * 1024  # 2MB
+    TRUNCATION_NOTICE = '[... earlier content truncated due to file size limit. Contact admin for the full log file ...]\n\n'
+
+    log_file = action_log_file_path(action_instance_id)
+    if not os.path.exists(log_file):
+        raise HTTPException(
+            status_code=404, detail='Log file not found for this action.'
+        )
+
+    file_size = os.path.getsize(log_file)
+    if stream:
+        return StreamingResponse(
+            stream_logs(log_file, action_instance_id, user.user_id),
+            media_type='text/event-stream',
+        )
+
+    if file_size <= MAX_LOG_SIZE:
+        return FileResponse(log_file, media_type='text/plain')
+
+    def _read_truncated_content() -> bytes:
+        with open(log_file, 'rb') as f:
+            f.seek(-MAX_LOG_SIZE, os.SEEK_END)
+            return TRUNCATION_NOTICE.encode() + f.read()
+
+    truncated_content = await asyncio.to_thread(_read_truncated_content)
+
+    return Response(content=truncated_content, media_type='text/plain')
 
 
 @router.get(

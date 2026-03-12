@@ -163,6 +163,15 @@ class Services(ConfigBaseModel):
     """,
     )
 
+    actions_log_level: int | str = Field(
+        logging.INFO,
+        description="""
+        The log level that controls action logging for all NOMAD Actions.
+        The level is given in Python `logging` log level numbers.
+        Note: Users will be able to view these logs via the UI.
+    """,
+    )
+
     upload_limit: int = Field(
         10,
         description="""
@@ -232,6 +241,9 @@ class Services(ConfigBaseModel):
 
     # Validators
     _console_log_level = field_validator('console_log_level', mode='before')(
+        normalize_loglevel
+    )
+    _actions_log_level = field_validator('actions_log_level', mode='before')(
         normalize_loglevel
     )
 
@@ -542,6 +554,14 @@ class FS(ConfigBaseModel):
                      'nomad username': '/path/on/disk/to/work/folder/specific/for/user'
     """,
     )
+    actions: str = Field(
+        '.volumes/fs/action',
+        description='Internal path used for storing action logs and artifacts.',
+    )
+    actions_external: str | None = Field(
+        None,
+        description='External/absolute path for action artifacts. If None, derived from working_directory.',
+    )
     local_tmp: str = Field(
         '/tmp',
         description='Local temporary directory on the host system (outside of NOMAD volumes).',
@@ -590,6 +610,9 @@ class FS(ConfigBaseModel):
 
         if values.north_home_external is None:
             values.north_home_external = get_external_path(values.north_home)
+
+        if values.actions_external is None:
+            values.actions_external = get_external_path(values.actions)
 
         return values
 
