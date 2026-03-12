@@ -222,29 +222,6 @@ north:
   windows: true
   tools:
     options:
-      jupyter:
-        display_name: Jupyter Notebook
-        description: '### **Jupyter Notebook**: The Classic Notebook Interface
-
-          The Jupyter Notebook is the original web application for creating and sharing
-          computational documents. It offers a simple, streamlined, document-centric
-          experience.'
-        external_mounts: [ ]
-        file_extensions:
-          - ipynb
-        icon: logo/jupyter.svg
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-distro/jupyter:develop
-        image_pull_policy: Always
-        default_url: /lab
-        maintainer:
-          - email: markus.scheidgen@physik.hu-berlin.de
-            name: Markus Scheidgen
-        mount_path: /home/jovyan
-        path_prefix: lab/tree
-        privileged: false
-        short_description: Basic jupyter run with an empty notebook or on given notebook
-          file.
-        with_path: true
       pyiron:
         display_name: Pyiron
         description: '### **Pyiron**: Complex workflows made easy

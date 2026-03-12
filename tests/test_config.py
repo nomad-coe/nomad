@@ -552,43 +552,64 @@ def test_id_url_safe(
 
 
 @pytest.mark.parametrize(
-    'options, collides',
+    'entry_points, collides',
     [
         pytest.param(
             {
-                'pkg.mod:Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'schema_package',
-                },
-                'pkg-mod_Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'schema_package',
-                },
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                }
             },
             True,
             id='same custom id_url_safe and entry point type',
         ),
         pytest.param(
             {
-                'pkg.mod:Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'parser',
-                },
-                'pkg-mod_Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'schema_package',
-                },
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'parser',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                }
             },
             False,
             id='same custom id_url_safe, different entry point types',
         ),
+        pytest.param(
+            {
+                'exclude': ['pkg.mod:Class'],
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                },
+            },
+            False,
+            id='no clash if inactive',
+        ),
     ],
 )
-def test_id_url_safe_collision(options, collides, mockopen, monkeypatch):
+def test_id_url_safe_collision(entry_points, collides, mockopen, monkeypatch):
     """Tests that URL-safe identifier collisions are detected."""
     config_dict = {
         'plugins': {
-            'options': options,
+            'entry_points': entry_points,
         }
     }
 
