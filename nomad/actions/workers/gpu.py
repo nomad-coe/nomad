@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -8,6 +9,10 @@ from typing import Any
 from temporalio.worker import ResourceBasedSlotConfig, Worker, WorkerTuner
 
 from nomad.actions import TaskQueue
+from nomad.actions.action_logging import (
+    WorkflowLoggingInterceptor,
+    WorkflowRoutingHandler,
+)
 from nomad.actions.activities.utils import get_all_activities
 from nomad.actions.client import get_client
 from nomad.actions.workflows.utils import get_all_workflows
@@ -34,6 +39,11 @@ async def run_worker(worker_config: WorkerConfig):
         loop.add_signal_handler(signal.SIGTERM, _signal_handler)
         loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
+    # Ensure the global root logger routes workflow logs
+    root_logger = logging.getLogger()
+    if not any(isinstance(h, WorkflowRoutingHandler) for h in root_logger.handlers):
+        root_logger.addHandler(WorkflowRoutingHandler())
+
     client = await get_client()
     with ThreadPoolExecutor(max_workers=worker_config.pool_size) as executor:
         worker_kwargs: dict[str, Any] = {
@@ -42,6 +52,7 @@ async def run_worker(worker_config: WorkerConfig):
             'workflows': get_all_workflows(TaskQueue.GPU),
             'activities': get_all_activities(TaskQueue.GPU),
             'activity_executor': executor,
+            'interceptors': [WorkflowLoggingInterceptor()],
             'graceful_shutdown_timeout': timedelta(
                 seconds=config.temporal.graceful_shutdown_timeout
             ),
