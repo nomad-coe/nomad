@@ -163,6 +163,7 @@ def test_action_logs(
         assert response.status_code == 200
         assert response.text == 'Test log line 1\nTest log line 2\n'
         assert response.headers['content-type'] == 'text/plain; charset=utf-8'
+        assert response.headers['x-log-first-line'] == '1'
     finally:
         if os.path.exists(log_file):
             os.remove(log_file)
@@ -206,12 +207,9 @@ def test_action_logs_truncate(
             headers=auth_headers['user1'],
         )
         assert response.status_code == 200
-
-        notice_len = len(
-            b'[... earlier content truncated due to file size limit. Contact admin for the full log file ...]\n\n'
-        )
-        assert len(response.content) == notice_len + 2 * 1024 * 1024
+        assert len(response.content) == 2 * 1024 * 1024
         assert response.content.endswith(b'B' * 10)
+        assert int(response.headers['x-log-first-line']) >= 1
     finally:
         if os.path.exists(log_file):
             os.remove(log_file)
@@ -255,11 +253,131 @@ def test_action_logs_stream(
         )
         assert response.status_code == 200
         assert response.headers['content-type'] == 'text/event-stream; charset=utf-8'
+        assert response.headers['x-log-first-line'] == '3'
 
         # Since it streams from the end, the initial lines shouldn't be there.
         assert 'Initial line' not in response.text
         assert 'New streaming line 1' in response.text
         assert 'New streaming line 2' in response.text
+    finally:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
+
+def test_action_logs_stream_with_tail_offset(
+    client: TestClient, auth_headers, saved_action_document, monkeypatch
+):
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+
+    log_dir = os.path.join(config.fs.actions, 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, f'{saved_action_document.action_instance_id}.log')
+
+    with open(log_file, 'w') as f:
+        f.write('line 1\nline 2\nline 3\nline 4\n')
+
+    mock_status = MagicMock()
+    type(mock_status).name = PropertyMock(return_value='SUCCESS')
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_action_status',
+        lambda *_args, **_kwargs: mock_status,
+    )
+
+    try:
+        response = client.get(
+            f'/actions/{saved_action_document.action_instance_id}/logs?stream=true&offset_lines=-2',
+            headers=auth_headers['user1'],
+        )
+        assert response.status_code == 200
+        assert response.headers['x-log-first-line'] == '3'
+        assert response.text.endswith('line 3\nline 4\n')
+    finally:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
+
+def test_action_logs_stream_with_large_positive_offset_clamped(
+    client: TestClient, auth_headers, saved_action_document, monkeypatch
+):
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+
+    log_dir = os.path.join(config.fs.actions, 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, f'{saved_action_document.action_instance_id}.log')
+
+    with open(log_file, 'w') as f:
+        f.write('line 1\nline 2\n')
+
+    status_calls = 0
+
+    def mock_status(*args, **kwargs):
+        nonlocal status_calls
+        status_calls += 1
+        if status_calls == 1:
+            with open(log_file, 'a') as f:
+                f.write('line 3\n')
+
+        mock_obj = MagicMock()
+        type(mock_obj).name = PropertyMock(
+            return_value='RUNNING' if status_calls <= 1 else 'SUCCESS'
+        )
+        return mock_obj
+
+    monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
+
+    try:
+        response = client.get(
+            f'/actions/{saved_action_document.action_instance_id}/logs?stream=true&offset_lines=100',
+            headers=auth_headers['user1'],
+        )
+        assert response.status_code == 200
+        assert response.headers['x-log-first-line'] == '3'
+        assert response.text == 'line 3\n'
+    finally:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
+
+def test_action_logs_stream_with_large_negative_offset_returns_full_available_log(
+    client: TestClient, auth_headers, saved_action_document, monkeypatch
+):
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+
+    log_dir = os.path.join(config.fs.actions, 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, f'{saved_action_document.action_instance_id}.log')
+
+    with open(log_file, 'w') as f:
+        f.write('Initial line 1\nInitial line 2\n')
+
+    status_calls = 0
+
+    def mock_status(*args, **kwargs):
+        nonlocal status_calls
+        status_calls += 1
+        if status_calls == 1:
+            with open(log_file, 'a') as f:
+                f.write('New streaming line 1\n')
+
+        mock_obj = MagicMock()
+        type(mock_obj).name = PropertyMock(
+            return_value='RUNNING' if status_calls <= 2 else 'SUCCESS'
+        )
+        return mock_obj
+
+    monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
+
+    try:
+        response = client.get(
+            f'/actions/{saved_action_document.action_instance_id}/logs?stream=true&offset_lines=-2000',
+            headers=auth_headers['user1'],
+        )
+        assert response.status_code == 200
+        assert response.headers['x-log-first-line'] == '1'
+        assert '[... earlier log lines truncated:' not in response.text
+        assert 'Initial line 1' in response.text
+        assert 'Initial line 2' in response.text
+        assert 'New streaming line 1' in response.text
     finally:
         if os.path.exists(log_file):
             os.remove(log_file)
