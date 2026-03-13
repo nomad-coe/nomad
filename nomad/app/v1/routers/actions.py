@@ -1,9 +1,10 @@
 import asyncio
+import functools
 import os
 from enum import Enum
 from typing import Annotated, Final
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi_cache.decorator import cache
 from pydantic import BaseModel
@@ -44,6 +45,44 @@ class ActionStart(BaseModel):
 SCHEMA_CACHE_TTL: Final[int] = 1 * 24 * 60 * 60  # 1 day in seconds
 
 
+@functools.lru_cache(maxsize=1024)
+def _count_total_lines_cached(
+    log_file: str, _file_size: int, _file_mtime_ns: int
+) -> int:
+    """Count lines in a file. Extra params are used only as cache-busting keys."""
+    line_count = 0
+    last_byte = b''
+    with open(log_file, 'rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            line_count += chunk.count(b'\n')
+            last_byte = chunk[-1:]
+    # Count a trailing line without a newline
+    if last_byte and last_byte != b'\n':
+        line_count += 1
+    return line_count
+
+
+def _count_total_lines(log_file: str) -> int:
+    stat = os.stat(log_file)
+    return _count_total_lines_cached(log_file, stat.st_size, stat.st_mtime_ns)
+
+
+def _count_lines_before_offset(log_file: str, offset: int) -> int:
+    if offset <= 0:
+        return 0
+
+    line_count = 0
+    remaining = offset
+    with open(log_file, 'rb') as f:
+        while remaining > 0:
+            chunk = f.read(min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            line_count += chunk.count(b'\n')
+            remaining -= len(chunk)
+    return line_count
+
+
 @router.post(
     '/{action_id}/start',
     tags=[APITag.DEFAULT],
@@ -73,7 +112,9 @@ async def action_start(
     try:
         input_data = validate_action_arg(action_id, start_data.data)
         action_instance_id = await asyncio.to_thread(
-            lambda: start_action(action_id=action_id, data=input_data)
+            start_action,
+            action_id=action_id,
+            data=input_data,
         )
         return {'action_instance_id': action_instance_id}
     except HTTPException:
@@ -106,9 +147,9 @@ async def action_stop(
     """
     try:
         await asyncio.to_thread(
-            lambda: stop_action(
-                action_instance_id=action_instance_id, user_id=user.user_id
-            )
+            stop_action,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
         )
         return {'status': 'stopped'}
     except HTTPException:
@@ -144,9 +185,9 @@ async def action_status(
     """
     try:
         status = await asyncio.to_thread(
-            lambda: get_action_status(
-                action_instance_id=action_instance_id, user_id=user.user_id
-            )
+            get_action_status,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
         )
         return {'status': status.name}
     except HTTPException:
@@ -182,9 +223,9 @@ async def action_result(
     """
     try:
         result = await asyncio.to_thread(
-            lambda: get_action_result(
-                action_instance_id=action_instance_id, user_id=user.user_id
-            )
+            get_action_result,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
         )
         return result
     except HTTPException:
@@ -269,9 +310,9 @@ async def action(
     """
     try:
         result = await asyncio.to_thread(
-            lambda: get_user_action(
-                action_instance_id=action_instance_id, user_id=user.user_id
-            )
+            get_user_action,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
         )
         if result is None:
             raise HTTPException(status_code=404, detail='Action not found.')
@@ -282,9 +323,22 @@ async def action(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def stream_logs(log_file: str, action_instance_id: str, user_id: str):
+async def stream_logs(
+    log_file: str,
+    action_instance_id: str,
+    user_id: str,
+    first_line: int,
+    offset_lines: int | None = None,
+):
     with open(log_file) as f:
-        f.seek(0, os.SEEK_END)
+        if offset_lines is None:
+            f.seek(0, os.SEEK_END)
+        else:
+            line_number = 1
+            while line_number < first_line:
+                if not f.readline():
+                    break
+                line_number += 1
 
         while True:
             line = await asyncio.to_thread(f.readline)
@@ -295,9 +349,9 @@ async def stream_logs(log_file: str, action_instance_id: str, user_id: str):
                 # check if workflow status is running/pending, otherwise break
                 try:
                     status = await asyncio.to_thread(
-                        lambda: get_action_status(
-                            action_instance_id=action_instance_id, user_id=user_id
-                        )
+                        get_action_status,
+                        action_instance_id=action_instance_id,
+                        user_id=user_id,
                     )
                     if status.name not in ('PENDING', 'RUNNING'):
                         break
@@ -323,6 +377,12 @@ async def action_logs(
         ),
     ],
     stream: bool = False,
+    offset_lines: Annotated[
+        int | None,
+        Query(
+            description='Line offset for log retrieval. Negative values tail from EOF.'
+        ),
+    ] = None,
 ):
     """
     Gets the logs of an action instance.
@@ -331,6 +391,9 @@ async def action_logs(
         action_instance_id: The ID of the action instance.
         user: The authenticated user.
         stream: Whether to stream the logs as SSE.
+        offset_lines: Start line offset when stream is True. Non-negative values are
+            absolute from the beginning of the file. Negative values are relative to
+            file end.
 
     Returns:
         A FileResponse streaming the log file, or StreamingResponse if stream is True.
@@ -338,9 +401,9 @@ async def action_logs(
     try:
         # First check if the user has access to this action.
         result = await asyncio.to_thread(
-            lambda: get_user_action(
-                action_instance_id=action_instance_id, user_id=user.user_id
-            )
+            get_user_action,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
         )
         if result is None:
             raise HTTPException(status_code=404, detail='Action not found.')
@@ -350,8 +413,6 @@ async def action_logs(
         raise HTTPException(status_code=500, detail=str(e))
 
     MAX_LOG_SIZE = 2 * 1024 * 1024  # 2MB
-    TRUNCATION_NOTICE = '[... earlier content truncated due to file size limit. Contact admin for the full log file ...]\n\n'
-
     log_file = action_log_file_path(action_instance_id)
     if not os.path.exists(log_file):
         raise HTTPException(
@@ -360,22 +421,54 @@ async def action_logs(
 
     file_size = os.path.getsize(log_file)
     if stream:
+
+        def _prepare_stream_metadata() -> int:
+            total_lines = _count_total_lines(log_file)
+            return (
+                total_lines + 1
+                if offset_lines is None
+                else (
+                    max(1, total_lines + offset_lines + 1)
+                    if offset_lines < 0
+                    else min(offset_lines + 1, total_lines + 1)
+                )
+            )
+
+        first_line = await asyncio.to_thread(_prepare_stream_metadata)
         return StreamingResponse(
-            stream_logs(log_file, action_instance_id, user.user_id),
+            stream_logs(
+                log_file,
+                action_instance_id,
+                user.user_id,
+                first_line=first_line,
+                offset_lines=offset_lines,
+            ),
             media_type='text/event-stream',
+            headers={'X-Log-First-Line': str(first_line)},
         )
 
     if file_size <= MAX_LOG_SIZE:
-        return FileResponse(log_file, media_type='text/plain')
+        return FileResponse(
+            log_file,
+            media_type='text/plain',
+            headers={'X-Log-First-Line': '1'},
+        )
 
-    def _read_truncated_content() -> bytes:
+    def _read_truncated_content() -> tuple[bytes, int]:
+        start_offset = max(file_size - MAX_LOG_SIZE, 0)
+        lines_before = _count_lines_before_offset(log_file, start_offset)
+        first_line = lines_before + 1
         with open(log_file, 'rb') as f:
-            f.seek(-MAX_LOG_SIZE, os.SEEK_END)
-            return TRUNCATION_NOTICE.encode() + f.read()
+            f.seek(start_offset)
+            return f.read(), first_line
 
-    truncated_content = await asyncio.to_thread(_read_truncated_content)
+    truncated_content, first_line = await asyncio.to_thread(_read_truncated_content)
 
-    return Response(content=truncated_content, media_type='text/plain')
+    return Response(
+        content=truncated_content,
+        media_type='text/plain',
+        headers={'X-Log-First-Line': str(first_line)},
+    )
 
 
 @router.get(
@@ -407,7 +500,8 @@ async def actions(
     """
     try:
         result = await asyncio.to_thread(
-            lambda: get_all_user_actions(user_id=user.user_id)
+            get_all_user_actions,
+            user_id=user.user_id,
         )
         return result
     except HTTPException:
