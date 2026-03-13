@@ -1274,11 +1274,17 @@ async def test_exclude_potcar(user1, temporal_worker, monkeypatch, exclude_potca
             )
         )
 
-    assert upload.upload_files.raw_exists('test/vasprun.xml')
-
-    potcar_exists = upload.upload_files.raw_exists('test/POTCAR')
-    if exclude_potcar:
-        assert not potcar_exists
-        assert 'Removing POTCAR file from upload.' in upload.warnings
-    else:
-        assert potcar_exists
+    for ext in ['', '.gz', '.xz', '.bz2']:
+        assert upload.upload_files.raw_exists(f'test{ext}/vasprun.xml')
+        assert upload.upload_files.raw_exists(f'test{ext}/POTCAR{ext}.stripped')
+        with upload.upload_files.raw_file(f'test{ext}/POTCAR{ext}.stripped') as f:
+            content = f.read().decode()
+            assert 'Stripped POTCAR file' in content
+            assert 'PAW_PBE' in content
+            assert 'local part' not in content
+        potcar_exists = upload.upload_files.raw_exists(f'test{ext}/POTCAR{ext}')
+        if exclude_potcar:
+            assert not potcar_exists
+            assert 'Removing POTCAR file from upload.' in upload.warnings
+        else:
+            assert potcar_exists

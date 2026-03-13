@@ -2591,14 +2591,22 @@ class Upload(Proc):
             # create checksum
             hash = hashlib.sha224()
             is_potcar = False
-            with open(
-                self.staging_upload_files.raw_file_object(path).os_path, 'rb'
+            start_read = True
+            lines_to_write = []
+            with self.staging_upload_files.raw_file(
+                path, mode='rb', compression='infer'
             ) as orig_f:
                 for line in orig_f.readlines():
                     hash.update(line)
+                    if b'End of Dataset' in line:
+                        # start read next potcar block, if concatenated
+                        start_read = True
+                    if start_read:
+                        lines_to_write.append(line.decode('utf-8'))
                     # check if this is indeed a POTCAR file
                     if b'END of PSCTR' in line:
                         is_potcar = True
+                        start_read = False
             if not is_potcar:
                 return
 
@@ -2612,15 +2620,7 @@ class Upload(Proc):
                 stripped_f.write(
                     f'Stripped POTCAR file. Checksum of original file (sha224): {checksum}\n'
                 )
-            os.system(
-                f"""
-                    awk < '{self.staging_upload_files.raw_file_object(path).os_path}' >> '{self.staging_upload_files.raw_file_object(stripped_path).os_path}' '
-                    BEGIN {{ dump=1 }}
-                    /End of Dataset/ {{ dump=1 }}
-                    dump==1 {{ print }}
-                    /END of PSCTR/ {{ dump=0 }}'
-                """
-            )
+                stripped_f.writelines(lines_to_write)
             if config.process.exclude_potcar:
                 # remove unstripped POTCAR file
                 self.warning('Removing POTCAR file from upload.')
