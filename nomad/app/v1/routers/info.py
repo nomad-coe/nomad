@@ -34,7 +34,7 @@ from nomad import normalizing
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
 from nomad.config import config
-from nomad.config.models.plugins import EntryPoint, PluginPackage
+from nomad.config.models.plugins import PluginPackage
 from nomad.parsing import parsers
 from nomad.parsing.parsers import code_metadata
 from nomad.search import get_statistics
@@ -97,7 +97,7 @@ class InfoModel(BaseModel):
     metainfo_packages: list[str]
     codes: list[CodeInfoModel]
     normalizers: list[str]
-    plugin_entry_points: list[EntryPoint] | None = Field(
+    plugin_entry_points: list[dict] | None = Field(
         None,
         description='List of plugin entry points that are activated in this deployment.',
     )
