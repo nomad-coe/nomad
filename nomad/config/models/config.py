@@ -1734,7 +1734,7 @@ class Config(ConfigBaseModel):
         nomad application is started.
         """
         from nomad.config import _merge, _plugins
-        from nomad.config.models.plugins import NorthToolEntryPoint
+        from nomad.config.models.plugins import NORTHToolEntryPoint
 
         if self.plugins is None:
 
@@ -1817,7 +1817,7 @@ class Config(ConfigBaseModel):
             # fully migrate to using entry points for the NORTH tools.
             for key, tool in self.north.tools.filtered_items():
                 if key not in plugin_entry_point_ids:
-                    _plugins['entry_points']['options'][key] = NorthToolEntryPoint(
+                    _plugins['entry_points']['options'][key] = NORTHToolEntryPoint(
                         id=key, north_tool=tool
                     )
                     # If a list of includes is given, add the activated north tools into

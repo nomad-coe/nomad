@@ -30,7 +30,7 @@ from nomad.auth.scopes import Scope
 from nomad.auth.tokens import generate_simple_token
 from nomad.config import config
 from nomad.config.models.north import NORTHTool
-from nomad.config.models.plugins import NorthToolEntryPoint
+from nomad.config.models.plugins import NORTHToolEntryPoint
 from nomad.mongo.groups import MongoUserGroup
 from nomad.processing import Upload
 from nomad.utils import get_logger, slugify, strip
@@ -122,10 +122,10 @@ def _get_status(tool: ToolModel, user: User) -> ToolModel:
 async def get_tools(
     user: Annotated[User, Depends(get_current_user([Scope.NORTH_READ]))],
 ):
-    north_tools: list[NorthToolEntryPoint] = []
+    north_tools: list[NORTHToolEntryPoint] = []
     for plugin in config.plugins.entry_points.filtered_values():
         if plugin.entry_point_type == 'north_tool':
-            if isinstance(plugin, NorthToolEntryPoint):
+            if isinstance(plugin, NORTHToolEntryPoint):
                 north_tools.append(plugin)
 
     return ToolsResponseModel(
@@ -160,7 +160,7 @@ async def tool(name: str) -> ToolModel:
             status_code=status.HTTP_404_NOT_FOUND, detail='The tool does not exist.'
         )
 
-    north_tool = cast(NorthToolEntryPoint, plugin).north_tool
+    north_tool = cast(NORTHToolEntryPoint, plugin).north_tool
 
     return ToolModel(name=name, **north_tool.dict())
 
