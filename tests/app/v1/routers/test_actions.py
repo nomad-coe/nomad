@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime
 from unittest.mock import MagicMock, PropertyMock
 
@@ -16,9 +17,10 @@ def client(api_v1: TestClient) -> TestClient:
 
 @pytest.fixture
 def saved_action_document(mongo_function, user1):
+    action_instance_id = f'workflow-{uuid.uuid4().hex}'
     action = ActionDocument(
         action_id='my-action',
-        action_instance_id='workflow-1',
+        action_instance_id=action_instance_id,
         status='RUNNING',
         user_id=user1.user_id,
         created_at=datetime.now(),
