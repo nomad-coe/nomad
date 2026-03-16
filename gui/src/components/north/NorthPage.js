@@ -78,7 +78,7 @@ const NorthToolAccordion = React.memo(function NorthToolAccordion({...props}) {
               <Icon>
                 <img
                   className={classes.iconImg}
-                  src={`${process.env.PUBLIC_URL}/${icon}`}
+                  src={icon.startsWith('http://') || icon.startsWith('https://') ? icon : `${process.env.PUBLIC_URL}/${icon}`}
                   alt="icon"
                 />
               </Icon>
