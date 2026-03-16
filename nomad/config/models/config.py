@@ -555,7 +555,7 @@ class FS(ConfigBaseModel):
     """,
     )
     actions: str = Field(
-        '.volumes/fs/action',
+        '.volumes/fs/actions',
         description='Internal path used for storing action logs and artifacts.',
     )
     actions_external: str | None = Field(
