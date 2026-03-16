@@ -205,7 +205,7 @@ export const NorthURL = React.memo(({ action, data }) => {
               {tool.icon ? (
                 <img
                   style={{ width: "30px", height: "30px", objectFit: "contain" }}
-                  src={`${process.env.PUBLIC_URL}/${tool.icon}`}
+                  src={tool.icon.startsWith('http://') || tool.icon.startsWith('https://') ? tool.icon : `${process.env.PUBLIC_URL}/${tool.icon}`}
                   alt="icon"
                 />
               ) : (
