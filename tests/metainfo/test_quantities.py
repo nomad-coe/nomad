@@ -136,13 +136,13 @@ def test_normalization_string(def_type, orig_value, normalized_value):
     'def_type, unit, shape, input, output, valid',
     [
         pytest.param(x, None, [], 1, 1, True, id=f'0D type without unit: {x.__name__}')
-        for x in MTypes.int
+        for x in sorted(MTypes.int, key=lambda t: t.__name__)
     ]
     + [
         pytest.param(
             x, None, [], 1.0, 1.0, True, id=f'0D type without unit: {x.__name__}'
         )
-        for x in MTypes.float
+        for x in sorted(MTypes.float, key=lambda t: t.__name__)
     ]
     + [
         pytest.param(
@@ -154,7 +154,7 @@ def test_normalization_string(def_type, orig_value, normalized_value):
             True,
             id=f'0D type with unit: {x.__name__}',
         )
-        for x in MTypes.int - {int}
+        for x in sorted(MTypes.int - {int}, key=lambda t: t.__name__)
     ]
     + [
         pytest.param(
@@ -177,7 +177,7 @@ def test_normalization_string(def_type, orig_value, normalized_value):
             True,
             id=f'0D type with unit: {x.__name__}',
         )
-        for x in MTypes.float
+        for x in sorted(MTypes.float, key=lambda t: t.__name__)
     ],
 )
 def test_normalization_number(def_type, unit, shape, input, output, valid):

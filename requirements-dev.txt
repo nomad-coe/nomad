@@ -20,7 +20,7 @@ cachetools==7.0.5         # via -r requirements.txt, nomad-lab (pyproject.toml)
 certifi==2026.2.25        # via elasticsearch, httpcore, httpx, requests, -r requirements.txt
 certipy==0.2.2            # via jupyterhub, -r requirements.txt
 cffi==2.0.0 ; platform_python_implementation != 'PyPy'  # via cryptography, -r requirements.txt
-charset-normalizer==3.4.5  # via requests, -r requirements.txt
+charset-normalizer==3.4.6  # via requests, -r requirements.txt
 click==8.3.1              # via molid, uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
 colorama==0.4.6 ; sys_platform == 'win32'  # via click, pytest, tqdm, uvicorn, -r requirements.txt
 contourpy==1.3.2 ; python_full_version < '3.11'  # via matplotlib, -r requirements.txt
@@ -45,7 +45,7 @@ fastapi==0.135.1          # via fastapi-cache2, h5grove, -r requirements.txt, no
 fastapi-cache2==0.2.2     # via -r requirements.txt, nomad-lab (pyproject.toml)
 flexcache==0.3            # via pint, -r requirements.txt
 flexparser==0.4           # via pint, -r requirements.txt
-fonttools==4.62.0         # via matplotlib, -r requirements.txt
+fonttools==4.62.1         # via matplotlib, -r requirements.txt
 fsspec==2026.2.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 greenlet==3.3.2 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'  # via sqlalchemy, -r requirements.txt
 gunicorn==25.1.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -92,7 +92,7 @@ networkx==3.4.2 ; python_full_version < '3.11'  # via matid, pymatgen, -r requir
 networkx==3.6.1 ; python_full_version >= '3.11'  # via matid, pymatgen, -r requirements.txt
 nexus-rpc==1.3.0          # via temporalio, -r requirements.txt
 numpy==2.2.6 ; python_full_version < '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
-numpy==2.3.5 ; python_full_version >= '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
+numpy==2.4.3 ; python_full_version >= '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
 oauthenticator==15.1.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 oauthlib==3.3.1           # via jupyterhub, -r requirements.txt
 openpyxl==3.1.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -124,7 +124,7 @@ pydantic-core==2.41.5     # via pydantic, -r requirements.txt
 pydantic-settings==2.13.1  # via h5grove, molid, optimade, -r requirements.txt
 pygments==2.19.2          # via pytest
 pyinstrument==5.1.2       # via -r requirements.txt, nomad-lab (pyproject.toml)
-pyjwt==2.11.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
+pyjwt==2.12.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymatgen==2025.10.7       # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymongo==4.16.0           # via mongoengine, optimade, -r requirements.txt
 pyparsing==3.3.2          # via bibtexparser, matplotlib, rdflib, -r requirements.txt
@@ -154,7 +154,7 @@ requests-toolbelt==1.0.0  # via python-gitlab, python-keycloak, -r requirements.
 rfc3161ng==2.1.3          # via -r requirements.txt, nomad-lab (pyproject.toml)
 rpds-py==0.30.0           # via jsonschema, referencing, -r requirements.txt
 ruamel-yaml==0.19.1       # via jupyter-telemetry, monty, oauthenticator, pymatgen, -r requirements.txt
-ruff==0.15.5              # via nomad-lab (pyproject.toml)
+ruff==0.15.6              # via nomad-lab (pyproject.toml)
 scikit-learn==1.7.2 ; python_full_version < '3.11'  # via matid, -r requirements.txt
 scikit-learn==1.8.0 ; python_full_version >= '3.11'  # via matid, -r requirements.txt
 scipy==1.15.3 ; python_full_version < '3.11'  # via ase, pymatgen, scikit-learn, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -179,13 +179,13 @@ tornado==6.5.5            # via jupyterhub, -r requirements.txt
 tqdm==4.67.3              # via molid, pymatgen, -r requirements.txt
 traitlets==5.14.3         # via jupyter-telemetry, jupyterhub, -r requirements.txt
 types-protobuf==6.32.1.20260221  # via temporalio, -r requirements.txt
-typing-extensions==4.15.0  # via alembic, anyio, cryptography, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, h5grove, jwcrypto, mypy, nexus-rpc, pint, pydantic, pydantic-core, pytest-asyncio, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -r requirements.txt
+typing-extensions==4.15.0  # via alembic, anyio, cryptography, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, h5grove, jwcrypto, mypy, nexus-rpc, pint, pydantic, pydantic-core, pyjwt, pytest-asyncio, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -r requirements.txt
 typing-inspection==0.4.2  # via fastapi, pydantic, pydantic-settings, -r requirements.txt
 tzdata==2025.3            # via pandas, pendulum, -r requirements.txt
 uncertainties==3.2.3      # via pymatgen, -r requirements.txt
 unidecode==1.4.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 urllib3==2.6.3            # via docker, elasticsearch, requests, -r requirements.txt
-uvicorn==0.41.0           # via fastapi-cache2, h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
+uvicorn==0.42.0           # via fastapi-cache2, h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
 uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'  # via uvicorn, -r requirements.txt
 validators==0.35.0        # via -r requirements.txt, nomad-lab (pyproject.toml)
 watchfiles==1.1.1         # via uvicorn, -r requirements.txt
