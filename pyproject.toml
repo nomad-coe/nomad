@@ -32,7 +32,7 @@ dependencies = [
   'molid>=0.8.5',
   "msgpack>=1",
   "msgspec",
-  "numpy>=1.22.4,<2.4.0", # TODO: fix casting ndim>0 array to scalar
+  "numpy>=1.22.4",
   "openpyxl",
   "orjson>=1.0",
   "pandas>=2",
