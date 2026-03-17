@@ -127,9 +127,6 @@ def _resolve_user_with_scopes(
                 # The user was deleted, but their PAT still exists
                 logger.warning(f'Valid PAT used for missing user_id: {pat.user_id}')
 
-                # Self-heal: remove the orphaned token
-                revoke_pat(user_id=pat.user_id, pat_id=str(pat.id))
-
     # Resolve user from upload token
     if auth_result is None and upload_token:
         auth_result = get_user_from_upload_token(upload_token)

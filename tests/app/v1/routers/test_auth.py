@@ -458,14 +458,21 @@ def test_get_current_user_deleted_user_auto_revokes_pat(mongo_function, monkeypa
     )
 
     # Attempt to authenticate using the orphaned token
+    warnings = []
+
+    def fake_warning(msg, *args, **kwargs):
+        warnings.append(msg)
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.logger.warning',
+        fake_warning,
+    )
+
     with pytest.raises(HTTPException) as exc:
         dep(personal_access_token=raw_token)
 
     assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
-
-    # Verify the self-healing (token should be revoked)
-    pat.reload()
-    assert pat.revoked is True
+    assert f'Valid PAT used for missing user_id: {pat.user_id}' in warnings
 
 
 # Tests for scope enforcing (`_resolve_user_with_scopes`)
