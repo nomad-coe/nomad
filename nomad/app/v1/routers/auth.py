@@ -426,16 +426,23 @@ def rotate_pat_endpoint(
     ],
 ):
     """
-    Rotates an existing PAT (could be expired as long as not cleaned up).
+    Rotates an existing PAT.
 
     This revokes the old token and issues a new one,
     copying the original metadata and calculating
     a new expiration date based on the original token's lifespan.
 
     Raises:
+        400 Bad Request: If the token is expired or revoked (i.e., not active).
         404 Not Found: If the target token does not exist.
     """
-    result = rotate_pat(user_id=user.user_id, pat_id=pat_id)
+    try:
+        result = rotate_pat(user_id=user.user_id, pat_id=pat_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
     if result is None:
         raise HTTPException(

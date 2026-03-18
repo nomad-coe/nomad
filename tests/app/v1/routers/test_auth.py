@@ -16,14 +16,18 @@
 # limitations under the License.
 #
 
+import datetime
+
 import pytest
 from bson import ObjectId
+from bson.objectid import ObjectId
 from fastapi import HTTPException, Request, status
 
 from nomad.app.v1.models.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import PAT, PAT_PREFIX, AuthResult, _hash_token
+from nomad.common import now
 from nomad.config.models.config import ModeEnum
 
 # Tests for OIDC authentication endpoints
@@ -856,6 +860,60 @@ def test_rotate_pat_cross_user(client, auth_headers, mongo_function):
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert 'Token not found or does not belong to the user' in response.json()['detail']
+
+
+def test_rotate_pat_revoked_token(client, auth_headers, mongo_function):
+    """Test that a revoked PAT cannot be rotated."""
+    headers = auth_headers['user1']
+
+    # Create initial token
+    create_resp = client.post(
+        'auth/pats',
+        json={
+            'metadata': {'name': 'Revoked Token', 'scopes': []},
+            'expires_in_days': 30,
+        },
+        headers=headers,
+    )
+    pat_id = create_resp.json()['pat']['id']
+
+    # Revoke
+    pat = PAT.objects(id=ObjectId(pat_id)).first()
+    assert pat is not None
+    pat.revoked = True
+    pat.save()
+
+    # Attempt rotation
+    response = client.post(f'auth/pats/{pat_id}/rotate', headers=headers)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'Cannot rotate an expired' in response.json()['detail']
+
+
+def test_rotate_pat_expired_token(client, auth_headers, mongo_function):
+    """Test that an expired PAT cannot be rotated."""
+    headers = auth_headers['user1']
+
+    # Create initial token
+    create_resp = client.post(
+        'auth/pats',
+        json={
+            'metadata': {'name': 'Expired Token', 'scopes': []},
+            'expires_in_days': 30,
+        },
+        headers=headers,
+    )
+    pat_id = create_resp.json()['pat']['id']
+
+    # Expire
+    pat = PAT.objects(id=ObjectId(pat_id)).first()
+    assert pat is not None
+    pat.expired_at = now() - datetime.timedelta(seconds=1)
+    pat.save()
+
+    # Attempt rotation
+    response = client.post(f'auth/pats/{pat_id}/rotate', headers=headers)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'Cannot rotate an expired' in response.json()['detail']
 
 
 @pytest.mark.parametrize(
