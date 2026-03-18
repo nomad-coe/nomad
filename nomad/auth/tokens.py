@@ -161,8 +161,10 @@ def create_pat(
     raw_token = f'{PAT_PREFIX}{secrets.token_urlsafe(32)}'
     token_digest = _hash_token(raw_token)
 
+    current_time = now()
+
     expires_at: datetime.datetime | None = (
-        now() + datetime.timedelta(days=expires_in_days)
+        current_time + datetime.timedelta(days=expires_in_days)
         if expires_in_days is not None
         else None
     )
@@ -172,8 +174,8 @@ def create_pat(
         user_id=user_id,
         token_digest=token_digest,
         expired_at=expires_at,
-        created_at=now(),
-        updated_at=now(),
+        created_at=current_time,
+        updated_at=current_time,
         **metadata.model_dump(),
     )
     pat.save()
@@ -323,9 +325,7 @@ def generate_simple_token(user_id: str, expires_in: float) -> str:
     import jwt
 
     check_api_secret()
-    expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-        seconds=expires_in
-    )
+    expires_at = now() + datetime.timedelta(seconds=expires_in)
     payload = dict(user=user_id, exp=expires_at)
     return jwt.encode(
         payload=payload, key=config.services.api_secret, algorithm=JWT_ALGORITHM
