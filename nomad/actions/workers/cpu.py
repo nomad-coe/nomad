@@ -63,10 +63,16 @@ async def run_worker(worker_config: WorkerConfig):
                 worker_config.max_concurrent_activities
             )
         else:
+            minimum_activity_slots = (
+                worker_config.min_activity_slots
+                if worker_config.min_activity_slots is not None
+                else worker_config.pool_size
+            )
             worker_kwargs['tuner'] = WorkerTuner.create_resource_based(
                 target_memory_usage=worker_config.target_memory_usage,
                 target_cpu_usage=worker_config.target_cpu_usage,
                 activity_config=ResourceBasedSlotConfig(
+                    minimum_slots=minimum_activity_slots,
                     maximum_slots=worker_config.max_activity_slots,
                     ramp_throttle=timedelta(
                         milliseconds=worker_config.activity_ramp_throttle

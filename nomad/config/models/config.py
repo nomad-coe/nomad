@@ -790,6 +790,14 @@ class WorkerConfig(ConfigBaseModel):
             slots for the activity slot supplier.
         """,
     )
+    min_activity_slots: int | None = Field(
+        None,
+        description="""
+            If max_concurrent_activities is not set, this optionally overrides the
+            minimum number of activity slots for resource-based tuning.
+            If unset, NOMAD uses `pool_size` as the minimum.
+        """,
+    )
 
 
 class Temporal(ConfigBaseModel):
@@ -813,13 +821,32 @@ class Temporal(ConfigBaseModel):
         1,
         description='Graceful shutdown timeout (in seconds) for Temporal workers.',
     )
-    batch_processing_concurrency: int = Field(
+    entry_workflow_batch_concurrency: int = Field(
         5,
-        description='Maximum number of concurrent batches processed by the batch processing workflow.',
+        ge=1,
+        description="""
+            Controls how many entry batch processing workflows are processed at the
+            same time. Only used for very large uploads where entries are split
+            into temporary batches.
+        """,
     )
-    entry_processing_concurrency: int = Field(
+    entry_concurrency_target: int = Field(
         50,
-        description='Maximum number of concurrent entries processed per batch processing workflow.',
+        ge=1,
+        description="""
+            Approximate number of entries to process concurrently inside one
+            batch-processing workflow. Together with `entry_activity_batch_size`,
+            this determines how many batch activities run at the same time.
+        """,
+    )
+    entry_activity_batch_size: int = Field(
+        5,
+        ge=1,
+        description="""
+            Number of entries grouped into a single process-entry activity invocation.
+            Larger values reduce Temporal scheduling/event overhead for fast entries,
+            but increase the amount of work retried together on transient failures.
+        """,
     )
     prometheus_bind_address: str | None = Field(
         None,

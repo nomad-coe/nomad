@@ -28,13 +28,14 @@ from nomad.workflows.shared_objects import (
     UploadProcessingWorkflowInput,
     UploadWorkflowIdInput,
 )
-from nomad.workflows.utils import generate_batches
+from nomad.workflows.utils import generate_batches, get_max_entries_per_batch_workflow
 
 parser_min_level = min([parser.level for parser in parsers])
 # If the heartbeat timeout is 10 mins, this would send a heartbeat every 60 seconds.
 HEARTBEAT_FREQUENCY = (
     config.temporal.processing_timeouts.internal_processing_heartbeat_timeout / 10
 )
+MAX_IN_MEMORY_ENTRIES = 1000
 
 
 @activity.defn
@@ -68,26 +69,58 @@ def delete_upload_record_activity(input: DeleteUploadWorkflowInput):
         upload.delete()
 
 
+def _process_single_entry(input: ProcessEntryActivityInput):
+    """Process one entry and map permanent processing failures to non-retryable errors."""
+    entry = Entry.get(input.entry_id)
+    try:
+        entry.errors = []
+        entry._process_entry_local()
+        entry.on_success()
+        entry.process_status = ProcessStatus.SUCCESS
+        entry.complete_time = datetime.now(timezone.utc)
+        entry.save()
+    except Exception as e:
+        entry.fail(*[e])
+        entry.save()
+        if isinstance(e, ProcessFailure):
+            # ProcessFailure represents permanent failures (data validation, business logic errors)
+            # that cannot be resolved through retries.
+            raise ApplicationError(str(e), non_retryable=True) from e
+        raise e
+    activity.heartbeat()
+
+
 @activity.defn
 def process_entry_activity(input: ProcessEntryActivityInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
-        entry = Entry.get(input.entry_id)
-        try:
-            entry.errors = []
-            entry._process_entry_local()
-            entry.on_success()
-            entry.process_status = ProcessStatus.SUCCESS
-            entry.complete_time = datetime.now(timezone.utc)
-            entry.save()
-        except Exception as e:
-            entry.fail(*[e])
-            entry.save()
-            if isinstance(e, ProcessFailure):
-                # ProcessFailure represents permanent failures (data validation, business logic errors)
-                # that cannot be resolved through retries.
-                raise ApplicationError(str(e), non_retryable=True) from e
-            else:
-                raise e
+        _process_single_entry(input)
+
+
+@activity.defn
+def process_entry_batch_activity(inputs: list[ProcessEntryActivityInput]):
+    """
+    Process a batch of entries in one Temporal activity invocation.
+
+    Non-retryable entry failures (`ProcessFailure`) are isolated to the affected
+    entry and do not abort the batch. Retryable failures are raised only after
+    all entries in the batch have been attempted.
+    """
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        retryable_error: Exception | None = None
+        for entry_input in inputs:
+            try:
+                _process_single_entry(entry_input)
+            except ApplicationError as e:
+                if getattr(e, 'non_retryable', False):
+                    continue
+                if retryable_error is None:
+                    retryable_error = e
+            except Exception as e:
+                if retryable_error is None:
+                    retryable_error = e
+
+        if retryable_error is not None:
+            raise retryable_error
 
 
 @activity.defn
@@ -159,7 +192,7 @@ def next_level_entries(
         # When dealing with multiple large batches, storing all entries in workflow state
         # would exceed Temporal's serialization limits. Instead, we persist batches to disk
         # and process them sequentially via file references.
-        if len(entry_batches) <= 1:
+        if len(next_entries) < MAX_IN_MEMORY_ENTRIES:
             entries_list = [
                 ProcessEntryActivityInput(
                     upload_id=input.upload_id,
@@ -174,9 +207,17 @@ def next_level_entries(
                 upload_id=input.upload_id,
             )
 
-        # If many batches, save all entries to json files
+        # Persist entry IDs as one file per batch to avoid large workflow payloads
+        # without introducing repeated scans through a shared file.
         batch_dir = os.path.join(input.workflow_tmp_dir, f'level_{input.min_level}')
         os.makedirs(batch_dir, exist_ok=True)
+        max_entries_per_batch_workflow = get_max_entries_per_batch_workflow(
+            config.temporal.entry_activity_batch_size
+        )
+        entry_batches = generate_batches(
+            next_entries,
+            max_desired_batch_size=max_entries_per_batch_workflow,
+        )
 
         for batch_idx, batch in enumerate(entry_batches):
             batch_file = os.path.join(batch_dir, f'entry_batch_{batch_idx}.json')
@@ -195,9 +236,8 @@ def next_level_entries(
 def get_entry_batch_from_file(
     input: EntryBatchFromFileInput,
 ) -> list[ProcessEntryActivityInput]:
-    """Load entries from a specific batch"""
+    """Load entries from a specific batch file."""
     batch_file = Path(input.batch_dir_path) / f'entry_batch_{input.batch_id}.json'
-
     if not batch_file.exists():
         return []
 
@@ -317,6 +357,10 @@ def publish_externally_activity(input: PublishExternallyWorkflowInput):
 @activity.defn
 def handle_heartbeat_failure_activity(input: ProcessEntryActivityInput):
     entry = Entry.get(input.entry_id)
+    # A later retryable failure in the same batch can trigger heartbeat recovery
+    # after this entry has already been persisted as successful.
+    if entry.process_status == ProcessStatus.SUCCESS:
+        return
     entry.fail(
         *[
             'Process entry failed due to a heartbeat timeout. '
