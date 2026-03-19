@@ -447,6 +447,36 @@ class TestStagingUploadFiles(UploadFilesContract):
             example_file_contents
         )
 
+    def test_raw_listdir_page(self, test_upload_id):
+        test_upload = StagingUploadFiles(test_upload_id, create=True)
+        test_upload.add_rawfiles(example_file)
+
+        all_items = list(
+            test_upload.raw_listdir(
+                'examples_template', recursive=True, files_only=True
+            )
+        )
+        page = test_upload.raw_listdir_page(
+            'examples_template',
+            start=1,
+            end=3,
+            recursive=True,
+            files_only=True,
+            order='desc',
+            include_total_size=True,
+        )
+
+        expected_paths = [
+            path_info.path
+            for path_info in sorted(
+                all_items, key=lambda item: item.path, reverse=True
+            )[1:3]
+        ]
+
+        assert page.total == len(all_items)
+        assert page.total_size == sum(path_info.size for path_info in all_items)
+        assert [path_info.path for path_info in page.content] == expected_paths
+
     @pytest.mark.parametrize('prefix_size', [0, 2])
     def test_prefix_size(self, monkeypatch, prefix_size):
         monkeypatch.setattr('nomad.config.fs.prefix_size', prefix_size)

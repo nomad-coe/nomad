@@ -4348,3 +4348,53 @@ def test_figure_resolution(user1, example_data_with_figure, query, result):
                 assert_dict(response, result)
 
     __entry_print(query, result=result)
+
+
+def test_mongo_reader_explicit_upload_lookup_skips_container_query(
+    monkeypatch, user1, example_data_with_reference
+):
+    async def _fail_query_uploads(self, config):
+        raise AssertionError('explicit upload lookup should not hit _query_uploads')
+
+    monkeypatch.setattr(MongoReader, '_query_uploads', _fail_query_uploads)
+
+    required = {
+        Token.UPLOADS: {
+            'id_published_with_ref': {
+                'm_request': {
+                    'directive': 'resolved',
+                    'resolve_type': 'upload',
+                },
+            }
+        }
+    }
+
+    with MongoReader(required, user=user1) as reader:
+        response = reader.sync_read()
+
+    assert (
+        response['uploads']['id_published_with_ref']['upload_name'] == 'name_published'
+    )
+
+
+def test_file_system_reader_resolved_directory_uses_batch_lookup(
+    monkeypatch, user1, example_data_with_reference
+):
+    async def _fail_offload(self, upload_id, main_file, required, parent_config):
+        raise AssertionError(
+            'resolved directory listings should not use per-file _offload'
+        )
+
+    monkeypatch.setattr(FileSystemReader, '_offload', _fail_offload)
+
+    required = {
+        'm_request': {
+            'directive': 'resolved',
+        }
+    }
+
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published_with_ref')
+
+    assert response['mainfile_for_id_01']['entry']['entry_id'] == 'id_01'
+    assert response['mainfile_for_id_02']['entry']['entry_id'] == 'id_02'

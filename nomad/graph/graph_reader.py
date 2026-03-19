@@ -21,7 +21,6 @@ import asyncio
 import copy
 import dataclasses
 import functools
-import itertools
 import os
 import re
 from collections.abc import AsyncIterator, Callable, Iterator
@@ -1783,6 +1782,31 @@ class MongoReader(GeneralReader):
                     current_config,
                 )
 
+            if (
+                key
+                in (
+                    Token.ENTRY,
+                    Token.ENTRIES,
+                    Token.UPLOAD,
+                    Token.UPLOADS,
+                    Token.USER,
+                    Token.USERS,
+                    Token.DATASET,
+                    Token.DATASETS,
+                    Token.GROUP,
+                    Token.GROUPS,
+                )
+                and isinstance(value, dict)
+                and GeneralReader.__CONFIG__ not in value
+                and GeneralReader.__WILDCARD__ not in value
+            ):
+                await self._walk(
+                    node.replace(archive={}, current_path=node.current_path + [key]),
+                    value,
+                    current_config,
+                )
+                continue
+
             if key == Token.SEARCH:
                 await offload_walk(await self._query_es(child_config), None)
                 continue
@@ -2447,18 +2471,16 @@ class FileSystemReader(GeneralReader):
             pagination = dict(page=1, page_size=10, order='asc')
         end: int = int(start) + int(pagination.get('page_size', 10))
 
-        folders: list = []
-        files: list = []
-        file: RawPathInfo
-        for file in node.archive.raw_listdir(
-            os_path, recursive=True, depth=config.depth if config.depth else -1
-        ):
-            if file.is_file:
-                files.append(file)
-            else:
-                folders.append(file)
-
-        pagination['total'] = len(folders) + len(files)
+        page = node.archive.raw_listdir_page(
+            os_path,
+            start=start,
+            end=end,
+            recursive=True,
+            depth=config.depth if config.depth else -1,
+            order=pagination.get('order', 'asc'),
+            group_directories_first=True,
+        )
+        pagination['total'] = page.total
 
         await _populate_result(
             node.result_root,
@@ -2467,35 +2489,28 @@ class FileSystemReader(GeneralReader):
             path_like=True,
         )
 
-        whole_list = itertools.chain(folders, files)
-        if pagination.get('order', 'asc') != 'asc':
-            whole_list = itertools.chain(reversed(files), reversed(folders))
-
-        for index, file in enumerate(whole_list):
-            if index >= end:
-                break
-
-            if index < start:
-                continue
-
+        page_files: list[RawPathInfo] = []
+        for file in page.content:
             if not config.if_include(file.path):
                 continue
 
+            page_files.append(file)
+
+        resolved_entries: dict[str, dict] = {}
+        if config.directive is DirectiveType.resolved:
+            resolved_entries = await self._batch_implicit_resolve(
+                node.upload_id, page_files, omit_keys=omit_keys
+            )
+
+        for file in page_files:
             results = file._asdict()
             results.pop('access', None)
             if results.pop('is_file'):
                 results['m_is'] = 'File'
             else:
                 results = {'m_is': 'Directory'}
-            if omit_keys is None or all(
-                not file.path.endswith(os.path.sep + k) for k in omit_keys
-            ):
-                if config.directive is DirectiveType.resolved and (
-                    resolved := await self._offload(
-                        node.upload_id, file.path, config, config
-                    )
-                ):
-                    results[Token.ENTRY] = resolved
+            if resolved := resolved_entries.get(file.path):
+                results[Token.ENTRY] = resolved
 
             # need to consider the relative path and the absolute path conversion
             file_path: list = [
@@ -2532,6 +2547,32 @@ class FileSystemReader(GeneralReader):
             ) as reader:
                 return await reader.read(entry.entry_id)
         return {}
+
+    async def _batch_implicit_resolve(
+        self, upload_id: str, files: list[RawPathInfo], *, omit_keys=None
+    ) -> dict[str, dict]:
+        """Resolve entry payloads for a file page with one batched mainfile lookup."""
+        mainfiles = [
+            file.path
+            for file in files
+            if file.is_file
+            and (
+                omit_keys is None
+                or all(not file.path.endswith(os.path.sep + k) for k in omit_keys)
+            )
+        ]
+        if not mainfiles:
+            return {}
+
+        def _retrieve():
+            resolved: dict[str, dict] = {}
+            for entry in Entry.objects(  # type: ignore
+                upload_id=upload_id, mainfile__in=mainfiles
+            ).order_by('mainfile', 'mainfile_key', 'entry_id'):
+                resolved.setdefault(entry.mainfile, self._overwrite_entry(entry))
+            return resolved
+
+        return await asyncio.to_thread(_retrieve)
 
 
 def _is_quantity_reference(definition) -> bool:
