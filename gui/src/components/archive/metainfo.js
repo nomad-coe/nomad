@@ -155,7 +155,7 @@ export const CategoryMDef = 'nomad.metainfo.metainfo.Category'
 export const AttributeMDef = 'nomad.metainfo.metainfo.Attribute'
 
 export function quantityUsesFullStorage(def) {
-  return def.repeats || def.variable || def.attributes?.length
+  return def.repeats || def.variable || def.attributes?.length || def.flexible_unit
 }
 
 /**
