@@ -7,7 +7,6 @@ annotated-types==0.7.0    # via pydantic, -c requirements-dev.txt
 anyio==4.12.1             # via httpx, starlette, watchfiles, -c requirements-dev.txt
 appdirs==1.4.4 ; python_full_version < '3.11'  # via molid, -c requirements-dev.txt
 ase==3.27.0               # via asr, matid, molid, nomad-lab, nomad-parser-plugins-atomistic, -c requirements-dev.txt
-asgiref==3.11.1 ; python_full_version < '3.11'  # via opentelemetry-instrumentation-asgi
 asr==0.4.1                # via nomad-parser-plugins-workflow
 async-generator==1.10     # via jupyterhub, -c requirements-dev.txt
 attrs==25.4.0             # via jsonschema, referencing, -c requirements-dev.txt
@@ -46,10 +45,8 @@ flexcache==0.3            # via pint, -c requirements-dev.txt
 flexparser==0.4           # via pint, -c requirements-dev.txt
 fonttools==4.62.1         # via matplotlib, -c requirements-dev.txt
 fsspec==2026.2.0 ; python_full_version < '3.11'  # via nomad-lab, -c requirements-dev.txt
-googleapis-common-protos==1.73.0 ; python_full_version < '3.11'  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
 greenlet==3.3.2 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'  # via sqlalchemy, -c requirements-dev.txt
 griddataformats==1.0.2    # via mdanalysis
-grpcio==1.78.0 ; python_full_version < '3.11'  # via opentelemetry-exporter-otlp-proto-grpc
 gunicorn==25.1.0          # via nomad-lab, -c requirements-dev.txt
 h11==0.16.0               # via httpcore, uvicorn, -c requirements-dev.txt
 h5grove==3.0.0            # via nomad-lab, -c requirements-dev.txt
@@ -58,7 +55,6 @@ httpcore==1.0.9           # via httpx, -c requirements-dev.txt
 httptools==0.7.1          # via uvicorn, -c requirements-dev.txt
 httpx==0.27.2             # via nomad-lab, python-keycloak, -c requirements-dev.txt
 idna==3.11                # via anyio, email-validator, httpx, requests, -c requirements-dev.txt
-importlib-metadata==8.7.1 ; python_full_version < '3.11'  # via opentelemetry-api
 isodate==0.7.2            # via rdflib, -c requirements-dev.txt
 itsdangerous==2.2.0       # via flask
 jinja2==3.1.6             # via flask, jupyterhub, -c requirements-dev.txt
@@ -115,23 +111,9 @@ numpy==2.4.3 ; python_full_version >= '3.11'  # via ase, cftime, contourpy, grid
 oauthenticator==15.1.0    # via nomad-lab, -c requirements-dev.txt
 oauthlib==3.3.1           # via jupyterhub, -c requirements-dev.txt
 openpyxl==3.1.5           # via nomad-lab, -c requirements-dev.txt
-opentelemetry-api==1.40.0 ; python_full_version < '3.11'  # via nomad-lab, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, opentelemetry-semantic-conventions
-opentelemetry-exporter-otlp==1.40.0 ; python_full_version < '3.11'  # via nomad-lab
-opentelemetry-exporter-otlp-proto-common==1.40.0 ; python_full_version < '3.11'  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-grpc==1.40.0 ; python_full_version < '3.11'  # via nomad-lab, opentelemetry-exporter-otlp
-opentelemetry-exporter-otlp-proto-http==1.40.0 ; python_full_version < '3.11'  # via opentelemetry-exporter-otlp
-opentelemetry-instrumentation==0.61b0 ; python_full_version < '3.11'  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo
-opentelemetry-instrumentation-asgi==0.61b0 ; python_full_version < '3.11'  # via nomad-lab, opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-elasticsearch==0.61b0 ; python_full_version < '3.11'  # via nomad-lab
-opentelemetry-instrumentation-fastapi==0.61b0 ; python_full_version < '3.11'  # via nomad-lab
-opentelemetry-instrumentation-pymongo==0.61b0 ; python_full_version < '3.11'  # via nomad-lab
-opentelemetry-proto==1.40.0 ; python_full_version < '3.11'  # via opentelemetry-exporter-otlp-proto-common, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk==1.40.0 ; python_full_version < '3.11'  # via nomad-lab, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
-opentelemetry-semantic-conventions==0.61b0 ; python_full_version < '3.11'  # via opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk
-opentelemetry-util-http==0.61b0 ; python_full_version < '3.11'  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-fastapi
 optimade==1.3.1           # via nomad-lab, -c requirements-dev.txt
 orjson==3.11.7            # via h5grove, nomad-lab, pymatgen, -c requirements-dev.txt
-packaging==26.0           # via deprecation, gunicorn, jupyterhub, matplotlib, mdanalysis, mongomock, opentelemetry-instrumentation, plotly, xarray, -c requirements-dev.txt
+packaging==26.0           # via deprecation, gunicorn, jupyterhub, matplotlib, mdanalysis, mongomock, plotly, xarray, -c requirements-dev.txt
 palettable==3.3.3         # via pymatgen, -c requirements-dev.txt
 pamela==1.2.0 ; sys_platform != 'win32'  # via jupyterhub, -c requirements-dev.txt
 pandas==2.3.3 ; python_full_version < '3.11'  # via nomad-lab, panedr, pymatgen, xarray, -c requirements-dev.txt
@@ -146,10 +128,10 @@ pint==0.25.2 ; python_full_version >= '3.11'  # via nomad-lab, -c requirements-d
 platformdirs==4.9.4       # via pint, -c requirements-dev.txt
 plotly==5.24.1            # via asr, nomad-lab, pymatgen, -c requirements-dev.txt
 prometheus-client==0.24.1  # via jupyterhub, -c requirements-dev.txt
-protobuf==6.33.5          # via googleapis-common-protos, opentelemetry-proto, temporalio, -c requirements-dev.txt
+protobuf==6.33.5          # via temporalio, -c requirements-dev.txt
 psutil==7.2.2 ; python_full_version < '3.11' or sys_platform == 'win32'  # via jupyterhub, molid, -c requirements-dev.txt
 py-spy==0.4.1             # via nomad-lab, -c requirements-dev.txt
-pyasn1==0.6.2             # via pyasn1-modules, rfc3161ng, -c requirements-dev.txt
+pyasn1==0.6.3             # via pyasn1-modules, rfc3161ng, -c requirements-dev.txt
 pyasn1-modules==0.4.2     # via rfc3161ng, -c requirements-dev.txt
 pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'  # via cffi, -c requirements-dev.txt
 pydantic==2.12.5          # via fastapi, h5grove, molid, nomad-lab, nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, optimade, pydantic-settings, -c requirements-dev.txt
@@ -174,7 +156,7 @@ pywin32==311 ; sys_platform == 'win32'  # via docker, -c requirements-dev.txt
 pyyaml==6.0.3             # via nomad-lab, nomad-parser-plugins-electronic, phonopy, uvicorn, -c requirements-dev.txt
 rdflib==5.0.0             # via nomad-lab, -c requirements-dev.txt
 referencing==0.37.0       # via jsonschema, jsonschema-specifications, -c requirements-dev.txt
-requests==2.32.5          # via docker, jupyterhub, molid, nomad-lab, oauthenticator, opentelemetry-exporter-otlp-proto-http, optimade, pymatgen, python-keycloak, requests-toolbelt, rfc3161ng, -c requirements-dev.txt
+requests==2.32.5          # via docker, jupyterhub, molid, nomad-lab, oauthenticator, optimade, pymatgen, python-keycloak, requests-toolbelt, rfc3161ng, -c requirements-dev.txt
 requests-toolbelt==1.0.0  # via python-keycloak, -c requirements-dev.txt
 rfc3161ng==2.1.3          # via nomad-lab, -c requirements-dev.txt
 rpds-py==0.30.0           # via jsonschema, referencing, -c requirements-dev.txt
@@ -204,7 +186,7 @@ tornado==6.5.5            # via jupyterhub, -c requirements-dev.txt
 tqdm==4.67.3              # via mdanalysis, molid, pyedr, pymatgen, -c requirements-dev.txt
 traitlets==5.14.3         # via jupyter-telemetry, jupyterhub, -c requirements-dev.txt
 types-protobuf==6.32.1.20260221  # via temporalio, -c requirements-dev.txt
-typing-extensions==4.15.0  # via alembic, anyio, asgiref, cryptography, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, grpcio, h5grove, jwcrypto, nexus-rpc, opentelemetry-api, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-sdk, opentelemetry-semantic-conventions, pint, pydantic, pydantic-core, pyjwt, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -c requirements-dev.txt
+typing-extensions==4.15.0  # via alembic, anyio, cryptography, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, h5grove, jwcrypto, nexus-rpc, pint, pydantic, pydantic-core, pyjwt, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -c requirements-dev.txt
 typing-inspection==0.4.2  # via fastapi, pydantic, pydantic-settings, -c requirements-dev.txt
 tzdata==2025.3            # via pandas, pendulum, -c requirements-dev.txt
 uncertainties==3.2.3      # via pymatgen, -c requirements-dev.txt
@@ -216,10 +198,8 @@ validators==0.35.0        # via nomad-lab, -c requirements-dev.txt
 watchfiles==1.1.1         # via uvicorn, -c requirements-dev.txt
 websockets==16.0          # via uvicorn, -c requirements-dev.txt
 werkzeug==3.1.3           # via flask
-wrapt==1.17.3 ; python_full_version < '3.11'  # via opentelemetry-instrumentation, opentelemetry-instrumentation-elasticsearch
 xarray==2025.6.1 ; python_full_version < '3.11'  # via nomad-lab, nomad-parser-plugins-workflow, -c requirements-dev.txt
 xarray==2026.2.0 ; python_full_version >= '3.11'  # via nomad-lab, nomad-parser-plugins-workflow, -c requirements-dev.txt
-zipp==3.23.0 ; python_full_version < '3.11'  # via importlib-metadata
 zipstream-ng==1.9.0       # via nomad-lab, -c requirements-dev.txt
 
 # The following packages were excluded from the output:

@@ -22,10 +22,8 @@ import os
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
 from pydantic import ValidationError
 
-from nomad.app.main import app
 from nomad.client.api import APIError, Auth
 from nomad.client.archive import ArchiveQuery
 from nomad.datamodel import EntryArchive, User
@@ -33,7 +31,6 @@ from nomad.datamodel.metainfo import SCHEMA_IMPORT_ERROR, runschema
 from nomad.datamodel.metainfo.annotations import Rule, Rules
 from nomad.metainfo import MSection, SubSection
 from nomad.utils.json_transformer import Transformer
-from tests.fixtures.users import users
 from tests.processing import test_data as test_processing
 
 # TODO: more tests
@@ -139,39 +136,6 @@ async def many_uploads(
             )
             await upload._start_publish_upload_workflow()
     yield
-
-
-@pytest.fixture(scope='function')
-def async_api_v1(monkeypatch):
-    """
-    This fixture provides an HTTP client with AsyncClient that accesses
-    the fast api. The patch will redirect all requests to the fast api under test.
-    """
-    test_client = AsyncClient(app=app)
-
-    monkeypatch.setattr(
-        'nomad.client.archive.ArchiveQuery._fetch_url',
-        'http://testserver/api/v1/entries/query',
-    )
-    monkeypatch.setattr(
-        'nomad.client.archive.ArchiveQuery._download_url',
-        'http://testserver/api/v1/entries/archive/query',
-    )
-
-    monkeypatch.setattr('httpx.AsyncClient.get', getattr(test_client, 'get'))
-    monkeypatch.setattr('httpx.AsyncClient.put', getattr(test_client, 'put'))
-    monkeypatch.setattr('httpx.AsyncClient.post', getattr(test_client, 'post'))
-    monkeypatch.setattr('httpx.AsyncClient.delete', getattr(test_client, 'delete'))
-
-    def mocked_auth_headers(self) -> dict:
-        for user in users.values():
-            if user['username'] == self.user or user['email'] == self.user:
-                return dict(Authorization=f'Bearer {user["user_id"]}')
-        return {}
-
-    monkeypatch.setattr('nomad.client.api.Auth.headers', mocked_auth_headers)
-
-    return test_client
 
 
 @pytest.mark.asyncio

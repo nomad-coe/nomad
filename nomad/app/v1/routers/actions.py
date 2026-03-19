@@ -111,11 +111,7 @@ async def action_start(
     start_data.data['user_id'] = user.user_id
     try:
         input_data = validate_action_arg(action_id, start_data.data)
-        action_instance_id = await asyncio.to_thread(
-            start_action,
-            action_id=action_id,
-            data=input_data,
-        )
+        action_instance_id = await start_action(action_id=action_id, data=input_data)
         return {'action_instance_id': action_instance_id}
     except HTTPException:
         raise
@@ -146,11 +142,7 @@ async def action_stop(
         user: The authenticated user.
     """
     try:
-        await asyncio.to_thread(
-            stop_action,
-            action_instance_id=action_instance_id,
-            user_id=user.user_id,
-        )
+        await stop_action(action_instance_id=action_instance_id, user_id=user.user_id)
         return {'status': 'stopped'}
     except HTTPException:
         raise
@@ -184,11 +176,11 @@ async def action_status(
         The status of the action.
     """
     try:
-        status = await asyncio.to_thread(
-            get_action_status,
-            action_instance_id=action_instance_id,
-            user_id=user.user_id,
+        status = await get_action_status(
+            action_instance_id=action_instance_id, user_id=user.user_id
         )
+        if status is None:
+            return {'status': 'UNKNOWN'}
         return {'status': status.name}
     except HTTPException:
         raise
@@ -222,10 +214,8 @@ async def action_result(
         The result of the action.
     """
     try:
-        result = await asyncio.to_thread(
-            get_action_result,
-            action_instance_id=action_instance_id,
-            user_id=user.user_id,
+        result = await get_action_result(
+            action_instance_id=action_instance_id, user_id=user.user_id
         )
         return result
     except HTTPException:
@@ -260,7 +250,7 @@ async def action_input_schemas(
         A list of action input schemas.
     """
     try:
-        result = await asyncio.to_thread(get_all_action_schemas)
+        result = get_all_action_schemas()
         return result
     except HTTPException:
         raise
@@ -309,10 +299,8 @@ async def action(
         The action.
     """
     try:
-        result = await asyncio.to_thread(
-            get_user_action,
-            action_instance_id=action_instance_id,
-            user_id=user.user_id,
+        result = await get_user_action(
+            action_instance_id=action_instance_id, user_id=user.user_id
         )
         if result is None:
             raise HTTPException(status_code=404, detail='Action not found.')
@@ -348,8 +336,7 @@ async def stream_logs(
             else:
                 # check if workflow status is running/pending, otherwise break
                 try:
-                    status = await asyncio.to_thread(
-                        get_action_status,
+                    status = await get_action_status(
                         action_instance_id=action_instance_id,
                         user_id=user_id,
                     )
@@ -400,8 +387,7 @@ async def action_logs(
     """
     try:
         # First check if the user has access to this action.
-        result = await asyncio.to_thread(
-            get_user_action,
+        result = await get_user_action(
             action_instance_id=action_instance_id,
             user_id=user.user_id,
         )
@@ -499,10 +485,7 @@ async def actions(
         A list of actions.
     """
     try:
-        result = await asyncio.to_thread(
-            get_all_user_actions,
-            user_id=user.user_id,
-        )
+        result = await get_all_user_actions(user_id=user.user_id)
         return result
     except HTTPException:
         raise

@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
+from typing import Annotated, Any
 
-from mongoengine import DateTimeField, Document, DynamicField, StringField
+from beanie import Document, Indexed
+from pydantic import Field
 
 
 class ActionDocument(Document):
@@ -15,24 +17,26 @@ class ActionDocument(Document):
         upload_id: The ID of the upload associated with the action, if any.
         status: The status of the action.
         results: The results of the action.
+        user_input_requests: List of pending user input requests.
         created_at: The timestamp when the action was created.
         updated_at: The timestamp when the action was last updated.
     """
 
-    action_id = StringField(required=True)
-    action_instance_id = StringField(required=True, unique=True)
-    input_data = DynamicField(required=True)
-    user_id = StringField(required=True)
-    upload_id = StringField()
-    status = StringField(required=True)
-    results = DynamicField()
-    created_at = DateTimeField(default=datetime.now(timezone.utc))
-    updated_at = DateTimeField(default=datetime.now(timezone.utc))
+    action_id: Annotated[str, Indexed()]
+    action_instance_id: Annotated[str, Indexed(unique=True)]
+    input_data: Any
+    user_id: Annotated[str, Indexed()]
+    upload_id: Annotated[str | None, Indexed()] = None
+    status: str
+    results: Any = None
+    user_input_requests: list[dict] = []
+    submitted_user_inputs: list[dict] = []
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    meta = {'indexes': ['action_id', 'action_instance_id', 'user_id', 'upload_id']}
+    class Settings:
+        name = 'action_document'
 
-    def save(self, *args, **kwargs):
-        if not self.created_at:
-            self.created_at = datetime.now(timezone.utc)
+    async def save(self, *args, **kwargs):
         self.updated_at = datetime.now(timezone.utc)
-        return super().save(*args, **kwargs)
+        return await super().save(*args, **kwargs)

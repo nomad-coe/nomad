@@ -16,8 +16,12 @@ async def test_stream_logs_negative_offset_lines_starts_from_calculated_line(
     # Should not be needed for first tail chunk, but keep stream safely terminable.
     mock_status = MagicMock()
     type(mock_status).name = PropertyMock(return_value='SUCCESS')
+
+    async def mock_get_action_status(**_):
+        return mock_status
+
     monkeypatch.setattr(
-        'nomad.app.v1.routers.actions.get_action_status', lambda **_: mock_status
+        'nomad.app.v1.routers.actions.get_action_status', mock_get_action_status
     )
 
     generator = actions.stream_logs(
@@ -44,9 +48,13 @@ async def test_stream_logs_positive_offset_lines_starts_from_line_index(
 
     mock_status = MagicMock()
     type(mock_status).name = PropertyMock(return_value='SUCCESS')
+
+    async def mock_get_action_status(**_):
+        return mock_status
+
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.get_action_status',
-        lambda **_: mock_status,
+        mock_get_action_status,
     )
 
     generator = actions.stream_logs(

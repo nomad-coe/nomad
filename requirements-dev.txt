@@ -12,6 +12,7 @@ async-generator==1.10     # via jupyterhub, -r requirements.txt
 atpublic==7.0.0           # via aiosmtpd
 attrs==25.4.0             # via aiosmtpd, jsonschema, referencing, -r requirements.txt
 backports-asyncio-runner==1.2.0 ; python_full_version < '3.11'  # via pytest-asyncio
+beanie==2.0.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
 beautifulsoup4==4.12.3    # via -r requirements.txt, nomad-lab (pyproject.toml)
 bibtexparser==1.4.4       # via pymatgen, -r requirements.txt
 bitarray==3.8.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -21,11 +22,11 @@ certifi==2026.2.25        # via elasticsearch, httpcore, httpx, requests, -r req
 certipy==0.2.2            # via jupyterhub, -r requirements.txt
 cffi==2.0.0 ; platform_python_implementation != 'PyPy'  # via cryptography, -r requirements.txt
 charset-normalizer==3.4.6  # via requests, -r requirements.txt
-click==8.3.1              # via molid, uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
+click==8.3.1              # via beanie, molid, uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
 colorama==0.4.6 ; sys_platform == 'win32'  # via click, pytest, tqdm, uvicorn, -r requirements.txt
 contourpy==1.3.2 ; python_full_version < '3.11'  # via matplotlib, -r requirements.txt
 contourpy==1.3.3 ; python_full_version >= '3.11'  # via matplotlib, -r requirements.txt
-coverage==7.13.4          # via pytest-cov
+coverage==7.13.5          # via pytest-cov
 cryptography==46.0.5      # via certipy, jwcrypto, pyjwt, rfc3161ng, -r requirements.txt, nomad-lab (pyproject.toml)
 cycler==0.12.1            # via matplotlib, -r requirements.txt
 deprecation==2.1.0        # via python-keycloak, -r requirements.txt
@@ -72,6 +73,7 @@ jwcrypto==1.5.6           # via python-keycloak, -r requirements.txt
 kaleido==0.2.1            # via -r requirements.txt, nomad-lab (pyproject.toml)
 kiwisolver==1.5.0         # via matplotlib, -r requirements.txt
 lark==1.3.1               # via optimade, -r requirements.txt
+lazy-model==0.4.0         # via beanie, -r requirements.txt
 librt==0.8.1 ; platform_python_implementation != 'PyPy'  # via mypy
 lxml==6.0.2               # via -r requirements.txt, nomad-lab (pyproject.toml)
 mako==1.3.10              # via alembic, -r requirements.txt
@@ -116,17 +118,17 @@ prometheus-client==0.24.1  # via jupyterhub, -r requirements.txt
 protobuf==6.33.5          # via temporalio, -r requirements.txt
 psutil==7.2.2             # via jupyterhub, molid, -r requirements.txt
 py-spy==0.4.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
-pyasn1==0.6.2             # via pyasn1-modules, rfc3161ng, -r requirements.txt
+pyasn1==0.6.3             # via pyasn1-modules, rfc3161ng, -r requirements.txt
 pyasn1-modules==0.4.2     # via rfc3161ng, -r requirements.txt
 pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'  # via cffi, -r requirements.txt
-pydantic==2.12.5          # via fastapi, h5grove, molid, optimade, pydantic-settings, -r requirements.txt, nomad-lab (pyproject.toml)
+pydantic==2.12.5          # via beanie, fastapi, h5grove, lazy-model, molid, optimade, pydantic-settings, -r requirements.txt, nomad-lab (pyproject.toml)
 pydantic-core==2.41.5     # via pydantic, -r requirements.txt
 pydantic-settings==2.13.1  # via h5grove, molid, optimade, -r requirements.txt
 pygments==2.19.2          # via pytest
 pyinstrument==5.1.2       # via -r requirements.txt, nomad-lab (pyproject.toml)
 pyjwt==2.12.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymatgen==2025.10.7       # via -r requirements.txt, nomad-lab (pyproject.toml)
-pymongo==4.16.0           # via mongoengine, optimade, -r requirements.txt
+pymongo==4.16.0           # via beanie, mongoengine, optimade, -r requirements.txt
 pyparsing==3.3.2          # via bibtexparser, matplotlib, rdflib, -r requirements.txt
 pytest==9.0.2             # via pytest-asyncio, pytest-cov, pytest-socket, pytest-split, pytest-timeout, pytest-xdist, nomad-lab (pyproject.toml)
 pytest-asyncio==1.3.0     # via nomad-lab (pyproject.toml)
@@ -179,7 +181,7 @@ tornado==6.5.5            # via jupyterhub, -r requirements.txt
 tqdm==4.67.3              # via molid, pymatgen, -r requirements.txt
 traitlets==5.14.3         # via jupyter-telemetry, jupyterhub, -r requirements.txt
 types-protobuf==6.32.1.20260221  # via temporalio, -r requirements.txt
-typing-extensions==4.15.0  # via alembic, anyio, cryptography, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, h5grove, jwcrypto, mypy, nexus-rpc, pint, pydantic, pydantic-core, pyjwt, pytest-asyncio, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -r requirements.txt
+typing-extensions==4.15.0  # via alembic, anyio, beanie, cryptography, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, h5grove, jwcrypto, mypy, nexus-rpc, pint, pydantic, pydantic-core, pyjwt, pytest-asyncio, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -r requirements.txt
 typing-inspection==0.4.2  # via fastapi, pydantic, pydantic-settings, -r requirements.txt
 tzdata==2025.3            # via pandas, pendulum, -r requirements.txt
 uncertainties==3.2.3      # via pymatgen, -r requirements.txt

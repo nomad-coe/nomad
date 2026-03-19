@@ -36,9 +36,11 @@ def mock_action_entry_point():
     mock_action.description = 'My action description'
     mock_action.task_queue = 'my-task-queue'
 
-    mock_workflow = MagicMock()
-    mock_workflow.run = my_workflow_run
-    mock_action.workflow = mock_workflow
+    class DummyWorkflow:
+        async def run(self, args: MyActionArgs):
+            pass
+
+    mock_action.workflow = DummyWorkflow
 
     mock_entry_point = MagicMock(spec=EntryPoint)
     mock_entry_point.load.return_value = mock_action
@@ -96,7 +98,10 @@ def test_get_all_action_schemas(monkeypatch, mock_action_entry_point):
     assert 'arg1' in schemas[0].json_schema['properties']
 
 
-def test_start_action(monkeypatch, mongo_function, user1, mock_action_entry_point):
+@pytest.mark.asyncio
+async def test_start_action(
+    monkeypatch, mongo_function, async_mongo_function, user1, mock_action_entry_point
+):
     monkeypatch.setattr(
         'nomad.actions.manager.get_actions',
         lambda: {'my-action': mock_action_entry_point},
@@ -110,9 +115,17 @@ def test_start_action(monkeypatch, mongo_function, user1, mock_action_entry_poin
     )
 
     args = MyActionArgs(arg1='test', arg2=123, user_id=user1.user_id)
-    action_instance_id = start_action('my-action', args)
+    action_instance_id = await start_action('my-action', args)
 
     assert action_instance_id is not None
+
+    # Verify the document was actually created in the DB
+    doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == action_instance_id
+    )
+    assert doc is not None
+    assert doc.action_id == 'my-action'
+    assert doc.status == 'PENDING'
 
 
 @pytest.fixture
@@ -140,7 +153,10 @@ def mock_temporal_client(monkeypatch):
     return mock_client
 
 
-def test_get_action_status(mongo_function, user1, mock_temporal_client):
+@pytest.mark.asyncio
+async def test_get_action_status(
+    mongo_function, async_mongo_function, user1, mock_temporal_client
+):
     action_doc = ActionDocument(
         action_id='my-action',
         action_instance_id='workflow-123',
@@ -148,19 +164,25 @@ def test_get_action_status(mongo_function, user1, mock_temporal_client):
         status='PENDING',
         input_data={},
     )
-    action_doc.save()
+    await action_doc.insert()
 
-    status = get_action_status('workflow-123', user1.user_id)
+    status = await get_action_status('workflow-123', user1.user_id)
     assert status == WorkflowExecutionStatus.RUNNING
 
-    action_doc.reload()
-    assert action_doc.status == 'RUNNING'
+    # Verify the status was updated in the DB
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-123'
+    )
+    assert updated_doc.status == 'RUNNING'
 
     with pytest.raises(Exception):
-        get_action_status('nonexistent-workflow', user1.user_id)
+        await get_action_status('nonexistent-workflow', user1.user_id)
 
 
-def test_get_action_result(mongo_function, user1, mock_temporal_client):
+@pytest.mark.asyncio
+async def test_get_action_result(
+    mongo_function, async_mongo_function, user1, mock_temporal_client
+):
     action_doc = ActionDocument(
         action_id='my-action',
         action_instance_id='workflow-123',
@@ -168,43 +190,49 @@ def test_get_action_result(mongo_function, user1, mock_temporal_client):
         status='RUNNING',
         input_data={},
     )
-    action_doc.save()
+    await action_doc.insert()
 
-    result = get_action_result('workflow-123', user1.user_id)
+    result = await get_action_result('workflow-123', user1.user_id)
     assert result == {'result': 'success'}
 
-    action_doc.reload()
-    assert action_doc.status == 'COMPLETED'
-    assert action_doc.results == {'result': 'success'}
+    # Verify results were saved to DB
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-123'
+    )
+    assert updated_doc.status == 'COMPLETED'
+    assert updated_doc.results == {'result': 'success'}
 
     with pytest.raises(Exception):
-        get_action_result('nonexistent-workflow', user1.user_id)
+        await get_action_result('nonexistent-workflow', user1.user_id)
 
 
-def test_get_all_user_actions(monkeypatch, mongo_function, user1):
-    ActionDocument(
+@pytest.mark.asyncio
+async def test_get_all_user_actions(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    await ActionDocument(
         action_id='my-action-1',
         action_instance_id='workflow-1',
         user_id=user1.user_id,
         status='PENDING',
         input_data={},
-    ).save()
-    ActionDocument(
+    ).insert()
+    await ActionDocument(
         action_id='my-action-2',
         action_instance_id='workflow-2',
         user_id=user1.user_id,
         status='COMPLETED',
         input_data={},
-    ).save()
+    ).insert()
 
-    def mock_update_status(action):
+    async def mock_update_status(action):
         pass
 
     monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
 
-    actions = get_all_user_actions(user1.user_id)
+    actions = await get_all_user_actions(user1.user_id)
     assert len(actions) == 2
 
     # Test no actions for user
-    actions = get_all_user_actions('other-user')
+    actions = await get_all_user_actions('other-user')
     assert len(actions) == 0
