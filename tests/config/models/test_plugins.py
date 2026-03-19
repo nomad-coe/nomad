@@ -297,6 +297,15 @@ def test_example_upload_entry_point_resources(
                 pass
 
         mock_plugin_package(monkeypatch, tmp_package_directory)
+
+        def mock_download_file(url, filepath):
+            with open(filepath, 'w'):
+                pass
+
+        monkeypatch.setattr(
+            'nomad.config.models.plugins.download_file', mock_download_file
+        )
+
         entry_point_id = 'nomad_plugin.module:identifier'
         config = {
             'plugin_package': 'nomad_test_plugin',
