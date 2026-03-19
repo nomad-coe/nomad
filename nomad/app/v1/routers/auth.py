@@ -61,6 +61,7 @@ router = APIRouter()
 
 class APITag(str, Enum):
     OIDC = 'OpenID Connect Token Endpoints'
+    PAT = 'Personal Access Token (PAT) Endpoints'
     CUSTOM = 'NOMAD Custom Token Endpoints'
 
 
@@ -382,6 +383,7 @@ class PATCreationResponse(BaseModel):
     response_model=PATCreationResponse,
     status_code=status.HTTP_201_CREATED,
     summary='Create a personal access token',
+    tags=[APITag.PAT],
 )
 def create_pat_endpoint(
     request: PATCreateRequest,
@@ -413,6 +415,7 @@ def create_pat_endpoint(
     '/pats/{pat_id}/rotate',
     response_model=PATCreationResponse,
     summary='Rotate a personal access token',
+    tags=[APITag.PAT],
 )
 def rotate_pat_endpoint(
     pat_id: str,
@@ -454,7 +457,10 @@ def rotate_pat_endpoint(
 
 
 @router.get(
-    '/pats', response_model=list[PATResponse], summary='List personal access tokens'
+    '/pats',
+    response_model=list[PATResponse],
+    summary='List personal access tokens',
+    tags=[APITag.PAT],
 )
 def list_pat_endpoint(
     user: Annotated[
@@ -473,6 +479,7 @@ def list_pat_endpoint(
     '/pats/{pat_id}',
     response_model=PATResponse,
     summary='Retrieve metadata for a personal access token',
+    tags=[APITag.PAT],
 )
 def get_pat_endpoint(
     pat_id: str,
@@ -504,6 +511,7 @@ def get_pat_endpoint(
     '/pats/{pat_id}',
     status_code=status.HTTP_204_NO_CONTENT,
     summary='Revoke a personal access token',
+    tags=[APITag.PAT],
 )
 def revoke_pat_endpoint(
     pat_id: str,
