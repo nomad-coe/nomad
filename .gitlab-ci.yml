@@ -165,7 +165,7 @@ python tests:
       python -m pytest -sv -n=3
       --dist=loadscope
       --disable-socket
-      --allow-hosts=localhost,elastic,mongo,nomad-lab.eu
+      --allow-hosts=localhost,elastic,mongo
       --cov=nomad
       --cov-report term
       --cov-config=.coveragerc
