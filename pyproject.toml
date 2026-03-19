@@ -71,6 +71,7 @@ infrastructure = [
   "gunicorn",
   "h5grove[fastapi]>=3", # interface change in 3
   "jupyterhub<5.0.0", # Connection issues with newer versions
+  "beanie>=2.0.0",
   "mongoengine",
   "oauthenticator<16.0.0", # Connection issues with newer versions
   "optimade[mongo]>=1.2.0,<1.4.0", # `optimade.server.config.CONFIG` removed

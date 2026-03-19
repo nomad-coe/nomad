@@ -4,19 +4,24 @@ from datetime import datetime
 from unittest.mock import MagicMock, PropertyMock
 
 import pytest
-from fastapi.testclient import TestClient
+import pytest_asyncio
+from httpx import AsyncClient
 
 from nomad.config import config
 from nomad.mongo.action import ActionDocument
 
 
-@pytest.fixture
-def client(api_v1: TestClient) -> TestClient:
-    return api_v1
+async def _noop_update_status(_action):
+    return None
 
 
 @pytest.fixture
-def saved_action_document(mongo_function, user1):
+def client(async_api_v1: AsyncClient) -> AsyncClient:
+    return async_api_v1
+
+
+@pytest_asyncio.fixture
+async def saved_action_document(mongo_function, async_mongo_function, user1):
     action_instance_id = f'workflow-{uuid.uuid4().hex}'
     action = ActionDocument(
         action_id='my-action',
@@ -28,20 +33,27 @@ def saved_action_document(mongo_function, user1):
         input_data={},
         results={},
     )
-    action.save()
+    await action.insert()
     return action
 
 
-def test_action_start(client: TestClient, auth_headers, monkeypatch):
+@pytest.mark.asyncio
+async def test_action_start(
+    client: AsyncClient, auth_headers, async_mongo_function, monkeypatch
+):
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.validate_action_arg', lambda action_id, data: data
     )
+
+    async def mock_start_action(action_id, data):
+        return 'workflow-123'
+
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.start_action',
-        lambda action_id, data: 'workflow-123',
+        mock_start_action,
     )
 
-    response = client.post(
+    response = await client.post(
         '/actions/my-action/start',
         json={'data': {'arg1': 'test'}},
         headers=auth_headers['user1'],
@@ -51,16 +63,21 @@ def test_action_start(client: TestClient, auth_headers, monkeypatch):
     assert response.json() == {'action_instance_id': 'workflow-123'}
 
 
-def test_action_status(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_status(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     mock_status = MagicMock()
     type(mock_status).name = PropertyMock(return_value='RUNNING')
+
+    async def mock_get_action_status(action_instance_id, user_id):
+        return mock_status
+
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.get_action_status',
-        lambda action_instance_id, user_id: mock_status,
+        mock_get_action_status,
     )
-    response = client.get(
+    response = await client.get(
         f'/actions/{saved_action_document.action_instance_id}/status',
         headers=auth_headers['user1'],
     )
@@ -68,14 +85,18 @@ def test_action_status(
     assert response.json() == {'status': 'RUNNING'}
 
 
-def test_action_result(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_result(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
+    async def mock_get_action_result(action_instance_id, user_id):
+        return {'result': 'success'}
+
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.get_action_result',
-        lambda action_instance_id, user_id: {'result': 'success'},
+        mock_get_action_result,
     )
-    response = client.get(
+    response = await client.get(
         f'/actions/{saved_action_document.action_instance_id}/result',
         headers=auth_headers['user1'],
     )
@@ -83,23 +104,28 @@ def test_action_result(
     assert response.json() == {'result': 'success'}
 
 
-def test_action_input_schemas(
-    client: TestClient, auth_headers, monkeypatch, fastapi_cache
+@pytest.mark.asyncio
+async def test_action_input_schemas(
+    client: AsyncClient, auth_headers, async_mongo_function, monkeypatch, fastapi_cache
 ):
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.get_all_action_schemas',
         lambda: [{'action_id': 'my-action', 'json_schema': {}}],
     )
-    response = client.get('/actions/schemas', headers=auth_headers['user1'])
+    response = await client.get('/actions/schemas', headers=auth_headers['user1'])
     assert response.status_code == 200
     assert response.json()[0]['action_id'] == 'my-action'
 
 
-def test_actions_list(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_actions_list(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
-    response = client.get('/actions/', headers=auth_headers['user1'])
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+    response = await client.get('/actions', headers=auth_headers['user1'])
     assert response.status_code == 200
     response_json = response.json()
     assert response_json[0]['action_id'] == saved_action_document.action_id
@@ -107,11 +133,15 @@ def test_actions_list(
     assert 'input_data' not in response_json[0]
 
 
-def test_get_action(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_get_action(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
-    response = client.get(
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+    response = await client.get(
         f'/actions/{saved_action_document.action_instance_id}',
         headers=auth_headers['user1'],
     )
@@ -124,19 +154,26 @@ def test_get_action(
     assert response_json['status'] == saved_action_document.status
 
 
-def test_get_action_not_found(client: TestClient, auth_headers, mongo_function):
-    response = client.get('/actions/workflow-2', headers=auth_headers['user1'])
+@pytest.mark.asyncio
+async def test_get_action_not_found(
+    client: AsyncClient, auth_headers, async_mongo_function, mongo_function
+):
+    response = await client.get('/actions/workflow-2', headers=auth_headers['user1'])
     assert response.status_code == 404
 
 
-def test_action_stop(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_stop(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
+    async def mock_stop_action(action_instance_id, user_id):
+        return None
+
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.stop_action',
-        lambda action_instance_id, user_id: None,
+        mock_stop_action,
     )
-    response = client.post(
+    response = await client.post(
         f'/actions/{saved_action_document.action_instance_id}/stop',
         headers=auth_headers['user1'],
     )
@@ -144,11 +181,12 @@ def test_action_stop(
     assert response.json() == {'status': 'stopped'}
 
 
-def test_action_logs(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch, tmp_path
+@pytest.mark.asyncio
+async def test_action_logs(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch, tmp_path
 ):
     # Mock get_user_action so authorization passes (and bypasses Temporal fetching)
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
     # Setup dummy log file
     log_dir = os.path.join(config.fs.actions, 'logs')
@@ -158,7 +196,7 @@ def test_action_logs(
         f.write('Test log line 1\nTest log line 2\n')
 
     try:
-        response = client.get(
+        response = await client.get(
             f'/actions/{saved_action_document.action_instance_id}/logs',
             headers=auth_headers['user1'],
         )
@@ -171,13 +209,14 @@ def test_action_logs(
             os.remove(log_file)
 
 
-def test_action_logs_not_found(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_logs_not_found(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     # Mock get_user_action so authorization passes
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
-    response = client.get(
+    response = await client.get(
         f'/actions/{saved_action_document.action_instance_id}/logs',
         headers=auth_headers['user1'],
     )
@@ -185,11 +224,12 @@ def test_action_logs_not_found(
     assert response.json()['detail'] == 'Log file not found for this action.'
 
 
-def test_action_logs_truncate(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_logs_truncate(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     # Mock get_user_action so authorization passes
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
     # Setup dummy log file
     log_dir = os.path.join(config.fs.actions, 'logs')
@@ -204,7 +244,7 @@ def test_action_logs_truncate(
         f.write(b'B' * 10)
 
     try:
-        response = client.get(
+        response = await client.get(
             f'/actions/{saved_action_document.action_instance_id}/logs',
             headers=auth_headers['user1'],
         )
@@ -217,11 +257,12 @@ def test_action_logs_truncate(
             os.remove(log_file)
 
 
-def test_action_logs_stream(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_logs_stream(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     # Mock get_user_action so authorization passes
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
     # Setup dummy log file
     log_dir = os.path.join(config.fs.actions, 'logs')
@@ -233,7 +274,7 @@ def test_action_logs_stream(
 
     status_calls = 0
 
-    def mock_status(*args, **kwargs):
+    async def mock_status(*args, **kwargs):
         nonlocal status_calls
         status_calls += 1
         if status_calls == 1:
@@ -249,7 +290,7 @@ def test_action_logs_stream(
     monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
 
     try:
-        response = client.get(
+        response = await client.get(
             f'/actions/{saved_action_document.action_instance_id}/logs?stream=true',
             headers=auth_headers['user1'],
         )
@@ -266,10 +307,11 @@ def test_action_logs_stream(
             os.remove(log_file)
 
 
-def test_action_logs_stream_with_tail_offset(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_logs_stream_with_tail_offset(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
     log_dir = os.path.join(config.fs.actions, 'logs')
     os.makedirs(log_dir, exist_ok=True)
@@ -280,13 +322,17 @@ def test_action_logs_stream_with_tail_offset(
 
     mock_status = MagicMock()
     type(mock_status).name = PropertyMock(return_value='SUCCESS')
+
+    async def mock_status_fn(*_args, **_kwargs):
+        return mock_status
+
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.get_action_status',
-        lambda *_args, **_kwargs: mock_status,
+        mock_status_fn,
     )
 
     try:
-        response = client.get(
+        response = await client.get(
             f'/actions/{saved_action_document.action_instance_id}/logs?stream=true&offset_lines=-2',
             headers=auth_headers['user1'],
         )
@@ -298,10 +344,11 @@ def test_action_logs_stream_with_tail_offset(
             os.remove(log_file)
 
 
-def test_action_logs_stream_with_large_positive_offset_clamped(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_logs_stream_with_large_positive_offset_clamped(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
     log_dir = os.path.join(config.fs.actions, 'logs')
     os.makedirs(log_dir, exist_ok=True)
@@ -312,7 +359,7 @@ def test_action_logs_stream_with_large_positive_offset_clamped(
 
     status_calls = 0
 
-    def mock_status(*args, **kwargs):
+    async def mock_status(*args, **kwargs):
         nonlocal status_calls
         status_calls += 1
         if status_calls == 1:
@@ -328,7 +375,7 @@ def test_action_logs_stream_with_large_positive_offset_clamped(
     monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
 
     try:
-        response = client.get(
+        response = await client.get(
             f'/actions/{saved_action_document.action_instance_id}/logs?stream=true&offset_lines=100',
             headers=auth_headers['user1'],
         )
@@ -340,10 +387,11 @@ def test_action_logs_stream_with_large_positive_offset_clamped(
             os.remove(log_file)
 
 
-def test_action_logs_stream_with_large_negative_offset_returns_full_available_log(
-    client: TestClient, auth_headers, saved_action_document, monkeypatch
+@pytest.mark.asyncio
+async def test_action_logs_stream_with_large_negative_offset_returns_full_available_log(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
 
     log_dir = os.path.join(config.fs.actions, 'logs')
     os.makedirs(log_dir, exist_ok=True)
@@ -354,7 +402,7 @@ def test_action_logs_stream_with_large_negative_offset_returns_full_available_lo
 
     status_calls = 0
 
-    def mock_status(*args, **kwargs):
+    async def mock_status(*args, **kwargs):
         nonlocal status_calls
         status_calls += 1
         if status_calls == 1:
@@ -370,7 +418,7 @@ def test_action_logs_stream_with_large_negative_offset_returns_full_available_lo
     monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
 
     try:
-        response = client.get(
+        response = await client.get(
             f'/actions/{saved_action_document.action_instance_id}/logs?stream=true&offset_lines=-2000',
             headers=auth_headers['user1'],
         )
@@ -395,22 +443,25 @@ def test_action_logs_stream_with_large_negative_offset_returns_full_available_lo
         ('GET', '/actions/workflow-1/logs'),
     ],
 )
-def test_action_endpoints_unauthorized(client: TestClient, method: str, endpoint: str):
-    response = client.request(method, endpoint)
+@pytest.mark.asyncio
+async def test_action_endpoints_unauthorized(
+    client: AsyncClient, async_mongo_function, method: str, endpoint: str
+):
+    response = await client.request(method, endpoint)
     assert response.status_code == 401
 
 
-def mock_get_action_status_raise(*args, **kwargs):
+async def mock_get_action_status_raise(*args, **kwargs):
     raise Exception('Action status not found')
 
 
-def mock_stop_action_raise(*args, **kwargs):
+async def mock_stop_action_raise(*args, **kwargs):
     raise Exception(
         'The action was not registered in the DB or was registered under a different user.'
     )
 
 
-def mock_get_action_result_raise(*args, **kwargs):
+async def mock_get_action_result_raise(*args, **kwargs):
     raise Exception('Action result not found.')
 
 
@@ -442,8 +493,9 @@ def mock_get_action_result_raise(*args, **kwargs):
         ('GET', '/actions/workflow-1/logs', None, None, 404),
     ],
 )
-def test_action_endpoints_wrong_user(
-    client: TestClient,
+@pytest.mark.asyncio
+async def test_action_endpoints_wrong_user(
+    client: AsyncClient,
     auth_headers,
     monkeypatch,
     method: str,
@@ -455,17 +507,28 @@ def test_action_endpoints_wrong_user(
 ):
     if mock_function_name:
         monkeypatch.setattr(mock_function_name, mock_function)
-    response = client.request(method, endpoint, headers=auth_headers['user2'])
+    response = await client.request(method, endpoint, headers=auth_headers['user2'])
     assert response.status_code == expected_status_code
 
 
 # Test for GET /actions not containing other users' actions
-def test_actions_list_does_not_contain_other_users_actions(
-    client: TestClient, auth_headers, mongo_function, user1, user2, monkeypatch
+@pytest.mark.asyncio
+async def test_actions_list_does_not_contain_other_users_actions(
+    client: AsyncClient,
+    auth_headers,
+    mongo_function,
+    async_mongo_function,
+    user1,
+    user2,
+    monkeypatch,
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda action: None)
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+
     # user1 has one action, user2 has another
-    ActionDocument(
+    await ActionDocument(
         action_id='action1',
         action_instance_id='wf1',
         status='RUNNING',
@@ -474,8 +537,8 @@ def test_actions_list_does_not_contain_other_users_actions(
         user_id=user1.user_id,
         input_data={},
         results={},
-    ).save()
-    ActionDocument(
+    ).insert()
+    await ActionDocument(
         action_id='action2',
         action_instance_id='wf2',
         status='RUNNING',
@@ -484,17 +547,17 @@ def test_actions_list_does_not_contain_other_users_actions(
         user_id=user2.user_id,
         input_data={},
         results={},
-    ).save()
+    ).insert()
 
     # request as user1
-    response = client.get('/actions/', headers=auth_headers['user1'])
+    response = await client.get('/actions', headers=auth_headers['user1'])
     assert response.status_code == 200
     response_json = response.json()
     assert len(response_json) == 1
     assert response_json[0]['action_id'] == 'action1'
 
     # request as user2
-    response = client.get('/actions/', headers=auth_headers['user2'])
+    response = await client.get('/actions', headers=auth_headers['user2'])
     assert response.status_code == 200
     response_json = response.json()
     assert len(response_json) == 1

@@ -66,6 +66,8 @@ async def lifespan(app: FastAPI):
 
     infrastructure.setup()
 
+    await infrastructure.init_async_mongo()
+
     FastAPICache.init(backend=MongoBackend())
 
     # By this point all of the schemas packages from plugins are loaded.
@@ -83,6 +85,9 @@ async def lifespan(app: FastAPI):
         logger.error(f'Failed to connect to temporal', exc_info=e)
         raise
     finally:
+        if infrastructure.async_mongo_client is not None:
+            await infrastructure.async_mongo_client.close()
+            infrastructure.async_mongo_client = None
         if os.path.exists(GuiFiles.gui_artifacts_path):
             os.remove(GuiFiles.gui_artifacts_path)
 

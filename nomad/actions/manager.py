@@ -11,7 +11,6 @@ It includes functions for:
 import asyncio
 import os
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any, get_args, get_origin, get_type_hints
@@ -166,38 +165,7 @@ def get_all_action_schemas() -> list[ActionSchemaInfo]:
     return data
 
 
-async def _async_get_workflow_status(action_instance_id: str):
-    """
-    Asynchronously get the status of a workflow instance.
-
-    Args:
-        action_instance_id: The ID of the workflow instance.
-
-    Returns:
-        The status of the workflow instance.
-    """
-    client = await get_client()
-    handle = client.get_workflow_handle(action_instance_id)
-    status = await handle.describe()
-    return status.status
-
-
-async def _async_get_workflow_result(action_instance_id: str):
-    """
-    Asynchronously get the result of a workflow instance.
-
-    Args:
-        action_instance_id: The ID of the workflow instance.
-
-    Returns:
-        The result of the workflow instance.
-    """
-    client = await get_client()
-    handle = client.get_workflow_handle(action_instance_id)
-    return await handle.result()
-
-
-def _get_workflow_status_safe(
+async def _get_workflow_status_safe(
     action_instance_id: str,
 ) -> WorkflowExecutionStatus | None:
     """
@@ -213,15 +181,17 @@ def _get_workflow_status_safe(
         Exception: For errors other than workflow not found.
     """
     try:
-        return asyncio.run(_async_get_workflow_status(action_instance_id))
-    except Exception as e:
-        if isinstance(e, RPCError):
-            if e.status == RPCStatusCode.NOT_FOUND:
-                return None
-        raise e
+        client = await get_client()
+        handle = client.get_workflow_handle(action_instance_id)
+        desc = await handle.describe()
+        return desc.status
+    except RPCError as e:
+        if e.status == RPCStatusCode.NOT_FOUND:
+            return None
+        raise
 
 
-def _get_workflow_result_safe(action_instance_id: str) -> dict[str, Any] | None:
+async def _get_workflow_result_safe(action_instance_id: str) -> dict[str, Any] | None:
     """
     Safely retrieves workflow result, returning None if workflow not found.
 
@@ -234,22 +204,19 @@ def _get_workflow_result_safe(action_instance_id: str) -> dict[str, Any] | None:
     Raises:
         Exception: For errors other than workflow not found.
     """
-
-    async def _async_get_workflow_result(action_instance_id: str):
+    try:
         client = await get_client()
         handle = client.get_workflow_handle(action_instance_id)
         return await handle.result()
-
-    try:
-        return asyncio.run(_async_get_workflow_result(action_instance_id))
-    except Exception as e:
-        if isinstance(e, RPCError):
-            if e.status == RPCStatusCode.NOT_FOUND:
-                return None
-        raise e
+    except RPCError as e:
+        if e.status == RPCStatusCode.NOT_FOUND:
+            return None
+        raise
 
 
-def _validate_action_ownership(action_instance_id: str, user_id: str) -> ActionDocument:
+async def _validate_action_ownership(
+    action_instance_id: str, user_id: str
+) -> ActionDocument:
     """
     Validates that an action exists and belongs to the specified user.
 
@@ -263,9 +230,10 @@ def _validate_action_ownership(action_instance_id: str, user_id: str) -> ActionD
     Raises:
         Exception: If action not found or owned by different user.
     """
-    action = ActionDocument.objects(
-        action_instance_id=action_instance_id, user_id=user_id
-    ).first()
+    action = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == action_instance_id,
+        ActionDocument.user_id == user_id,
+    )
     if not action:
         raise Exception(
             'The action was not registered in the DB or was registered under a different user.'
@@ -273,9 +241,9 @@ def _validate_action_ownership(action_instance_id: str, user_id: str) -> ActionD
     return action
 
 
-def get_action_status(
+async def get_action_status(
     action_instance_id: str, user_id: str
-) -> WorkflowExecutionStatus | None:
+) -> WorkflowExecutionStatus:
     """
     Retrieves the current execution status of an action.
 
@@ -286,12 +254,10 @@ def get_action_status(
     Returns:
         The current status of the action, or UNKNOWN if workflow not found.
     """
-    action = _validate_action_ownership(action_instance_id, user_id)
+    action = await _validate_action_ownership(action_instance_id, user_id)
     logger = get_logger(__name__)
 
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(_get_workflow_status_safe, action_instance_id)
-        status = future.result()
+    status = await _get_workflow_status_safe(action_instance_id)
 
     if status is None:
         logger.warning(
@@ -299,19 +265,19 @@ def get_action_status(
             f'Setting status to UNKNOWN.'
         )
         action.status = 'UNKNOWN'
-        action.save()
-        return None
+        await action.save()
+        return status
 
     action.status = str(status.name)
-    action.save()
+    await action.save()
     return status
 
 
-def get_action_result(action_instance_id: str, user_id: str) -> dict[str, Any] | None:
+async def get_action_result(
+    action_instance_id: str, user_id: str
+) -> dict[str, Any] | None:
     """
     Retrieves the result of a completed action.
-    This function is **blocking** and should only be called after confirming
-    that the target workflow has finished execution.
 
     Args:
         action_instance_id: The unique ID of the action to check.
@@ -321,11 +287,9 @@ def get_action_result(action_instance_id: str, user_id: str) -> dict[str, Any] |
         The result of the action, or None if workflow not found.
     """
     logger = get_logger(__name__)
-    action = _validate_action_ownership(action_instance_id, user_id)
+    action = await _validate_action_ownership(action_instance_id, user_id)
 
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(_get_workflow_result_safe, action_instance_id)
-        results = future.result()
+    results = await _get_workflow_result_safe(action_instance_id)
 
     if results is None:
         logger.warning(
@@ -336,11 +300,11 @@ def get_action_result(action_instance_id: str, user_id: str) -> dict[str, Any] |
 
     action.results = _to_dict(results)
     action.status = str(WorkflowExecutionStatus.COMPLETED.name)
-    action.save()
+    await action.save()
     return results
 
 
-def _update_status(action: ActionDocument):
+async def _update_status(action: ActionDocument):
     """
     Update the status of an action in the database.
     Silently handles workflow not found errors by setting status to UNKNOWN.
@@ -348,7 +312,7 @@ def _update_status(action: ActionDocument):
     Args:
         action: The action document to update.
     """
-    status = _get_workflow_status_safe(action.action_instance_id)
+    status = await _get_workflow_status_safe(action.action_instance_id)
     logger = get_logger(__name__)
 
     if status is None:
@@ -358,23 +322,23 @@ def _update_status(action: ActionDocument):
             f'Setting status to UNKNOWN.'
         )
         action.status = 'UNKNOWN'
-        action.save()
+        await action.save()
         return
 
     action.status = str(status.name)
 
     if status.name == 'COMPLETED':
-        results = _get_workflow_result_safe(action.action_instance_id)
+        results = await _get_workflow_result_safe(action.action_instance_id)
         if results:
             try:
                 action.results = _to_dict(results)
             except TypeError:
                 action.results = results
 
-    action.save()
+    await action.save()
 
 
-def get_all_user_actions(user_id: str) -> list[ActionModelSummary]:
+async def get_all_user_actions(user_id: str) -> list[ActionModelSummary]:
     """
     Get all actions for a given user.
 
@@ -386,27 +350,24 @@ def get_all_user_actions(user_id: str) -> list[ActionModelSummary]:
     Returns:
         A list of actions for the user.
     """
-    try:
-        action_documents = ActionDocument.objects(user_id=user_id).all()
+    action_documents = await ActionDocument.find(
+        ActionDocument.user_id == user_id
+    ).to_list()
 
-        with ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(_update_status, action)
-                for action in action_documents
-                if action.status == 'PENDING' or action.status == 'RUNNING'
-            ]
-            for future in as_completed(futures):
-                future.result()
-
-        return [
-            ActionModelSummary(**action.to_mongo().to_dict())
-            for action in action_documents
-        ]
-    except ActionDocument.DoesNotExist:
+    if not action_documents:
         return []
 
+    pending = [a for a in action_documents if a.status in ('PENDING', 'RUNNING')]
+    if pending:
+        await asyncio.gather(*(_update_status(a) for a in pending))
 
-def get_user_action(action_instance_id: str, user_id: str) -> ActionModel | None:
+    return [
+        ActionModelSummary.model_construct(**action.model_dump())
+        for action in action_documents
+    ]
+
+
+async def get_user_action(action_instance_id: str, user_id: str) -> ActionModel | None:
     """
     Get a specific action for a given user.
 
@@ -419,20 +380,18 @@ def get_user_action(action_instance_id: str, user_id: str) -> ActionModel | None
     Returns:
         The action if found, otherwise None.
     """
-    try:
-        action_document = ActionDocument.objects(
-            action_instance_id=action_instance_id, user_id=user_id
-        ).first()
+    action_document = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == action_instance_id,
+        ActionDocument.user_id == user_id,
+    )
 
-        if not action_document:
-            return None
-
-        if action_document.status in ('PENDING', 'RUNNING'):
-            _update_status(action_document)
-
-        return ActionModel(**action_document.to_mongo().to_dict())
-    except ActionDocument.DoesNotExist:
+    if not action_document:
         return None
+
+    if action_document.status in ('PENDING', 'RUNNING'):
+        await _update_status(action_document)
+
+    return ActionModel.model_construct(**action_document.model_dump())
 
 
 def get_upload_files(upload_id: str, user_id: str) -> StagingUploadFiles | None:
@@ -550,7 +509,7 @@ async def _async_stop_workflow(workflow_id: str):
     await handle.cancel()
 
 
-def start_action(action_id: str, data: Any) -> str:
+async def start_action(action_id: str, data: Any) -> str:
     """
     Starts a new Action with the given ID and input data.
 
@@ -577,16 +536,13 @@ def start_action(action_id: str, data: Any) -> str:
         status='PENDING',
         input_data=_to_dict(data),
     )
-    new_action.save()
+    await new_action.insert()
 
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(
-            asyncio.run, _async_start_workflow(action, data, workflow_id)
-        )
-        return future.result()
+    await _async_start_workflow(action, data, workflow_id)
+    return workflow_id
 
 
-def stop_action(action_instance_id: str, user_id: str):
+async def stop_action(action_instance_id: str, user_id: str):
     """
     Stops a running action.
 
@@ -594,9 +550,10 @@ def stop_action(action_instance_id: str, user_id: str):
         action_instance_id: The unique ID of the action instance to stop.
         user_id: The user who initiated the action.
     """
-    action = ActionDocument.objects(
-        action_instance_id=action_instance_id, user_id=user_id
-    ).first()
+    action = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == action_instance_id,
+        ActionDocument.user_id == user_id,
+    )
     if not action:
         raise Exception(
             'The action was not registered in the DB or was registered under a different user.'
@@ -605,9 +562,7 @@ def stop_action(action_instance_id: str, user_id: str):
     if action.status not in ('PENDING', 'RUNNING'):
         raise Exception('Action is not running.')
 
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(asyncio.run, _async_stop_workflow(action_instance_id))
-        future.result()
+    await _async_stop_workflow(action_instance_id)
 
     action.status = str(WorkflowExecutionStatus.CANCELED.name)
-    action.save()
+    await action.save()

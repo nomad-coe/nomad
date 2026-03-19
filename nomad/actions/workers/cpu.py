@@ -18,7 +18,7 @@ from nomad.actions.client import get_client
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
-from nomad.infrastructure import setup
+from nomad.infrastructure import init_async_mongo, setup
 from nomad.utils.structlogging import get_logger
 
 
@@ -82,6 +82,7 @@ async def run_worker(worker_config: WorkerConfig):
 
         worker = Worker(**worker_kwargs)
         setup()
+        await init_async_mongo()
         # Run the worker until SIGTERM
         logger.info('Starting CPU worker.')
         worker_task = asyncio.create_task(worker.run())

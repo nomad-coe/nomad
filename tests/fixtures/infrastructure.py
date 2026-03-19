@@ -10,6 +10,8 @@ from typing import TypeAlias
 import elasticsearch
 import elasticsearch.exceptions
 import pytest
+import pytest_asyncio
+from pymongo import AsyncMongoClient
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 from xdist.scheduler.loadscope import LoadScopeScheduling
@@ -180,6 +182,33 @@ def mongo_infra(monkeysession, mongo_db_name):
     # disconnecting and connecting again results in an empty database with mongomock
     monkeysession.setattr('mongoengine.disconnect', lambda *args, **kwargs: None)
     return infrastructure.setup_mongo()
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_mongo_infra(mongo_infra, mongo_db_name):
+    """Initialize AsyncMongoClient for async MongoDB access in tests."""
+    async_mongo_client = AsyncMongoClient(
+        host=config.mongo.host, port=config.mongo.port
+    )
+    yield async_mongo_client
+    await async_mongo_client.close()
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_mongo_function(async_mongo_infra, mongo_db_name):
+    """Initializes mongo db and beanie for the current function scope.
+
+    Depends on async_mongo_infra to provide the async mongo client.
+    """
+    from beanie import init_beanie
+
+    from nomad.mongo.action import ActionDocument
+
+    await init_beanie(
+        database=async_mongo_infra[mongo_db_name],
+        document_models=[ActionDocument],
+    )
+    yield async_mongo_infra
 
 
 def clear_mongo(mongo_infra, mongo_db_name):
