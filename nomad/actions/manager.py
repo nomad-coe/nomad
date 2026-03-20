@@ -9,10 +9,11 @@ It includes functions for:
 """
 
 import asyncio
+import base64
 import os
 import uuid
 from dataclasses import asdict, is_dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, Field, SecretBytes, SecretStr, TypeAdapter
@@ -48,6 +49,14 @@ class ActionModelSummary(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+
+
+class ActionPage(BaseModel):
+    """Paginated response for action list queries."""
+
+    items: list[ActionModelSummary]
+    next_cursor: str | None = None  # None means no further pages
+    total: int  # total number of actions for the user (across all pages)
 
 
 class ActionSchemaInfo(BaseModel):
@@ -338,33 +347,111 @@ async def _update_status(action: ActionDocument):
     await action.save()
 
 
-async def get_all_user_actions(user_id: str) -> list[ActionModelSummary]:
-    """
-    Get all actions for a given user.
+_CURSOR_DT_FMT = '%Y-%m-%dT%H:%M:%S.%f+00:00'
 
-    This function also updates the status of any pending or running actions.
+
+def _encode_cursor(dt: datetime) -> str:
+    """
+    Encode a datetime as an opaque, base64url cursor string.
+
+    The cursor encodes the ``created_at`` timestamp of the *last item on the
+    current page*.  The next query will return documents whose ``created_at``
+    is strictly less than this value, giving stable forward-only pagination
+    even as new documents are inserted at the head of the collection.
+    """
+    # Beanie/Mongo can return naive datetimes when tz-awareness is disabled;
+    # treat those values as UTC to avoid timezone-shifted cursors.
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    # Always work in UTC so the encoded string is unambiguous.
+    utc_dt = dt.astimezone(timezone.utc)
+    token = utc_dt.strftime(_CURSOR_DT_FMT)
+    return base64.urlsafe_b64encode(token.encode()).decode()
+
+
+def _decode_cursor(cursor: str) -> datetime:
+    """
+    Decode a cursor string produced by :func:`_encode_cursor`.
+
+    Raises ``ValueError`` when the token is not a valid base64url string or
+    does not decode to the expected timestamp format.
+    """
+    try:
+        token = base64.urlsafe_b64decode(cursor.encode()).decode()
+        return datetime.strptime(token, _CURSOR_DT_FMT).replace(tzinfo=timezone.utc)
+    except Exception as exc:
+        raise ValueError(f'Invalid pagination cursor: {cursor!r}') from exc
+
+
+async def list_user_actions(
+    user_id: str,
+    page_size: int = 20,
+    cursor: str | None = None,
+    upload_id: str | None = None,
+) -> 'ActionPage':
+    """
+    Get a page of actions for a given user, ordered by ``created_at`` descending
+    (newest first).
+
+    This function also updates the status of any pending or running actions
+    within the returned page.
 
     Args:
         user_id: The ID of the user.
+        page_size: Maximum number of items to return (default 20).
+        cursor: Opaque pagination token returned by a previous call.  When
+            supplied the query returns the next page of results after the
+            cursor position.
+        upload_id: Optional upload ID to filter actions by.
 
     Returns:
-        A list of actions for the user.
+        An :class:`ActionPage` containing the items, an optional
+        ``next_cursor`` for the following page, and the ``total`` count of
+        all documents belonging to this user.
     """
-    action_documents = await ActionDocument.find(
-        ActionDocument.user_id == user_id
-    ).to_list()
+    query_filters = [ActionDocument.user_id == user_id]
+    if upload_id is not None:
+        query_filters.append(ActionDocument.upload_id == upload_id)
 
-    if not action_documents:
-        return []
+    # Decode cursor and narrow the query to documents strictly older than it.
+    cursor_filter = None
+    if cursor is not None:
+        cursor_dt = _decode_cursor(cursor)
+        cursor_filter = ActionDocument.created_at < cursor_dt
 
-    pending = [a for a in action_documents if a.status in ('PENDING', 'RUNNING')]
-    if pending:
-        await asyncio.gather(*(_update_status(a) for a in pending))
+    # Fetch one extra document to detect whether a next page exists.
+    fetch_limit = page_size + 1
+    if cursor_filter is not None:
+        action_query = ActionDocument.find(*query_filters, cursor_filter)
+    else:
+        action_query = ActionDocument.find(*query_filters)
+    action_documents = (
+        await action_query.sort('-created_at').limit(fetch_limit).to_list()
+    )
 
-    return [
-        ActionModelSummary.model_construct(**action.model_dump())
-        for action in action_documents
-    ]
+    has_next = len(action_documents) == fetch_limit
+    page_docs = action_documents[:page_size]
+
+    # Update status only for PENDING/RUNNING items in this page.
+    active_actions = [a for a in page_docs if a.status in ('PENDING', 'RUNNING')]
+    if active_actions:
+        await asyncio.gather(*(_update_status(a) for a in active_actions))
+
+    next_cursor: str | None = None
+    if has_next and page_docs:
+        next_cursor = _encode_cursor(page_docs[-1].created_at)
+
+    # Cheap total count (uses the (user_id, created_at) compound index).
+    total = await ActionDocument.find(*query_filters).count()
+
+    return ActionPage(
+        items=[
+            ActionModelSummary.model_construct(**doc.model_dump()) for doc in page_docs
+        ],
+        next_cursor=next_cursor,
+        total=total,
+    )
 
 
 async def get_user_action(action_instance_id: str, user_id: str) -> ActionModel | None:

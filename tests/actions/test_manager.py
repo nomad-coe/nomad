@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from importlib.metadata import EntryPoint
 from unittest.mock import MagicMock
 
@@ -12,7 +13,7 @@ from nomad.actions.manager import (
     get_action_result,
     get_action_status,
     get_all_action_schemas,
-    get_all_user_actions,
+    list_user_actions,
     start_action,
     validate_action_arg,
 )
@@ -207,7 +208,7 @@ async def test_get_action_result(
 
 
 @pytest.mark.asyncio
-async def test_get_all_user_actions(
+async def test_list_user_actions(
     monkeypatch, mongo_function, async_mongo_function, user1
 ):
     await ActionDocument(
@@ -230,9 +231,95 @@ async def test_get_all_user_actions(
 
     monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
 
-    actions = await get_all_user_actions(user1.user_id)
-    assert len(actions) == 2
+    page = await list_user_actions(user1.user_id)
+    assert len(page.items) == 2
+    assert page.total == 2
 
     # Test no actions for user
-    actions = await get_all_user_actions('other-user')
-    assert len(actions) == 0
+    empty_page = await list_user_actions('other-user')
+    assert len(empty_page.items) == 0
+    assert empty_page.total == 0
+
+
+@pytest.mark.asyncio
+async def test_list_user_actions_page_size_one_cursor_chain(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    base_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    for i in range(3):
+        await ActionDocument(
+            action_id=f'my-action-{i}',
+            action_instance_id=f'workflow-{i}',
+            user_id=user1.user_id,
+            status='COMPLETED',
+            input_data={},
+            created_at=base_time + timedelta(seconds=i),
+            updated_at=base_time + timedelta(seconds=i),
+        ).insert()
+
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+
+    first_page = await list_user_actions(user1.user_id, page_size=1)
+    assert first_page.total == 3
+    assert len(first_page.items) == 1
+    assert first_page.next_cursor is not None
+    assert first_page.items[0].action_id == 'my-action-2'
+
+    second_page = await list_user_actions(
+        user1.user_id, page_size=1, cursor=first_page.next_cursor
+    )
+    assert second_page.total == 3
+    assert len(second_page.items) == 1
+    assert second_page.next_cursor is not None
+    assert second_page.items[0].action_id == 'my-action-1'
+
+    third_page = await list_user_actions(
+        user1.user_id, page_size=1, cursor=second_page.next_cursor
+    )
+    assert third_page.total == 3
+    assert len(third_page.items) == 1
+    assert third_page.next_cursor is None
+    assert third_page.items[0].action_id == 'my-action-0'
+
+
+@pytest.mark.asyncio
+async def test_list_user_actions_filters_by_upload_id(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    await ActionDocument(
+        action_id='my-action-1',
+        action_instance_id='workflow-1',
+        user_id=user1.user_id,
+        upload_id='upload-a',
+        status='COMPLETED',
+        input_data={},
+    ).insert()
+    await ActionDocument(
+        action_id='my-action-2',
+        action_instance_id='workflow-2',
+        user_id=user1.user_id,
+        upload_id='upload-b',
+        status='COMPLETED',
+        input_data={},
+    ).insert()
+    await ActionDocument(
+        action_id='my-action-3',
+        action_instance_id='workflow-3',
+        user_id=user1.user_id,
+        upload_id='upload-a',
+        status='COMPLETED',
+        input_data={},
+    ).insert()
+
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+
+    filtered_page = await list_user_actions(user1.user_id, upload_id='upload-a')
+    assert filtered_page.total == 2
+    assert len(filtered_page.items) == 2
+    assert {item.upload_id for item in filtered_page.items} == {'upload-a'}
