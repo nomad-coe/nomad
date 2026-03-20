@@ -49,7 +49,7 @@ async def test_action_start(
         return 'workflow-123'
 
     monkeypatch.setattr(
-        'nomad.app.v1.routers.actions.start_action',
+        'nomad.app.v1.routers.actions.start_action_async',
         mock_start_action,
     )
 
@@ -74,7 +74,7 @@ async def test_action_status(
         return mock_status
 
     monkeypatch.setattr(
-        'nomad.app.v1.routers.actions.get_action_status',
+        'nomad.app.v1.routers.actions.get_action_status_async',
         mock_get_action_status,
     )
     response = await client.get(
@@ -291,7 +291,9 @@ async def test_action_logs_stream(
         )
         return mock_obj
 
-    monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_action_status_async', mock_status
+    )
 
     try:
         response = await client.get(
@@ -331,7 +333,7 @@ async def test_action_logs_stream_with_tail_offset(
         return mock_status
 
     monkeypatch.setattr(
-        'nomad.app.v1.routers.actions.get_action_status',
+        'nomad.app.v1.routers.actions.get_action_status_async',
         mock_status_fn,
     )
 
@@ -376,7 +378,9 @@ async def test_action_logs_stream_with_large_positive_offset_clamped(
         )
         return mock_obj
 
-    monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_action_status_async', mock_status
+    )
 
     try:
         response = await client.get(
@@ -419,7 +423,9 @@ async def test_action_logs_stream_with_large_negative_offset_returns_full_availa
         )
         return mock_obj
 
-    monkeypatch.setattr('nomad.app.v1.routers.actions.get_action_status', mock_status)
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_action_status_async', mock_status
+    )
 
     try:
         response = await client.get(
@@ -475,7 +481,7 @@ async def mock_get_action_result_raise(*args, **kwargs):
         (
             'GET',
             '/actions/workflow-1/status',
-            'nomad.app.v1.routers.actions.get_action_status',
+            'nomad.app.v1.routers.actions.get_action_status_async',
             mock_get_action_status_raise,
             500,
         ),

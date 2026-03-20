@@ -11,7 +11,9 @@ It includes functions for:
 import asyncio
 import base64
 import os
+import threading
 import uuid
+from collections.abc import Coroutine
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from typing import Any, get_args, get_origin, get_type_hints
@@ -66,6 +68,52 @@ class ActionSchemaInfo(BaseModel):
     plugin_package: str | None = None
     description: str | None = None
     task_queue: str | None = None
+
+
+class RunThread(threading.Thread):
+    def __init__(self, coro: Coroutine[Any, Any, Any]):
+        self.coro = coro
+        self.result = None
+        self.error: BaseException | None = None
+        super().__init__()
+
+    def run(self):
+        try:
+            self.result = asyncio.run(self.coro)
+        except BaseException as exc:
+            self.error = exc
+
+
+def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
+    async def _run_with_action_infra():
+        await infrastructure.init_async_mongo()
+        return await coro
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        # In jupyter/fastapi there is already a loop running.
+        thread = RunThread(_run_with_action_infra())
+        thread.start()
+        thread.join()
+        if thread.error is not None:
+            raise thread.error
+        return thread.result
+    else:
+        # Create our own loop.
+        return asyncio.run(_run_with_action_infra())
+
+
+def _run_async_or_return(coro: Coroutine[Any, Any, Any]) -> Any:
+    """
+    Run a coroutine and return its concrete result.
+
+    This powers synchronous compatibility facades and never returns a coroutine.
+    Async call sites must use explicit ``*_async`` functions.
+    """
+    return run_async(coro)
 
 
 def _to_dict(data: Any) -> dict:
@@ -250,7 +298,7 @@ async def _validate_action_ownership(
     return action
 
 
-async def get_action_status(
+async def _get_action_status_async(
     action_instance_id: str, user_id: str
 ) -> WorkflowExecutionStatus:
     """
@@ -261,7 +309,8 @@ async def get_action_status(
         user_id: The user who initiated the action.
 
     Returns:
-        The current status of the action, or UNKNOWN if workflow not found.
+        The current status of the action. If workflow is not found, returns
+        TERMINATED.
     """
     action = await _validate_action_ownership(action_instance_id, user_id)
     logger = get_logger(__name__)
@@ -271,15 +320,34 @@ async def get_action_status(
     if status is None:
         logger.warning(
             f'Workflow {action_instance_id} could not be found for user {user_id}. '
-            f'Setting status to UNKNOWN.'
+            f'Setting status to TERMINATED.'
         )
-        action.status = 'UNKNOWN'
+        action.status = str(WorkflowExecutionStatus.TERMINATED.name)
         await action.save()
-        return status
+        return WorkflowExecutionStatus.TERMINATED
 
     action.status = str(status.name)
     await action.save()
     return status
+
+
+def get_action_status(action_instance_id: str, user_id: str) -> WorkflowExecutionStatus:
+    """
+    Retrieves the current execution status of an action.
+
+    Synchronous callers can call this function directly.
+    Asynchronous callers should use ``await get_action_status_async(...)``.
+    """
+    return _run_async_or_return(_get_action_status_async(action_instance_id, user_id))
+
+
+async def get_action_status_async(
+    action_instance_id: str, user_id: str
+) -> WorkflowExecutionStatus:
+    """
+    Async-only variant of ``get_action_status`` for typed async call sites.
+    """
+    return await _get_action_status_async(action_instance_id, user_id)
 
 
 async def get_action_result(
@@ -477,6 +545,24 @@ async def get_user_action(action_instance_id: str, user_id: str) -> ActionModel 
 
     if action_document.status in ('PENDING', 'RUNNING'):
         await _update_status(action_document)
+    elif action_document.status == 'COMPLETED' and not action_document.results:
+        # Backfill results for completed rows where results were not persisted yet.
+        results = await _get_workflow_result_safe(action_instance_id)
+        if results is not None:
+            try:
+                serialized_results = _to_dict(results)
+            except TypeError:
+                serialized_results = results
+            action_document.results = serialized_results
+            await ActionDocument.get_pymongo_collection().update_one(
+                {'_id': action_document.id},
+                {
+                    '$set': {
+                        'results': serialized_results,
+                        'updated_at': datetime.now(),
+                    }
+                },
+            )
 
     return ActionModel.model_construct(**action_document.model_dump())
 
@@ -596,7 +682,7 @@ async def _async_stop_workflow(workflow_id: str):
     await handle.cancel()
 
 
-async def start_action(action_id: str, data: Any) -> str:
+async def _start_action_async(action_id: str, data: Any) -> str:
     """
     Starts a new Action with the given ID and input data.
 
@@ -627,6 +713,23 @@ async def start_action(action_id: str, data: Any) -> str:
 
     await _async_start_workflow(action, data, workflow_id)
     return workflow_id
+
+
+def start_action(action_id: str, data: Any) -> str:
+    """
+    Starts a new Action with the given ID and input data.
+
+    Synchronous callers can call this function directly.
+    Asynchronous callers should use ``await start_action_async(...)``.
+    """
+    return _run_async_or_return(_start_action_async(action_id, data))
+
+
+async def start_action_async(action_id: str, data: Any) -> str:
+    """
+    Async-only variant of ``start_action`` for typed async call sites.
+    """
+    return await _start_action_async(action_id, data)
 
 
 async def stop_action(action_instance_id: str, user_id: str):
