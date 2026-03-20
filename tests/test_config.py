@@ -641,3 +641,45 @@ def test_id_url_safe_collision(entry_points, collides, mockopen, monkeypatch):
 def test_normalized_url(conf_yaml, conf_expected, mockopen, monkeypatch):
     config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
     assert_config(config, conf_expected)
+
+
+# Tests for `Auth`
+
+
+@pytest.mark.parametrize(
+    ('conf_yaml', 'conf_expected'),
+    [
+        pytest.param(
+            {'auth': {'authorized_users': None}},
+            {'auth': {'authorized_users': None}},
+            id='none',
+        ),
+        pytest.param(
+            {'auth': {'authorized_users': []}},
+            {'auth': {'authorized_users': []}},
+            id='empty',
+        ),
+        pytest.param(
+            {'auth': {'authorized_users': ['alice', 'bob@example.com']}},
+            {'auth': {'authorized_users': ['alice', 'bob@example.com']}},
+            id='already-normalized',
+        ),
+        pytest.param(
+            {
+                'auth': {
+                    'authorized_users': [' Alice ', 'BOB@example.com ', '  CHARLIE  ']
+                }
+            },
+            {'auth': {'authorized_users': ['alice', 'bob@example.com', 'charlie']}},
+            id='strip-and-lower',
+        ),
+        pytest.param(
+            {'auth': {'authorized_users': ['Alice', 'alice ', ' ALICE']}},
+            {'auth': {'authorized_users': ['alice', 'alice', 'alice']}},
+            id='duplicates-not-deduplicated',
+        ),
+    ],
+)
+def test_authorized_users(conf_yaml, conf_expected, mockopen, monkeypatch):
+    config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
+    assert_config(config, conf_expected)
