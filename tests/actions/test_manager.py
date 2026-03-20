@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from importlib.metadata import EntryPoint
 from unittest.mock import MagicMock
@@ -12,9 +13,12 @@ from nomad.actions.manager import (
     _validate_with_pydantic,
     get_action_result,
     get_action_status,
+    get_action_status_async,
     get_all_action_schemas,
+    get_user_action,
     list_user_actions,
     start_action,
+    start_action_async,
     validate_action_arg,
 )
 from nomad.mongo.action import ActionDocument
@@ -99,6 +103,97 @@ def test_get_all_action_schemas(monkeypatch, mock_action_entry_point):
     assert 'arg1' in schemas[0].json_schema['properties']
 
 
+def test_start_action_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_start_action_async(action_id, data):
+        assert action_id == 'my-action'
+        return 'workflow-sync-id'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._start_action_async',
+        mock_start_action_async,
+    )
+
+    assert start_action('my-action', object()) == 'workflow-sync-id'
+
+
+@pytest.mark.asyncio
+async def test_start_action_sync_facade_works_inside_running_loop(monkeypatch):
+    running_loop = asyncio.get_running_loop()
+    observed_loops: list[asyncio.AbstractEventLoop] = []
+
+    async def mock_init_async_mongo():
+        observed_loops.append(asyncio.get_running_loop())
+
+    async def mock_start_action_async(action_id, data):
+        assert action_id == 'my-action'
+        observed_loops.append(asyncio.get_running_loop())
+        return 'workflow-thread-id'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._start_action_async',
+        mock_start_action_async,
+    )
+
+    assert start_action('my-action', object()) == 'workflow-thread-id'
+    assert len(observed_loops) == 2
+    assert all(loop is not running_loop for loop in observed_loops)
+
+
+@pytest.mark.asyncio
+async def test_start_action_sync_facade_propagates_exceptions(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_start_action_async(action_id, data):
+        raise RuntimeError('boom')
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._start_action_async',
+        mock_start_action_async,
+    )
+
+    with pytest.raises(RuntimeError, match='boom'):
+        start_action('my-action', object())
+
+
+def test_get_action_status_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_get_action_status_async(action_instance_id, user_id):
+        assert action_instance_id == 'workflow-1'
+        assert user_id == 'user-1'
+        return WorkflowExecutionStatus.RUNNING
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._get_action_status_async',
+        mock_get_action_status_async,
+    )
+
+    status = get_action_status('workflow-1', 'user-1')
+    assert status == WorkflowExecutionStatus.RUNNING
+    assert status.name == 'RUNNING'
+
+
 @pytest.mark.asyncio
 async def test_start_action(
     monkeypatch, mongo_function, async_mongo_function, user1, mock_action_entry_point
@@ -116,7 +211,7 @@ async def test_start_action(
     )
 
     args = MyActionArgs(arg1='test', arg2=123, user_id=user1.user_id)
-    action_instance_id = await start_action('my-action', args)
+    action_instance_id = await start_action_async('my-action', args)
 
     assert action_instance_id is not None
 
@@ -167,7 +262,7 @@ async def test_get_action_status(
     )
     await action_doc.insert()
 
-    status = await get_action_status('workflow-123', user1.user_id)
+    status = await get_action_status_async('workflow-123', user1.user_id)
     assert status == WorkflowExecutionStatus.RUNNING
 
     # Verify the status was updated in the DB
@@ -177,7 +272,38 @@ async def test_get_action_status(
     assert updated_doc.status == 'RUNNING'
 
     with pytest.raises(Exception):
-        await get_action_status('nonexistent-workflow', user1.user_id)
+        await get_action_status_async('nonexistent-workflow', user1.user_id)
+
+
+@pytest.mark.asyncio
+async def test_get_action_status_returns_terminated_when_workflow_missing(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-missing',
+        user_id=user1.user_id,
+        status='RUNNING',
+        input_data={},
+    )
+    await action_doc.insert()
+
+    async def mock_get_workflow_status_safe(action_instance_id):
+        assert action_instance_id == 'workflow-missing'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._get_workflow_status_safe',
+        mock_get_workflow_status_safe,
+    )
+
+    status = await get_action_status_async('workflow-missing', user1.user_id)
+    assert status == WorkflowExecutionStatus.TERMINATED
+
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-missing'
+    )
+    assert updated_doc is not None
+    assert updated_doc.status == 'TERMINATED'
 
 
 @pytest.mark.asyncio
@@ -323,3 +449,37 @@ async def test_list_user_actions_filters_by_upload_id(
     assert filtered_page.total == 2
     assert len(filtered_page.items) == 2
     assert {item.upload_id for item in filtered_page.items} == {'upload-a'}
+
+
+@pytest.mark.asyncio
+async def test_get_user_action_backfills_results_for_completed_action(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-completed-no-results',
+        user_id=user1.user_id,
+        status='COMPLETED',
+        input_data={},
+        results={},
+    )
+    await action_doc.insert()
+
+    async def mock_get_workflow_result_safe(action_instance_id):
+        assert action_instance_id == 'workflow-completed-no-results'
+        return {'foo': 'bar'}
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._get_workflow_result_safe',
+        mock_get_workflow_result_safe,
+    )
+
+    result = await get_user_action('workflow-completed-no-results', user1.user_id)
+    assert result is not None
+    assert result.results == {'foo': 'bar'}
+
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-completed-no-results'
+    )
+    assert updated_doc is not None
+    assert updated_doc.results == {'foo': 'bar'}

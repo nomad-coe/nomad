@@ -15,11 +15,11 @@ from nomad.actions.manager import (
     ActionSchemaInfo,
     action_log_file_path,
     get_action_result,
-    get_action_status,
+    get_action_status_async,
     get_all_action_schemas,
     get_user_action,
     list_user_actions,
-    start_action,
+    start_action_async,
     stop_action,
     validate_action_arg,
 )
@@ -111,7 +111,9 @@ async def action_start(
     start_data.data['user_id'] = user.user_id
     try:
         input_data = validate_action_arg(action_id, start_data.data)
-        action_instance_id = await start_action(action_id=action_id, data=input_data)
+        action_instance_id = await start_action_async(
+            action_id=action_id, data=input_data
+        )
         return {'action_instance_id': action_instance_id}
     except HTTPException:
         raise
@@ -176,11 +178,9 @@ async def action_status(
         The status of the action.
     """
     try:
-        status = await get_action_status(
+        status = await get_action_status_async(
             action_instance_id=action_instance_id, user_id=user.user_id
         )
-        if status is None:
-            return {'status': 'UNKNOWN'}
         return {'status': status.name}
     except HTTPException:
         raise
@@ -336,7 +336,7 @@ async def stream_logs(
             else:
                 # check if workflow status is running/pending, otherwise break
                 try:
-                    status = await get_action_status(
+                    status = await get_action_status_async(
                         action_instance_id=action_instance_id,
                         user_id=user_id,
                     )
