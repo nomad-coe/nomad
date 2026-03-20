@@ -3,6 +3,7 @@ from typing import Annotated, Any
 
 from beanie import Document, Indexed
 from pydantic import Field
+from pymongo import ASCENDING, DESCENDING, IndexModel
 
 
 class ActionDocument(Document):
@@ -29,13 +30,20 @@ class ActionDocument(Document):
     upload_id: Annotated[str | None, Indexed()] = None
     status: str
     results: Any = None
-    user_input_requests: list[dict] = []
-    submitted_user_inputs: list[dict] = []
+    user_input_requests: list[dict] = Field(default_factory=list)
+    submitted_user_inputs: list[dict] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = 'action_document'
+        indexes = [
+            # Supports cursor-paginated list queries: WHERE user_id = ? ORDER BY created_at DESC
+            IndexModel(
+                [('user_id', ASCENDING), ('created_at', DESCENDING)],
+                name='user_id_created_at_desc',
+            ),
+        ]
 
     async def save(self, *args, **kwargs):
         self.updated_at = datetime.now(timezone.utc)

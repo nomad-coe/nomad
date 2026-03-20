@@ -128,9 +128,13 @@ async def test_actions_list(
     response = await client.get('/actions', headers=auth_headers['user1'])
     assert response.status_code == 200
     response_json = response.json()
-    assert response_json[0]['action_id'] == saved_action_document.action_id
-    assert 'results' not in response_json[0]
-    assert 'input_data' not in response_json[0]
+    # Response is now an ActionPage object, not a plain list.
+    assert 'items' in response_json
+    assert 'total' in response_json
+    assert 'next_cursor' in response_json
+    assert response_json['items'][0]['action_id'] == saved_action_document.action_id
+    assert 'results' not in response_json['items'][0]
+    assert 'input_data' not in response_json['items'][0]
 
 
 @pytest.mark.asyncio
@@ -553,12 +557,167 @@ async def test_actions_list_does_not_contain_other_users_actions(
     response = await client.get('/actions', headers=auth_headers['user1'])
     assert response.status_code == 200
     response_json = response.json()
-    assert len(response_json) == 1
-    assert response_json[0]['action_id'] == 'action1'
+    assert response_json['total'] == 1
+    assert len(response_json['items']) == 1
+    assert response_json['items'][0]['action_id'] == 'action1'
 
     # request as user2
     response = await client.get('/actions', headers=auth_headers['user2'])
     assert response.status_code == 200
     response_json = response.json()
-    assert len(response_json) == 1
-    assert response_json[0]['action_id'] == 'action2'
+    assert response_json['total'] == 1
+    assert len(response_json['items']) == 1
+    assert response_json['items'][0]['action_id'] == 'action2'
+
+
+# Pagination-specific tests
+async def _insert_actions(user, n: int, base_id: str = 'wf') -> list[ActionDocument]:
+    """Helper: insert *n* action documents for *user*, oldest first."""
+    from datetime import timedelta
+
+    docs = []
+    for i in range(n):
+        doc = ActionDocument(
+            action_id=f'action-{i}',
+            action_instance_id=f'{base_id}-{i}',
+            status='COMPLETED',
+            created_at=datetime(2024, 1, 1, tzinfo=__import__('datetime').timezone.utc)
+            + timedelta(seconds=i),
+            updated_at=datetime.now(),
+            user_id=user.user_id,
+            input_data={},
+            results={},
+        )
+        await doc.insert()
+        docs.append(doc)
+    return docs
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'target_page, expected_length, expects_next_cursor, expected_first_action',
+    [
+        (1, 3, True, 'action-4'),
+        (2, 2, False, 'action-1'),
+    ],
+)
+async def test_actions_list_pagination_pages(
+    client: AsyncClient,
+    auth_headers,
+    mongo_function,
+    async_mongo_function,
+    user1,
+    monkeypatch,
+    target_page,
+    expected_length,
+    expects_next_cursor,
+    expected_first_action,
+):
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    await _insert_actions(user1, n=5)
+
+    response = await client.get('/actions?page_size=3', headers=auth_headers['user1'])
+    assert response.status_code == 200
+    data = response.json()
+    if target_page == 2:
+        cursor = data['next_cursor']
+        assert cursor is not None
+        response = await client.get(
+            f'/actions?page_size=3&cursor={cursor}', headers=auth_headers['user1']
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+    assert data['total'] == 5
+    assert len(data['items']) == expected_length
+    assert (data['next_cursor'] is not None) is expects_next_cursor
+    assert data['items'][0]['action_id'] == expected_first_action
+
+
+@pytest.mark.asyncio
+async def test_actions_list_pagination_empty(
+    client: AsyncClient, auth_headers, mongo_function, async_mongo_function, monkeypatch
+):
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    response = await client.get('/actions?page_size=10', headers=auth_headers['user1'])
+    assert response.status_code == 200
+    data = response.json()
+    assert data['items'] == []
+    assert data['next_cursor'] is None
+    assert data['total'] == 0
+
+
+@pytest.mark.asyncio
+async def test_actions_list_pagination_exact_page(
+    client: AsyncClient,
+    auth_headers,
+    mongo_function,
+    async_mongo_function,
+    user1,
+    monkeypatch,
+):
+    """When total == page_size there should be no next_cursor."""
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    await _insert_actions(user1, n=3)
+
+    response = await client.get('/actions?page_size=3', headers=auth_headers['user1'])
+    assert response.status_code == 200
+    data = response.json()
+    assert data['total'] == 3
+    assert len(data['items']) == 3
+    assert data['next_cursor'] is None
+
+
+@pytest.mark.asyncio
+async def test_actions_list_pagination_invalid_cursor(
+    client: AsyncClient, auth_headers, async_mongo_function
+):
+    """A garbage cursor value should return HTTP 400."""
+    response = await client.get(
+        '/actions?cursor=not-a-valid-cursor', headers=auth_headers['user1']
+    )
+    assert response.status_code == 400
+    assert 'Invalid pagination cursor' in response.json()['detail']
+
+
+@pytest.mark.asyncio
+async def test_actions_list_filters_by_upload_id(
+    client: AsyncClient,
+    auth_headers,
+    mongo_function,
+    async_mongo_function,
+    user1,
+    monkeypatch,
+):
+    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    await ActionDocument(
+        action_id='action-1',
+        action_instance_id='wf-upload-1',
+        upload_id='upload-a',
+        status='COMPLETED',
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+        user_id=user1.user_id,
+        input_data={},
+        results={},
+    ).insert()
+    await ActionDocument(
+        action_id='action-2',
+        action_instance_id='wf-upload-2',
+        upload_id='upload-b',
+        status='COMPLETED',
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+        user_id=user1.user_id,
+        input_data={},
+        results={},
+    ).insert()
+
+    response = await client.get(
+        '/actions?upload_id=upload-a', headers=auth_headers['user1']
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['total'] == 1
+    assert len(data['items']) == 1
+    assert data['items'][0]['action_instance_id'] == 'wf-upload-1'

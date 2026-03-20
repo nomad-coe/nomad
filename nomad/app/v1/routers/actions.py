@@ -11,14 +11,14 @@ from pydantic import BaseModel
 
 from nomad.actions.manager import (
     ActionModel,
-    ActionModelSummary,
+    ActionPage,
     ActionSchemaInfo,
     action_log_file_path,
     get_action_result,
     get_action_status,
     get_all_action_schemas,
-    get_all_user_actions,
     get_user_action,
+    list_user_actions,
     start_action,
     stop_action,
     validate_action_arg,
@@ -460,12 +460,17 @@ async def action_logs(
 @router.get(
     '',
     tags=[APITag.DEFAULT],
-    summary='List all actions of the authenticated user',
-    description='Retrieves a list of all action instances initiated by the authenticated user.',
-    response_model=list[ActionModelSummary],
+    summary='List actions of the authenticated user (paginated)',
+    description=(
+        'Retrieves a paginated list of action instances initiated by the authenticated user. '
+        'Results are ordered by creation time, newest first. '
+        'Pass the returned ``next_cursor`` value as the ``cursor`` query parameter to '
+        'fetch the next page.'
+    ),
+    response_model=ActionPage,
     responses=create_responses(_not_authorized),
     response_model_exclude_unset=True,
-    response_model_exclude_none=True,
+    response_model_exclude_none=False,
 )
 async def actions(
     user: Annotated[
@@ -474,19 +479,52 @@ async def actions(
             get_current_user([Scope.ACTIONS_READ], allow_anonymous=False),
         ),
     ],
+    page_size: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=100,
+            description='Number of action instances to return per page (1–100, default 20).',
+        ),
+    ] = 20,
+    cursor: Annotated[
+        str | None,
+        Query(
+            description=(
+                'Opaque pagination cursor returned by the previous response as ``next_cursor``. '
+                'Omit to start from the first (newest) page.'
+            ),
+        ),
+    ] = None,
+    upload_id: Annotated[
+        str | None,
+        Query(
+            description='Optional upload ID to filter actions by.',
+        ),
+    ] = None,
 ):
     """
-    Lists all actions for the authenticated user.
+    Lists actions for the authenticated user with cursor-based pagination.
 
     Args:
         user: The authenticated user.
+        page_size: Maximum number of items per page.
+        cursor: Opaque pagination token from a previous response.
+        upload_id: Optional upload ID to filter actions by.
 
     Returns:
-        A list of actions.
+        An ActionPage with items, optional next_cursor, and total count.
     """
     try:
-        result = await get_all_user_actions(user_id=user.user_id)
+        result = await list_user_actions(
+            user_id=user.user_id,
+            page_size=page_size,
+            cursor=cursor,
+            upload_id=upload_id,
+        )
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
