@@ -333,6 +333,15 @@ class Auth(ConfigBaseModel):
             instance are allowed.
         """,
     )
+
+    @field_validator('authorized_users')
+    @classmethod
+    def normalize_authorized_users(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+
+        return [user.lower().strip() for user in v]
+
     unauthenticated_user_scopes: OptionsGlob = Field(
         OptionsGlob(include=['*:read']),
         description="""
