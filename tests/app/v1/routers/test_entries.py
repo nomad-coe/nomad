@@ -509,6 +509,208 @@ def test_entries_aggregations_exclude_from_search(
 
 
 @pytest.mark.parametrize(
+    'aggregation, status_code, expected_groups, query',
+    [
+        pytest.param(
+            {'percentiles': {'quantity': 'results.properties.n_calculations'}},
+            200,
+            1,
+            None,
+            id='percentiles-ungrouped',
+        ),
+        pytest.param(
+            {
+                'percentiles': {
+                    'quantity': 'results.properties.n_calculations',
+                    'group_by': 'results.material.dimensionality',
+                }
+            },
+            200,
+            1,
+            None,
+            id='percentiles-grouped',
+        ),
+        pytest.param(
+            {
+                'percentiles': {
+                    'quantity': 'results.properties.n_calculations',
+                    'group_by': 'results.method.simulation.program_name',
+                    'group_by_size': 5,
+                }
+            },
+            200,
+            1,
+            None,
+            id='percentiles-grouped-with-size',
+        ),
+        pytest.param(
+            {'percentiles': {'quantity': 'entry_id'}},
+            422,
+            None,
+            None,
+            id='percentiles-non-numeric',
+        ),
+        pytest.param(
+            {'percentiles': {'quantity': 'does_not_exist'}},
+            422,
+            None,
+            None,
+            id='percentiles-bad-quantity',
+        ),
+        pytest.param(
+            {
+                'percentiles': {
+                    'quantity': 'results.properties.geometry_optimization.final_energy_difference',
+                    'group_by': 'results.material.dimensionality',
+                }
+            },
+            200,
+            0,
+            {'entry_id': 'nonexistent_entry_id'},
+            id='percentiles-grouped-no-y-data',
+        ),
+        pytest.param(
+            {
+                'percentiles': {
+                    'quantity': 'results.properties.n_calculations',
+                    'percents': [10, 50, 90],
+                }
+            },
+            200,
+            1,
+            None,
+            id='percentiles-custom-percents',
+        ),
+        pytest.param(
+            {'percentiles': {'quantity': 'results.properties.n_calculations'}},
+            200,
+            0,
+            {'entry_id': 'nonexistent_entry_id'},
+            id='percentiles-ungrouped-no-results',
+        ),
+    ],
+)
+def test_entries_aggregations_percentiles(
+    client, example_data, aggregation, status_code, expected_groups, query
+):
+    """Tests percentiles aggregation calls."""
+
+    response_json = perform_entries_metadata_test(
+        client,
+        owner='visible',
+        aggregations={'test_agg': aggregation},
+        pagination=dict(page_size=0),
+        status_code=status_code,
+        http_method='post',
+        query=query,
+    )
+
+    if response_json is None:
+        return
+
+    agg_response = response_json['aggregations']['test_agg']['percentiles']
+    assert 'data' in agg_response
+    data = agg_response['data']
+    assert len(data) == expected_groups
+
+    requested_percents = aggregation['percentiles'].get(
+        'percents', [0, 25, 50, 75, 100]
+    )
+    for item in data:
+        assert 'percentiles' in item
+        percentiles = item['percentiles']
+        for p in requested_percents:
+            # ES returns keys without trailing ".0" for whole numbers
+            matching_keys = [k for k in percentiles if float(k) == float(p)]
+            assert matching_keys, f'Missing percentile {p} in response: {percentiles}'
+            val = percentiles[matching_keys[0]]
+            assert isinstance(val, (float, int, type(None)))
+        assert 'count' in item
+        assert isinstance(item['count'], int)
+        assert item['count'] > 0
+
+    # For grouped percentiles, check that labels are present
+    if 'group_by' in aggregation.get('percentiles', {}):
+        for item in data:
+            assert 'label' in item
+            assert item['label'] is not None
+
+
+@pytest.mark.parametrize(
+    'aggregation, status_code, expected_groups',
+    [
+        pytest.param(
+            {
+                'percentiles': {
+                    'quantity': f'data.count{schema_separator}{python_schema_name}',
+                }
+            },
+            200,
+            1,
+            id='percentiles-dynamic-ungrouped',
+        ),
+        pytest.param(
+            {
+                'percentiles': {
+                    'quantity': f'data.count{schema_separator}{python_schema_name}',
+                    'group_by': 'upload_id',
+                }
+            },
+            200,
+            1,
+            id='percentiles-dynamic-grouped-by-static',
+        ),
+    ],
+)
+def test_entries_aggregations_percentiles_dynamic(
+    client,
+    plugin_schema,
+    example_data_schema_python,
+    aggregation,
+    status_code,
+    expected_groups,
+):
+    """Tests percentiles aggregation calls for dynamically mapped quantities."""
+
+    response_json = perform_entries_metadata_test(
+        client,
+        owner='visible',
+        aggregations={'test_agg': aggregation},
+        pagination=dict(page_size=0),
+        status_code=status_code,
+        http_method='post',
+    )
+
+    if response_json is None:
+        return
+
+    agg_response = response_json['aggregations']['test_agg']['percentiles']
+    assert 'data' in agg_response
+    data = agg_response['data']
+    assert len(data) == expected_groups
+
+    requested_percents = aggregation['percentiles'].get(
+        'percents', [0, 25, 50, 75, 100]
+    )
+    for item in data:
+        assert 'percentiles' in item
+        percentiles = item['percentiles']
+        for p in requested_percents:
+            matching_keys = [k for k in percentiles if float(k) == float(p)]
+            assert matching_keys, f'Missing percentile {p} in response: {percentiles}'
+            val = percentiles[matching_keys[0]]
+            assert isinstance(val, (float, int, type(None)))
+        assert 'count' in item
+        assert isinstance(item['count'], int)
+        assert item['count'] > 0
+
+    if 'group_by' in aggregation.get('percentiles', {}):
+        for item in data:
+            assert 'label' in item
+            assert item['label'] is not None
+
+
+@pytest.mark.parametrize(
     'required, status_code',
     [
         pytest.param({'include': ['entry_id', 'upload_id']}, 200, id='include'),

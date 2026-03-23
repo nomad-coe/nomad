@@ -313,10 +313,33 @@ export const WidgetTermsEdit = React.memo((props) => {
         open={editing}
         visible={visible}
         title="Edit terms widget"
+        description="Displays the most frequently appearing values for a categorical search quantity."
         onClose={handleClose}
         onAccept={handleEditAccept}
         error={hasError}
       >
+      <WidgetEditGroup title="Data & display">
+        <WidgetEditOption>
+          <TextField
+            select
+            fullWidth
+            label="Query mode"
+            variant="filled"
+            value={settings.query_mode}
+            onChange={(event) => { handleChange('query_mode', event.target.value) }}
+          >
+            {Object.keys(queryModes).map((key) =>
+              <MenuItem value={key} key={key}>{key}</MenuItem>
+            )}
+          </TextField>
+        </WidgetEditOption>
+        <WidgetEditOption>
+          <FormControlLabel
+            control={<Checkbox checked={settings.show_input} onChange={(event, value) => handleChange('show_input', value)}/>}
+            label='Show input field'
+          />
+        </WidgetEditOption>
+      </WidgetEditGroup>
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
           <InputMetainfo
@@ -346,7 +369,7 @@ export const WidgetTermsEdit = React.memo((props) => {
           </TextField>
         </WidgetEditOption>
       </WidgetEditGroup>
-      <WidgetEditGroup title="general">
+      <WidgetEditGroup title="Other">
         <WidgetEditOption>
           <InputTextField
             label="Title"
@@ -363,26 +386,6 @@ export const WidgetTermsEdit = React.memo((props) => {
             multiline
             maxRows={10}
             onChange={(event) => handleChange('description', event.target.value)}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <TextField
-            select
-            fullWidth
-            label="Query mode"
-            variant="filled"
-            value={settings.query_mode}
-            onChange={(event) => { handleChange('query_mode', event.target.value) }}
-          >
-            {Object.keys(queryModes).map((key) =>
-              <MenuItem value={key} key={key}>{key}</MenuItem>
-            )}
-          </TextField>
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.show_input} onChange={(event, value) => handleChange('show_input', value)}/>}
-            label='Show input field'
           />
         </WidgetEditOption>
       </WidgetEditGroup>

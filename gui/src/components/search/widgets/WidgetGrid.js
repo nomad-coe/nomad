@@ -27,6 +27,7 @@ import { WidgetScatterPlot } from './WidgetScatterPlot'
 import { WidgetPeriodicTable } from './WidgetPeriodicTable'
 import { WidgetHistogram } from './WidgetHistogram'
 import { WidgetTerms } from './WidgetTerms'
+import { WidgetBoxPlot } from './WidgetBoxPlot'
 import { useSearchContext } from '../SearchContext'
 
 // Breakpoints are designed so that the periodic table is always properly
@@ -299,7 +300,8 @@ const WidgetGrid = React.memo(({
             periodic_table: WidgetPeriodicTable,
             periodictable: WidgetPeriodicTable, // Deprecated misspelling
             histogram: WidgetHistogram,
-            terms: WidgetTerms
+            terms: WidgetTerms,
+            box_plot: WidgetBoxPlot
           }[value.type]
           return <div key={id} className={styles.containerOuter}>
             <Paper className={styles.containerInner}>

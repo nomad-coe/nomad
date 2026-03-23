@@ -950,6 +950,35 @@ class MinMaxAggregation(QuantityAggregation):
     pass
 
 
+class PercentilesAggregation(QuantityAggregation):
+    percents: list[float] = Field(
+        [0, 25, 50, 75, 100],
+        description=strip(
+            """
+        The percentile values to compute. Each value must be between 0 and 100.
+        Defaults to [0, 25, 50, 75, 100]."""
+        ),
+    )
+    group_by: str | None = Field(
+        None,
+        description=strip(
+            """
+        An optional categorical quantity to group by. When provided, separate
+        percentiles are returned for each distinct value of this quantity. When
+        not provided, a single set of percentiles is returned for the entire
+        dataset."""
+        ),
+    )
+    group_by_size: int = Field(
+        10,
+        description=strip(
+            """
+        The maximum number of groups to return when group_by is used. Defaults
+        to 10."""
+        ),
+    )
+
+
 class StatisticsAggregation(AggregationBase):
     metrics: list[str] | None = Field(  # type: ignore
         [],
@@ -1099,6 +1128,37 @@ class Aggregation(BaseModel):
                     "calculations_per_entry": {
                         "min_max": {
                             "quantity": "results.properties.n_calculations"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity.
+        """
+        ),
+    )
+
+    percentiles: PercentilesAggregation | None = Body(
+        None,
+        description=strip(
+            """
+            A `percentiles` aggregation computes the specified percentile values
+            for a numeric quantity. By default it returns the 0th, 25th, 50th,
+            75th and 100th percentiles but arbitrary percentile values can be
+            requested via the `percents` parameter. Optionally a `group_by`
+            quantity can be specified to obtain separate percentiles for each
+            distinct value of that categorical quantity.
+
+            ```json
+            {
+                "aggregations": {
+                    "energy_distribution": {
+                        "percentiles": {
+                            "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                            "percents": [10, 50, 90],
+                            "group_by": "results.method.simulation.program_name",
+                            "group_by_size": 10
                         }
                     }
                 }
@@ -1426,6 +1486,27 @@ class MinMaxAggregationResponse(MinMaxAggregation):
     data: list[float | None]
 
 
+class PercentilesData(BaseModel):
+    label: str | None = Field(
+        None, description=strip("""Label for this percentiles group.""")
+    )
+    percentiles: dict[str, float | None] = Field(
+        default_factory=dict,
+        description=strip(
+            """A mapping from percentile value to the computed result. Keys are
+        string representations of the requested percentile values (e.g.
+        "0.0", "25.0", "50.0")."""
+        ),
+    )
+    count: int | None = Field(
+        None, description=strip("""Number of documents in this group.""")
+    )
+
+
+class PercentilesAggregationResponse(PercentilesAggregation):
+    data: list[PercentilesData] | None = None
+
+
 class StatisticsAggregationResponse(StatisticsAggregation):
     data: dict[str, int] | None = None
 
@@ -1436,6 +1517,7 @@ class AggregationResponse(Aggregation):
     date_histogram: DateHistogramAggregationResponse | None = None
     auto_date_histogram: AutoDateHistogramAggregationResponse | None = None
     min_max: MinMaxAggregationResponse | None = None
+    percentiles: PercentilesAggregationResponse | None = None
     statistics: StatisticsAggregationResponse | None = None
 
 

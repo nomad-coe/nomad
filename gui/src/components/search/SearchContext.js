@@ -1581,13 +1581,14 @@ export const SearchContextRaw = React.memo(({
      *
      * @returns {Array} Array of hit objects.
      */
-    const useHits = (id = 'default', required, pagination, callback) => {
+    const useHits = (id = 'default', required, pagination, callback, enabled = true) => {
       const [results, setResults] = useState()
       const query = useQuery()
       const apiCallDebounced = useMemo(() => debounce(apiCall, debounceTime), [])
 
       // Update hits when query, includes, excludes or pagination change.
       useEffect(() => {
+        if (!enabled) return
         apiCallDebounced(
           query,
           {},
@@ -1607,7 +1608,7 @@ export const SearchContextRaw = React.memo(({
           },
           false
         )
-      }, [query, required, pagination, apiCallDebounced, callback])
+      }, [query, required, pagination, apiCallDebounced, callback, enabled])
 
       return results
     }

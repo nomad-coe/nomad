@@ -18,24 +18,13 @@
 import React, {useState, useEffect, useMemo, useCallback, forwardRef} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core'
-import { hasWebGLSupport, DType } from '../../utils'
+import { hasWebGLSupport } from '../../utils'
 import * as d3 from 'd3'
 import { DefinitionTitle } from '../DefinitionTitle'
 import Plot from './Plot'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
-
-function getAxisType(type, scale) {
-  return type === DType.Timestamp && (scale === 'linear' || !scale)
-    ? 'date'
-    : scale
-}
-
-function transformData(type, data) {
-  return type === DType.Timestamp
-    ? data.map((iso) => new Date(iso).getTime())
-    : data
-}
+import { getScatterPlotHoverTemplate, transformPlotData, getAxisType } from './common'
 
 /**
  * A Plotly-based interactive scatter plot.
@@ -135,21 +124,15 @@ const PlotScatter = React.memo(forwardRef((
     // Map the data depending on axis types. This manual transformation is
     // needed because the plotly automatic axis type detection does not work
     // when scaling option is read from the axis configuration.
-    data.x = transformData(xAxis.dtype, data.x)
-    data.y = transformData(yAxis.dtype, data.y)
+    data.x = transformPlotData(xAxis.dtype, data.x)
+    data.y = transformPlotData(yAxis.dtype, data.y)
 
-    const hoverTemplate = (xLabel, yLabel, colorLabel) => {
-      let template = `<b>Click to go to entry page</b>` +
-        `<br>` +
-        `${xLabel || ''}: %{x}<br>` +
-        `${yLabel || ''}: %{y}<br>`
-      if (colorLabel) {
-        template = template +
-          `${colorLabel || ''}: %{${discrete ? 'text' : 'text:.3'}}<br>`
-      }
-      template = template + `<extra></extra>`
-      return template
-    }
+    const hoverTemplate = getScatterPlotHoverTemplate(
+      xAxis.title,
+      yAxis.title,
+      colorAxis?.title || '',
+      discrete
+    )
     const scatterType = hasWebGL ? 'scattergl' : 'scatter'
 
     // If dealing with a quantized color, each group is separated into it's own
@@ -183,11 +166,7 @@ const PlotScatter = React.memo(forwardRef((
           type: scatterType,
           textposition: 'top center',
           showlegend: true,
-          hovertemplate: hoverTemplate(
-            xAxis.title,
-            yAxis.title,
-            colorAxis.title
-          ),
+          hovertemplate: hoverTemplate,
           marker: {
             size: 8,
             color: scale(offset + (1 - 2 * offset) * options.indexOf(option) / (nOptions - 1)),
@@ -203,18 +182,19 @@ const PlotScatter = React.memo(forwardRef((
       traces.push({
         x: data.x,
         y: data.y,
+        entry_id: data.id,
         color: data.color,
         text: data.color,
-        entry_id: data.id,
         mode: 'markers',
         type: scatterType,
         textposition: 'top center',
         showlegend: false,
         hoverinfo: "text",
-        hovertemplate: hoverTemplate(
+        hovertemplate: getScatterPlotHoverTemplate(
           xAxis.title,
           yAxis.title,
-          colorAxis.title
+          colorAxis.title,
+          discrete
         ),
         marker: {
           size: 8,
@@ -246,11 +226,7 @@ const PlotScatter = React.memo(forwardRef((
         textposition: 'top center',
         showlegend: false,
         hoverinfo: "text",
-        hovertemplate: hoverTemplate(
-          xAxis.title,
-          yAxis.title,
-          ''
-        ),
+        hovertemplate: hoverTemplate,
         marker: {
           size: 8,
           color: theme.palette.secondary.main,
