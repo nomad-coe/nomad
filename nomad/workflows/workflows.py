@@ -61,10 +61,7 @@ with workflow.unsafe.imports_passed_through():
         UploadProcessingWorkflowInput,
         UploadWorkflowIdInput,
     )
-    from nomad.workflows.utils import (
-        generate_batches,
-        get_max_entries_per_batch_workflow,
-    )
+    from nomad.workflows.utils import generate_batches
 
 
 @workflow.defn
@@ -159,9 +156,7 @@ class BatchProcessEntriesWorkflow:
     - Within each batch, processes entries in configurable micro-batches
     - Handles both file-based storage (large datasets) and in-memory storage (small datasets)
 
-    Note: Temporal limits a workflow to 1000 concurrent activities. Since one
-    activity can process multiple entries, the entry limit scales with
-    `entry_activity_batch_size`.
+    Note: Workflow-level splitting keeps in-memory batches bounded to 1000 entries.
     """
 
     @workflow.run
@@ -169,9 +164,7 @@ class BatchProcessEntriesWorkflow:
         retry_policy = RetryPolicy(
             maximum_attempts=2,
         )
-        max_entries_per_batch_workflow = get_max_entries_per_batch_workflow(
-            config.temporal.entry_activity_batch_size
-        )
+        max_entries_per_batch_workflow = 1000
         # Handle file-based entry storage (used for very large uploads).
         # Entries are persisted as per-batch files and loaded on demand.
         if entry_batch_directory := next_level_entries_result.directory:

@@ -437,7 +437,7 @@ class TestNextLevelEntriesActivity:
         assert result.entries is not None
         assert len(result.entries) == 999
 
-    def test_large_entry_sets_use_scaled_batch_files(
+    def test_large_entry_sets_use_fixed_size_batch_files(
         self,
         mock_data_layer,
         monkeypatch,
@@ -455,9 +455,10 @@ class TestNextLevelEntriesActivity:
         assert result is not None
         assert result.entries is None
         assert result.directory is not None
-        assert result.total_batches == 2
+        assert result.total_batches == 3
         assert (Path(result.directory) / 'entry_batch_0.json').exists()
         assert (Path(result.directory) / 'entry_batch_1.json').exists()
+        assert (Path(result.directory) / 'entry_batch_2.json').exists()
 
 
 class TestBatchProcessEntriesWorkflow:

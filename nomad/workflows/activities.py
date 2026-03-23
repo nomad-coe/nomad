@@ -28,7 +28,7 @@ from nomad.workflows.shared_objects import (
     UploadProcessingWorkflowInput,
     UploadWorkflowIdInput,
 )
-from nomad.workflows.utils import generate_batches, get_max_entries_per_batch_workflow
+from nomad.workflows.utils import generate_batches
 
 parser_min_level = min([parser.level for parser in parsers])
 # If the heartbeat timeout is 10 mins, this would send a heartbeat every 60 seconds.
@@ -211,12 +211,9 @@ def next_level_entries(
         # without introducing repeated scans through a shared file.
         batch_dir = os.path.join(input.workflow_tmp_dir, f'level_{input.min_level}')
         os.makedirs(batch_dir, exist_ok=True)
-        max_entries_per_batch_workflow = get_max_entries_per_batch_workflow(
-            config.temporal.entry_activity_batch_size
-        )
         entry_batches = generate_batches(
             next_entries,
-            max_desired_batch_size=max_entries_per_batch_workflow,
+            max_desired_batch_size=MAX_IN_MEMORY_ENTRIES,
         )
 
         for batch_idx, batch in enumerate(entry_batches):
