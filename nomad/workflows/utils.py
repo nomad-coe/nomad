@@ -2,18 +2,6 @@ import math
 from typing import TypeVar
 
 T = TypeVar('T')
-MAX_CONCURRENT_ACTIVITIES_PER_WORKFLOW = 1000
-
-
-def get_max_entries_per_batch_workflow(entry_activity_batch_size: int) -> int:
-    """
-    Maximum entries one batch-processing workflow should hold before splitting.
-
-    Temporal limits concurrent activities per workflow to 1000. Since each activity
-    can process multiple entries, the effective entry ceiling scales with
-    `entry_activity_batch_size`.
-    """
-    return MAX_CONCURRENT_ACTIVITIES_PER_WORKFLOW * max(1, entry_activity_batch_size)
 
 
 def generate_batches(
