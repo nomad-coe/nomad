@@ -42,6 +42,7 @@ import { WidgetScatterPlotEdit, schemaWidgetScatterPlot } from './WidgetScatterP
 import { WidgetHistogramEdit, schemaWidgetHistogram } from './WidgetHistogramEdit'
 import { WidgetTermsEdit, schemaWidgetTerms } from './WidgetTerms'
 import { WidgetPeriodicTableEdit, schemaWidgetPeriodicTable } from './WidgetPeriodicTable'
+import { WidgetBoxPlotEdit, schemaWidgetBoxPlot } from './WidgetBoxPlotEdit'
 import InputConfig from '../input/InputConfig'
 import { cleanse } from '../../../utils'
 import Markdown from '../../Markdown'
@@ -107,7 +108,7 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
-      size: 1000,
+      sample_size: 1000,
       autorange: true,
       drag_mode: 'zoom',
       type: 'scatter_plot'
@@ -184,6 +185,31 @@ const Dashboard = React.memo(() => {
     addWidget(id, value)
   }, [addWidget])
 
+  // Adds a new box plot widget
+  const handleBoxPlot = useCallback(() => {
+    const index = Date.now()
+    const id = index.toString()
+    const layout = {x: Infinity, y: 0, w: 9, h: 6}
+    const value = {
+      id: id,
+      editing: true,
+      visible: false,
+      layout: {
+        sm: {...layout},
+        md: {...layout},
+        lg: {...layout},
+        xl: {...layout},
+        xxl: {...layout}
+      },
+      sample_size: 1000,
+      group_by_size: 10,
+      autorange: true,
+      show_points: true,
+      type: 'box_plot'
+    }
+    addWidget(id, value)
+  }, [addWidget])
+
   const handleExpand = useCallback(() => {
     setExpanded(old => !old)
   }, [])
@@ -201,7 +227,7 @@ const Dashboard = React.memo(() => {
         <DashboardAction
           title="Terms"
           onClick={handleTerms}
-          tooltip="Add a terms widget to the dashboard"
+          tooltip="Add a terms widget to the dashboard."
         />
         <DashboardAction
           title="Histogram"
@@ -212,6 +238,11 @@ const Dashboard = React.memo(() => {
           title="Scatter plot"
           onClick={handleScatterplot}
           tooltip="Add a scatter plot widget to the dashboard"
+        />
+        <DashboardAction
+          title="Box plot"
+          onClick={handleBoxPlot}
+          tooltip="Add a box plot widget to the dashboard"
         />
         <DashboardAction
           title="Periodic table"
@@ -259,7 +290,8 @@ const Dashboard = React.memo(() => {
         periodic_table: <WidgetPeriodicTableEdit key={id} {...value}/>,
         periodictable: <WidgetPeriodicTableEdit key={id} {...value}/>, // Deprecated misspelling
         histogram: <WidgetHistogramEdit key={id} widget={value}/>,
-        terms: <WidgetTermsEdit key={id} {...value}/>
+        terms: <WidgetTermsEdit key={id} {...value}/>,
+        box_plot: <WidgetBoxPlotEdit key={id} widget={value}/>
       }[value.type]
       return comp || null
     })}
@@ -289,7 +321,8 @@ const schemas = {
   periodictable: schemaWidgetPeriodicTable, // Deprecated misspelling
   periodic_table: schemaWidgetPeriodicTable,
   histogram: schemaWidgetHistogram,
-  terms: schemaWidgetTerms
+  terms: schemaWidgetTerms,
+  box_plot: schemaWidgetBoxPlot
 }
 
 /**

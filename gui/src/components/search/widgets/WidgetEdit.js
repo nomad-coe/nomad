@@ -24,6 +24,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   makeStyles,
   MenuItem,
@@ -40,7 +41,7 @@ export const useStyles = makeStyles(theme => ({
     maxWidth: "700px"
   }
 }))
-export const WidgetEditDialog = React.memo(({id, title, open, visible, onAccept, onClose, error, children}) => {
+export const WidgetEditDialog = React.memo(({id, title, description, open, visible, onAccept, onClose, error, children}) => {
   const styles = useStyles()
   const { useRemoveWidget } = useSearchContext()
   const removeWidget = useRemoveWidget()
@@ -73,6 +74,12 @@ export const WidgetEditDialog = React.memo(({id, title, open, visible, onAccept,
   >
     <DialogTitle>{title || ''}</DialogTitle>
     <DialogContent>
+      {description
+        ? <DialogContentText>
+            {description}
+          </DialogContentText>
+        : null
+      }
       {children}
     </DialogContent>
     <DialogActions>
@@ -89,6 +96,7 @@ export const WidgetEditDialog = React.memo(({id, title, open, visible, onAccept,
 WidgetEditDialog.propTypes = {
   id: PropTypes.string,
   title: PropTypes.string,
+  description: PropTypes.string,
   open: PropTypes.bool,
   visible: PropTypes.bool,
   onClose: PropTypes.func,

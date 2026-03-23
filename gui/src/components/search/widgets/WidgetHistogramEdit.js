@@ -110,10 +110,38 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
         open={widget.editing}
         visible={widget.visible}
         title="Edit histogram widget"
-        description={widget.description}
+        description='Displays the frequency of a numerical search quantity by grouping values into bins.'
         onClose={handleClose}
         onAccept={handleEditAccept}
       >
+      <WidgetEditGroup title="Data & display">
+        <WidgetEditOption>
+          <TextField
+            select
+            fullWidth
+            label="Maximum number of bins"
+            variant="filled"
+            value={settings.nbins}
+            onChange={(event) => { handleChange('nbins', event.target.value) }}
+          >
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={20}>20</MenuItem>
+            <MenuItem value={30}>30</MenuItem>
+            <MenuItem value={40}>40</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
+          </TextField>
+        </WidgetEditOption>
+        <WidgetEditOption>
+          <FormControlLabel
+            control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
+            label={autorangeDescription}
+          />
+          <FormControlLabel
+            control={<Checkbox checked={settings.show_input} onChange={(event, value) => handleChange('show_input', value)}/>}
+            label='Show input fields'
+          />
+        </WidgetEditOption>
+      </WidgetEditGroup>
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
           <InputMetainfo
@@ -167,7 +195,7 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
           </TextField>
         </WidgetEditOption>
       </WidgetEditGroup>
-      <WidgetEditGroup title="general">
+      <WidgetEditGroup title="Other">
         <WidgetEditOption>
           <InputTextField
             label="Title"
@@ -184,34 +212,6 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
             multiline
             maxRows={10}
             onChange={(event) => handleChange('description', event.target.value)}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <TextField
-            select
-            fullWidth
-            label="Maximum number of bins"
-            variant="filled"
-            value={settings.nbins}
-            onChange={(event) => { handleChange('nbins', event.target.value) }}
-          >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={20}>20</MenuItem>
-            <MenuItem value={30}>30</MenuItem>
-            <MenuItem value={40}>40</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
-          </TextField>
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
-            label={autorangeDescription}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.show_input} onChange={(event, value) => handleChange('show_input', value)}/>}
-            label='Show input fields'
           />
         </WidgetEditOption>
       </WidgetEditGroup>

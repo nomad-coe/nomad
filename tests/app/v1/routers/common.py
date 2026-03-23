@@ -1289,6 +1289,14 @@ def assert_aggregations(
         assert len(data) == 2
         assert isinstance(data[0], float | int)
         assert isinstance(data[1], float | int)
+    elif agg_type == 'percentiles':
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        for item in data:
+            assert 'percentiles' in item, 'Missing percentiles dict in response'
+            assert isinstance(item['percentiles'], dict)
+            assert 'count' in item
+            assert isinstance(item['count'], int)
     elif agg_type == 'statistics':
         assert 'metrics' in agg_response
         for metric in agg.get('metrics', []):
