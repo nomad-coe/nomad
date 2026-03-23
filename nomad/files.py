@@ -50,11 +50,13 @@ import io
 import json
 import os
 import shutil
+import stat
 import tempfile
 import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager, suppress
+from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
@@ -90,6 +92,19 @@ empty_archive_file_size = 32
 empty_hdf5_file_size = 96
 
 UPath = Path
+
+
+@dataclass(slots=True)
+class _RawEntry:
+    """Internal lightweight listing entry.
+
+    Stores only the information needed for sorting, paging, and response
+    construction. Directory sizes are intentionally not tracked.
+    """
+
+    path: str
+    is_file: bool
+    size: int | None = None
 
 
 def mkdtemp(prefix: str):
@@ -186,7 +201,6 @@ class RawDirPage(NamedTuple):
 
     content: list[RawPathInfo]
     total: int
-    total_size: int | None = None
 
 
 class StreamedFile(BaseModel):
@@ -641,7 +655,6 @@ class UploadFiles(DirectoryObject):
         depth: int = -1,
         order: Literal['asc', 'desc'] = 'asc',
         group_directories_first: bool = False,
-        include_total_size: bool = False,
     ) -> RawDirPage:
         """
         Returns a paginated slice of raw directory metadata.
@@ -650,7 +663,6 @@ class UploadFiles(DirectoryObject):
         the requested page.
         """
         items = list(self.raw_listdir(path, recursive, files_only, depth))
-        total_size = sum(item.size for item in items) if include_total_size else None
 
         if group_directories_first:
             folders = [item for item in items if not item.is_file]
@@ -664,9 +676,7 @@ class UploadFiles(DirectoryObject):
         if end is None:
             end = len(ordered)
 
-        return RawDirPage(
-            content=ordered[start:end], total=len(items), total_size=total_size
-        )
+        return RawDirPage(content=ordered[start:end], total=len(items))
 
     @deprecated(details='Use raw_exists() instead.')
     def raw_path_exists(self, path: str) -> bool:
@@ -853,139 +863,355 @@ class StagingUploadFiles(UploadFiles):
         *,
         start: int = 0,
         end: int | None = None,
-        recursive=False,
-        files_only=False,
+        recursive: bool = False,
+        files_only: bool = False,
         depth: int = -1,
         order: Literal['asc', 'desc'] = 'asc',
         group_directories_first: bool = False,
-        include_total_size: bool = False,
     ) -> RawDirPage:
-        """List a raw directory page using local filesystem primitives for staging uploads."""
-        if not isinstance(self._fs, LocalFileSystem):
-            return super().raw_listdir_page(
-                path,
-                start=start,
-                end=end,
-                recursive=recursive,
-                files_only=files_only,
-                depth=depth,
-                order=order,
-                group_directories_first=group_directories_first,
-                include_total_size=include_total_size,
-            )
+        """Return a paginated raw directory listing.
 
+        This implementation is optimized for low metadata overhead:
+
+        - performs a single initial probe to determine whether ``path`` is a file
+            or directory
+        - collects names and file sizes during the walk where cheaply available
+        - sorts and pages entirely in memory after collection
+        """
         if not is_safe_relative_path(path) or depth == 0:
-            return RawDirPage(
-                content=[], total=0, total_size=0 if include_total_size else None
-            )
+            return RawDirPage(content=[], total=0)
 
         os_path = self._full_path(path).as_posix()
-        if not self._fs.exists(os_path):
-            return RawDirPage(
-                content=[], total=0, total_size=0 if include_total_size else None
-            )
-
-        items: list[tuple[str, bool]] = []
-        total_size = 0 if include_total_size else None
         normalised_path = path.rstrip('/')
 
-        if self._fs.isfile(os_path):
-            items.append((normalised_path, True))
-            if include_total_size:
-                total_size = os.stat(os_path).st_size
+        path_kind, path_size = self._probe_path_kind_and_size(os_path)
+        if path_kind is None:
+            return RawDirPage(content=[], total=0)
+
+        entries: list[_RawEntry] = []
+
+        if path_kind == 'file':
+            entries.append(
+                _RawEntry(
+                    path=normalised_path,
+                    is_file=True,
+                    size=path_size,
+                )
+            )
         else:
-            total_size = self._collect_local_raw_paths(
+            self._collect_raw_entries(
                 os_path,
                 normalised_path,
-                items,
+                entries,
                 recursive=recursive,
                 files_only=files_only,
                 depth=depth,
-                include_total_size=include_total_size,
             )
 
-        if group_directories_first:
-            folders = sorted(
-                (item for item in items if not item[1]), key=lambda item: item[0]
-            )
-            files = sorted(
-                (item for item in items if item[1]), key=lambda item: item[0]
-            )
-            ordered = folders + files
-            if order != 'asc':
-                ordered = list(reversed(files)) + list(reversed(folders))
-        else:
-            ordered = sorted(items, key=lambda item: item[0], reverse=order != 'asc')
+        # Phase 2 onwards is filesystem-agnostic: sort, slice, and materialize.
+        self._sort_raw_entries(
+            entries,
+            order=order,
+            group_directories_first=group_directories_first,
+        )
 
-        if end is None:
-            end = len(ordered)
+        total = len(entries)
+
+        if end is None or end > total:
+            end = total
+        start = max(start, 0)
+        start = min(start, end)
+
+        page = entries[start:end]
 
         content = [
-            self._raw_path_info(relative_path, is_file)
-            for relative_path, is_file in ordered[start:end]
+            RawPathInfo(
+                path=entry.path,
+                is_file=entry.is_file,
+                size=(entry.size or 0) if entry.is_file else 0,
+                access='unpublished',
+            )
+            for entry in page
         ]
 
-        return RawDirPage(content=content, total=len(items), total_size=total_size)
+        return RawDirPage(content=content, total=total)
 
-    def _collect_local_raw_paths(
+    def _probe_path_kind_and_size(
+        self,
+        os_path: str,
+    ) -> tuple[Literal['file', 'dir'] | None, int | None]:
+        """Probe a path once to determine existence, type, and file size.
+
+        Returns:
+            ('file', size):
+                for a regular file
+            ('dir', None):
+                for a directory
+            (None, None):
+                if the path does not exist, is inaccessible, or is not a supported
+                file/directory entry
+
+        This avoids the extra metadata round trip of calling ``exists()`` and then
+        ``isfile()`` separately.
+        """
+        if isinstance(self._fs, LocalFileSystem):
+            try:
+                st = os.stat(os_path, follow_symlinks=False)
+            except (FileNotFoundError, PermissionError, OSError):
+                return None, None
+
+            mode = st.st_mode
+            if stat.S_ISREG(mode):
+                return 'file', st.st_size
+            if stat.S_ISDIR(mode):
+                return 'dir', None
+
+            # Skip symlinks, devices, sockets, etc.
+            return None, None
+
+        try:
+            info = self._fs.info(os_path)
+        except Exception:
+            return None, None
+
+        entry_type = info.get('type')
+        if entry_type == 'file':
+            size = info.get('size')
+            try:
+                size = int(size) if size is not None else 0
+            except (TypeError, ValueError):
+                size = 0
+            return 'file', size
+
+        if entry_type in {'directory', 'dir'}:
+            return 'dir', None
+
+        return None, None
+
+    def _collect_raw_entries(
         self,
         os_path: str,
         relative_path: str,
-        items: list[tuple[str, bool]],
+        entries: list[_RawEntry],
         *,
         recursive: bool,
         files_only: bool,
         depth: int,
-        include_total_size: bool,
-    ) -> int | None:
-        """Collect relative raw paths for a local directory walk and optionally accumulate size."""
-        total_size = 0 if include_total_size else None
+    ) -> None:
+        """Dispatch to the appropriate walk implementation based on filesystem type."""
+        if isinstance(self._fs, LocalFileSystem):
+            self._collect_local_raw_entries(
+                os_path,
+                relative_path,
+                entries,
+                recursive=recursive,
+                files_only=files_only,
+                depth=depth,
+            )
+        else:
+            self._collect_generic_raw_entries(
+                os_path,
+                relative_path,
+                entries,
+                recursive=recursive,
+                files_only=files_only,
+                depth=depth,
+            )
+
+    def _collect_local_raw_entries(
+        self,
+        os_path: str,
+        relative_path: str,
+        entries: list[_RawEntry],
+        *,
+        recursive: bool,
+        files_only: bool,
+        depth: int,
+    ) -> None:
+        """Collect listing entries from a local filesystem using ``os.scandir``.
+
+        This keeps the local path fast by relying on ``DirEntry`` methods, which
+        usually avoid extra stat syscalls compared with naive ``os.listdir`` +
+        ``os.stat`` loops.
+
+        File sizes are captured during traversal when cheaply available.
+        Directory sizes are never computed.
+        """
         remaining_depth = (
             depth if recursive and depth > 0 else (None if recursive else 1)
         )
 
-        def _walk(current_os_path: str, current_relative_path: str, current_depth):
-            nonlocal total_size
+        def _walk(
+            current_os_path: str,
+            current_relative_path: str,
+            current_depth: int | None,
+        ) -> None:
+            try:
+                with os.scandir(current_os_path) as it:
+                    for child in it:
+                        child_relative_path = (
+                            child.name
+                            if not current_relative_path
+                            else f'{current_relative_path}/{child.name}'
+                        )
 
-            with os.scandir(current_os_path) as iterator:
-                children = sorted(iterator, key=lambda entry: entry.name)
+                        try:
+                            if child.is_file(follow_symlinks=False):
+                                try:
+                                    size = child.stat(follow_symlinks=False).st_size
+                                except (OSError, ValueError):
+                                    size = None
 
-            for child in children:
+                                entries.append(
+                                    _RawEntry(
+                                        path=child_relative_path,
+                                        is_file=True,
+                                        size=size,
+                                    )
+                                )
+                                continue
+
+                            if not child.is_dir(follow_symlinks=False):
+                                # Skip symlinks, broken entries, devices, etc.
+                                continue
+
+                        except OSError:
+                            continue
+
+                        if not files_only:
+                            entries.append(
+                                _RawEntry(
+                                    path=child_relative_path,
+                                    is_file=False,
+                                    size=None,
+                                )
+                            )
+
+                        if current_depth is None or current_depth > 1:
+                            _walk(
+                                child.path,
+                                child_relative_path,
+                                None if current_depth is None else current_depth - 1,
+                            )
+
+            except (PermissionError, FileNotFoundError, NotADirectoryError, OSError):
+                return
+
+        _walk(os_path, relative_path, remaining_depth)
+
+    def _collect_generic_raw_entries(
+        self,
+        os_path: str,
+        relative_path: str,
+        entries: list[_RawEntry],
+        *,
+        recursive: bool,
+        files_only: bool,
+        depth: int,
+    ) -> None:
+        """Collect listing entries from a generic fsspec filesystem.
+
+        Uses ``ls(detail=True)`` so the backend can provide file/directory type and,
+        where available, file size in the same listing response.
+
+        This is intended to work for non-local backends such as NFS-mounted
+        implementations exposed via fsspec, S3-like stores, GCS, and similar
+        filesystems.
+
+        Directory sizes are never computed.
+        """
+        remaining_depth = (
+            depth if recursive and depth > 0 else (None if recursive else 1)
+        )
+
+        def _walk(
+            current_os_path: str,
+            current_relative_path: str,
+            current_depth: int | None,
+        ) -> None:
+            try:
+                # detail=True is required to distinguish files from directories.
+                batch = self._fs.ls(current_os_path, detail=True)
+            except Exception:
+                return
+
+            for item in batch:
+                item_path = item.get('name')
+                if not item_path:
+                    continue
+
+                item_name = item_path.rstrip('/').rsplit('/', 1)[-1]
                 child_relative_path = (
-                    child.name
+                    item_name
                     if not current_relative_path
-                    else f'{current_relative_path}/{child.name}'
+                    else f'{current_relative_path}/{item_name}'
                 )
-                is_file = child.is_file(follow_symlinks=False)
 
-                if is_file:
-                    items.append((child_relative_path, True))
-                    if include_total_size:
-                        total_size += child.stat(follow_symlinks=False).st_size
+                item_type = item.get('type')
+
+                if item_type == 'file':
+                    size = item.get('size')
+                    try:
+                        size = int(size) if size is not None else None
+                    except (TypeError, ValueError):
+                        size = None
+
+                    entries.append(
+                        _RawEntry(
+                            path=child_relative_path,
+                            is_file=True,
+                            size=size,
+                        )
+                    )
+                    continue
+
+                if item_type not in {'directory', 'dir'}:
                     continue
 
                 if not files_only:
-                    items.append((child_relative_path, False))
-                    if include_total_size:
-                        total_size += self._fs.du(child.path)
+                    entries.append(
+                        _RawEntry(
+                            path=child_relative_path,
+                            is_file=False,
+                            size=None,
+                        )
+                    )
 
                 if current_depth is None or current_depth > 1:
                     _walk(
-                        child.path,
+                        item_path,
                         child_relative_path,
                         None if current_depth is None else current_depth - 1,
                     )
 
         _walk(os_path, relative_path, remaining_depth)
-        return total_size
 
-    def _raw_path_info(self, relative_path: str, is_file: bool) -> RawPathInfo:
-        """Build a RawPathInfo for a known local raw path."""
-        os_path = self._full_path(relative_path).as_posix()
-        size = os.stat(os_path).st_size if is_file else self._fs.du(os_path)
-        return RawPathInfo(
-            path=relative_path, is_file=is_file, size=size, access='unpublished'
-        )
+    def _sort_raw_entries(
+        self,
+        entries: list[_RawEntry],
+        *,
+        order: Literal['asc', 'desc'],
+        group_directories_first: bool,
+    ) -> None:
+        """Sort entries according to requested ordering.
+
+        When ``group_directories_first`` is enabled, directories and files are
+        sorted separately and concatenated. Otherwise entries are sorted only by
+        path.
+        """
+        reverse = order == 'desc'
+
+        if not group_directories_first:
+            entries.sort(key=lambda e: e.path, reverse=reverse)
+            return
+
+        dirs = [e for e in entries if not e.is_file]
+        files = [e for e in entries if e.is_file]
+
+        dirs.sort(key=lambda e: e.path, reverse=reverse)
+        files.sort(key=lambda e: e.path, reverse=reverse)
+
+        entries[:] = dirs + files
 
     @contextmanager
     def raw_file(self, file_path: str, *args, **kwargs):
