@@ -147,6 +147,7 @@ def check_mongo():
         'action_document',
         'archive',
         'dataset',
+        'd_o_i',  # auto-named from class DOI
         'entry',
         'package_definition',
         'upload',

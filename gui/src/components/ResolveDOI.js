@@ -18,9 +18,9 @@
 import React, { useEffect, useState } from 'react'
 import { Typography, makeStyles } from '@material-ui/core'
 import { matchPath, useLocation, useRouteMatch, useHistory } from 'react-router'
-import {useApi} from '../api'
-import {useErrors} from '../errors'
-import { getUrl } from '../nav/Routes'
+import {useApi} from './api'
+import {useErrors} from './errors'
+import { getUrl } from './nav/Routes'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -39,16 +39,20 @@ export default function ResolveDOI() {
   const [doesNotExist, setDoesNotExist] = useState(false)
 
   useEffect(() => {
+    const entityType = match.path.split("/")[1]
+    const endpoint = `/${entityType}s`
+    const idField = `${entityType}_id`
+
     const doiMatch = matchPath(location.pathname, {
       path: `${match.path}/:doi*`
     })
     const { doi } = doiMatch.params
 
-    api.get('/datasets/', {doi: doi})
+    api.get(endpoint, {doi: doi})
       .then(response => {
         if (response.pagination.total >= 1) {
-          const dataset_id = response.data[0].dataset_id
-          history.push(getUrl(`dataset/id/${dataset_id}`, location))
+          const id = response.data[0][idField]
+          history.push(getUrl(`${entityType}/id/${id}`, location))
         } else {
           setDoesNotExist(true)
         }

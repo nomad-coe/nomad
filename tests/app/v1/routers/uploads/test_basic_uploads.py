@@ -32,17 +32,19 @@ from fastapi.testclient import TestClient
 
 from nomad import files, infrastructure, processing
 from nomad.bundles import BundleExporter
+from nomad.common import now
 from nomad.config import config
 from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.datamodel import EntryMetadata
 from nomad.files import PublicUploadFiles, StagingUploadFiles, UploadFiles
 from nomad.processing import Entry, ProcessStatus, Upload
+from nomad.utils.exampledata import ExampleData
 from tests.app.v1.routers.common import assert_response, perform_get
 from tests.config.models.test_plugins import (
     mock_example_upload_entry_point,
     mock_plugin_package,
 )
-from tests.fixtures.infrastructure import TemporalWorkerContext
+from tests.fixtures.infrastructure import DataciteMock, TemporalWorkerContext
 from tests.processing import test_data as test_processing
 from tests.processing.test_edit_metadata import (
     all_admin_metadata,
@@ -59,7 +61,7 @@ from tests.test_files import (
     example_file_vasp_with_binary,
 )
 from tests.test_search import assert_search_upload
-from tests.utils import build_url, set_upload_entry_metadata
+from tests.utils import assert_doi_name, build_url, set_upload_entry_metadata
 
 from .common import assert_upload
 
@@ -1480,7 +1482,7 @@ async def test_post_upload_edit(
             verify_only=verify_only,
         )
         url = f'uploads/{upload_id}/edit'
-        edit_start = datetime.now(timezone.utc).isoformat()[0:22]
+        edit_start = now().isoformat()[0:22]
         response = await asyncio.to_thread(
             lambda: client.post(url, headers=user_auth, json=edit_request_json)
         )
@@ -2700,3 +2702,85 @@ async def test_put_upload_raw_path_trigger_processing_option(
 
         upload_files = StagingUploadFiles(upload_id)
         assert upload_files.raw_path_exists('1.aux')
+
+
+@pytest.fixture
+def create_upload(elastic_function, raw_files_function, mongo_function, user1):
+
+    default_upload = dict(
+        upload_id='upload_id',
+    )
+
+    default_entry = dict(
+        upload_id=default_upload['upload_id'],
+        entry_id='entry_id',
+    )
+
+    def _create(
+        *,
+        upload: dict | None = None,
+        entry: dict | None = None,
+        skip_entry: bool = False,
+    ):
+        data = ExampleData(main_author=user1)
+        upload = default_upload | (upload or {})
+        data.create_upload(**upload)
+
+        if not skip_entry:
+            entry = default_entry | (entry or {})
+            data.create_entry(**entry)
+
+        data.save()
+        return data
+
+    return _create
+
+
+@pytest.mark.parametrize(
+    'upload_label, user, datacite_enabled, status_code',
+    [
+        pytest.param('published', 'user1', True, 200, id='plain'),
+        pytest.param('published', None, True, 401, id='no-user'),
+        pytest.param('published', 'user2', True, 403, id='wrong-user'),
+        pytest.param('published', 'user1', False, 403, id='datacite-disabled'),
+        pytest.param('with_doi', 'user1', True, 400, id='with-doi'),
+        pytest.param('unpublished', 'user1', True, 400, id='unpublished'),
+        pytest.param('empty', 'user1', True, 400, id='empty'),
+        pytest.param(None, 'user1', True, 404, id='non-existing'),
+    ],
+)
+def test_assign_doi_upload(
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    create_upload,
+    upload_label,
+    user,
+    datacite_enabled,
+    status_code,
+):
+    datacite_mock.set_enabled(datacite_enabled)
+
+    if upload_label == 'published':
+        data = create_upload(upload={'publish_time': now()})
+    elif upload_label == 'with_doi':
+        upload = {'publish_time': now(), 'doi': {'id': '10.83696/test-doi'}}
+        data = create_upload(upload=upload)
+    elif upload_label == 'unpublished':
+        data = create_upload()
+    elif upload_label == 'empty':
+        data = create_upload(skip_entry=True)
+
+    headers = auth_headers[user]
+    response = client.post(f'uploads/upload_id/action/assign-doi', headers=headers)
+
+    assert_response(response, status_code)
+    if not datacite_enabled:
+        assert 'not enabled' in response.json()['detail']
+    if status_code != 200:
+        return
+
+    response = response.json()
+    assert_upload(response)
+    doi_name = response['data']['doi']['id']
+    assert_doi_name(doi_name)

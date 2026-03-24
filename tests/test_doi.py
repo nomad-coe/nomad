@@ -15,34 +15,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unittest.mock import MagicMock
-
 import pytest
 
 from nomad.config import config
-from nomad.mongo.doi import DOI, DOIException
+from nomad.datacite import DataCiteException
+from nomad.datacite.utils import generate_unique_doi_name
+from nomad.mongo.doi import DOI
+from tests.fixtures.infrastructure import DataciteMock
+from tests.utils import assert_doi_name
 
 
 def test_create(mongo_function, user1, no_warn):
-    doi = DOI.create('the_title', user1)
+    doi = DOI.create()
 
     assert DOI.objects(doi=doi.doi).first() is not None
-    assert doi.metadata_xml is not None
+    assert_doi_name(doi.doi)
+    assert doi.state == 'created'
+    assert doi.url.endswith(doi.doi)
+    assert doi.create_time is not None
+
+    assert doi.doi_url is None
+    assert doi.metadata_url is None
+    assert doi.metadata_xml is None
+
+    doi2 = DOI.create()
+    assert doi.doi != doi2.doi
 
 
-def test_create_doi_counter(mongo_function, user1, no_warn):
-    DOI.create('the_title', user1)
-    doi = DOI.create('the_title', user1)
-    assert doi.doi.endswith('-2')
+def test_create_draft_doi(datacite_mock, mongo_function, user1, no_warn):
+    doi = DOI.create()
+    doi.create_draft('the_title', 2026, user1)
+    assert doi.state == 'draft'
 
-
-def test_create_draft_doi(mongo_function, user1, no_warn):
-    if config.datacite.enabled:
-        doi = DOI.create('the_title', user1)
-        doi.create_draft()
-        doi.delete()
-
-        assert DOI.objects(doi=doi.doi).first() is None
+    doi.delete()
+    assert DOI.objects(doi=doi.doi).first() is None
 
 
 @pytest.mark.parametrize(
@@ -54,41 +60,38 @@ def test_create_draft_doi(mongo_function, user1, no_warn):
     ],
 )
 def test_datacite_requests(
-    mongo_function, monkeypatch, user1, status_code, response_ok, is_findable, text
+    datacite_mock: DataciteMock,
+    mongo_function,
+    user1,
+    status_code,
+    response_ok,
+    is_findable,
+    text,
 ):
-    if config.datacite.enabled:
+    datacite_mock.set_requests(status_code, response_ok, text)
+    doi = DOI.create()
 
-        def mock_datacite_request(*args, **kwargs):
-            mock_response = MagicMock()
-            mock_response.status_code = status_code
-            mock_response.ok = response_ok
-            mock_response.text = text
-            return mock_response
+    if response_ok:
+        doi.create_draft('the_title', 2026, user1)
+        assert DOI.objects(doi=doi.doi).first() is not None
+        assert DOI.objects(doi=doi.doi).first().state == 'draft'
 
-        doi = DOI.create('the_title', user1)
+        if is_findable:
+            doi.make_findable()
+            assert DOI.objects(doi=doi.doi).first().state == 'findable'
+        else:
+            doi.delete()
+            assert DOI.objects(doi=doi.doi).first() is None
 
-        monkeypatch.setattr(
-            doi.create_draft.__globals__['requests'], 'post', mock_datacite_request
-        )
-        monkeypatch.setattr(
-            doi.make_findable.__globals__['requests'], 'put', mock_datacite_request
-        )
-        monkeypatch.setattr(
-            doi.delete.__globals__['requests'], 'delete', mock_datacite_request
-        )
+    elif not response_ok and config.datacite.enabled:
+        with pytest.raises(DataCiteException):
+            doi.create_draft('the_title', 2026, user1)
 
-        if response_ok:
-            doi.create_draft()
-            assert DOI.objects(doi=doi.doi).first() is not None
-            assert DOI.objects(doi=doi.doi).first().state == 'draft'
 
-            if is_findable:
-                doi.make_findable()
-                assert DOI.objects(doi=doi.doi).first().state == 'findable'
-            else:
-                doi.delete()
-                assert DOI.objects(doi=doi.doi).first() is None
+def test_generate_unique_doi_name():
+    doi1 = generate_unique_doi_name()
+    doi2 = generate_unique_doi_name()
 
-        elif not response_ok and config.datacite.enabled:
-            with pytest.raises(DOIException):
-                doi.create_draft()
+    assert_doi_name(doi1)
+    assert_doi_name(doi2)
+    assert doi1 != doi2

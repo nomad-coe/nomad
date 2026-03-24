@@ -99,6 +99,7 @@ class Scope(str, Enum):
     UPLOADS_WRITE = 'uploads:write'
     UPLOADS_PUBLISH = 'uploads:publish'
     UPLOADS_PROCESS = 'uploads:process'
+    UPLOADS_ASSIGN_DOI = 'uploads:assign_doi'
 
     # uploads bundle
     UPLOADS_BUNDLE_READ = 'uploads_bundle:read'

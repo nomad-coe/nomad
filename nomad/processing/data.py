@@ -97,6 +97,7 @@ from nomad.files import (
     mkdtemp,
 )
 from nomad.metainfo.data_type import Datatype, Datetime
+from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup, user_group_exists
 from nomad.mongo.package import PackageDefinition
 from nomad.normalizing import normalizers
@@ -1748,6 +1749,8 @@ class Upload(Proc):
         reviewer_groups: A list of reviewer groups, cf. `reviewers`.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, processing, upload).
+        doi: The optional Document Object Identifier (DOI) for this upload. Only the DOI
+            name (prefix + "/" + suffix) is stored.
 
         publish_directly: Boolean indicating that this upload should be published after initial processing.
         from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
@@ -1771,6 +1774,7 @@ class Upload(Proc):
     publish_time = DateTimeField()
     embargo_length = IntField(default=0, required=True)
     license = StringField(default='CC BY 4.0', required=True)
+    doi = EmbeddedDocumentField(EmbeddedDOI, default=None)
 
     from_oasis = BooleanField(default=False)
     oasis_deployment_url = StringField(default=None)

@@ -24,6 +24,7 @@ from nomad import files, search
 from nomad.datamodel import EntryArchive, EntryMetadata, Results
 from nomad.datamodel.metainfo import runschema
 from nomad.datamodel.metainfo.workflow import Workflow
+from nomad.mongo.doi import EmbeddedDOI
 from nomad.normalizing import normalizers
 from nomad.processing.data import mongo_upload_metadata
 
@@ -36,7 +37,8 @@ class ExampleData:
     Requires initialized infrastructure.
 
     Attributes:
-        uploads: A dictionary with with upload_ids as keys and lists of entry_ids as values.
+        upload_entries: A dictionary with upload_ids as keys and lists of entry_ids as values.
+        uploads: A dictionary with upload_ids as keys and their upload information as values.
         entries: A dictionary with entry_ids as keys and their ``EntryMetadata`` as values.
         archives: A dictionary with entry_ids as keys and their ``EntryArchives`` as values.
     """
@@ -211,6 +213,8 @@ class ExampleData:
             'published_to': [],
         }
         upload_dict.update(kwargs)
+        if upload_dict.get('doi') is not None:
+            upload_dict['doi'] = EmbeddedDOI(**upload_dict['doi'])
         if published is not None:
             if published and not upload_dict['publish_time']:
                 upload_dict['publish_time'] = self._next_time_stamp()

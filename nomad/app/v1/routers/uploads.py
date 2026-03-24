@@ -54,7 +54,10 @@ from nomad.common import get_compression_format, is_safe_basename, is_safe_relat
 from nomad.config import config
 from nomad.config.models.config import Reprocess
 from nomad.config.models.plugins import ExampleUploadEntryPoint
+from nomad.datacite import DataCiteException
+from nomad.datacite.service import create_doi_for_upload, publish_doi
 from nomad.files import PublicUploadFiles, StagingUploadFiles
+from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup
 from nomad.processing import (
     Entry,
@@ -118,6 +121,10 @@ class UploadRole(str, Enum):
     main_author = 'main_author'
     reviewer = 'reviewer'
     coauthor = 'coauthor'
+
+
+class DOI(BaseModel):
+    id: str = Field(description='The DOI name, e.g. 10.2345/nomad.6789-wxyz')
 
 
 class ProcData(BaseModel):
@@ -210,6 +217,7 @@ class UploadProcData(ProcData):
     license: str = Field(
         description='The license under which this upload is distributed.'
     )
+    doi: DOI | None = Field(None, description='The DOI assigned to this upload.')
     entries: int = Field(
         0, description='The number of identified entries in this upload.'
     )
@@ -349,6 +357,10 @@ class UploadProcDataQuery(BaseModel):
     upload_id: list[str] | None = Field(
         None,
         description='Search for uploads matching the given id. Multiple values can be specified.',
+    )
+    doi: list[str] | None = Field(
+        None,
+        description='Search for uploads matching the given doi. Multiple values can be specified.',
     )
     upload_name: list[str] | None = Field(
         None,
@@ -734,12 +746,81 @@ _upload_bundle_response = (
     {'content': {'application/zip': {'example': '<zipped bundle data>'}}},
 )
 
+_existing_upload_with_findable_state = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'The upload has failed to be submitted previously.',
+    },
+)
+
+_datacite_did_not_resolve = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        Datacite server couldn't resolve the request. Please try again later.
+    """
+        ),
+    },
+)
+
+_upload_already_has_doi = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The upload already has a DOI and cannot be changed anymore.
+    """
+        ),
+    },
+)
+
+_upload_is_empty = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The Upload is empty. No DOI can be assigned at this moment. Add some published
+        contents to the upload first.
+    """
+        ),
+    },
+)
+
+_upload_is_unpublished = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The upload is unpublished. No DOI can be assigned at the moment.
+        Publish the upload first.
+    """
+        ),
+    },
+)
+
+_datacite_not_enabled = (
+    status.HTTP_403_FORBIDDEN,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'The DataCite DOI service is not enabled on this deployment.',
+    },
+)
 
 _thank_you_message = f"""
 Thanks for uploading your data to nomad.
 Go back to {config.gui_url()} and press
 reload to see the progress on your upload
 and publish your data."""
+
+
+def _create_exception(status_code, response_dict):
+    return HTTPException(status_code, detail=response_dict.get('description'))
 
 
 @router.get(
@@ -822,6 +903,9 @@ def get_uploads(
 
     if query.upload_id:
         mongo_query &= Q(upload_id__in=query.upload_id)
+
+    if query.doi:
+        mongo_query &= Q(doi__in=query.doi)
 
     if query.upload_name:
         mongo_query &= Q(upload_name__in=query.upload_name)
@@ -3277,3 +3361,71 @@ def stop_upload_processing(
     upload.stop_processing()
 
     return UploadProcDataResponse(upload_id=upload_id, data=upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/action/assign-doi',
+    tags=[APITag.ACTION],
+    summary='Assign a DOI to an upload',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(
+        _datacite_not_enabled,
+        _upload_not_found,
+        _bad_request,
+        _not_authorized_to_upload,
+        _existing_upload_with_findable_state,
+        _upload_already_has_doi,
+        _upload_is_empty,
+        _upload_is_unpublished,
+        _datacite_did_not_resolve,
+    ),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def assign_doi(
+    upload_id: Annotated[str, Path(description='The unique id of the upload.')],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_ASSIGN_DOI], allow_anonymous=False)),
+    ],
+):
+    """
+    Assign a DOI at DataCite to this upload.
+
+    Conditions:
+        - The DataCite service must be enabled on this deployment.
+        - The upload must be published.
+        - The upload must contain at least one entry.
+        - The user must be the main author of the upload.
+    """
+
+    if not config.datacite.enabled:
+        raise _create_exception(*_datacite_not_enabled)
+
+    upload = _get_upload_with_write_access(
+        upload_id,
+        user,
+        include_published=True,
+        only_main_author=True,
+        published_requires_admin=False,
+    )
+
+    if upload.doi is not None:
+        raise _create_exception(*_upload_already_has_doi)
+
+    if upload.total_entries_count == 0:
+        raise _create_exception(*_upload_is_empty)
+
+    if not upload.published:
+        raise _create_exception(*_upload_is_unpublished)
+
+    try:
+        doi_id = create_doi_for_upload(upload)
+        publish_doi(doi_id)
+    except DataCiteException:
+        raise _create_exception(*_datacite_did_not_resolve)
+
+    upload.doi = EmbeddedDOI(id=doi_id)
+    upload.save()
+
+    return {'upload_id': upload.upload_id, 'data': upload}

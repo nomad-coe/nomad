@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import TypeAlias
+from unittest.mock import MagicMock
 
 import elasticsearch
 import elasticsearch.exceptions
@@ -387,3 +388,34 @@ def temporal_worker(
                     yield env
 
     return worker_context
+
+
+class DataciteMock:
+    """Helper class to en/disable datacite, mock responses for doi requests."""
+
+    def __init__(self, monkeypatch):
+        self._monkeypatch = monkeypatch
+
+    def set_enabled(self, enabled: bool):
+        self._monkeypatch.setattr(config.datacite, 'enabled', enabled)
+
+    def set_requests(self, status_code: int, response_ok: bool, text: str):
+        def request(*args, **kwargs):
+            mock_response = MagicMock()
+            mock_response.status_code = status_code
+            mock_response.ok = response_ok
+            mock_response.text = text
+            return mock_response
+
+        self._monkeypatch.setattr(f'nomad.datacite.client.requests.request', request)
+
+
+@pytest.fixture(scope='function')
+def datacite_mock(monkeypatch):
+    """Enables datacite, mocks success on all requests in doi module."""
+
+    datacite_mock = DataciteMock(monkeypatch)
+    datacite_mock.set_enabled(True)
+    # external response is always ok; fail cases should not request datacite at all
+    datacite_mock.set_requests(200, True, 'Success')
+    return datacite_mock
