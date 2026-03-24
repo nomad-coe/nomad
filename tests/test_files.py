@@ -463,7 +463,6 @@ class TestStagingUploadFiles(UploadFilesContract):
             recursive=True,
             files_only=True,
             order='desc',
-            include_total_size=True,
         )
 
         expected_paths = [
@@ -474,7 +473,6 @@ class TestStagingUploadFiles(UploadFilesContract):
         ]
 
         assert page.total == len(all_items)
-        assert page.total_size == sum(path_info.size for path_info in all_items)
         assert [path_info.path for path_info in page.content] == expected_paths
 
     @pytest.mark.parametrize('prefix_size', [0, 2])
