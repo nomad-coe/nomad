@@ -35,7 +35,7 @@ import {Datatable, DatatableTable} from '../datatable/Datatable'
 import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
-import {DOI} from '../dataset/DOI'
+import {DOI} from '../DOI'
 import { useUploadPageContext } from './UploadPageContext'
 
 function EditComments(props) {

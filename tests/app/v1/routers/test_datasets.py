@@ -26,6 +26,7 @@ from nomad.app.v1.models import Any_, Query
 from nomad.datamodel import Dataset
 from nomad.search import search
 from nomad.utils.exampledata import ExampleData
+from tests.fixtures.infrastructure import DataciteMock
 from tests.fixtures.users import admin_user_id
 
 from .common import assert_response
@@ -363,29 +364,11 @@ def test_delete_dataset(auth_headers, client, data, dataset_id, user, status_cod
     assert_dataset_deleted(dataset_id)
 
 
-@pytest.mark.parametrize(
-    'dataset_id, user, status_code',
-    [
-        pytest.param('dataset_1', 'user1', 200, id='plain'),
-        pytest.param('dataset_1', None, 401, id='no-user'),
-        pytest.param('dataset_1', 'user2', 403, id='wrong-user'),
-        pytest.param('dataset_doi', 'user1', 400, id='with-doi'),
-        pytest.param('unpublished', 'user1', 400, id='unpublished'),
-        pytest.param('empty', 'user1', 400, id='empty'),
-    ],
-)
-def test_assign_doi_dataset(
-    auth_headers,
-    client,
-    data,
-    user1,
-    dataset_id,
-    user,
-    status_code,
-):
-    more_data = ExampleData(main_author=user1)
-    more_data.create_upload(upload_id='unpublished', published=False)
-    more_data.create_entry(
+@pytest.fixture
+def unpublished_data(user1):
+    data = ExampleData(main_author=user1)
+    data.create_upload(upload_id='unpublished', published=False)
+    data.create_entry(
         upload_id='unpublished',
         entry_id='unpublished',
         mainfile='test_content/1/mainfile.json',
@@ -406,12 +389,42 @@ def test_assign_doi_dataset(
         dataset_type='owned',
     )
 
-    more_data.save(with_files=False)
+    data.save(with_files=False)
+    return data
+
+
+@pytest.mark.parametrize(
+    'dataset_id, user, datacite_enabled, status_code',
+    [
+        pytest.param('dataset_1', 'user1', True, 200, id='plain'),
+        pytest.param('dataset_1', None, True, 401, id='no-user'),
+        pytest.param('dataset_1', 'user2', True, 403, id='wrong-user'),
+        pytest.param('dataset_1', 'user1', False, 403, id='datacite-disabled'),
+        pytest.param('dataset_doi', 'user1', True, 400, id='with-doi'),
+        pytest.param('unpublished', 'user1', True, 400, id='unpublished'),
+        pytest.param('empty', 'user1', True, 400, id='empty'),
+    ],
+)
+def test_assign_doi_dataset(
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    data,
+    unpublished_data,
+    user1,
+    dataset_id,
+    user,
+    datacite_enabled,
+    status_code,
+):
+    datacite_mock.set_enabled(datacite_enabled)
 
     headers = auth_headers[user]
     response = client.post(f'datasets/{dataset_id}/action/doi', headers=headers)
 
     assert_response(response, status_code=status_code)
+    if not datacite_enabled:
+        assert 'not enabled' in response.json()['detail']
     if status_code != 200:
         return
 

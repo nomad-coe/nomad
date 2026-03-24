@@ -491,15 +491,16 @@ def migrate_mongo(
 @click.option(
     '--save-existing-records', help='A filename to store the existing DOI records in.'
 )
-def rewrite_doi_urls(dois, dry, save_existing_records):
+def rewrite_dataset_doi_urls(dois, dry, save_existing_records):
     import json
 
     import requests
 
-    from nomad.mongo.doi import _create_dataset_url, edit_doi_url
+    from nomad.mongo.doi import _generate_target_url, edit_doi_url
 
     existing_records = []
 
+    # if no DOIs are given, rewrite all dataset DOIs
     if len(dois) == 0:
         from nomad import infrastructure
         from nomad.datamodel import Dataset
@@ -524,7 +525,9 @@ def rewrite_doi_urls(dois, dry, save_existing_records):
             data = response.json()
             existing_records.append(data)
 
-            if data['data']['attributes']['url'] == _create_dataset_url(doi):
+            if data['data']['attributes']['url'] == _generate_target_url(
+                doi, 'dataset'
+            ):
                 print(f'Already up-to-date {doi}')
                 continue
 

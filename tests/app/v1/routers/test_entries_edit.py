@@ -279,17 +279,15 @@ class TestEditRepo:
         self.assert_edit(rv, quantity='datasets', success=True, message=False)
         assert self.mongo(1, datasets=[self.example_dataset.dataset_id])
 
-    def test_edit_ds_remove_doi(self):
-        rv = self.perform_edit(
-            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1')
-        )
+    def test_edit_ds_remove_doi(self, datacite_mock):
+        datasets = [self.example_dataset.dataset_name]
+        rv = self.perform_edit(datasets=datasets, query=self.query('upload_1'))
+        assert rv.status_code == 200
 
+        url = f'datasets/{self.example_dataset.dataset_name}/action/doi'
+        rv = self.api.post(url, headers=self.user_auth)
         assert rv.status_code == 200
-        rv = self.api.post(
-            f'datasets/{self.example_dataset.dataset_name}/action/doi',
-            headers=self.user_auth,
-        )
-        assert rv.status_code == 200
+
         rv = self.perform_edit(datasets=[], query=self.query('upload_1'))
         assert rv.status_code == 400
         data = rv.json()

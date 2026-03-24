@@ -1193,24 +1193,24 @@ class Client(ConfigBaseModel):
 
 class DataCite(ConfigBaseModel):
     mds_host: str = Field(
-        'https://mds.datacite.org',
-        description='Base URL of the DataCite MDS (Metadata Store) service.',
+        'https://api.test.datacite.org',
+        description='Base URL of the DataCite REST API.',
     )
     enabled: bool = Field(
         False,
         description='If True, NOMAD will register DOIs via DataCite for published uploads/datasets.',
     )
     prefix: str = Field(
-        '10.17172',
+        '10.83696',  # test prefix
         description='DataCite DOI prefix assigned to this NOMAD deployment.',
     )
     user: str = Field(
         '*',
-        description='DataCite MDS username.',
+        description='DataCite username.',
     )
     password: str = Field(
         '*',
-        description='DataCite MDS password.',
+        description='DataCite password.',
     )
 
 

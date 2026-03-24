@@ -24,7 +24,7 @@ import { errorContext } from '../errors'
 import { useApi } from '../api'
 import SearchPage from '../search/SearchPage'
 import { SearchContext } from '../search/SearchContext'
-import { DOI } from './DOI'
+import { DOI } from '../DOI'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It also allows you

@@ -60,9 +60,9 @@ client:
   url: https://nomad-lab.eu/prod/v1/api
 datacite:
   enabled: false
-  mds_host: https://mds.datacite.org
+  mds_host: https://api.test.datacite.org
   password: '*'
-  prefix: '10.17172'
+  prefix: '10.83696'
   user: '*'
 elastic:
   bulk_size: 1000
