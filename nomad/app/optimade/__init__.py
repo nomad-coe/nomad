@@ -17,6 +17,18 @@ sys.modules['optimade.server.logger'] = importlib.import_module(
     'nomad.app.optimade_logger'
 )
 
+
+# starlette>=1.0 removed `Router.on_startup/on_shutdown`.
+# FastAPI's `include_router()` still expects these attrs.
+# Patch the Starlette base class directly to avoid importing OPTIMADE routers too early.
+from starlette.routing import Router as StarletteRouter  # nopep8
+
+if not hasattr(StarletteRouter, 'on_startup'):
+    setattr(StarletteRouter, 'on_startup', [])
+if not hasattr(StarletteRouter, 'on_shutdown'):
+    setattr(StarletteRouter, 'on_shutdown', [])
+
+
 from pydantic import Field, create_model
 from typing import Annotated
 

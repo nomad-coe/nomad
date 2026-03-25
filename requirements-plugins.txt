@@ -171,7 +171,7 @@ sniffio==1.3.1            # via httpx, -c requirements-dev.txt
 soupsieve==2.8.3          # via beautifulsoup4, -c requirements-dev.txt
 spglib==2.7.0             # via asr, matid, phonopy, pymatgen, symfc, -c requirements-dev.txt
 sqlalchemy==2.0.48        # via alembic, jupyterhub, -c requirements-dev.txt
-starlette==0.52.1         # via fastapi, nomad-lab, -c requirements-dev.txt
+starlette==1.0         # via fastapi, nomad-lab, -c requirements-dev.txt
 structlog==25.5.0         # via nomad-lab, -c requirements-dev.txt
 symfc==1.5.4              # via phonopy
 sympy==1.14.0             # via pymatgen, -c requirements-dev.txt

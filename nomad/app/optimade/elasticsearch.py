@@ -37,12 +37,9 @@ class NomadStructureMapper(StructureMapper):
 
     @classproperty
     def ALL_ATTRIBUTES(cls) -> set[str]:  # pylint: disable=no-self-argument
-        result = getattr(cls, '_ALL_ATTRIBUTES', None)
-        if result is None:
-            result = StructureMapper.ALL_ATTRIBUTES  # pylint: disable=no-member
-            cls._ALL_ATTRIBUTES = result
-
-        return result
+        # Delegate to the upstream mapper each time to avoid freezing a stale
+        # provider-field snapshot during early import-time initialization.
+        return StructureMapper.ALL_ATTRIBUTES  # pylint: disable=no-member
 
 
 class StructureCollection(EntryCollection):
