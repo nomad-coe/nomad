@@ -350,18 +350,21 @@ async def get_action_status_async(
     return await _get_action_status_async(action_instance_id, user_id)
 
 
-async def get_action_result(
+def get_action_result(action_instance_id: str, user_id: str) -> dict[str, Any] | None:
+    """
+    Retrieves the result of a completed action.
+
+    Synchronous callers can call this function directly.
+    Asynchronous callers should use ``await get_action_result_async(...)``.
+    """
+    return _run_async_or_return(get_action_result_async(action_instance_id, user_id))
+
+
+async def get_action_result_async(
     action_instance_id: str, user_id: str
 ) -> dict[str, Any] | None:
     """
     Retrieves the result of a completed action.
-
-    Args:
-        action_instance_id: The unique ID of the action to check.
-        user_id: The user who initiated the action.
-
-    Returns:
-        The result of the action, or None if workflow not found.
     """
     logger = get_logger(__name__)
     action = await _validate_action_ownership(action_instance_id, user_id)
@@ -732,7 +735,7 @@ async def start_action_async(action_id: str, data: Any) -> str:
     return await _start_action_async(action_id, data)
 
 
-async def stop_action(action_instance_id: str, user_id: str):
+async def _stop_action_async(action_instance_id: str, user_id: str):
     """
     Stops a running action.
 
@@ -756,3 +759,20 @@ async def stop_action(action_instance_id: str, user_id: str):
 
     action.status = str(WorkflowExecutionStatus.CANCELED.name)
     await action.save()
+
+
+def stop_action(action_instance_id: str, user_id: str):
+    """
+    Stops a running action.
+
+    Synchronous callers can call this function directly.
+    Asynchronous callers should use ``await stop_action_async(...)``.
+    """
+    return _run_async_or_return(_stop_action_async(action_instance_id, user_id))
+
+
+async def stop_action_async(action_instance_id: str, user_id: str):
+    """
+    Async-only variant of ``stop_action`` for typed async call sites.
+    """
+    return await _stop_action_async(action_instance_id, user_id)

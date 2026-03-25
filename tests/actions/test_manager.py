@@ -12,6 +12,7 @@ from nomad.actions.manager import (
     _get_param_schema,
     _validate_with_pydantic,
     get_action_result,
+    get_action_result_async,
     get_action_status,
     get_action_status_async,
     get_all_action_schemas,
@@ -19,6 +20,7 @@ from nomad.actions.manager import (
     list_user_actions,
     start_action,
     start_action_async,
+    stop_action,
     validate_action_arg,
 )
 from nomad.mongo.action import ActionDocument
@@ -194,6 +196,48 @@ def test_get_action_status_sync_facade_returns_value(monkeypatch):
     assert status.name == 'RUNNING'
 
 
+def test_stop_action_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_stop_action_async(action_instance_id, user_id):
+        assert action_instance_id == 'workflow-1'
+        assert user_id == 'user-1'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._stop_action_async',
+        mock_stop_action_async,
+    )
+
+    assert stop_action('workflow-1', 'user-1') is None
+
+
+def test_get_action_result_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_get_action_result_async(action_instance_id, user_id):
+        assert action_instance_id == 'workflow-1'
+        assert user_id == 'user-1'
+        return {'result': 'success'}
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_action_result_async',
+        mock_get_action_result_async,
+    )
+
+    result = get_action_result('workflow-1', 'user-1')
+    assert result == {'result': 'success'}
+
+
 @pytest.mark.asyncio
 async def test_start_action(
     monkeypatch, mongo_function, async_mongo_function, user1, mock_action_entry_point
@@ -319,7 +363,7 @@ async def test_get_action_result(
     )
     await action_doc.insert()
 
-    result = await get_action_result('workflow-123', user1.user_id)
+    result = await get_action_result_async('workflow-123', user1.user_id)
     assert result == {'result': 'success'}
 
     # Verify results were saved to DB
@@ -330,7 +374,7 @@ async def test_get_action_result(
     assert updated_doc.results == {'result': 'success'}
 
     with pytest.raises(Exception):
-        await get_action_result('nonexistent-workflow', user1.user_id)
+        await get_action_result_async('nonexistent-workflow', user1.user_id)
 
 
 @pytest.mark.asyncio

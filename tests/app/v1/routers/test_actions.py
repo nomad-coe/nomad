@@ -93,7 +93,7 @@ async def test_action_result(
         return {'result': 'success'}
 
     monkeypatch.setattr(
-        'nomad.app.v1.routers.actions.get_action_result',
+        'nomad.app.v1.routers.actions.get_action_result_async',
         mock_get_action_result,
     )
     response = await client.get(
@@ -174,7 +174,7 @@ async def test_action_stop(
         return None
 
     monkeypatch.setattr(
-        'nomad.app.v1.routers.actions.stop_action',
+        'nomad.app.v1.routers.actions.stop_action_async',
         mock_stop_action,
     )
     response = await client.post(
@@ -488,14 +488,14 @@ async def mock_get_action_result_raise(*args, **kwargs):
         (
             'POST',
             '/actions/workflow-1/stop',
-            'nomad.app.v1.routers.actions.stop_action',
+            'nomad.app.v1.routers.actions.stop_action_async',
             mock_stop_action_raise,
             500,
         ),
         (
             'GET',
             '/actions/workflow-1/result',
-            'nomad.app.v1.routers.actions.get_action_result',
+            'nomad.app.v1.routers.actions.get_action_result_async',
             mock_get_action_result_raise,
             500,
         ),
