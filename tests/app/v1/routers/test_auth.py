@@ -17,6 +17,7 @@
 #
 
 import datetime
+from types import SimpleNamespace
 
 import pytest
 from bson import ObjectId
@@ -24,11 +25,12 @@ from bson.objectid import ObjectId
 from fastapi import HTTPException, Request, status
 
 from nomad.app.v1.models.models import User
-from nomad.app.v1.routers.auth import get_current_user
+from nomad.app.v1.routers.auth import _resolve_user_with_scopes, get_current_user
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import PAT, PAT_PREFIX, AuthResult, _hash_token
 from nomad.common import now
 from nomad.config.models.config import ModeEnum
+from tests.test_config import load_test_config
 
 # Tests for OIDC authentication endpoints
 
@@ -432,10 +434,10 @@ def test_get_current_user(
             assert reveived_user == allowed_user
 
 
-def test_get_current_user_deleted_user_auto_revokes_pat(mongo_function, monkeypatch):
+def test_get_current_user_deleted_user_warning(mongo_function, monkeypatch):
     """
     Test that if a valid PAT is used but the associated user is missing,
-    the dependency rejects the request and auto-revokes the PAT.
+    the dependency rejects the request with a warning.
     """
     raw_token = f'{PAT_PREFIX}pat_mock_secret_token_for_test'
     token_digest = _hash_token(raw_token)
@@ -657,6 +659,245 @@ def test_scopes_upload_token_missing_non_upload_scope(
         dep(upload_token='dummy-upload-token')
     assert exc.value.status_code == 403
     assert Scope.GROUPS_READ in str(exc.value.detail)
+
+
+# Tests the final outcome of `_resolve_user_with_scopes`, i.e. whether a request
+# is allowed or rejected after applying authentication, authorization, and
+# scope resolution logic (interaction with configs).
+# Refer to the diagram in https://fairmat-nfdi.github.io/nomad-docs/explanation/auth.html#authentication-and-authorization
+
+
+def test_resolve_user_anonymous_requires_auth(mockopen, monkeypatch):
+    """Anonymous requests (no valid token) should be rejected
+    when authentication is required (`require_authentication=True`).
+    """
+    runtime_config = load_test_config(
+        {
+            'auth': {
+                'require_authentication': True,
+                'unauthenticated_user_scopes': {'include': ['*:read']},
+            }
+        },
+        None,
+        mockopen,
+        monkeypatch,
+    )
+    monkeypatch.setattr('nomad.app.v1.routers.auth.config', runtime_config)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _resolve_user_with_scopes(
+            required_scopes=set(),
+            allow_anonymous=True,
+        )
+
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert exc_info.value.detail == 'Authentication required.'
+    assert exc_info.value.headers == {'WWW-Authenticate': 'Bearer'}
+
+
+@pytest.mark.parametrize(
+    ('required_scopes', 'should_raise'),
+    [
+        pytest.param({'uploads:read'}, False, id='required-scope-present'),
+        pytest.param({'uploads:write'}, True, id='required-scope-missing'),
+    ],
+)
+def test_resolve_user_anonymous_uses_unauthenticated_scopes(
+    required_scopes,
+    should_raise,
+    mockopen,
+    monkeypatch,
+):
+    """Anonymous requests should use `unauthenticated_user_scopes` when
+    authentication is not required (`require_authentication=False`).
+    """
+    runtime_config = load_test_config(
+        {
+            'auth': {
+                'require_authentication': False,
+                'unauthenticated_user_scopes': {'include': ['uploads:read']},
+            }
+        },
+        None,
+        mockopen,
+        monkeypatch,
+    )
+    monkeypatch.setattr('nomad.app.v1.routers.auth.config', runtime_config)
+
+    if should_raise:
+        with pytest.raises(HTTPException) as exc_info:
+            _resolve_user_with_scopes(
+                required_scopes=required_scopes,
+                allow_anonymous=True,
+            )
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail == f'Missing scopes: {sorted(required_scopes)}'
+
+    else:
+        user = _resolve_user_with_scopes(
+            required_scopes=required_scopes,
+            allow_anonymous=True,
+            request=None,
+            keycloak_token=None,
+            personal_access_token=None,
+            simple_token=None,
+            upload_token=None,
+        )
+
+        assert user is None
+
+
+@pytest.mark.parametrize(
+    'authorized_users',
+    [
+        pytest.param(None, id='no-whitelist-configured'),
+        pytest.param(['alice@example.com'], id='user-in-whitelist'),
+    ],
+)
+def test_resolve_user_authenticated_authorized_uses_token_scopes(
+    authorized_users,
+    mockopen,
+    monkeypatch,
+):
+    """Authenticated users should be allowed and use their token scopes when
+    no whitelist is configured or when they are included in `authorized_users`.
+    """
+
+    runtime_config = load_test_config(
+        {
+            'auth': {
+                'require_authentication': True,
+                'authorized_users': authorized_users,
+            }
+        },
+        None,
+        mockopen,
+        monkeypatch,
+    )
+    monkeypatch.setattr('nomad.app.v1.routers.auth.config', runtime_config)
+
+    user = User(
+        user_id='user-id',
+        username='alice',
+        email='alice@example.com',
+    )
+    pat = SimpleNamespace(
+        user_id='user-id',
+        scopes=['uploads:read'],
+    )
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.authenticate_pat',
+        lambda *args, **kwargs: pat,
+    )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.datamodel.User.get',
+        lambda *args, **kwargs: user,
+    )
+
+    resolved_user = _resolve_user_with_scopes(
+        required_scopes={'uploads:read'},
+        allow_anonymous=True,
+        personal_access_token='fake-pat',
+    )
+
+    assert resolved_user is user
+
+
+@pytest.mark.parametrize(
+    ('reject_unauthorized_users', 'required_scopes', 'should_raise'),
+    [
+        pytest.param(
+            True,
+            {'uploads:read'},
+            True,
+            id='reject-unauthorized-user',
+        ),
+        pytest.param(
+            False,
+            {'uploads:read'},
+            False,
+            id='fallback-to-unauthorized-user-scopes',
+        ),
+        pytest.param(
+            False,
+            {'uploads:write'},
+            True,
+            id='fallback-scopes-missing-required-scope',
+        ),
+    ],
+)
+def test_resolve_user_authenticated_not_in_whitelist(
+    reject_unauthorized_users,
+    required_scopes,
+    should_raise,
+    mockopen,
+    monkeypatch,
+):
+    """This tests cases where authorized_users configured and user
+    NOT in that list.
+    - if `reject_unauthorized_users=True`, they would be rejected
+    - otherwise scopes defined in `unauthorized_user_scopes` would be used.
+    """
+
+    runtime_config = load_test_config(
+        {
+            'auth': {
+                'require_authentication': True,
+                'reject_unauthorized_users': reject_unauthorized_users,
+                'authorized_users': ['alice@example.com'],
+                'unauthorized_user_scopes': {'include': ['uploads:read']},
+            }
+        },
+        None,
+        mockopen,
+        monkeypatch,
+    )
+    monkeypatch.setattr('nomad.app.v1.routers.auth.config', runtime_config)
+
+    user = User(
+        user_id='user-id',
+        username='bob',
+        email='bob@example.com',
+    )
+    pat = SimpleNamespace(user_id='user-id', scopes=['uploads:write'])
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.authenticate_pat',
+        lambda *args, **kwargs: pat,
+    )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.datamodel.User.get',
+        lambda *args, **kwargs: user,
+    )
+
+    if should_raise:
+        with pytest.raises(HTTPException) as exc_info:
+            _resolve_user_with_scopes(
+                required_scopes=required_scopes,
+                allow_anonymous=True,
+                personal_access_token='fake-pat',
+            )
+
+        expected_status = status.HTTP_403_FORBIDDEN
+        assert exc_info.value.status_code == expected_status
+
+        if reject_unauthorized_users:
+            assert (
+                exc_info.value.detail == 'You are not authorized to access this Oasis'
+            )
+        else:
+            assert exc_info.value.detail == f'Missing scopes: {sorted(required_scopes)}'
+
+    else:
+        resolved_user = _resolve_user_with_scopes(
+            required_scopes=required_scopes,
+            allow_anonymous=True,
+            personal_access_token='fake-pat',
+        )
+
+        assert resolved_user is user
 
 
 # Tests for personal access token (PAT) endpoints
