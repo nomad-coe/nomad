@@ -130,6 +130,33 @@ class EntriesToBeProcessedResult:
 
 
 @dataclass
+class CleanupEntryBatchFromFileInput:
+    upload_id: str
+    batch_dir_path: str
+    batch_id: int
+
+
+@dataclass
+class CleanupEntriesBatchActivityInput:
+    """Input for one cleanup indexing batch."""
+
+    upload_id: str
+    entry_ids: list[str]
+    refresh: bool = True
+
+
+@dataclass
+class CleanupEntriesResult:
+    """Prepared cleanup work. Empty means the fast path already finished cleanup."""
+
+    upload_id: str
+    entry_ids: list[str] | None = None
+    directory: str | None = None
+    current_sub_batch_index: int = 0
+    total_batches: int = 0
+
+
+@dataclass
 class PublishUploadWorkflowInput:
     upload_id: str
     embargo_length: int | None = None
