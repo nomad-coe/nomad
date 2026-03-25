@@ -2,6 +2,8 @@ import math
 from typing import TypeVar
 
 T = TypeVar('T')
+MAX_CONCURRENT_ACTIVITIES_PER_WORKFLOW = 1000
+CLEANUP_ENTRY_BATCH_SIZE = 100
 
 
 def generate_batches(

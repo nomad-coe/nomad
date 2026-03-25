@@ -655,6 +655,26 @@ class Elastic(ConfigBaseModel):
         1000,
         description='Number of documents per bulk indexing/request batch.',
     )
+    bulk_retry_attempts: int = Field(
+        5,
+        ge=1,
+        description='Number of retry attempts for rejected Elasticsearch bulk requests.',
+    )
+    bulk_retry_initial_backoff: float = Field(
+        1.0,
+        ge=0.0,
+        description='Initial backoff in seconds for Elasticsearch bulk retries.',
+    )
+    bulk_retry_max_backoff: float = Field(
+        30.0,
+        ge=0.0,
+        description='Maximum backoff in seconds for Elasticsearch bulk retries.',
+    )
+    bulk_retry_jitter: float = Field(
+        0.5,
+        ge=0.0,
+        description='Maximum random jitter in seconds added to Elasticsearch bulk retries.',
+    )
     max_payload_size: int = Field(
         90 * 1024 * 1024,  # 90 MB
         description='Maximum payload size sent to the Elasticsearch server in bytes. Note that Elasticsearch has an internal limit of 100MB that you can configure as well.',

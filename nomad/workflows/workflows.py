@@ -24,19 +24,22 @@ PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
 with workflow.unsafe.imports_passed_through():
     from nomad.config import config
     from nomad.workflows.activities import (
-        cleanup_activity,
+        cleanup_entries_batch_activity,
         cleanup_workflow_tmp_dir_activity,
         delete_upload_entries_activity,
         delete_upload_files_activity,
         delete_upload_record_activity,
         delete_upload_search_activity,
         edit_upload_metadata_activity,
+        finalize_cleanup_activity,
+        get_cleanup_entry_batch_from_file,
         get_entry_batch_from_file,
         handle_heartbeat_failure_activity,
         import_bundle_activity,
         match_all_activity,
         next_level_entries,
         parser_min_level,
+        prepare_cleanup_activity,
         process_entry_activity,
         process_entry_batch_activity,
         process_upload_failure_activity,
@@ -49,6 +52,9 @@ with workflow.unsafe.imports_passed_through():
         update_files_activity,
     )
     from nomad.workflows.shared_objects import (
+        CleanupEntriesBatchActivityInput,
+        CleanupEntriesResult,
+        CleanupEntryBatchFromFileInput,
         DeleteUploadWorkflowInput,
         EditUploadMetadataWorkflowInput,
         EntriesToBeProcessedResult,
@@ -61,7 +67,7 @@ with workflow.unsafe.imports_passed_through():
         UploadProcessingWorkflowInput,
         UploadWorkflowIdInput,
     )
-    from nomad.workflows.utils import generate_batches
+    from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, generate_batches
 
 
 @workflow.defn
@@ -316,6 +322,95 @@ class BatchProcessEntriesWorkflow:
 
 
 @workflow.defn
+class BatchCleanupEntriesWorkflow:
+    @workflow.run
+    async def run(self, cleanup_entries_result: CleanupEntriesResult):
+        retry_policy = RetryPolicy(
+            maximum_attempts=2,
+        )
+        cleanup_activity_retry_policy = RetryPolicy(
+            maximum_attempts=5,
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2.0,
+            maximum_interval=timedelta(seconds=30),
+        )
+        cleanup_batch_semaphore = asyncio.Semaphore(
+            config.temporal.entry_concurrency_target
+        )
+
+        if cleanup_batch_directory := cleanup_entries_result.directory:
+
+            async def process_file_batch(batch_id: int):
+                async with cleanup_batch_semaphore:
+                    entry_ids = await workflow.execute_activity(
+                        get_cleanup_entry_batch_from_file,
+                        CleanupEntryBatchFromFileInput(
+                            upload_id=cleanup_entries_result.upload_id,
+                            batch_dir_path=cleanup_batch_directory,
+                            batch_id=batch_id,
+                        ),
+                        schedule_to_close_timeout=timedelta(
+                            seconds=config.temporal.processing_timeouts.cleanup_timeout
+                        ),
+                        retry_policy=retry_policy,
+                        priority=PROCESS_UPLOAD_PRIORITY,
+                    )
+                    await workflow.execute_activity(
+                        cleanup_entries_batch_activity,
+                        CleanupEntriesBatchActivityInput(
+                            upload_id=cleanup_entries_result.upload_id,
+                            entry_ids=entry_ids,
+                            refresh=True,
+                        ),
+                        schedule_to_close_timeout=timedelta(
+                            seconds=config.temporal.processing_timeouts.cleanup_timeout
+                        ),
+                        heartbeat_timeout=timedelta(
+                            seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
+                        ),
+                        retry_policy=cleanup_activity_retry_policy,
+                        priority=PROCESS_UPLOAD_PRIORITY,
+                    )
+
+            await asyncio.gather(
+                *[
+                    process_file_batch(batch_id)
+                    for batch_id in range(cleanup_entries_result.total_batches)
+                ]
+            )
+        elif entry_ids := cleanup_entries_result.entry_ids:
+
+            async def process_entry_batch(entry_batch: list[str]):
+                async with cleanup_batch_semaphore:
+                    await workflow.execute_activity(
+                        cleanup_entries_batch_activity,
+                        CleanupEntriesBatchActivityInput(
+                            upload_id=cleanup_entries_result.upload_id,
+                            entry_ids=entry_batch,
+                            refresh=True,
+                        ),
+                        schedule_to_close_timeout=timedelta(
+                            seconds=config.temporal.processing_timeouts.cleanup_timeout
+                        ),
+                        heartbeat_timeout=timedelta(
+                            seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
+                        ),
+                        retry_policy=cleanup_activity_retry_policy,
+                        priority=PROCESS_UPLOAD_PRIORITY,
+                    )
+
+            await asyncio.gather(
+                *[
+                    process_entry_batch(entry_batch)
+                    for entry_batch in generate_batches(
+                        entry_ids,
+                        max_desired_batch_size=CLEANUP_ENTRY_BATCH_SIZE,
+                    )
+                ]
+            )
+
+
+@workflow.defn
 class ProcessUploadWorkflow:
     """
     Specialized workflow to process an upload through multiple steps:
@@ -379,8 +474,33 @@ class ProcessUploadWorkflow:
             input.min_level = next_parser_level + 1
 
         # Step 4: Cleanup
+        cleanup_entries_result: (
+            CleanupEntriesResult | None
+        ) = await workflow.execute_activity(
+            prepare_cleanup_activity,
+            input,
+            schedule_to_close_timeout=timedelta(
+                seconds=config.temporal.processing_timeouts.cleanup_timeout
+            ),
+            heartbeat_timeout=heartbeat_timeout,
+            retry_policy=retry_policy,
+            priority=PROCESS_UPLOAD_PRIORITY,
+        )
+        # An empty result means prepare_cleanup_activity already completed the fast path.
+        if cleanup_entries_result is None:
+            return
+
+        await workflow.execute_child_workflow(
+            BatchCleanupEntriesWorkflow.run,
+            cleanup_entries_result,
+            id=f'{workflow_info.workflow_id}-cleanup-batch-processor',
+            parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
+            retry_policy=RetryPolicy(maximum_attempts=1),
+            priority=PROCESS_UPLOAD_PRIORITY,
+        )
+
         await workflow.execute_activity(
-            cleanup_activity,
+            finalize_cleanup_activity,
             input,
             schedule_to_close_timeout=timedelta(
                 seconds=config.temporal.processing_timeouts.cleanup_timeout

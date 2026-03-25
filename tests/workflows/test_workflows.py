@@ -4,16 +4,22 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
 import pytest
+from temporalio.client import WorkflowFailureError
 
 from nomad.actions import TaskQueue
 from nomad.processing.base import ProcessFailure, ProcessStatus
+from nomad.processing.data import Upload
 from nomad.workflows.activities import (
+    get_cleanup_entry_batch_from_file,
     get_entry_batch_from_file,
     handle_heartbeat_failure_activity,
     next_level_entries,
+    prepare_cleanup_activity,
     process_entry_batch_activity,
 )
 from nomad.workflows.shared_objects import (
+    CleanupEntriesResult,
+    CleanupEntryBatchFromFileInput,
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
     EntriesToBeProcessedResult,
@@ -25,6 +31,7 @@ from nomad.workflows.shared_objects import (
     PublishUploadWorkflowInput,
     UploadProcessingWorkflowInput,
 )
+from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE
 
 # Test Constants
 TEST_UPLOAD_ID = 'test-upload-123'
@@ -114,7 +121,9 @@ def mock_data_layer(monkeypatch):
 
     # Mock Entry class and instances
     mock_entry_instance = MagicMock()
-    mock_entry_objects = Mock()
+    mock_entry_objects = MagicMock()
+    mock_entry_objects.__iter__.return_value = iter([])
+    mock_entry_objects.count.return_value = 0
     mock_entry_class = Mock()
     mock_entry_class.get.return_value = mock_entry_instance
     mock_entry_class.objects.return_value = mock_entry_objects
@@ -461,6 +470,73 @@ class TestNextLevelEntriesActivity:
         assert (Path(result.directory) / 'entry_batch_2.json').exists()
 
 
+class TestCleanupActivities:
+    def test_prepare_cleanup_small_upload_uses_fast_path(
+        self,
+        mock_data_layer,
+    ):
+        mock_entries = [Mock(entry_id=f'entry-{idx}') for idx in range(50)]
+        mock_data_layer['entry_class'].objects.return_value = mock_entries
+
+        result = prepare_cleanup_activity(TestFixtures.upload_processing_input())
+
+        assert result is None
+        mock_data_layer['upload_instance'].cleanup.assert_called_once()
+
+    def test_medium_cleanup_entry_sets_stay_in_memory(
+        self,
+        mock_data_layer,
+    ):
+        mock_entries = [Mock(entry_id=f'entry-{idx}') for idx in range(150)]
+        mock_data_layer['entry_class'].objects.return_value = mock_entries
+
+        result = prepare_cleanup_activity(TestFixtures.upload_processing_input())
+
+        assert result.directory is None
+        assert result.entry_ids == [f'entry-{idx}' for idx in range(150)]
+        mock_data_layer['upload_instance'].cleanup_prepare.assert_called_once()
+        mock_data_layer['upload_instance'].cleanup_entries_batch.assert_not_called()
+        mock_data_layer['upload_instance'].cleanup_finalize.assert_not_called()
+
+    def test_cleanup_entry_batch_from_file_loads_specific_batch_file(self, tmp_path):
+        batch_dir = tmp_path
+        (batch_dir / 'cleanup_batch_1.json').write_text(
+            '["entry-4", "entry-5", "entry-6"]'
+        )
+
+        batch = get_cleanup_entry_batch_from_file(
+            CleanupEntryBatchFromFileInput(
+                upload_id=TEST_UPLOAD_ID,
+                batch_dir_path=str(batch_dir),
+                batch_id=1,
+            )
+        )
+
+        assert batch == ['entry-4', 'entry-5', 'entry-6']
+
+
+class TestUploadCleanupHelpers:
+    def test_reset_entry_processing_status_prefers_path_filter(self, monkeypatch):
+        entry_objects = Mock()
+        mock_entry_class = Mock()
+        mock_entry_class.objects = entry_objects
+        monkeypatch.setattr('nomad.processing.data.Entry', mock_entry_class)
+
+        upload = Upload(upload_id=TEST_UPLOAD_ID)
+        upload.reset_entry_processing_status(
+            path_filter='some/path',
+            updated_files={'different/file.txt'},
+        )
+
+        entry_objects.assert_called_once_with(
+            upload_id=TEST_UPLOAD_ID,
+            mainfile__startswith='some/path',
+        )
+        entry_objects.return_value.update.assert_called_once_with(
+            set__process_status=ProcessStatus.READY
+        )
+
+
 class TestBatchProcessEntriesWorkflow:
     """Tests for BatchProcessEntriesWorkflow."""
 
@@ -589,6 +665,88 @@ class TestBatchProcessEntriesWorkflow:
 
         # Should complete without processing any entries
         assert mock_data_layer['entry_class'].get.call_count == 0
+
+
+class TestBatchCleanupEntriesWorkflow:
+    @pytest.mark.asyncio
+    async def test_small_cleanup_batch_direct_processing(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        cleanup_result = CleanupEntriesResult(
+            upload_id=TEST_UPLOAD_ID,
+            entry_ids=[f'entry-{idx}' for idx in range(5)],
+        )
+
+        async with temporal_worker() as env:
+            await env.client.execute_workflow(
+                'BatchCleanupEntriesWorkflow',
+                cleanup_result,
+                id='test-batch-cleanup-small',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+        mock_data_layer[
+            'upload_instance'
+        ].cleanup_entries_batch.assert_called_once_with(
+            [f'entry-{idx}' for idx in range(5)], refresh=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_large_cleanup_batch_uses_continue_as_new(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        entry_ids = [f'entry-{idx}' for idx in range(CLEANUP_ENTRY_BATCH_SIZE + 5)]
+        cleanup_result = CleanupEntriesResult(
+            upload_id=TEST_UPLOAD_ID,
+            entry_ids=entry_ids,
+        )
+
+        async with temporal_worker() as env:
+            await env.client.execute_workflow(
+                'BatchCleanupEntriesWorkflow',
+                cleanup_result,
+                id='test-batch-cleanup-large',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+        assert mock_data_layer['upload_instance'].cleanup_entries_batch.call_count == 2
+        first_call, second_call = mock_data_layer[
+            'upload_instance'
+        ].cleanup_entries_batch.call_args_list
+        assert first_call.kwargs == {'refresh': True}
+        assert second_call.kwargs == {'refresh': True}
+        assert len(first_call.args[0]) <= CLEANUP_ENTRY_BATCH_SIZE
+        assert len(second_call.args[0]) <= CLEANUP_ENTRY_BATCH_SIZE
+        assert len(first_call.args[0]) + len(second_call.args[0]) == len(entry_ids)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_batch_failure_fails_workflow(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        cleanup_result = CleanupEntriesResult(
+            upload_id=TEST_UPLOAD_ID,
+            entry_ids=[f'entry-{idx}' for idx in range(5)],
+        )
+        mock_data_layer[
+            'upload_instance'
+        ].cleanup_entries_batch.side_effect = Exception('cleanup failed')
+
+        with pytest.raises(WorkflowFailureError) as exc_info:
+            async with temporal_worker() as env:
+                await env.client.execute_workflow(
+                    'BatchCleanupEntriesWorkflow',
+                    cleanup_result,
+                    id='test-batch-cleanup-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+        assert 'cleanup failed' in str(exc_info.value.cause.cause)
 
 
 class TestProcessUploadWorkflow:

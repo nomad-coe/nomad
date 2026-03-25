@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +17,9 @@ from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Entry, Upload
 from nomad.search import delete_upload
 from nomad.workflows.shared_objects import (
+    CleanupEntriesBatchActivityInput,
+    CleanupEntriesResult,
+    CleanupEntryBatchFromFileInput,
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
     EntriesToBeProcessedResult,
@@ -28,7 +33,7 @@ from nomad.workflows.shared_objects import (
     UploadProcessingWorkflowInput,
     UploadWorkflowIdInput,
 )
-from nomad.workflows.utils import generate_batches
+from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, generate_batches
 
 parser_min_level = min([parser.level for parser in parsers])
 # If the heartbeat timeout is 10 mins, this would send a heartbeat every 60 seconds.
@@ -36,6 +41,7 @@ HEARTBEAT_FREQUENCY = (
     config.temporal.processing_timeouts.internal_processing_heartbeat_timeout / 10
 )
 MAX_IN_MEMORY_ENTRIES = 1000
+CLEANUP_FAST_PATH_ENTRY_THRESHOLD = 100
 
 
 @activity.defn
@@ -162,10 +168,6 @@ def match_all_activity(input: UploadProcessingWorkflowInput):
             path_filter=input.path_filter,
             updated_files=input.updated_files.get_files(),
         )
-        upload.reset_entry_processing_status(
-            path_filter=input.path_filter,
-            updated_files=input.updated_files.get_files(),
-        )
 
 
 @activity.defn
@@ -272,10 +274,75 @@ def remove_workflow_id_activity(input: UploadWorkflowIdInput):
 
 
 @activity.defn
-def cleanup_activity(input: UploadProcessingWorkflowInput):
+def prepare_cleanup_activity(
+    input: UploadProcessingWorkflowInput,
+) -> CleanupEntriesResult | None:
+    """Prepare cleanup work and finish small uploads inline."""
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
         upload = Upload.get(input.upload_id)
-        upload.cleanup()
+        entry_ids = [
+            str(entry.entry_id)
+            for entry in Entry.objects(upload_id=input.upload_id)  # type: ignore
+        ]
+        # Small uploads are cheaper to finish here than to route through batch orchestration.
+        if len(entry_ids) < CLEANUP_FAST_PATH_ENTRY_THRESHOLD:
+            upload.cleanup()
+            return None
+
+        # Larger uploads continue in the workflow via in-memory ids or batch files.
+        upload.cleanup_prepare()
+        if len(entry_ids) <= MAX_IN_MEMORY_ENTRIES:
+            return CleanupEntriesResult(
+                upload_id=input.upload_id,
+                entry_ids=entry_ids,
+            )
+
+        batch_dir = os.path.join(input.workflow_tmp_dir, 'cleanup_batches')
+        os.makedirs(batch_dir, exist_ok=True)
+        entry_batches = generate_batches(
+            entry_ids,
+            max_desired_batch_size=CLEANUP_ENTRY_BATCH_SIZE,
+        )
+
+        for batch_idx, batch in enumerate(entry_batches):
+            batch_file = os.path.join(batch_dir, f'cleanup_batch_{batch_idx}.json')
+            with open(batch_file, 'w') as f:
+                json.dump(batch, f)
+
+        return CleanupEntriesResult(
+            upload_id=input.upload_id,
+            directory=str(batch_dir),
+            total_batches=len(entry_batches),
+        )
+
+
+@activity.defn
+def get_cleanup_entry_batch_from_file(
+    input: CleanupEntryBatchFromFileInput,
+) -> list[str]:
+    batch_file = Path(input.batch_dir_path) / f'cleanup_batch_{input.batch_id}.json'
+    if not batch_file.exists():
+        return []
+
+    with open(batch_file) as f:
+        return json.load(f)
+
+
+@activity.defn
+def cleanup_entries_batch_activity(input: CleanupEntriesBatchActivityInput):
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        attempt = activity.info().attempt
+        if attempt > 1:
+            time.sleep(random.uniform(0, min(5.0, float(attempt))))
+        upload = Upload.get(input.upload_id)
+        upload.cleanup_entries_batch(input.entry_ids, refresh=input.refresh)
+
+
+@activity.defn
+def finalize_cleanup_activity(input: UploadProcessingWorkflowInput):
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        upload = Upload.get(input.upload_id)
+        upload.cleanup_finalize()
 
 
 @activity.defn
