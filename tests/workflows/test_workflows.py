@@ -834,6 +834,30 @@ class TestProcessUploadWorkflow:
         # Verify next_level_entries was called multiple times
         assert mock_data_layer['upload_instance'].next_level_entries.call_count == 3
 
+    @pytest.mark.asyncio
+    async def test_match_all_failure_surfaces_activity_message(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        """Test that child workflow failures preserve the underlying activity message."""
+        mock_data_layer['upload_instance'].match_all.side_effect = Exception(
+            'match_all activity failed'
+        )
+
+        with pytest.raises(WorkflowFailureError):
+            async with temporal_worker() as env:
+                await env.client.execute_workflow(
+                    'UpdateUploadWorkflow',
+                    TestFixtures.upload_processing_input(),
+                    id='test-process-upload-workflow-match-all-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+        mock_data_layer['upload_instance'].fail.assert_called()
+        failure_details = mock_data_layer['upload_instance'].fail.call_args.args[0]
+        assert 'match_all' in failure_details
+
 
 class TestProcessExampleUploadWorkflow:
     """Tests for ProcessExampleUploadWorkflow."""
