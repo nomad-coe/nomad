@@ -66,7 +66,7 @@ infrastructure = [
   "blinker", # mongoengine needs this for signals
   "dockerspawner",
   "fastapi>=0.99.0",
-  "starlette>=0.48.0", # see MR !2813, `HTTP_422_UNPROCESSABLE_CONTENT`
+  "starlette>=1.0",
   "fastapi-cache2",
   "gunicorn",
   "h5grove[fastapi]>=3", # interface change in 3
