@@ -21,6 +21,42 @@ UPDATE_UPLOAD_PRIORITY = Priority(priority_key=4)
 BATCH_PROCESS_ENTRY_PRIORITY = Priority(priority_key=4)
 PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
 
+_GENERIC_TEMPORAL_ERROR_MESSAGES = (
+    'child workflow failed',
+    'child workflow execution failed',
+    'workflow execution failed',
+    'activity task failed',
+    'activity failed',
+)
+
+
+def _extract_error_details(error: Exception) -> str:
+    """Return the most specific message from a Temporal error cause chain."""
+    messages: list[str] = []
+    current: Exception | None = error
+    seen: set[int] = set()
+
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        message = str(current).strip()
+        if message:
+            messages.append(message)
+        current = getattr(current, 'cause', None)
+
+    if not messages:
+        return str(error)
+
+    for message in reversed(messages):
+        lowered_message = message.lower()
+        if not any(
+            generic_message in lowered_message
+            for generic_message in _GENERIC_TEMPORAL_ERROR_MESSAGES
+        ):
+            return message
+
+    return messages[-1]
+
+
 with workflow.unsafe.imports_passed_through():
     from nomad.config import config
     from nomad.workflows.activities import (
@@ -604,10 +640,7 @@ class UpdateUploadWorkflow:
         except Exception as e:
             # Set upload to failure status
             upload_workflow_input.failure_message = 'Process upload failed'
-            if isinstance(e, ActivityError):
-                upload_workflow_input.error_details = str(e.cause)
-            else:
-                upload_workflow_input.error_details = str(e)
+            upload_workflow_input.error_details = _extract_error_details(e)
 
             await workflow.execute_activity(
                 process_upload_failure_activity,
