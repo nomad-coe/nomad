@@ -29,7 +29,7 @@ class PAT(Document):
 
     # Metadata
     name = StringField(required=True)
-    description = StringField(null=True)
+    description = StringField()
 
     # Security
     user_id = StringField(required=True)
@@ -38,6 +38,7 @@ class PAT(Document):
 
     # Lifecycle
     revoked = BooleanField(default=False)
+    revoked_at = DateTimeField()
     expired_at = DateTimeField()
     created_at = DateTimeField(default=now)
     updated_at = DateTimeField(default=now)
@@ -47,9 +48,13 @@ class PAT(Document):
         'collection': 'personal_access_tokens',
         'indexes': [
             ('user_id', '-created_at'),
-            # Auto-delete expired tokens after set time
+            # Auto-delete expired/revoked tokens after set time
             {
                 'fields': ['expired_at'],
+                'expireAfterSeconds': config.auth.pat_pruning_time * 86400,
+            },
+            {
+                'fields': ['revoked_at'],
                 'expireAfterSeconds': config.auth.pat_pruning_time * 86400,
             },
         ],

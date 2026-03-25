@@ -205,7 +205,6 @@ def rotate_pat(*, user_id: str, pat_id: str) -> PATCreationResult | None:
         raise ValueError('Cannot rotate an expired/revoked token.')
 
     # Calculate the original token lifetime
-    # Note this MUST happen before revoke (which would set the expired_at)
     if old_pat.expired_at is None:
         expires_in_days = None
     else:
@@ -271,7 +270,7 @@ def revoke_pat(*, user_id: str, pat_id: str) -> bool:
     if pat.revoked:
         return True
 
-    pat.expired_at = now()  # allow for cleanup
+    pat.revoked_at = now()
     pat.revoked = True
     pat.save()
 

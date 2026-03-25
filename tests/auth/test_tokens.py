@@ -320,7 +320,7 @@ def test_rotate_infinite_token(mongo_function, monkeypatch):
     new_res = rotate_pat(user_id=user_id, pat_id=str(original.id))
 
     original.reload()
-    assert original.expired_at is not None
+    assert original.expired_at is None
     assert new_res.pat.expired_at is None
 
 
@@ -687,8 +687,9 @@ def test_get_non_existent_invalid_token(mongo_function):
 
 def test_revoke_success(mongo_function):
     """
-    Test that a user can successfully revoke their own token,
-    and that the token's expiration date is moved to now() for DB cleanup.
+    Test that a user can successfully revoke their own token.
+
+    Revocation should mark the token as revoked and record `revoked_at`.
     """
     user_id = 'u_owner'
 
@@ -708,18 +709,20 @@ def test_revoke_success(mongo_function):
     # Verify database state
     updated_pat = PAT.objects.get(id=token_id)
     assert updated_pat.revoked is True
+    assert updated_pat.revoked_at is not None
 
     # Strip timezones for comparison
-    safe_updated_expired = updated_pat.expired_at.replace(tzinfo=None)
-    safe_original_expired = original_expires_at.replace(tzinfo=None)
-    safe_updated_at = updated_pat.updated_at.replace(tzinfo=None)
+    revoked_at_naive = updated_pat.revoked_at.replace(tzinfo=None)
+    updated_at_naive = updated_pat.updated_at.replace(tzinfo=None)
 
-    assert safe_updated_expired is not None
-    assert safe_updated_expired < safe_original_expired
+    original_expired_naive = original_expires_at.replace(tzinfo=None)
+    updated_expired_naive = updated_pat.expired_at.replace(tzinfo=None)
+    expire_diff = abs((updated_expired_naive - original_expired_naive).total_seconds())
+    assert expire_diff < 0.1  # allow 100 ms drift
 
-    # The new expiration time should be roughly equal to its updated_at timestamp
-    time_diff = abs((safe_updated_expired - safe_updated_at).total_seconds())
-    assert time_diff < 5  # 5 seconds
+    # The revocation time should be roughly equal to `updated_at`
+    time_diff = abs((revoked_at_naive - updated_at_naive).total_seconds())
+    assert time_diff < 5  # seconds
 
 
 def test_revoke_wrong_user_security(mongo_function):
@@ -775,18 +778,25 @@ def test_revoke_already_revoked(mongo_function, monkeypatch):
 
     result.pat.reload()
     first_updated_at = result.pat.updated_at
+    first_revoked_at = result.pat.revoked_at
     first_expired_at = result.pat.expired_at
+
+    assert result.pat.revoked is True
+    assert first_revoked_at is not None
 
     mock_save = MagicMock()
     monkeypatch.setattr('nomad.mongo.pat.PAT.save', mock_save)
 
-    # Second revoke (Already Revoked)
+    # Second revoke (already revoked, should be a no-op)
     assert revoke_pat(user_id=user_id, pat_id=token_id) is True
 
     # Make sure DB state is not changed
     mock_save.assert_not_called()
     result.pat.reload()
+
+    assert result.pat.revoked is True
     assert result.pat.updated_at == first_updated_at
+    assert result.pat.revoked_at == first_revoked_at
     assert result.pat.expired_at == first_expired_at
 
 
