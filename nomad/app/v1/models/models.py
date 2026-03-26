@@ -602,9 +602,9 @@ class MetadataRequired(BaseModel):
     )
 
 
-metadata_required_parameters = parameter_dependency_from_model(  # type: ignore
+metadata_required_parameters = parameter_dependency_from_model(
     'metadata_required_parameters',
-    MetadataRequired,  # type: ignore
+    MetadataRequired,
 )
 
 
@@ -700,7 +700,7 @@ class MetadataPagination(MetadataBasedPagination):
 
 metadata_pagination_parameters = parameter_dependency_from_model(
     'metadata_pagination_parameters',
-    MetadataPagination,  # type: ignore
+    MetadataPagination,
 )
 
 
@@ -1431,7 +1431,7 @@ class Files(BaseModel):
         return values
 
 
-files_parameters = parameter_dependency_from_model('files_parameters', Files)  # type: ignore
+files_parameters = parameter_dependency_from_model('files_parameters', Files)
 
 
 class Bucket(BaseModel):

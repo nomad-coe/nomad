@@ -27,7 +27,7 @@ import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from fastapi import Query as FastApiQuery
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from nomad import datamodel
 from nomad.auth.keycloak import KeycloakError, OIDCToken, keycloak
@@ -36,6 +36,8 @@ from nomad.auth.tokens import (
     PAT_PREFIX,
     AuthResult,
     PATMetadata,
+    PATQuery,
+    PATSortOrder,
     authenticate_pat,
     create_pat,
     generate_simple_token,
@@ -52,8 +54,8 @@ from nomad.config.models.config import ModeEnum
 from nomad.utils import get_logger
 
 from ..common import root_path
-from ..models import HTTPExceptionModel, User
-from ..utils import create_responses
+from ..models import HTTPExceptionModel, MetadataPagination, PaginationResponse, User
+from ..utils import create_responses, parameter_dependency_from_model
 
 logger = get_logger(__name__)
 
@@ -457,23 +459,65 @@ def rotate_pat_endpoint(
     return result
 
 
+class PATPagination(MetadataPagination):
+    order_by: PATSortOrder = Field(
+        'created_desc',
+        description='Order the results. Defaults to created_desc (newest first).',
+    )
+
+
+class PATQueryResponse(BaseModel):
+    query: PATQuery
+    pagination: PaginationResponse
+    data: list[PATResponse]
+
+
+pat_query_parameters = parameter_dependency_from_model(
+    'pat_query_parameters',
+    PATQuery,
+)
+
+pat_pagination_parameters = parameter_dependency_from_model(
+    'pat_pagination_parameters',
+    PATPagination,
+)
+
+
 @router.get(
     '/pats',
-    response_model=list[PATResponse],
     summary='List personal access tokens',
     tags=[APITag.PAT],
+    response_model=PATQueryResponse,
 )
 def list_pat_endpoint(
+    request: Request,
+    query: Annotated[PATQuery, Depends(pat_query_parameters)],
+    pagination: Annotated[PATPagination, Depends(pat_pagination_parameters)],
     user: Annotated[
         User,
         Depends(get_current_user([Scope.TOKENS_READ], allow_anonymous=False)),
     ],
 ):
     """
-    Retrieves all valid (non-revoked/expired) personal access tokens for the user.
-    Results are ordered by creation date.
+    Retrieves a paginated list of PATs.
     """
-    return list_pat(user_id=user.user_id)
+    # Fetch data and total count from the service layer
+    result = list_pat(
+        user_id=user.user_id,
+        query=query,
+        start=pagination.get_simple_index(),
+        limit=pagination.page_size,
+        order_by=pagination.order_by,
+    )
+
+    pydantic_data = [PATResponse.model_validate(pat) for pat in result.data]
+
+    pagination_response = PaginationResponse(total=result.total, **pagination.dict())
+    pagination_response.populate_simple_index_and_urls(request)
+
+    return PATQueryResponse(
+        query=query, pagination=pagination_response, data=pydantic_data
+    )
 
 
 @router.get(

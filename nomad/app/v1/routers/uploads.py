@@ -287,7 +287,7 @@ class UploadProcDataPagination(Pagination):
 
 upload_proc_data_pagination_parameters = parameter_dependency_from_model(
     'upload_proc_data_pagination_parameters',
-    UploadProcDataPagination,  # type: ignore
+    UploadProcDataPagination,
 )
 
 
@@ -332,7 +332,7 @@ class EntryProcDataPagination(Pagination):
 
 entry_proc_data_pagination_parameters = parameter_dependency_from_model(
     'entry_proc_data_pagination_parameters',
-    EntryProcDataPagination,  # type: ignore
+    EntryProcDataPagination,
 )
 
 
@@ -405,7 +405,7 @@ class UploadProcDataQuery(BaseModel):
 
 upload_proc_data_query_parameters = parameter_dependency_from_model(
     'upload_proc_data_query_parameters',
-    UploadProcDataQuery,  # type: ignore
+    UploadProcDataQuery,
 )
 
 
@@ -482,7 +482,7 @@ class RawDirPagination(Pagination):
 
 rawdir_pagination_parameters = parameter_dependency_from_model(
     'rawdir_pagination_parameters',
-    RawDirPagination,  # type: ignore
+    RawDirPagination,
     exclude=['order', 'order_by'],
 )
 

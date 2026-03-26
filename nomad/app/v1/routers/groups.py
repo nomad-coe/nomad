@@ -61,12 +61,12 @@ class APITag(str, Enum):
 
 user_group_query_parameters = parameter_dependency_from_model(
     'user_group_query_parameters',
-    UserGroupQuery,  # type: ignore
+    UserGroupQuery,
 )
 
 user_group_pagination_parameters = parameter_dependency_from_model(
     'user_group_pagination_parameters',
-    UserGroupPagination,  # type: ignore
+    UserGroupPagination,
 )
 
 

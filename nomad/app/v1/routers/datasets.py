@@ -259,7 +259,7 @@ class DatasetPagination(Pagination):
 
 dataset_pagination_parameters = parameter_dependency_from_model(
     'dataset_pagination_parameters',
-    DatasetPagination,  # type: ignore
+    DatasetPagination,
 )
 
 

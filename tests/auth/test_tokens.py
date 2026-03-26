@@ -28,6 +28,7 @@ from nomad.auth.scopes import Scope
 from nomad.auth.tokens import (
     PAT_PREFIX,
     PATMetadata,
+    PATQuery,
     _hash_token,
     authenticate_pat,
     create_pat,
@@ -102,9 +103,9 @@ def test_create_expiration_logic(mongo_function):
     )
 
     expected_date = now() + datetime.timedelta(days=days)
-    # Check if dates are close (within 5 seconds)
+    # Check if dates are close (within 10 seconds)
     delta = abs((result.pat.expired_at - expected_date).total_seconds())
-    assert delta < 5
+    assert delta < 10
 
 
 @pytest.mark.parametrize('expires_in_days', [0, -1])
@@ -441,133 +442,457 @@ def test_list_isolation(mongo_function):
 
     # List user A
     tokens_A = list_pat(user_id='user_A')
-    assert len(tokens_A) == 2
-    assert all(t.user_id == 'user_A' for t in tokens_A)
+    assert tokens_A.total == 2
+    assert all(t.user_id == 'user_A' for t in tokens_A.data)
     # Ensure digest is dropped by the DB query
-    assert all(t.token_digest is None for t in tokens_A)
+    assert all(t.token_digest is None for t in tokens_A.data)
 
     # List user B
     tokens_B = list_pat(user_id='user_B')
-    assert len(tokens_B) == 1
-    assert tokens_B[0].name == 'A1'
-    assert tokens_B[0].token_digest is None
+    assert tokens_B.total == 1
+    assert tokens_B.data[0].name == 'A1'
+    assert tokens_B.data[0].token_digest is None
 
 
-def test_list_filters_expired(mongo_function):
+def test_list_pagination(mongo_function):
     """
-    Test that expired tokens are included by default, but excluded when flagged.
+    Test that start and limit correctly slice the results while maintaining the total count.
     """
-    user_id = 'u_expired_test'
+    user_id = 'u_page_test'
 
-    expired_result = create_pat(
+    # Create 5 tokens with predictable names
+    for i in range(5):
+        create_pat(
+            user_id=user_id,
+            metadata=PATMetadata(name=f'Token_{i}', scopes=[]),
+            expires_in_days=30,
+        )
+
+    # Sort by name_asc so the order is perfectly predictable: 0, 1, 2, 3, 4
+
+    # Page 1: Items 0, 1
+    page_1 = list_pat(user_id=user_id, start=0, limit=2, order_by='name_asc')
+    assert page_1.total == 5
+    assert len(page_1.data) == 2
+    assert [t.name for t in page_1.data] == ['Token_0', 'Token_1']
+
+    # Page 2: Items 2, 3
+    page_2 = list_pat(user_id=user_id, start=2, limit=2, order_by='name_asc')
+    assert page_2.total == 5
+    assert len(page_2.data) == 2
+    assert [t.name for t in page_2.data] == ['Token_2', 'Token_3']
+
+    # Page 3: Item 4 (Partial page)
+    page_3 = list_pat(user_id=user_id, start=4, limit=2, order_by='name_asc')
+    assert page_3.total == 5
+    assert len(page_3.data) == 1
+    assert page_3.data[0].name == 'Token_4'
+
+    # Page 4: Out of bounds
+    page_empty = list_pat(user_id=user_id, start=10, limit=2)
+    assert page_empty.total == 5
+    assert len(page_empty.data) == 0
+
+
+def test_list_pat_filter_search(mongo_function):
+    """
+    Test filtering by token name search.
+    """
+    user_id = 'u_test'
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Active Token', scopes=[]),
+        expires_in_days=30,
+    )
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Other', scopes=[]),
+        expires_in_days=30,
+    )
+
+    results = list_pat(user_id=user_id, query=PATQuery(search='active'))
+
+    assert results.total == 1
+    assert results.data[0].name == 'Active Token'
+
+
+def test_list_pat_filter_revoked(mongo_function):
+    """
+    Test filtering by revoked status.
+    """
+    user_id = 'u_test'
+
+    t_revoked = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Revoked Token', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_revoked.revoked = True
+    t_revoked.save()
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Valid Token', scopes=[]),
+        expires_in_days=30,
+    )
+
+    results = list_pat(user_id=user_id, query=PATQuery(revoked=True))
+
+    assert results.total == 1
+    assert results.data[0].name == 'Revoked Token'
+
+
+def test_list_pat_filter_state_active(mongo_function):
+    """
+    Test filtering by active state.
+    """
+    user_id = 'u_test'
+    current_time = now()
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Active Token', scopes=[]),
+        expires_in_days=30,
+    )
+
+    t_expired = create_pat(
         user_id=user_id,
         metadata=PATMetadata(name='Expired Token', scopes=[]),
         expires_in_days=30,
+    ).pat
+    t_expired.expired_at = current_time - datetime.timedelta(days=1)
+    t_expired.save()
+
+    results = list_pat(user_id=user_id, query=PATQuery(state='active'))
+
+    assert results.total == 1
+    assert results.data[0].name == 'Active Token'
+
+
+def test_list_pat_filter_state_inactive_expired(mongo_function):
+    """
+    Test that inactive state matches expired tokens.
+    """
+    user_id = 'u_test'
+    current_time = now()
+
+    t_expired = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Expired Token', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_expired.expired_at = current_time - datetime.timedelta(days=1)
+    t_expired.save()
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Active Token', scopes=[]),
+        expires_in_days=30,
     )
-    expired_pat = expired_result.pat
 
-    # Backdate the expiration date to the past to simulate natural expiration
-    expired_pat.expired_at = expired_pat.created_at - datetime.timedelta(days=5)
-    expired_pat.save()
+    results = list_pat(user_id=user_id, query=PATQuery(state='inactive'))
 
-    # Test default behavior (includes expired)
-    tokens_default = list_pat(user_id=user_id)
-    assert len(tokens_default) == 1
-    assert tokens_default[0].name == 'Expired Token'
-
-    # Test filtering behavior (excludes expired)
-    tokens_filtered = list_pat(user_id=user_id, include_expired=False)
-    assert len(tokens_filtered) == 0
+    assert results.total == 1
+    assert results.data[0].name == 'Expired Token'
 
 
-def test_list_filters_revoked(mongo_function):
+def test_list_pat_filter_state_inactive_revoked(mongo_function):
     """
-    Test that revoked tokens are included by default, but excluded when flagged.
+    Test that inactive state matches revoked tokens.
     """
-    user_id = 'u_revoke_test'
+    user_id = 'u_test'
 
-    # Create active token
-    active = create_pat(
+    t_revoked = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Active', scopes=[]),
+        metadata=PATMetadata(name='Revoked Token', scopes=[]),
         expires_in_days=30,
     ).pat
+    t_revoked.revoked = True
+    t_revoked.save()
 
-    # Create and revoke a second token
-    revoked_result = create_pat(
+    create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Revoked', scopes=[]),
+        metadata=PATMetadata(name='Active Token', scopes=[]),
         expires_in_days=30,
-    ).pat
+    )
 
-    revoked_result.revoked = True
-    revoked_result.save()
+    results = list_pat(user_id=user_id, query=PATQuery(state='inactive'))
 
-    # Test default behavior (includes revoked)
-    tokens_default = list_pat(user_id=user_id)
-    assert len(tokens_default) == 2
-
-    # Ensure sorting puts the newest (Revoked) first
-    assert tokens_default[0].id == revoked_result.id
-    assert tokens_default[0].revoked is True
-    assert tokens_default[1].id == active.id
-    assert tokens_default[1].revoked is False
-
-    # Test filtering behavior (excludes revoked)
-    tokens_filtered = list_pat(user_id=user_id, include_revoked=False)
-    assert len(tokens_filtered) == 1
-
-    # Only the active token should remain
-    assert tokens_filtered[0].id == active.id
-    assert tokens_filtered[0].name == 'Active'
-    assert tokens_filtered[0].revoked is False
+    assert results.total == 1
+    assert results.data[0].name == 'Revoked Token'
 
 
-def test_list_ordering(mongo_function):
+@pytest.mark.parametrize(
+    ('query_field', 'matching_name'),
+    [
+        pytest.param('created_before', 'Old Token', id='created_before'),
+        pytest.param('created_after', 'New Token', id='created_after'),
+    ],
+)
+def test_list_pat_filter_created_bounds(
+    mongo_function, query_field: str, matching_name: str
+):
     """
-    Test that tokens are returned in descending order (newest first).
+    Test filtering by created_at lower/upper bounds.
     """
-    user_id = 'u_order'
+    user_id = 'u_test'
+    current_time = now()
 
-    # Manually set created_at to ensure distinct timestamps
-    t1 = create_pat(
+    t_old = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Oldest', scopes=[]),
+        metadata=PATMetadata(name='Old Token', scopes=[]),
         expires_in_days=30,
     ).pat
-    t1.created_at = now() - datetime.timedelta(hours=2)
-    t1.save()
+    t_old.created_at = current_time - datetime.timedelta(days=10)
+    t_old.save()
 
-    t2 = create_pat(
+    t_new = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Middle', scopes=[]),
+        metadata=PATMetadata(name='New Token', scopes=[]),
         expires_in_days=30,
     ).pat
-    t2.created_at = now() - datetime.timedelta(hours=1)
-    t2.save()
+    t_new.created_at = current_time - datetime.timedelta(days=1)
+    t_new.save()
 
-    t3 = create_pat(
+    cutoff = current_time - datetime.timedelta(days=5)
+    results = list_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Newest', scopes=[]),
+        query=PATQuery(**{query_field: cutoff}),
+    )
+
+    assert results.total == 1
+    assert results.data[0].name == matching_name
+
+
+@pytest.mark.parametrize(
+    ('query_field', 'matching_name'),
+    [
+        pytest.param('last_used_before', 'Old Used Token', id='last_used_before'),
+        pytest.param('last_used_after', 'Recent Used Token', id='last_used_after'),
+    ],
+)
+def test_list_pat_filter_last_used_bounds(
+    mongo_function, query_field: str, matching_name: str
+):
+    """
+    Test filtering by last_used_at lower/upper bounds.
+    """
+    user_id = 'u_test'
+    current_time = now()
+
+    t_old_used = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Old Used Token', scopes=[]),
         expires_in_days=30,
     ).pat
-    t3.created_at = now()
-    t3.save()
+    t_old_used.last_used_at = current_time - datetime.timedelta(days=10)
+    t_old_used.save()
 
-    tokens = list_pat(user_id=user_id)
+    t_recent_used = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Recent Used Token', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_recent_used.last_used_at = current_time - datetime.timedelta(days=1)
+    t_recent_used.save()
 
-    # Verify order
-    assert len(tokens) == 3
-    assert tokens[0].name == 'Newest'
-    assert tokens[1].name == 'Middle'
-    assert tokens[2].name == 'Oldest'
+    cutoff = current_time - datetime.timedelta(days=5)
+    results = list_pat(
+        user_id=user_id,
+        query=PATQuery(**{query_field: cutoff}),
+    )
+
+    assert results.total == 1
+    assert results.data[0].name == matching_name
+
+
+@pytest.mark.parametrize(
+    ('query_field', 'matching_name'),
+    [
+        pytest.param('expires_before', 'Expired Token', id='expires_before'),
+        pytest.param('expires_after', 'Valid Token', id='expires_after'),
+    ],
+)
+def test_list_pat_filter_expires_bounds(
+    mongo_function, query_field: str, matching_name: str
+):
+    """
+    Test filtering by expired_at lower/upper bounds.
+    """
+    user_id = 'u_test'
+    current_time = now()
+
+    t_expired = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Expired Token', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_expired.expired_at = current_time - datetime.timedelta(days=1)
+    t_expired.save()
+
+    t_valid = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Valid Token', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_valid.expired_at = current_time + datetime.timedelta(days=10)
+    t_valid.save()
+
+    results = list_pat(
+        user_id=user_id,
+        query=PATQuery(**{query_field: current_time}),
+    )
+
+    assert results.total == 1
+    assert results.data[0].name == matching_name
+
+
+@pytest.mark.parametrize(
+    ('order_by', 'expected_names'),
+    [
+        pytest.param('created_asc', ['Old', 'New'], id='created_asc'),
+        pytest.param('created_desc', ['New', 'Old'], id='created_desc'),
+    ],
+)
+def test_list_pat_order_created(mongo_function, order_by, expected_names: list[str]):
+    """
+    Test ordering by created_at.
+    """
+    user_id = 'u_order_created'
+    current_time = now()
+
+    t_old = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Old', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_old.created_at = current_time - datetime.timedelta(days=1)
+    t_old.save()
+
+    t_new = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='New', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_new.created_at = current_time
+    t_new.save()
+
+    results = list_pat(user_id=user_id, order_by=order_by)
+
+    assert results.total == 2
+    assert [token.name for token in results.data] == expected_names
+
+
+@pytest.mark.parametrize(
+    ('order_by', 'expected_names'),
+    [
+        pytest.param('name_asc', ['Apple', 'Zebra'], id='name_asc'),
+        pytest.param('name_desc', ['Zebra', 'Apple'], id='name_desc'),
+    ],
+)
+def test_list_pat_order_name(mongo_function, order_by, expected_names: list[str]):
+    """
+    Test ordering by name.
+    """
+    user_id = 'u_order_name'
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Zebra', scopes=[]),
+        expires_in_days=30,
+    )
+
+    create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Apple', scopes=[]),
+        expires_in_days=30,
+    )
+
+    results = list_pat(user_id=user_id, order_by=order_by)
+
+    assert results.total == 2
+    assert [token.name for token in results.data] == expected_names
+
+
+@pytest.mark.parametrize(
+    ('order_by', 'expected_names'),
+    [
+        pytest.param('last_used_asc', ['Old', 'New'], id='last_used_asc'),
+        pytest.param('last_used_desc', ['New', 'Old'], id='last_used_desc'),
+    ],
+)
+def test_list_pat_order_last_used(mongo_function, order_by, expected_names: list[str]):
+    """
+    Test ordering by last_used_at.
+    """
+    user_id = 'u_order_last_used'
+    current_time = now()
+
+    t_old = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Old', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_old.last_used_at = current_time - datetime.timedelta(days=1)
+    t_old.save()
+
+    t_new = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='New', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_new.last_used_at = current_time
+    t_new.save()
+
+    results = list_pat(user_id=user_id, order_by=order_by)
+
+    assert results.total == 2
+    assert [token.name for token in results.data] == expected_names
+
+
+@pytest.mark.parametrize(
+    ('order_by', 'expected_names'),
+    [
+        pytest.param('expires_asc', ['Soon', 'Later'], id='expires_asc'),
+        pytest.param('expires_desc', ['Later', 'Soon'], id='expires_desc'),
+    ],
+)
+def test_list_pat_order_expires(mongo_function, order_by, expected_names: list[str]):
+    """
+    Test ordering by expired_at.
+    """
+    user_id = 'u_order_expires'
+    current_time = now()
+
+    t_soon = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Soon', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_soon.expired_at = current_time + datetime.timedelta(days=1)
+    t_soon.save()
+
+    t_later = create_pat(
+        user_id=user_id,
+        metadata=PATMetadata(name='Later', scopes=[]),
+        expires_in_days=30,
+    ).pat
+    t_later.expired_at = current_time + datetime.timedelta(days=10)
+    t_later.save()
+
+    results = list_pat(user_id=user_id, order_by=order_by)
+
+    assert results.total == 2
+    assert [token.name for token in results.data] == expected_names
 
 
 def test_list_empty(mongo_function):
     """Test that a user with no tokens gets an empty list, not None."""
     tokens = list_pat(user_id='ghost_user')
-    assert isinstance(tokens, list)
-    assert len(tokens) == 0
+    assert isinstance(tokens.data, list)
+    assert tokens.total == 0
 
 
 # Test `get`

@@ -24,10 +24,15 @@ from bson import ObjectId
 from fastapi import HTTPException, Request, status
 
 from nomad.app.v1.models.models import User
-from nomad.app.v1.routers.auth import _resolve_user_with_scopes, get_current_user
+from nomad.app.v1.routers.auth import (
+    PATPagination,
+    PATQueryResponse,
+    _resolve_user_with_scopes,
+    get_current_user,
+)
 from nomad.auth.keycloak import KeycloakError
 from nomad.auth.scopes import Scope
-from nomad.auth.tokens import PAT, PAT_PREFIX, AuthResult, _hash_token
+from nomad.auth.tokens import PAT, PAT_PREFIX, AuthResult, PATQuery, _hash_token
 from nomad.common import now
 from nomad.config.models.config import ModeEnum
 from tests.test_config import load_test_config
@@ -1043,21 +1048,63 @@ def test_get_pat_cross_user(client, auth_headers, mongo_function):
     assert 'Token not found or does not belong to the user' in response.json()['detail']
 
 
-def test_list_pat_success(client, auth_headers, mongo_function):
-    """Test listing all active PATs for a user, ensuring no cross-user leakage."""
+def assert_pat_list_response(
+    response,
+    *,
+    expected_status: int = status.HTTP_200_OK,
+    expected_total: int | None = None,
+    expected_page: int | None = None,
+    expected_page_size: int | None = None,
+    expected_order_by: str | None = None,
+) -> dict:
+    """
+    Assert the standard PAT list response envelope and pagination metadata.
 
+    Returns:
+        The decoded JSON payload for further item-specific assertions.
+    """
+    assert response.status_code == expected_status
+    payload = response.json()
+
+    assert set(payload) == set(PATQueryResponse.model_fields.keys())
+    assert set(payload['query']) == set(PATQuery.model_fields.keys())
+    assert isinstance(payload['data'], list)
+
+    pagination = payload['pagination']
+    assert set(pagination) >= {'total', 'page', 'page_size', 'order_by'}
+
+    if expected_total is not None:
+        assert pagination['total'] == expected_total
+    if expected_page is not None:
+        assert pagination['page'] == expected_page
+    if expected_page_size is not None:
+        assert pagination['page_size'] == expected_page_size
+    if expected_order_by is not None:
+        assert pagination['order_by'] == expected_order_by
+
+    for token in payload['data']:
+        assert 'token_digest' not in token
+
+    return payload
+
+
+def test_list_pat_success(client, auth_headers, mongo_function):
+    """
+    Test listing PATs for a user, ensuring no cross-user leakage,
+    and verifying pagination works correctly.
+    """
     headers_user1 = auth_headers['user1']
     headers_user2 = auth_headers['user2']
 
     # Create two tokens for User 1
     client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Token 1', 'scopes': []}, 'expires_in_days': 30},
+        json={'metadata': {'name': 'Token A', 'scopes': []}, 'expires_in_days': 30},
         headers=headers_user1,
     )
     client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Token 2', 'scopes': []}, 'expires_in_days': 30},
+        json={'metadata': {'name': 'Token B', 'scopes': []}, 'expires_in_days': 30},
         headers=headers_user1,
     )
 
@@ -1071,18 +1118,65 @@ def test_list_pat_success(client, auth_headers, mongo_function):
         headers=headers_user2,
     )
 
-    # List tokens as User 1
+    default_order_by = PATPagination.model_fields['order_by'].default
+
+    # Test 1: Default Listing (No explicit pagination)
     response = client.get('auth/pats', headers=headers_user1)
+    payload = assert_pat_list_response(
+        response,
+        expected_total=2,
+        expected_page=1,
+        expected_page_size=10,
+        expected_order_by=default_order_by,
+    )
 
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-
-    for token in data:
-        assert 'token_digest' not in token
-
+    data = payload['data']
     # User 1 should only get 2 tokens back, not User 2's token
     assert len(data) == 2
-    assert {t['name'] for t in data} == {'Token 1', 'Token 2'}
+    assert {token['name'] for token in data} == {'Token A', 'Token B'}
+
+    # Test 2: Explicit Pagination (page_size=1 and sort alphabetically)
+    # Page 1
+    response_page1 = client.get(
+        'auth/pats?page_size=1&page=1&order_by=name_asc',
+        headers=headers_user1,
+    )
+    payload_p1 = assert_pat_list_response(
+        response_page1,
+        expected_total=2,
+        expected_page=1,
+        expected_page_size=1,
+        expected_order_by='name_asc',
+    )
+
+    data_p1 = payload_p1['data']
+    assert len(data_p1) == 1
+    assert data_p1[0]['name'] == 'Token A'
+
+    # Page 2
+    response_page2 = client.get(
+        'auth/pats?page_size=1&page=2&order_by=name_asc',
+        headers=headers_user1,
+    )
+    payload_p2 = assert_pat_list_response(
+        response_page2,
+        expected_total=2,
+        expected_page=2,
+        expected_page_size=1,
+        expected_order_by='name_asc',
+    )
+
+    data_p2 = payload_p2['data']
+    assert len(data_p2) == 1
+    assert data_p2[0]['name'] == 'Token B'
+
+    # Page 3 (Out of bounds)
+    response_page3 = client.get(
+        'auth/pats?page_size=2&page=3&order_by=name_asc',
+        headers=headers_user1,
+    )
+    assert response_page3.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'Page out of range' in response_page3.text
 
 
 def test_rotate_pat_success(client, auth_headers, mongo_function):
