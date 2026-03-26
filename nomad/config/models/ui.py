@@ -89,6 +89,7 @@ dimensions = [
     'luminance',
     'illuminance',
     'electric_potential',
+    'electric_field_gradient',
     'capacitance',
     'activity',
 ]
@@ -155,6 +156,7 @@ class UnitSystem(ConfigBaseModel):
             'luminance': 'nit',
             'illuminance': 'lx',
             'electric_potential': 'V',
+            'electric_field_gradient': 'V/m^2',
             'capacitance': 'F',
             'activity': 'kat',
         }
