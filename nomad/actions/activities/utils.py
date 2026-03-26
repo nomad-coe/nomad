@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 from nomad.actions import TaskQueue
 from nomad.actions.action import get_actions
+from nomad.actions.manager import request_signal_input_activity
 from nomad.workflows.activities import (
     cleanup_entries_batch_activity,
     cleanup_workflow_tmp_dir_activity,
@@ -63,6 +64,8 @@ def get_nomad_internal_activities() -> list[Callable]:
 
 def get_all_activities(task_queue: TaskQueue) -> list[Callable]:
     activities = []
+    if task_queue != TaskQueue.NOMAD_INTERNAL_WORKFLOWS:
+        activities.append(request_signal_input_activity)
     for action_entry_point in get_actions().values():
         if action_entry_point.task_queue == task_queue:
             action = action_entry_point.load()

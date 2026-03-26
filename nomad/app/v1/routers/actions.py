@@ -2,7 +2,7 @@ import asyncio
 import functools
 import os
 from enum import Enum
-from typing import Annotated, Final
+from typing import Annotated, Any, Final
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -21,6 +21,7 @@ from nomad.actions.manager import (
     list_user_actions,
     start_action_async,
     stop_action_async,
+    submit_signal_input,
     validate_action_arg,
 )
 from nomad.app.v1.models import User
@@ -40,6 +41,11 @@ class APITag(str, Enum):
 
 class ActionStart(BaseModel):
     data: dict
+
+
+class ActionSignalInput(BaseModel):
+    signal_fn_name: str
+    data: Any
 
 
 SCHEMA_CACHE_TTL: Final[int] = 1 * 24 * 60 * 60  # 1 day in seconds
@@ -152,6 +158,52 @@ async def action_stop(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    '/{action_instance_id}/signal-input',
+    tags=[APITag.DEFAULT],
+    summary='Submit signal input',
+    description='Submits signal input to a running action instance.',
+)
+async def action_signal_input(
+    action_instance_id: str,
+    signal_input_data: ActionSignalInput,
+    user: Annotated[
+        User,
+        Depends(
+            get_current_user([Scope.ACTIONS_RUN], allow_anonymous=False),
+        ),
+    ],
+):
+    """
+    Submits signal input to a running action.
+
+    Args:
+        action_instance_id: The ID of the action instance to submit input to.
+        signal_input_data: The input data including signal name and payload.
+        user: The authenticated user.
+    """
+    try:
+        await submit_signal_input(
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
+            signal_fn_name=signal_input_data.signal_fn_name,
+            data=signal_input_data.data,
+        )
+        return {'status': 'signal_input_submitted'}
+    except HTTPException:
+        raise
+    except Exception as e:
+        detail = str(e)
+        if (
+            'was not registered in the DB' in detail
+            or 'No pending signal input request found' in detail
+        ):
+            raise HTTPException(status_code=404, detail=detail)
+        if 'Action is not running.' in detail:
+            raise HTTPException(status_code=409, detail=detail)
+        raise HTTPException(status_code=500, detail=detail)
 
 
 @router.get(

@@ -18,7 +18,7 @@ class ActionDocument(Document):
         upload_id: The ID of the upload associated with the action, if any.
         status: The status of the action.
         results: The results of the action.
-        user_input_requests: List of pending user input requests.
+        signal_input_requests: List of pending signal input requests.
         created_at: The timestamp when the action was created.
         updated_at: The timestamp when the action was last updated.
     """
@@ -30,8 +30,8 @@ class ActionDocument(Document):
     upload_id: Annotated[str | None, Indexed()] = None
     status: str
     results: Any = None
-    user_input_requests: list[dict] = Field(default_factory=list)
-    submitted_user_inputs: list[dict] = Field(default_factory=list)
+    signal_input_requests: list[dict] = Field(default_factory=list)
+    signal_inputs_submitted: list[dict] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
