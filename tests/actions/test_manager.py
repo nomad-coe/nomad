@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel
+from temporalio import workflow
 from temporalio.client import WorkflowExecutionStatus
 
 from nomad.actions.action import Action
@@ -21,6 +22,7 @@ from nomad.actions.manager import (
     start_action,
     start_action_async,
     stop_action,
+    submit_signal_input,
     validate_action_arg,
 )
 from nomad.mongo.action import ActionDocument
@@ -103,6 +105,82 @@ def test_get_all_action_schemas(monkeypatch, mock_action_entry_point):
     assert len(schemas) == 1
     assert schemas[0].action_id == 'my-action'
     assert 'arg1' in schemas[0].json_schema['properties']
+
+
+@workflow.defn
+class RealTemporalWorkflowWithSignal:
+    @workflow.run
+    async def run(self, args: MyActionArgs):
+        pass
+
+    @workflow.signal
+    def test_signal(self, signal_arg: int):
+        pass
+
+
+@workflow.defn
+class RealTemporalWorkflowWithAliasedSignal:
+    @workflow.run
+    async def run(self, args: MyActionArgs):
+        pass
+
+    @workflow.signal(name='runtime_signal_name')
+    def method_signal_name(self, signal_arg: int):
+        pass
+
+
+def test_get_all_action_schemas_temporal_signal(monkeypatch):
+    mock_action = MagicMock(spec=Action)
+    mock_action.name = 'Temporal Action'
+    mock_action.description = 'Temporal action description'
+    mock_action.task_queue = 'temporal-task-queue'
+    mock_action.workflow = RealTemporalWorkflowWithSignal
+
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+    mock_entry_point.name = 'Temporal Action'
+    mock_entry_point.description = 'Temporal action description'
+    mock_entry_point.task_queue = 'temporal-task-queue'
+    mock_entry_point.plugin_package = 'temporal-plugin'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'temporal-action': mock_entry_point},
+    )
+    schemas = get_all_action_schemas()
+    assert len(schemas) == 1
+    assert schemas[0].action_id == 'temporal-action'
+    assert schemas[0].signals is not None
+    assert len(schemas[0].signals) == 1
+
+    signal_schema = schemas[0].signals[0].get('test_signal')
+    assert signal_schema is not None
+    assert signal_schema.get('type') == 'integer'
+
+
+def test_get_all_action_schemas_uses_python_method_name_for_signal(monkeypatch):
+    mock_action = MagicMock(spec=Action)
+    mock_action.name = 'Temporal Action'
+    mock_action.description = 'Temporal action description'
+    mock_action.task_queue = 'temporal-task-queue'
+    mock_action.workflow = RealTemporalWorkflowWithAliasedSignal
+
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+    mock_entry_point.name = 'Temporal Action'
+    mock_entry_point.description = 'Temporal action description'
+    mock_entry_point.task_queue = 'temporal-task-queue'
+    mock_entry_point.plugin_package = 'temporal-plugin'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'temporal-action': mock_entry_point},
+    )
+    schemas = get_all_action_schemas()
+    assert len(schemas) == 1
+    assert schemas[0].signals is not None
+    assert schemas[0].signals[0].get('method_signal_name') is not None
+    assert schemas[0].signals[0].get('runtime_signal_name') is None
 
 
 def test_start_action_sync_facade_returns_value(monkeypatch):
@@ -527,3 +605,88 @@ async def test_get_user_action_backfills_results_for_completed_action(
     )
     assert updated_doc is not None
     assert updated_doc.results == {'foo': 'bar'}
+
+
+@pytest.mark.asyncio
+async def test_submit_signal_input_requires_pending_request(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-submit-1',
+        user_id=user1.user_id,
+        status='RUNNING',
+        input_data={},
+    )
+    await action_doc.insert()
+
+    mock_action = MagicMock(spec=Action)
+    mock_action.workflow = RealTemporalWorkflowWithSignal
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'my-action': mock_entry_point},
+    )
+
+    with pytest.raises(Exception, match='No pending signal input request found'):
+        await submit_signal_input(
+            action_instance_id='workflow-submit-1',
+            user_id=user1.user_id,
+            signal_fn_name='test_signal',
+            data=1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_submit_signal_input_clears_pending_request(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-submit-2',
+        user_id=user1.user_id,
+        status='RUNNING',
+        input_data={},
+        signal_input_requests=[
+            {'signal_fn_name': 'test_signal', 'title': 'x', 'content': 'hello'}
+        ],
+    )
+    await action_doc.insert()
+
+    mock_action = MagicMock(spec=Action)
+    mock_action.workflow = RealTemporalWorkflowWithSignal
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'my-action': mock_entry_point},
+    )
+
+    async def mock_signal_workflow(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._async_signal_workflow', mock_signal_workflow
+    )
+
+    await submit_signal_input(
+        action_instance_id='workflow-submit-2',
+        user_id=user1.user_id,
+        signal_fn_name='test_signal',
+        data=1,
+    )
+
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-submit-2'
+    )
+    assert updated_doc.signal_input_requests == []
+    assert len(updated_doc.signal_inputs_submitted) == 1
+    submitted_input = updated_doc.signal_inputs_submitted[0]
+    assert submitted_input['signal_fn_name'] == 'test_signal'
+    assert submitted_input['data'] == 1
+    assert submitted_input['title'] == 'x'
+    assert submitted_input['content'] == 'hello'
+    assert 'timestamp' in submitted_input

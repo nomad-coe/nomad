@@ -186,6 +186,50 @@ async def test_action_stop(
 
 
 @pytest.mark.asyncio
+async def test_action_signal_input_submit(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
+):
+    async def mock_submit_signal_input(
+        action_instance_id, user_id, signal_fn_name, data
+    ):
+        return None
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.submit_signal_input',
+        mock_submit_signal_input,
+    )
+    response = await client.post(
+        f'/actions/{saved_action_document.action_instance_id}/signal-input',
+        json={'signal_fn_name': 'my_signal', 'data': {'foo': 'bar'}},
+        headers=auth_headers['user1'],
+    )
+    assert response.status_code == 200
+    assert response.json() == {'status': 'signal_input_submitted'}
+
+
+@pytest.mark.asyncio
+async def test_action_signal_input_submit_error(
+    client: AsyncClient, auth_headers, saved_action_document, monkeypatch
+):
+    async def mock_submit_signal_input_raise(
+        action_instance_id, user_id, signal_fn_name, data
+    ):
+        raise Exception('No pending signal input request found for signal')
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.submit_signal_input',
+        mock_submit_signal_input_raise,
+    )
+    response = await client.post(
+        f'/actions/{saved_action_document.action_instance_id}/signal-input',
+        json={'signal_fn_name': 'my_signal', 'data': {'foo': 'bar'}},
+        headers=auth_headers['user1'],
+    )
+    assert response.status_code == 404
+    assert 'No pending signal input request' in response.json()['detail']
+
+
+@pytest.mark.asyncio
 async def test_action_logs(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch, tmp_path
 ):
