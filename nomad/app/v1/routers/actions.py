@@ -14,13 +14,13 @@ from nomad.actions.manager import (
     ActionPage,
     ActionSchemaInfo,
     action_log_file_path,
-    get_action_result,
+    get_action_result_async,
     get_action_status_async,
     get_all_action_schemas,
     get_user_action,
     list_user_actions,
     start_action_async,
-    stop_action,
+    stop_action_async,
     validate_action_arg,
 )
 from nomad.app.v1.models import User
@@ -144,7 +144,9 @@ async def action_stop(
         user: The authenticated user.
     """
     try:
-        await stop_action(action_instance_id=action_instance_id, user_id=user.user_id)
+        await stop_action_async(
+            action_instance_id=action_instance_id, user_id=user.user_id
+        )
         return {'status': 'stopped'}
     except HTTPException:
         raise
@@ -214,7 +216,7 @@ async def action_result(
         The result of the action.
     """
     try:
-        result = await get_action_result(
+        result = await get_action_result_async(
             action_instance_id=action_instance_id, user_id=user.user_id
         )
         return result
