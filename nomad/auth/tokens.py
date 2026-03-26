@@ -63,12 +63,11 @@ def get_user_from_keycloak_token(keycloak_token: str | None) -> AuthResult | Non
     """
     from fastapi import HTTPException, status
 
-    if keycloak_token is None:
+    if keycloak_token is None or keycloak_token.startswith(PAT_PREFIX):
         return None
 
     try:
         user = cast(datamodel.User, keycloak.keycloak.tokenauth(keycloak_token))
-        return AuthResult(user, _resolve_scopes(['*:*']))
 
     except KeycloakError as e:
         raise HTTPException(
@@ -76,6 +75,8 @@ def get_user_from_keycloak_token(keycloak_token: str | None) -> AuthResult | Non
             detail=str(e),
             headers={'WWW-Authenticate': 'Bearer'},
         )
+
+    return AuthResult(user, _resolve_scopes(['*:*']))
 
 
 # Personal access token (PAT)

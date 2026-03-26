@@ -21,11 +21,11 @@ from types import SimpleNamespace
 
 import pytest
 from bson import ObjectId
-from bson.objectid import ObjectId
 from fastapi import HTTPException, Request, status
 
 from nomad.app.v1.models.models import User
 from nomad.app.v1.routers.auth import _resolve_user_with_scopes, get_current_user
+from nomad.auth.keycloak import KeycloakError
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import PAT, PAT_PREFIX, AuthResult, _hash_token
 from nomad.common import now
@@ -261,6 +261,42 @@ def test_get_current_user_keycloak_token_from_cookie(
     with pytest.raises(HTTPException, match='Authentication required.') as exc:
         dep(request=request)
     assert exc.value.status_code == 401
+
+
+def test_pat_can_authenticate_with_keycloak_token_allowed(
+    allowed_user,
+    patch_user_get,
+    monkeypatch,
+):
+    """Ensure checking on the keycloak token path wouldn't
+    block authenticate via PAT.
+    """
+
+    monkeypatch.setattr(
+        'nomad.auth.keycloak.keycloak.tokenauth',
+        lambda _token: (_ for _ in ()).throw(KeycloakError('invalid token')),
+    )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.authenticate_pat',
+        lambda _token: MockPAT(allowed_user.user_id),
+    )
+
+    patch_user_get(allowed_user)
+
+    dep = get_current_user(
+        required_scopes=[],
+        allow_anonymous=False,
+        allow_keycloak_token=True,
+        allow_personal_access_token=True,
+    )
+
+    token = f'{PAT_PREFIX}dummy'
+    user = dep(
+        keycloak_token=token,
+        personal_access_token=token,
+    )
+
+    assert user == allowed_user
 
 
 @pytest.mark.parametrize('allow_anonymous', [True, False])
