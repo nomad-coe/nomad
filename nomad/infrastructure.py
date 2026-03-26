@@ -152,6 +152,7 @@ def check_mongo():
         'package_definition',
         'upload',
         'user_group',
+        'personal_access_tokens',
     }
     if not expected_names.issuperset(names):
         logger.warning(
