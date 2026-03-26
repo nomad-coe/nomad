@@ -30,8 +30,8 @@ import Plot from './Plot'
 import { getScatterPlotHoverTemplate, getAxisType } from './common'
 
 /**
- * A Plotly-based box plot. Renders pre-computed box plot statistics
- * (min, q1, median, q3, max) for one or more groups.
+ * A Plotly-based box plot. Renders box plot statistics (min, q1, median, q3, max) for one
+ * or more groups/subgroups.
  */
 const useStyles = makeStyles(theme => ({
   root: {

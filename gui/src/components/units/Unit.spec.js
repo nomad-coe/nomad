@@ -24,7 +24,7 @@ test.each([
   ['base unit', 'joule', true],
   ['derived unit with explicit dimension', 'steradian', true],
   ['derived unit without explicit dimension', 'horsepower', true],
-  ['constant should not be included', 'speed_of_light', false]
+  ['constants should be creatable as units', 'speed_of_light', true]
 ]
 )('test that expected units are found: %s', async (name, unit, available) => {
   if (available) {

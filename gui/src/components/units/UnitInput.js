@@ -56,6 +56,7 @@ export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect
   const {keys, filter, finalOptions} = useMemo(() => {
     const finalOptions = {}
     Object.entries(unitMap)
+      .filter(([key, unit]) => !unit.constant)
       .filter(([key, unit]) => dimension ? unit.dimension === dimension : true)
       .forEach(([key, unit]) => {
         const unitAbbreviation = unit.abbreviation ? ` (${unit.abbreviation})` : ''
