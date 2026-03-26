@@ -33,6 +33,7 @@ from nomad import datamodel
 from nomad.auth.keycloak import KeycloakError, OIDCToken, keycloak
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import (
+    PAT_PREFIX,
     AuthResult,
     PATMetadata,
     authenticate_pat,
@@ -91,7 +92,7 @@ def _resolve_user_with_scopes(
     # cleanup the token detection path
 
     # Resolve user from simple token
-    if auth_result is None and simple_token:
+    if auth_result is None and simple_token and not simple_token.startswith(PAT_PREFIX):
         try:
             unverified_payload = jwt.decode(
                 simple_token, options={'verify_signature': False}
