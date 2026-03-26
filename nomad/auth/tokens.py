@@ -24,11 +24,11 @@ import hmac
 import secrets
 import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, NamedTuple, cast
+from typing import TYPE_CHECKING, Literal, NamedTuple, cast
 
 from mongoengine import DoesNotExist, Q
 from mongoengine.errors import ValidationError
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from nomad import datamodel, utils
 from nomad.auth import keycloak, user_management
@@ -79,7 +79,7 @@ def get_user_from_keycloak_token(keycloak_token: str | None) -> AuthResult | Non
     return AuthResult(user, _resolve_scopes(['*:*']))
 
 
-# Personal access token (PAT)
+# Personal access token (PAT) endpoint models
 
 PAT_PREFIX: Final[str] = 'nomad_pat_'
 
@@ -106,7 +106,37 @@ class PATMetadata(BaseModel):
         from_attributes = True
 
 
-# Service layer of personal access token (PAT)
+class PATQuery(BaseModel):
+    """Query parameters for filtering PATs."""
+
+    search: str | None = Field(
+        None, description='Search by token name (case-insensitive)'
+    )
+    revoked: bool | None = Field(
+        None, description='Filter by explicitly revoked status'
+    )
+    state: Literal['active', 'inactive'] | None = Field(
+        None, description='Filter by active/inactive state'
+    )
+
+    created_after: datetime.datetime | None = None
+    created_before: datetime.datetime | None = None
+
+    last_used_after: datetime.datetime | None = None
+    last_used_before: datetime.datetime | None = None
+
+    expires_after: datetime.datetime | None = None
+    expires_before: datetime.datetime | None = None
+
+
+class PATQueryResult(BaseModel):
+    data: list[PAT]
+    total: int = Field(ge=0, description='Total number of matching tokens')
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+# PAT Service layer
 
 
 def _hash_token(raw_token: str) -> str:
@@ -151,7 +181,7 @@ def create_pat(
 
     # Check allowed number of active tokens per user
     if (
-        len(list_pat(user_id=user_id, include_expired=False, include_revoked=False))
+        list_pat(user_id=user_id, query=PATQuery(state='active')).total
         >= config.auth.pat_max_active_per_user
     ):
         raise ValueError(
@@ -224,30 +254,92 @@ def rotate_pat(*, user_id: str, pat_id: str) -> PATCreationResult | None:
     )
 
 
+PATSortOrder = Literal[
+    'created_asc',
+    'created_desc',
+    'expires_asc',
+    'expires_desc',
+    'last_used_asc',
+    'last_used_desc',
+    'name_asc',
+    'name_desc',
+]
+
+
 def list_pat(
     *,
     user_id: str,
-    include_revoked: bool = True,
-    include_expired: bool = True,
-) -> list[PAT]:
+    query: PATQuery | None = None,
+    start: int = 0,
+    limit: int | None = None,
+    order_by: PATSortOrder = 'created_desc',
+) -> PATQueryResult:
     """
-    Lists tokens for a user.
-    By default, returns all tokens, but can filter out revoked or expired ones.
+    Lists tokens for a user based on filters, with pagination.
+    Returns a tuple containing the page of data and the total count of matches.
     """
+    # Security: only get tokens for current user
+    mongo_query = Q(user_id=user_id)
 
-    query = PAT.objects(user_id=user_id)
+    if query is not None:
+        # Search (partial string match on the token name)
+        if query.search:
+            mongo_query &= Q(name__icontains=query.search)
 
-    # The revoked filter
-    if not include_revoked:
-        query = query.filter(revoked=False)
+        # Revoked
+        if query.revoked is not None:
+            mongo_query &= Q(revoked=query.revoked)
 
-    # The expired filter
-    if not include_expired:
-        current_time = now()
-        # Keep tokens where expiration is None OR expiration is in the future
-        query = query.filter(Q(expired_at=None) | Q(expired_at__gt=current_time))
+        # State (active/inactive)
+        if query.state == 'active':
+            current_time = now()
+            mongo_query &= Q(revoked=False)
+            mongo_query &= Q(expired_at=None) | Q(expired_at__gt=current_time)
+        elif query.state == 'inactive':  # revoked OR expired
+            current_time = now()
+            mongo_query &= Q(revoked=True) | Q(expired_at__lte=current_time)
 
-    return list(query.exclude('token_digest').order_by('-created_at'))
+        # Created
+        if query.created_after:
+            mongo_query &= Q(created_at__gte=query.created_after)
+        if query.created_before:
+            mongo_query &= Q(created_at__lte=query.created_before)
+
+        # Last Used
+        if query.last_used_after:
+            mongo_query &= Q(last_used_at__gte=query.last_used_after)
+        if query.last_used_before:
+            mongo_query &= Q(last_used_at__lte=query.last_used_before)
+
+        # Expiration
+        if query.expires_after:
+            mongo_query &= Q(expired_at__gte=query.expires_after)
+        if query.expires_before:
+            mongo_query &= Q(expired_at__lte=query.expires_before)
+
+    # The base QuerySet
+    base_qs = PAT.objects.filter(mongo_query).exclude('token_digest')
+
+    # Apply sorting
+    sort_mapping: dict[str, str] = {
+        'created_asc': 'created_at',
+        'created_desc': '-created_at',
+        'expires_asc': 'expired_at',
+        'expires_desc': '-expired_at',
+        'last_used_asc': 'last_used_at',
+        'last_used_desc': '-last_used_at',
+        'name_asc': 'name',
+        'name_desc': '-name',
+    }
+    base_qs = base_qs.order_by(sort_mapping[order_by])
+
+    # Apply pagination slicing
+    if limit is None:
+        results = list(base_qs[start:])
+    else:
+        results = list(base_qs[start : start + limit])
+
+    return PATQueryResult(data=results, total=base_qs.count())
 
 
 def get_pat(*, pat_id: str, user_id: str) -> PAT | None:

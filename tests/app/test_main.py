@@ -243,10 +243,10 @@ def test_external_app_dcat(
     # always need some data (see `test_dcat.py`)
 
 
-# Ensure all endpoints have auth dependency
+# Ensure auth dependency is injected correctly to all endpoints
 
 
-def test_all_endpoints_have_user_dependency():
+def test_user_dependency_on_all_endpoints():
     from nomad.app.main import app
 
     ignored_mounts = {'/optimade', '/dcat', '/h5grove'}

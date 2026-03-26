@@ -35,7 +35,7 @@ from nomad.files import StreamedFile, UploadFiles, create_zipstream
 
 
 def parameter_dependency_from_model(
-    name: str, model_cls: BaseModel, exclude: list[str] = []
+    name: str, model_cls: type[BaseModel], exclude: list[str] = []
 ) -> FunctionType:
     """
     Takes a pydantic model class as input and creates a dependency with corresponding
