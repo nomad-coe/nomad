@@ -446,6 +446,7 @@ def get_upload_entries_metadata(
     'user, upload_id_key, expected_status_code',
     [
         pytest.param('user1', 'id_unpublished_w', 200, id='valid-upload_id'),
+        pytest.param('user1', 'id_published_doi', 200, id='published-with-doi'),
         pytest.param('user1', 'silly_value', 404, id='invalid-upload_id'),
         pytest.param(None, 'id_unpublished_w', 401, id='no-credentials'),
         pytest.param('invalid', 'id_unpublished_w', 401, id='invalid-credentials'),
@@ -457,6 +458,7 @@ def test_get_upload(
     auth_headers,
     client,
     example_data_writeable,
+    example_data_published_doi,
     user,
     upload_id_key,
     expected_status_code,

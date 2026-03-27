@@ -20,7 +20,7 @@ def convert_user_id_to_creator(user_id: str) -> Creator:
 
 def convert_user_to_creator(user: User) -> Creator:
     """Generates a DataCite Creator from a NOMAD User."""
-    affiliation = Affiliation()
+    affiliation = Affiliation(name='')
     if user.affiliation is not None:
         affiliation.name += user.affiliation.strip()
     if user.affiliation_address is not None:

@@ -210,6 +210,6 @@ def list_without(lst: Iterable, *items: object) -> list:
 
 
 def assert_doi_name(doi_name):
-    # lowercase crockford alphabet
+    # Lowercase Crockford alphabet
     cf4 = r'[0-9abcdefghjkmnpqrstvwxyz]{4}'
     assert re.fullmatch(rf'10.83696/nomad\.{cf4}-{cf4}', doi_name)
