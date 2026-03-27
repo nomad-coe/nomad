@@ -95,3 +95,30 @@ def test_generate_unique_doi_name():
     assert_doi_name(doi1)
     assert_doi_name(doi2)
     assert doi1 != doi2
+
+
+@pytest.mark.parametrize(
+    'affiliation,affiliation_address,expected_affiliation_name',
+    [
+        (None, None, ''),
+        ('Uni', None, 'Uni'),
+        (None, '123 Uni St, Uni City', '; 123 Uni St, Uni City'),
+        ('Uni', '123 Uni St, Uni City', 'Uni; 123 Uni St, Uni City'),
+    ],
+)
+def test_convert_user_to_creator(
+    affiliation, affiliation_address, expected_affiliation_name
+):
+    from nomad.datacite.service import convert_user_to_creator
+    from nomad.datamodel import User
+
+    user = User(
+        user_id='00000000-0000-0000-0000-000000000001',
+        first_name='John',
+        last_name='Doe',
+        affiliation=affiliation,
+        affiliation_address=affiliation_address,
+    )
+    creator = convert_user_to_creator(user)
+    assert creator.name == 'John Doe'
+    assert creator.affiliation[0].name == expected_affiliation_name

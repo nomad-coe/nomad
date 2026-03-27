@@ -124,6 +124,8 @@ class UploadRole(str, Enum):
 
 
 class DOI(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str = Field(description='The DOI name, e.g. 10.2345/nomad.6789-wxyz')
 
 
@@ -3393,10 +3395,11 @@ async def assign_doi(
     Assign a DOI at DataCite to this upload.
 
     Conditions:
-        - The DataCite service must be enabled on this deployment.
-        - The upload must be published.
-        - The upload must contain at least one entry.
-        - The user must be the main author of the upload.
+
+    - The DataCite service must be enabled on this deployment.
+    - The upload must be published.
+    - The upload must contain at least one entry.
+    - The user must be the main author of the upload.
     """
 
     if not config.datacite.enabled:

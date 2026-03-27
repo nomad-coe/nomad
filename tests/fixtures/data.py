@@ -440,6 +440,23 @@ def example_data(
 
 
 @pytest.fixture(scope='function')
+def example_data_published_doi(
+    elastic_module,
+    raw_files_module,
+    mongo_module,
+    user1,
+):
+    data = ExampleData(main_author=user1)
+    data.create_upload(
+        upload_id='id_published_doi',
+        upload_name='name_published_doi',
+        published=True,
+        doi={'id': '10.83696/nomad.test-test'},
+    )
+    data.save()
+
+
+@pytest.fixture(scope='function')
 def example_data_schema_python(
     elastic_module, raw_files_module, mongo_module, user1, normalized
 ):
