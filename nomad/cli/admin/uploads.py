@@ -345,6 +345,26 @@ def _query_uploads(
     if uploads is not None:
         final_query &= Q(upload_id__in=list(uploads))
 
+    if unindexed:
+        # Select uploads that currently have no indexed entries in ES.
+        candidate_uploads = proc.Upload.objects(final_query)  # type: ignore
+        unindexed_upload_ids: list[str] = []
+        for upload in candidate_uploads:
+            if upload.total_entries_count == 0:
+                unindexed_upload_ids.append(upload.upload_id)
+                continue
+
+            results = search.search(
+                owner='admin',
+                query={'upload_id': upload.upload_id},
+                pagination=models.MetadataPagination(page_size=0),
+                user_id=config.services.admin_user_id,
+            )
+            if results.pagination.total == 0:
+                unindexed_upload_ids.append(upload.upload_id)
+
+        final_query &= Q(upload_id__in=unindexed_upload_ids)
+
     return final_query, proc.Upload.objects(final_query)  # type: ignore
 
 

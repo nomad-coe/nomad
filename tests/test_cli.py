@@ -223,6 +223,34 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
+    def test_ls_unindexed(self, elastic_function, published, user1):
+        import nomad.search as nomad_search
+
+        unindexed_upload_id = published.upload_id
+        indexed_upload_id = 'indexed_upload'
+
+        data = ExampleData(main_author=user1)
+        data.create_upload(upload_id=indexed_upload_id)
+        data.create_entry(upload_id=indexed_upload_id)
+        data.save(with_es=True, with_files=False)
+
+        nomad_search.delete_by_query(
+            query={'upload_id': unindexed_upload_id},
+            owner='admin',
+            user_id=config.services.admin_user_id,
+            refresh=True,
+        )
+
+        result = invoke_cli(
+            cli,
+            ['admin', 'uploads', '--unindexed', 'ls', '--ids'],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert unindexed_upload_id in result.stdout
+        assert indexed_upload_id not in result.stdout
+
     def test_rm(self, elastic_function, published):
         upload_id = published.upload_id
 
