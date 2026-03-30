@@ -96,11 +96,11 @@ export const WidgetBoxPlot = React.memo((
   }, [markers?.color?.search_quantity, group_by, subgroup_by, y?.search_quantity, filterData])
 
   // Get storage unit for API communication
-  const {storageUnitX, storageUnitY, storageUnitColor} = useMemo(() => {
+  const {storageUnitY, storageUnitColor} = useMemo(() => {
     if (error) return {}
     const storageUnitY = new Unit(filterData[yParsed.quantity]?.unit || 'dimensionless')
     const storageUnitColor = new Unit(filterData[colorParsed?.quantity]?.unit || 'dimensionless')
-    return {storageUnitX, storageUnitY, storageUnitColor}
+    return {storageUnitY, storageUnitColor}
   }, [filterData, yParsed.quantity, colorParsed?.quantity, error])
 
   // Create final axis configs for the plot
@@ -198,12 +198,6 @@ export const WidgetBoxPlot = React.memo((
     </>
   }, [drag_mode, handleDragModeChanged, handleResetClick, handleFloat, styles])
 
-  // Convert a value from storage unit to display unit
-  const convert = useCallback((value) => {
-    if (value == null || !yAxis.unit) return value
-    return new Quantity(value, storageUnitY).to(yAxis.unit).value()
-  }, [storageUnitY, yAxis.unit])
-
   // Resolve the data for the box plot based on the mode
   const boxData = useMemo(() => {
     // Sample mode – build flat lists, convert units, then group by label
@@ -300,7 +294,7 @@ export const WidgetBoxPlot = React.memo((
       const maxGroups = group_by_size || 10
       return sorted.slice(0, maxGroups)
     }
-  }, [group_by, group_by_size, subgroup_by_size, convert, hits, yParsed?.path, colorParsed?.path, subgroupParsed?.path, yAxis.dtype, yAxis.unit, storageUnitY, discrete, storageUnitColor, colorAxis?.unit, xParsed?.path])
+  }, [group_by_size, subgroup_by_size, hits, yParsed?.path, colorParsed?.path, subgroupParsed?.path, yAxis.dtype, yAxis.unit, storageUnitY, discrete, storageUnitColor, colorAxis?.unit, xParsed?.path])
 
   return <Floatable
       className={className}
