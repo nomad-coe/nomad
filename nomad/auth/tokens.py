@@ -24,7 +24,7 @@ import hmac
 import secrets
 import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, NamedTuple, cast
+from typing import TYPE_CHECKING, Literal, NamedTuple, TypeAlias, cast
 
 from mongoengine import DoesNotExist, Q
 from mongoengine.errors import ValidationError
@@ -119,14 +119,32 @@ class PATQuery(BaseModel):
         None, description='Filter by active/inactive state'
     )
 
-    created_after: datetime.datetime | None = None
-    created_before: datetime.datetime | None = None
+    created_after: datetime.datetime | None = Field(
+        None,
+        description='Only include tokens created at or after this timestamp',
+    )
+    created_before: datetime.datetime | None = Field(
+        None,
+        description='Only include tokens created at or before this timestamp',
+    )
 
-    last_used_after: datetime.datetime | None = None
-    last_used_before: datetime.datetime | None = None
+    last_used_after: datetime.datetime | None = Field(
+        None,
+        description='Only include tokens last used at or after this timestamp',
+    )
+    last_used_before: datetime.datetime | None = Field(
+        None,
+        description='Only include tokens last used at or before this timestamp',
+    )
 
-    expires_after: datetime.datetime | None = None
-    expires_before: datetime.datetime | None = None
+    expires_after: datetime.datetime | None = Field(
+        None,
+        description='Only include tokens expiring at or after this timestamp',
+    )
+    expires_before: datetime.datetime | None = Field(
+        None,
+        description='Only include tokens expiring at or before this timestamp',
+    )
 
 
 class PATQueryResult(BaseModel):
@@ -254,7 +272,7 @@ def rotate_pat(*, user_id: str, pat_id: str) -> PATCreationResult | None:
     )
 
 
-PATSortOrder = Literal[
+PATSortOrder: TypeAlias = Literal[
     'created_asc',
     'created_desc',
     'expires_asc',
