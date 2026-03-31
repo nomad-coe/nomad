@@ -38,7 +38,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { searchQuantities } from '../config'
 import { authorList, formatNumber, formatTimestamp, getDisplayLabel, serializeMetainfo } from '../utils'
 import { DOI } from './DOI'
-import { MaterialLink, RouteLink } from './nav/Routes'
+import { RouteLink } from './nav/Routes'
 import { defaultFilterData } from './search/FilterRegistry'
 import { Quantity as Q } from './units/Quantity'
 import { Unit } from './units/Unit'
@@ -426,31 +426,13 @@ const quantityPresets = {
     noWrap: true,
     hideIfUnavailable: true,
     placeholder: 'unavailable',
-    withClipboard: true,
-    render: (data) => {
-      return data?.results?.material?.material_id
-        ? <Box flexGrow={1} minWidth={0}>
-          <Typography noWrap>
-            <MaterialLink materialId={data.results.material.material_id}>{data.results.material.material_id}</MaterialLink>
-          </Typography>
-        </Box>
-        : null
-    }
+    withClipboard: true
   },
   'results.material.topology.material_id': {
     noWrap: true,
     hideIfUnavailable: true,
     placeholder: 'unavailable',
-    withClipboard: true,
-    renderValue: (value) => {
-      return value
-        ? <Box flexGrow={1} minWidth={0}>
-          <Typography noWrap>
-            <MaterialLink materialId={value}>{value}</MaterialLink>
-          </Typography>
-        </Box>
-        : null
-    }
+    withClipboard: true
   },
   'results.material.n_elements': {
     noWrap: true,
