@@ -47,6 +47,12 @@ const stoppButtonLabels = {
   'running': 'Stop'
 }
 
+export function getIconUrl(icon) {
+  return (icon.startsWith('http://') || icon.startsWith('https://'))
+    ? icon
+    : `${process.env.PUBLIC_URL}/${icon}`
+}
+
 const LaunchButton = React.memo(function LaunchButton(props) {
   return <Button color="primary" variant="contained" size="small" {...props} />
 })
@@ -183,7 +189,7 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
         <Box display="flex" flexDirection="row" marginBottom={1}>
           {tool.icon ? (
             <Icon classes={{root: styles.iconRoot}}>
-              <img className={styles.imageIcon} src={`${process.env.PUBLIC_URL}/${tool.icon}`} alt="icon"/>
+              <img className={styles.imageIcon} src={getIconUrl(tool.icon)} alt="icon"/>
             </Icon>
           ) : (
             <AssessmentIcon classes={{root: styles.iconRoot}}/>
