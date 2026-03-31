@@ -92,6 +92,7 @@ dev = [
   "aiosmtpd>=1",
   "essential_generators",
   "mypy>=1.15",
+  "pip-audit",
   "pytest-asyncio",
   "pytest-cov",
   "pytest-socket",
