@@ -34,7 +34,7 @@ import { withLoginRequired } from '../api'
 import Markdown from '../Markdown'
 import DefaultIcon from '@material-ui/icons/Assessment'
 import Icon from '@material-ui/core/Icon'
-import NorthTool, { NorthToolButtons, useNorthTool } from './NorthTool'
+import NorthTool, { getIconUrl, NorthToolButtons, useNorthTool } from './NorthTool'
 import { ui, northTools as _tools } from '../../config'
 
 export const help = `
@@ -78,7 +78,7 @@ const NorthToolAccordion = React.memo(function NorthToolAccordion({...props}) {
               <Icon>
                 <img
                   className={classes.iconImg}
-                  src={icon.startsWith('http://') || icon.startsWith('https://') ? icon : `${process.env.PUBLIC_URL}/${icon}`}
+                  src={getIconUrl(icon)}
                   alt="icon"
                 />
               </Icon>
