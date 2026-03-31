@@ -152,7 +152,7 @@ NorthToolAccordion.propTypes = {}
  */
 const NorthPage = React.memo(() => {
   const tools = useTools()
-  const [expanded, setExpanded] = useState('jupyter')
+  const [expanded, setExpanded] = useState('')
 
   const handleChange = useCallback(tool => {
     setExpanded(value => value === tool.name ? null : tool.name)
@@ -187,7 +187,9 @@ const NorthPage = React.memo(() => {
             name: tools[key].id_url_safe,
             title: tools[key].north_tool.display_name ?? key,
             ...tools[key].north_tool
-          })).map((tool, index) => (
+          }))
+          .sort((a, b) => a.title.localeCompare(b.title))
+          .map((tool, index) => (
             <NorthTool key={index} tool={tool}>
               <NorthToolAccordion
                 expanded={tool.name === expanded}
