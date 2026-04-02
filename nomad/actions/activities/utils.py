@@ -72,4 +72,4 @@ def get_all_activities(task_queue: TaskQueue) -> list[Callable]:
             activities.extend(action.activities)
     if task_queue == TaskQueue.NOMAD_INTERNAL_WORKFLOWS:
         activities.extend(get_nomad_internal_activities())
-    return activities
+    return list(set(activities))

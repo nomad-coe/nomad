@@ -45,4 +45,4 @@ def get_all_workflows(task_queue: TaskQueue) -> list:
     if task_queue == TaskQueue.NOMAD_INTERNAL_WORKFLOWS:
         workflows.extend(get_nomad_internal_workflows())
 
-    return workflows
+    return list(set(workflows))
