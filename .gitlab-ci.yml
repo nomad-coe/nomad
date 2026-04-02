@@ -307,6 +307,7 @@ build python package:
 
 audit python:
   stage: test
+  needs: []
   image: $UV_IMAGE
   variables:
     UV_LINK_MODE: copy
@@ -319,7 +320,11 @@ audit python:
     - uv audit || EXIT=1
     - uv run pip-audit --skip-editable || EXIT=$((EXIT+2))
     - exit $EXIT
-  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'develop'
+      allow_failure: true
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main'
 
 python package install tests:
   stage: test
