@@ -174,6 +174,9 @@ def create_pat(
 
     Returns: (The saved PAT object, The RAW secret string)
     """
+    if not metadata.scopes:
+        raise ValueError('At least one scope must be selected.')
+
     # Check lifetime
     if expires_in_days is not None and expires_in_days <= 0:
         raise ValueError('Cannot create an already expired token.')
