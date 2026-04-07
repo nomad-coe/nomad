@@ -501,6 +501,14 @@ def get_id_name(qualified_name: str) -> str:
     return str(qualified_name).split(':', maxsplit=1)[0]
 
 
+def get_id(m_def) -> str:
+    name = get_id_name(m_def.qualified_name())
+    definition_id = m_def.definition_id
+    if name == '*':
+        name = get_id_name(str(m_def.m_def))
+    return f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+
+
 def metainfo_to_json_schema(
     m_def, add_unit_value: bool = False, exclude=None
 ) -> dict[str, Any]:
@@ -513,8 +521,7 @@ def metainfo_to_json_schema(
     Args:
         m_def (Section): The metainfo Section definition to convert to JSON Schema.
         add_unit_value (bool, optional): If True, include UnitValue definition in the schema for quantities with units. Default is False.
-        exclude (list, optional): List of qualified names to exclude from the schema. Default is an empty list.
-
+        exclude (list, optional): A list of qualified names to exclude from the schema. Default is None.
     Returns:
         dict: A JSON Schema representation of the metainfo Section definition.
 
@@ -532,13 +539,16 @@ def metainfo_to_json_schema(
         child_section, add_unit_value=False, exclude=None, repeats=False
     ) -> dict[str, Any]:
         schema = {}
-        child_schema = _metainfo_to_json_schema(
-            child_section, add_unit_value, exclude, _top_level=False
-        )
-        child_schema.pop('$schema', None)
-        child_id = child_schema['$id']
-
-        _defs[get_id_name(child_section.qualified_name())] = child_schema
+        child_id_name = get_id_name(child_section.qualified_name())
+        if child_id_name in _defs:
+            child_id = _defs[child_id_name]['$id']
+        else:
+            child_schema = _metainfo_to_json_schema(
+                child_section, add_unit_value, exclude, _top_level=False
+            )
+            child_schema.pop('$schema', None)
+            child_id = child_schema['$id']
+            _defs[child_id_name] = child_schema
 
         # Reference it in properties
         if repeats:
@@ -551,6 +561,7 @@ def metainfo_to_json_schema(
 
         if child_section.description is not None:
             schema['description'] = child_section.description
+
         return schema
 
     def _metainfo_to_json_schema(
@@ -574,14 +585,16 @@ def metainfo_to_json_schema(
             if v is None or (isinstance(v, list) and not v):
                 schema.pop(k)
 
-        name = get_id_name(m_def.qualified_name())
+        id_name = get_id_name(m_def.qualified_name())
+        name = id_name
         definition_id = m_def.definition_id
         if name == '*':
             name = get_id_name(str(m_def.m_def))
         schema['$id'] = f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
-
+        _defs[id_name] = schema
         properties: dict = {}
         all_of: list = []
+
         if add_unit_value and _top_level:
             _defs['UnitValue'] = UNIT_VALUE_SCHEMA
 
@@ -604,7 +617,7 @@ def metainfo_to_json_schema(
                 _child_section_to_json_schema(
                     child_section,
                     add_unit_value,
-                    exclude,
+                    exclude=exclude,
                     repeats=getattr(m_def, 'repeats', False),
                 )
             )
@@ -618,25 +631,34 @@ def metainfo_to_json_schema(
 
             # Recursively get JSON schema
             properties[name] = _child_section_to_json_schema(
-                child_section, add_unit_value, exclude, repeats=subsection.repeats
+                child_section,
+                add_unit_value,
+                exclude=exclude,
+                repeats=subsection.repeats,
             )
+            if subsection.description is not None:
+                properties[name]['description'] = subsection.description
             properties[name]['$id'] = (
                 f'{SCHEMA_ENDPOINT}/{get_id_name(subsection.qualified_name())}@{subsection.definition_id}'
             )
 
         # Add BaseSections as references in allOf
         for base_section in getattr(m_def, 'base_sections', []):
-            if get_id_name(base_section.qualified_name()) in exclude:
+            base_id_name = get_id_name(base_section.qualified_name())
+            if base_id_name in exclude:
                 continue
             name = base_section.name
 
-            # Recursively get JSON schema
-            base_section_schema = _metainfo_to_json_schema(
-                base_section, add_unit_value, exclude, _top_level=False
-            )
-            base_section_schema.pop('$schema', None)
-            base_section_id = base_section_schema['$id']
-            _defs[get_id_name(base_section.qualified_name())] = base_section_schema
+            if base_id_name in _defs:
+                base_section_id = _defs[base_id_name]['$id']
+            else:
+                # Recursively get JSON schema
+                base_section_schema = _metainfo_to_json_schema(
+                    base_section, add_unit_value, exclude=exclude, _top_level=False
+                )
+                base_section_schema.pop('$schema', None)
+                base_section_id = base_section_schema['$id']
+                _defs[base_id_name] = base_section_schema
             all_of.append(
                 {
                     '$comment': f'{name} {":" + base_section.description if base_section.description is not None else ""}',
@@ -646,10 +668,12 @@ def metainfo_to_json_schema(
 
         if all_of:
             schema['allOf'] = all_of
+
         if properties:
             schema['properties'] = properties
         # Only include $defs at the top level to avoid redundancy in nested schemas
         if _top_level:
+            _defs.pop(id_name, None)
             if _defs:
                 schema['$defs'] = _defs
             return schema
