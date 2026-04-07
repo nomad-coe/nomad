@@ -1002,6 +1002,20 @@ def test_create_pat_requires_nonempty_scopes(client, auth_headers, mongo_functio
     assert 'At least one scope must be selected' in response.json()['detail']
 
 
+def test_create_pat_invalid_scope(client, auth_headers, mongo_function):
+    """Test that the API rejects invalid scope with a 400 Bad Request."""
+    payload = {
+        'metadata': {'name': 'Invalid Scope Token', 'scopes': ['invalid-scope']},
+        'expires_in_days': 30,
+    }
+
+    headers = auth_headers['user1']
+    response = client.post('auth/pats', json=payload, headers=headers)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'Invalid scope' in response.json()['detail']
+
+
 def test_get_pat_success(client, auth_headers, mongo_function):
     """Test retrieving a single PAT by ID."""
     headers = auth_headers['user1']
