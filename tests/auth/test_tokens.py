@@ -56,7 +56,7 @@ def test_create_returns_correct_structure(mongo_function):
         expires_in_days=30,
         metadata=PATMetadata(
             name='CI/CD Token',
-            scopes=['read', 'write'],
+            scopes=[Scope.UPLOADS_READ],
         ),
     )
 
@@ -72,7 +72,7 @@ def test_create_returns_correct_structure(mongo_function):
     saved_pat = PAT.objects.get(id=result.pat.id)
     assert saved_pat.user_id == 'user_123'
     assert saved_pat.name == 'CI/CD Token'
-    assert saved_pat.scopes == ['read', 'write']
+    assert saved_pat.scopes == [Scope.UPLOADS_READ]
 
 
 def test_create_hashing_security(mongo_function):
@@ -246,6 +246,23 @@ def test_create_rejects_token_operating_scope(mongo_function, scope):
         )
 
 
+def test_create_rejects_token_invalid_scope(mongo_function):
+    """
+    Verifies that requesting invalid scope immediately throws a ValueError.
+    """
+    with pytest.raises(ValueError, match='Invalid scope'):
+        create_pat(
+            user_id='user_123',
+            expires_in_days=30,
+            metadata=PATMetadata(
+                name='Invalid Scope Token',
+                scopes=[
+                    'invalid',
+                ],
+            ),
+        )
+
+
 # Test `rotate`
 
 
@@ -261,7 +278,7 @@ def test_rotate_basic_success(mongo_function):
     # Create original
     original_res = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='CI Token', scopes=['read']),
+        metadata=PATMetadata(name='CI Token', scopes=[Scope.UPLOADS_READ]),
         expires_in_days=30,
     )
     original_id = original_res.pat.id
@@ -278,7 +295,7 @@ def test_rotate_basic_success(mongo_function):
     assert new_res.pat.id != original_id
     assert new_res.raw_token != original_secret
     assert new_res.pat.name == 'CI Token'
-    assert new_res.pat.scopes == ['read']
+    assert new_res.pat.scopes == [Scope.UPLOADS_READ]
     assert new_res.pat.is_active is True
 
 
