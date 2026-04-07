@@ -449,16 +449,31 @@ def test_search_quantity_initialization(client, monkeypatch, no_warn):
     """
     Tests that initialize_search_quantities is called only once.
     """
+    # Reset module-level init and caches to make this test deterministic in isolation.
+    monkeypatch.setattr(apps_router, '_initialized', False)
+    monkeypatch.setattr(apps_router, 'all_search_quantities', {})
+    monkeypatch.setattr(apps_router, 'app_search_quantity_cache', {})
+    monkeypatch.setattr(apps_router, 'app_entry_points_cache', {})
+
     # Mock the internal function to track whether it is called
     mock = Mock(side_effect=apps_router._initialize_search_quantities)
     monkeypatch.setattr(apps_router, '_initialize_search_quantities', mock)
 
-    # Fetch search_quantities and see that the initialization is not called
-    client.post(
+    # First request initializes, second request must reuse initialized state.
+    resp_1 = client.post(
         f'{BASE}/search-quantities',
         json={'query': {'input': 'a'}, 'pagination': {'page': 1, 'page_size': 10}},
     )
-    assert mock.call_count == 0, 'Expected the initialization to not be called'
+    resp_2 = client.post(
+        f'{BASE}/search-quantities',
+        json={'query': {'input': 'a'}, 'pagination': {'page': 1, 'page_size': 10}},
+    )
+
+    assert resp_1.status_code == 200
+    assert resp_2.status_code == 200
+    assert mock.call_count == 1, (
+        'Expected the initialization to be called once and only once'
+    )
 
 
 @pytest.mark.parametrize(

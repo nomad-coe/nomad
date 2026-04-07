@@ -20,10 +20,11 @@ import csv
 import io
 import json
 import os.path
+import tempfile
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated, Any, cast
+from typing import Annotated, Any
 
 import orjson
 import yaml
@@ -355,6 +356,246 @@ class EntryEdit(BaseModel):
 
 class EntryEditResponse(EntryEdit):
     entry_id: str
+
+
+def _default_sub_section_payload(
+    sub_section_def: metainfo.SubSection,
+) -> dict[str, Any]:
+    """Return a minimal dict payload that identifies the sub-section type."""
+    payload: dict[str, Any] = {
+        'm_def': sub_section_def.sub_section.qualified_name(),
+    }
+    if sub_section_def.sub_section.definition_id:
+        payload['m_def_id'] = sub_section_def.sub_section.definition_id
+    return payload
+
+
+def _section_def_from_dict(
+    section_data: dict[str, Any],
+    fallback_def: metainfo.Section,
+) -> metainfo.Section:
+    """Resolve the actual Section definition for a raw dict.
+
+    If the dict carries an ``m_def`` key we try to resolve it via the same
+    ``MSectionReference`` mechanism that ``MSection.from_dict`` uses, so that
+    polymorphic sub-sections (e.g. ELN plug-in types) are handled correctly.
+    Falls back to *fallback_def* when resolution fails or the key is absent.
+    """
+    m_def_name = section_data.get('m_def')
+    if not m_def_name:
+        return fallback_def
+    try:
+        # Reuse the same resolution path as MSection.from_dict so that
+        # fully-qualified Python class names (e.g. "nomad.datamodel.metainfo.eln.ELNSample")
+        # resolve to the real Section definition without needing a DB context.
+        proxy = metainfo.MSectionReference().normalize(
+            m_def_name,
+            section=datamodel.EntryArchive.m_def,
+        )
+        if isinstance(proxy, metainfo.Section):
+            return proxy
+        # SectionProxy — trigger resolution
+        resolved = proxy.m_proxy_resolve()
+        if isinstance(resolved, metainfo.Section):
+            return resolved
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f'Could not resolve m_def "{m_def_name}".',
+        ) from exc
+
+    raise HTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        detail=f'm_def "{m_def_name}" does not resolve to a Section definition.',
+    )
+
+
+def _resolve_archive_change_target_in_dict(
+    archive_data: dict[str, Any],
+    path: str,
+    *,
+    create_missing: bool,
+) -> tuple[dict[str, Any], metainfo.Property, int | None]:
+    """Walk *archive_data* (a raw dict) to the parent container described by *path*.
+
+    Returns a 3-tuple ``(parent_container, definition, item_index)`` where:
+
+    * ``parent_container`` is the dict/list that directly holds the target value.
+    * ``definition`` is the metainfo :class:`Property` for the last path segment.
+    * ``item_index`` is ``None`` for singular properties / sub-sections, or an
+      ``int`` for repeated sub-sections / indexed quantities.
+    """
+    if not path:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail='Archive change path must not be empty.',
+        )
+
+    parts = path.split('/')
+    # Start at the root section definition so we can validate each step.
+    current_section_def: metainfo.Section = datamodel.EntryArchive.m_def
+    current_data: dict[str, Any] = archive_data
+    index = 0
+
+    while index < len(parts) - 1:
+        property_name = parts[index]
+
+        # Allow the actual section type to differ (polymorphism via m_def).
+        current_section_def = _section_def_from_dict(current_data, current_section_def)
+
+        try:
+            definition = current_section_def.all_properties[property_name]
+        except KeyError as exc:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f'Invalid archive change path "{path}". '
+                    f'Property "{property_name}" is not defined in '
+                    f'{current_section_def.qualified_name()}.'
+                ),
+            ) from exc
+
+        if not isinstance(definition, metainfo.SubSection):
+            # The only valid non-subsection mid-path segment is an integer index
+            # into a repeated quantity on the *last* non-terminal hop.
+            if index == len(parts) - 2 and parts[index + 1].isdigit():
+                item_index = int(parts[index + 1])
+                if not create_missing:
+                    existing_items: list[Any] = current_data.get(definition.name, [])
+                    if item_index >= len(existing_items):
+                        raise HTTPException(
+                            status.HTTP_400_BAD_REQUEST,
+                            detail=f'Invalid archive change path "{path}". Index {item_index} out of bounds.',
+                        )
+                return current_data, definition, item_index
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Invalid archive change path "{path}".',
+            )
+
+        if definition.repeats:
+            if index + 1 >= len(parts) or not parts[index + 1].isdigit():
+                if index == len(parts) - 1:
+                    return current_data, definition, None
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=f'Invalid archive change path "{path}".',
+                )
+
+            sub_section_index = int(parts[index + 1])
+            if index + 1 == len(parts) - 1:
+                if not create_missing:
+                    existing_sub_sections: list[Any] = current_data.get(
+                        property_name, []
+                    )
+                    if sub_section_index >= len(existing_sub_sections):
+                        raise HTTPException(
+                            status.HTTP_400_BAD_REQUEST,
+                            detail=f'Invalid archive change path "{path}". Index {sub_section_index} out of bounds.',
+                        )
+                return current_data, definition, sub_section_index
+
+            # Navigate into the repeated sub-section list in the raw dict.
+            sub_list: list = current_data.setdefault(property_name, [])
+            if len(sub_list) <= sub_section_index:
+                if not create_missing:
+                    raise HTTPException(
+                        status.HTTP_400_BAD_REQUEST,
+                        detail=f'Invalid archive change path "{path}".',
+                    )
+                sub_list.extend([None] * (sub_section_index - len(sub_list) + 1))
+            if sub_list[sub_section_index] is None:
+                if not create_missing:
+                    raise HTTPException(
+                        status.HTTP_400_BAD_REQUEST,
+                        detail=f'Invalid archive change path "{path}".',
+                    )
+                sub_list[sub_section_index] = {}
+
+            current_data = sub_list[sub_section_index]
+            current_section_def = definition.sub_section
+            index += 2
+            continue
+
+        # Singular sub-section.
+        next_data: dict | None = current_data.get(property_name)
+        if next_data is None:
+            if not create_missing:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=f'Invalid archive change path "{path}".',
+                )
+            next_data = {}
+            current_data[property_name] = next_data
+
+        current_data = next_data
+        current_section_def = definition.sub_section
+        index += 1
+
+    property_name = parts[-1]
+
+    # Resolve section def one last time for the final hop.
+    current_section_def = _section_def_from_dict(current_data, current_section_def)
+
+    try:
+        definition = current_section_def.all_properties[property_name]
+    except KeyError as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f'Invalid archive change path "{path}". '
+                f'Property "{property_name}" is not defined in '
+                f'{current_section_def.qualified_name()}.'
+            ),
+        ) from exc
+
+    return current_data, definition, None
+
+
+def _apply_archive_change_to_dict(
+    archive_data: dict[str, Any],
+    change: ArchiveChange,
+) -> None:
+    """Apply a single :class:`ArchiveChange` directly to the raw *archive_data* dict.
+
+    ``parent_data`` returned by the resolver is always a section dict.
+    ``item_index`` is set when the target is an element of a repeated sub-section list
+    or an indexed quantity; in that case the list lives at ``parent_data[definition.name]``.
+    """
+    parent_data, definition, item_index = _resolve_archive_change_target_in_dict(
+        archive_data,
+        change.path,
+        create_missing=change.action != ArchiveChangeAction.remove,
+    )
+
+    if change.action == ArchiveChangeAction.remove:
+        if item_index is not None:
+            # Repeated sub-section or indexed quantity — remove the item and
+            # keep lists compact, matching m_remove(..., mode='pop').
+            sub_list: list = parent_data.get(definition.name, [])
+            if item_index < len(sub_list):
+                sub_list.pop(item_index)
+                # Strip any trailing Nones that might have been unmasked from
+                # previously sparse data.
+                while sub_list and sub_list[-1] is None:
+                    sub_list.pop()
+        else:
+            parent_data.pop(definition.name, None)
+        return
+
+    # ---- upsert ----
+    value = change.new_value
+
+    if item_index is not None:
+        sub_list = parent_data.setdefault(definition.name, [])
+        if len(sub_list) <= item_index:
+            sub_list.extend([None] * (item_index - len(sub_list) + 1))
+        sub_list[item_index] = value
+    else:
+        # Singular property or sub-section — write directly.
+        # For singular sub-sections the type is already known from the schema,
+        # so omitting m_def matches the output that m_to_dict would have produced.
+        parent_data[definition.name] = value
 
 
 _bad_owner_response_unauthorized = (
@@ -1759,65 +2000,32 @@ def post_entry_edit(
                 detail='The entry mainfile in not in archive format.',
             )
 
-    def to_key(path_segment: str):
-        try:
-            return int(path_segment)
-        except ValueError:
-            return path_segment
-
-    # TODO this is only covers the most basic case
-    #   - no checks yet, we simply assume that the raw file and the changes
-    #     agree on the schema
-    #   - no handling of concurrent changes yet
+    # Apply changes directly to the raw dict – no full archive deserialisation.
+    # TODO no handling of concurrent changes yet
     for change in data.changes:
-        path = change.path.split('/')
-        section_data = archive_data
-        next_key = to_key(path[0])
-
-        for path_index, path_segment in enumerate(path[:-1]):
-            # Usually all keys are str and indicate either a quantity or
-            # a single sub-section. If the next segment is an integer, we
-            # know that the current segment is a repeated sub-section.
-            next_key = to_key(path[path_index + 1])
-            key = to_key(path_segment)
-            repeated_sub_section = isinstance(next_key, int)
-
-            next_value: list | dict = [] if repeated_sub_section else {}
-
-            if isinstance(section_data, list):
-                if section_data[key] is None:
-                    section_data[key] = next_value
-                section_data = section_data[key]
-            else:
-                section_data = section_data.setdefault(key, next_value)
-
-            # If this is a list, we might need to fill some wholes before we can
-            # update the value.
-            if isinstance(section_data, list):
-                if len(section_data) <= next_key:
-                    cast(list, section_data).extend(
-                        [None] * (next_key - len(section_data) + 1)
-                    )
-
-        if change.action == ArchiveChangeAction.remove:
-            del section_data[next_key]
-        else:
-            section_data[next_key] = change.new_value
-
-    with context.raw_file(mainfile, 'wt') as f:
-        if mainfile.endswith('.json'):
-            json.dump(archive_data, f)
-        else:
-            yaml.dump(archive_data, f, default_flow_style=False, sort_keys=False)
+        _apply_archive_change_to_dict(archive_data, change)
 
     reprocess_settings = Reprocess(
         index_individual_entries=True, reprocess_existing_entries=True
     )
-    upload.put_file_and_process_local(
-        os.path.join(context.raw_path(), mainfile),
-        os.path.dirname(mainfile),
-        reprocess_settings=reprocess_settings,
-    )
+
+    # We write the edit to a temporary file first because put_file_and_process_local
+    # truncates existing files to 0 bytes when the source and target are the same path.
+    with tempfile.TemporaryDirectory(dir=config.fs.tmp) as tmp_dir:
+        tmp_path = os.path.join(tmp_dir, os.path.basename(mainfile))
+        with open(tmp_path, 'w') as f:
+            if mainfile.endswith('.json'):
+                json.dump(archive_data, f)
+            else:
+                yaml.dump(archive_data, f, default_flow_style=False, sort_keys=False)
+
+        main_entry = upload.put_file_and_process_local(
+            tmp_path,
+            os.path.dirname(mainfile),
+            reprocess_settings=reprocess_settings,
+        )
+
+    entry_id = main_entry.entry_id if main_entry else entry_id
 
     return {'entry_id': entry_id, 'changes': data.changes}
 
