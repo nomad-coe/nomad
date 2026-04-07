@@ -37,6 +37,8 @@ from nomad.common import now
 from nomad.config.models.config import ModeEnum
 from tests.test_config import load_test_config
 
+DEFAULT_TEST_SCOPES: list[Scope] = [Scope.UPLOADS_READ]
+
 # Tests for OIDC authentication endpoints
 
 
@@ -975,7 +977,7 @@ def test_create_pat_success(client, auth_headers, mongo_function):
 def test_create_pat_invalid_lifespan(client, auth_headers, mongo_function):
     """Test that the API rejects negative lifespans with a 400 Bad Request."""
     payload = {
-        'metadata': {'name': 'Invalid Lifespan Token', 'scopes': []},
+        'metadata': {'name': 'Invalid Lifespan Token', 'scopes': DEFAULT_TEST_SCOPES},
         'expires_in_days': -5,
     }
 
@@ -986,6 +988,20 @@ def test_create_pat_invalid_lifespan(client, auth_headers, mongo_function):
     assert 'already expired' in response.json()['detail']
 
 
+def test_create_pat_requires_nonempty_scopes(client, auth_headers, mongo_function):
+    """Test that the API rejects PAT creation without any scopes."""
+    payload = {
+        'metadata': {'name': 'Missing Scopes Token', 'scopes': []},
+        'expires_in_days': 30,
+    }
+
+    headers = auth_headers['user1']
+    response = client.post('auth/pats', json=payload, headers=headers)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'At least one scope must be selected' in response.json()['detail']
+
+
 def test_get_pat_success(client, auth_headers, mongo_function):
     """Test retrieving a single PAT by ID."""
     headers = auth_headers['user1']
@@ -993,7 +1009,10 @@ def test_get_pat_success(client, auth_headers, mongo_function):
     # Create a token
     create_resp = client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Get Me', 'scopes': []}, 'expires_in_days': 30},
+        json={
+            'metadata': {'name': 'Get Me', 'scopes': DEFAULT_TEST_SCOPES},
+            'expires_in_days': 30,
+        },
         headers=headers,
     )
     pat_id = create_resp.json()['pat']['id']
@@ -1033,7 +1052,7 @@ def test_get_pat_cross_user(client, auth_headers, mongo_function):
     create_resp = client.post(
         'auth/pats',
         json={
-            'metadata': {'name': 'User 1 Private Token', 'scopes': []},
+            'metadata': {'name': 'User 1 Private Token', 'scopes': DEFAULT_TEST_SCOPES},
             'expires_in_days': 30,
         },
         headers=user1_headers,
@@ -1099,12 +1118,18 @@ def test_list_pat_success(client, auth_headers, mongo_function):
     # Create two tokens for User 1
     client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Token A', 'scopes': []}, 'expires_in_days': 30},
+        json={
+            'metadata': {'name': 'Token A', 'scopes': DEFAULT_TEST_SCOPES},
+            'expires_in_days': 30,
+        },
         headers=headers_user1,
     )
     client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Token B', 'scopes': []}, 'expires_in_days': 30},
+        json={
+            'metadata': {'name': 'Token B', 'scopes': DEFAULT_TEST_SCOPES},
+            'expires_in_days': 30,
+        },
         headers=headers_user1,
     )
 
@@ -1112,7 +1137,7 @@ def test_list_pat_success(client, auth_headers, mongo_function):
     client.post(
         'auth/pats',
         json={
-            'metadata': {'name': 'User 2 Secret Token', 'scopes': []},
+            'metadata': {'name': 'User 2 Secret Token', 'scopes': DEFAULT_TEST_SCOPES},
             'expires_in_days': 30,
         },
         headers=headers_user2,
@@ -1186,7 +1211,10 @@ def test_rotate_pat_success(client, auth_headers, mongo_function):
     # Create initial token
     create_resp = client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Rotate Me', 'scopes': []}, 'expires_in_days': 30},
+        json={
+            'metadata': {'name': 'Rotate Me', 'scopes': DEFAULT_TEST_SCOPES},
+            'expires_in_days': 30,
+        },
         headers=headers,
     )
     old_pat_id = create_resp.json()['pat']['id']
@@ -1219,7 +1247,7 @@ def test_rotate_pat_cross_user(client, auth_headers, mongo_function):
     create_resp = client.post(
         'auth/pats',
         json={
-            'metadata': {'name': 'User 1 Token', 'scopes': []},
+            'metadata': {'name': 'User 1 Token', 'scopes': DEFAULT_TEST_SCOPES},
             'expires_in_days': 30,
         },
         headers=user1_headers,
@@ -1241,7 +1269,7 @@ def test_rotate_pat_revoked_token(client, auth_headers, mongo_function):
     create_resp = client.post(
         'auth/pats',
         json={
-            'metadata': {'name': 'Revoked Token', 'scopes': []},
+            'metadata': {'name': 'Revoked Token', 'scopes': DEFAULT_TEST_SCOPES},
             'expires_in_days': 30,
         },
         headers=headers,
@@ -1268,7 +1296,7 @@ def test_rotate_pat_expired_token(client, auth_headers, mongo_function):
     create_resp = client.post(
         'auth/pats',
         json={
-            'metadata': {'name': 'Expired Token', 'scopes': []},
+            'metadata': {'name': 'Expired Token', 'scopes': DEFAULT_TEST_SCOPES},
             'expires_in_days': 30,
         },
         headers=headers,
@@ -1311,7 +1339,10 @@ def test_revoke_pat_success(client, auth_headers, mongo_function):
     # Create a token
     create_resp = client.post(
         'auth/pats',
-        json={'metadata': {'name': 'Revoke Me', 'scopes': []}, 'expires_in_days': 30},
+        json={
+            'metadata': {'name': 'Revoke Me', 'scopes': DEFAULT_TEST_SCOPES},
+            'expires_in_days': 30,
+        },
         headers=headers,
     )
     pat_id = create_resp.json()['pat']['id']
@@ -1338,7 +1369,7 @@ def test_revoke_pat_cross_user(client, auth_headers, mongo_function):
     create_resp = client.post(
         'auth/pats',
         json={
-            'metadata': {'name': 'User 1 Token', 'scopes': []},
+            'metadata': {'name': 'User 1 Token', 'scopes': DEFAULT_TEST_SCOPES},
             'expires_in_days': 30,
         },
         headers=user1_headers,

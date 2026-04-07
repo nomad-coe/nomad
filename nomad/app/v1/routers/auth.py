@@ -403,6 +403,12 @@ def create_pat_endpoint(
     Raises:
         400 Bad Request: If `expires_in_days` is invalid (e.g., negative).
     """
+    if not request.metadata.scopes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='At least one scope must be selected.',
+        )
+
     try:
         return create_pat(
             user_id=user.user_id,

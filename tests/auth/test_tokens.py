@@ -41,6 +41,8 @@ from nomad.common import now
 from nomad.config import config
 from nomad.mongo.pat import PAT
 
+DEFAULT_TEST_SCOPES: list[Scope] = [Scope.UPLOADS_READ]
+
 # Test `create`
 
 
@@ -79,7 +81,7 @@ def test_create_hashing_security(mongo_function):
     """
     result = create_pat(
         user_id='u1',
-        metadata=PATMetadata(name='Security Test', scopes=[]),
+        metadata=PATMetadata(name='Security Test', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=1,
     )
 
@@ -98,7 +100,7 @@ def test_create_expiration_logic(mongo_function):
     days = 10
     result = create_pat(
         user_id='u1',
-        metadata=PATMetadata(name='Exp Test', scopes=[]),
+        metadata=PATMetadata(name='Exp Test', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=days,
     )
 
@@ -117,8 +119,20 @@ def test_create_invalid_lifespan(mongo_function, expires_in_days):
     with pytest.raises(ValueError, match='already expired'):
         create_pat(
             user_id='u_invalid_life',
-            metadata=PATMetadata(name='incorrect expiration', scopes=[]),
+            metadata=PATMetadata(
+                name='incorrect expiration', scopes=DEFAULT_TEST_SCOPES
+            ),
             expires_in_days=expires_in_days,
+        )
+
+
+def test_create_requires_nonempty_scopes(mongo_function):
+    """Verifies that the service rejects tokens without scopes."""
+    with pytest.raises(ValueError, match='At least one scope must be selected'):
+        create_pat(
+            user_id='u_missing_scopes',
+            metadata=PATMetadata(name='missing scopes', scopes=[]),
+            expires_in_days=30,
         )
 
 
@@ -141,7 +155,9 @@ def test_create_exceeds_configurable_lifetime(
     with pytest.raises(ValueError, match=expected_match):
         create_pat(
             user_id='u_exceeds_life',
-            metadata=PATMetadata(name='configurable expiration', scopes=[]),
+            metadata=PATMetadata(
+                name='configurable expiration', scopes=DEFAULT_TEST_SCOPES
+            ),
             expires_in_days=requested_days,
         )
 
@@ -155,7 +171,7 @@ def test_create_within_configurable_lifetime(mongo_function, monkeypatch):
 
     result = create_pat(
         user_id='u_valid_life',
-        metadata=PATMetadata(name='valid expiration', scopes=[]),
+        metadata=PATMetadata(name='valid expiration', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=15,
     )
 
@@ -167,7 +183,7 @@ def test_create_within_configurable_lifetime(mongo_function, monkeypatch):
     monkeypatch.setattr(config.auth, 'pat_max_lifetime', None)
     result = create_pat(
         user_id='u1',
-        metadata=PATMetadata(name='Forever Token', scopes=[]),
+        metadata=PATMetadata(name='Forever Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=None,
     )
 
@@ -186,7 +202,7 @@ def test_create_exceeds_max_per_user(mongo_function, monkeypatch):
     # Create the first token (should succeed)
     result_1 = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Token 1', scopes=[]),
+        metadata=PATMetadata(name='Token 1', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     assert result_1.pat is not None
@@ -194,7 +210,7 @@ def test_create_exceeds_max_per_user(mongo_function, monkeypatch):
     # Create the second token (should succeed - now at the limit)
     result_2 = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Token 2', scopes=[]),
+        metadata=PATMetadata(name='Token 2', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     assert result_2.pat is not None
@@ -203,7 +219,7 @@ def test_create_exceeds_max_per_user(mongo_function, monkeypatch):
     with pytest.raises(ValueError, match='Maximum number of active'):
         create_pat(
             user_id=user_id,
-            metadata=PATMetadata(name='Token 3', scopes=[]),
+            metadata=PATMetadata(name='Token 3', scopes=DEFAULT_TEST_SCOPES),
             expires_in_days=30,
         )
 
@@ -277,7 +293,7 @@ def test_rotate_preserves_original_lifespan(mongo_function):
     # Create the token
     original_res = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Yearly', scopes=[]),
+        metadata=PATMetadata(name='Yearly', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=lifespan_days,
     )
     original = original_res.pat
@@ -314,7 +330,7 @@ def test_rotate_infinite_token(mongo_function, monkeypatch):
     user_id = 'u_infinite'
     original = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Forever', scopes=[]),
+        metadata=PATMetadata(name='Forever', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=None,
     ).pat
 
@@ -334,7 +350,7 @@ def test_rotate_wrong_user(mongo_function):
 
     original = create_pat(
         user_id=victim_id,
-        metadata=PATMetadata(name='Secret', scopes=[]),
+        metadata=PATMetadata(name='Secret', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
 
@@ -361,7 +377,7 @@ def test_rotate_revoked(mongo_function):
     # Create a token
     result = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='To Revoke', scopes=[]),
+        metadata=PATMetadata(name='To Revoke', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     token_id = result.pat.id
@@ -380,7 +396,7 @@ def test_rotate_expired(mongo_function):
 
     result = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='To Expire', scopes=[]),
+        metadata=PATMetadata(name='To Expire', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     token_id = result.pat.id
@@ -412,7 +428,7 @@ def test_rotate_at_max_limit(mongo_function, monkeypatch):
 
     create_result = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Token to Rotate', scopes=[]),
+        metadata=PATMetadata(name='Token to Rotate', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     assert create_result.pat is not None
@@ -429,15 +445,21 @@ def test_list_isolation(mongo_function):
     """
     # Create tokens for User A
     create_pat(
-        user_id='user_A', metadata=PATMetadata(name='A1', scopes=[]), expires_in_days=30
+        user_id='user_A',
+        metadata=PATMetadata(name='A1', scopes=DEFAULT_TEST_SCOPES),
+        expires_in_days=30,
     )
     create_pat(
-        user_id='user_A', metadata=PATMetadata(name='A2', scopes=[]), expires_in_days=30
+        user_id='user_A',
+        metadata=PATMetadata(name='A2', scopes=DEFAULT_TEST_SCOPES),
+        expires_in_days=30,
     )
 
     # Create token for User B
     create_pat(
-        user_id='user_B', metadata=PATMetadata(name='A1', scopes=[]), expires_in_days=30
+        user_id='user_B',
+        metadata=PATMetadata(name='A1', scopes=DEFAULT_TEST_SCOPES),
+        expires_in_days=30,
     )
 
     # List user A
@@ -464,7 +486,7 @@ def test_list_pagination(mongo_function):
     for i in range(5):
         create_pat(
             user_id=user_id,
-            metadata=PATMetadata(name=f'Token_{i}', scopes=[]),
+            metadata=PATMetadata(name=f'Token_{i}', scopes=DEFAULT_TEST_SCOPES),
             expires_in_days=30,
         )
 
@@ -502,13 +524,13 @@ def test_list_pat_filter_search(mongo_function):
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Active Token', scopes=[]),
+        metadata=PATMetadata(name='Active Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Other', scopes=[]),
+        metadata=PATMetadata(name='Other', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -526,7 +548,7 @@ def test_list_pat_filter_revoked(mongo_function):
 
     t_revoked = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Revoked Token', scopes=[]),
+        metadata=PATMetadata(name='Revoked Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_revoked.revoked = True
@@ -534,7 +556,7 @@ def test_list_pat_filter_revoked(mongo_function):
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Valid Token', scopes=[]),
+        metadata=PATMetadata(name='Valid Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -553,13 +575,13 @@ def test_list_pat_filter_state_active(mongo_function):
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Active Token', scopes=[]),
+        metadata=PATMetadata(name='Active Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
     t_expired = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Expired Token', scopes=[]),
+        metadata=PATMetadata(name='Expired Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_expired.expired_at = current_time - datetime.timedelta(days=1)
@@ -580,7 +602,7 @@ def test_list_pat_filter_state_inactive_expired(mongo_function):
 
     t_expired = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Expired Token', scopes=[]),
+        metadata=PATMetadata(name='Expired Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_expired.expired_at = current_time - datetime.timedelta(days=1)
@@ -588,7 +610,7 @@ def test_list_pat_filter_state_inactive_expired(mongo_function):
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Active Token', scopes=[]),
+        metadata=PATMetadata(name='Active Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -606,7 +628,7 @@ def test_list_pat_filter_state_inactive_revoked(mongo_function):
 
     t_revoked = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Revoked Token', scopes=[]),
+        metadata=PATMetadata(name='Revoked Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_revoked.revoked = True
@@ -614,7 +636,7 @@ def test_list_pat_filter_state_inactive_revoked(mongo_function):
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Active Token', scopes=[]),
+        metadata=PATMetadata(name='Active Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -642,7 +664,7 @@ def test_list_pat_filter_created_bounds(
 
     t_old = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Old Token', scopes=[]),
+        metadata=PATMetadata(name='Old Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_old.created_at = current_time - datetime.timedelta(days=10)
@@ -650,7 +672,7 @@ def test_list_pat_filter_created_bounds(
 
     t_new = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='New Token', scopes=[]),
+        metadata=PATMetadata(name='New Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_new.created_at = current_time - datetime.timedelta(days=1)
@@ -684,7 +706,7 @@ def test_list_pat_filter_last_used_bounds(
 
     t_old_used = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Old Used Token', scopes=[]),
+        metadata=PATMetadata(name='Old Used Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_old_used.last_used_at = current_time - datetime.timedelta(days=10)
@@ -692,7 +714,7 @@ def test_list_pat_filter_last_used_bounds(
 
     t_recent_used = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Recent Used Token', scopes=[]),
+        metadata=PATMetadata(name='Recent Used Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_recent_used.last_used_at = current_time - datetime.timedelta(days=1)
@@ -726,7 +748,7 @@ def test_list_pat_filter_expires_bounds(
 
     t_expired = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Expired Token', scopes=[]),
+        metadata=PATMetadata(name='Expired Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_expired.expired_at = current_time - datetime.timedelta(days=1)
@@ -734,7 +756,7 @@ def test_list_pat_filter_expires_bounds(
 
     t_valid = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Valid Token', scopes=[]),
+        metadata=PATMetadata(name='Valid Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_valid.expired_at = current_time + datetime.timedelta(days=10)
@@ -765,7 +787,7 @@ def test_list_pat_order_created(mongo_function, order_by, expected_names: list[s
 
     t_old = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Old', scopes=[]),
+        metadata=PATMetadata(name='Old', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_old.created_at = current_time - datetime.timedelta(days=1)
@@ -773,7 +795,7 @@ def test_list_pat_order_created(mongo_function, order_by, expected_names: list[s
 
     t_new = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='New', scopes=[]),
+        metadata=PATMetadata(name='New', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_new.created_at = current_time
@@ -800,13 +822,13 @@ def test_list_pat_order_name(mongo_function, order_by, expected_names: list[str]
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Zebra', scopes=[]),
+        metadata=PATMetadata(name='Zebra', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
     create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Apple', scopes=[]),
+        metadata=PATMetadata(name='Apple', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -832,7 +854,7 @@ def test_list_pat_order_last_used(mongo_function, order_by, expected_names: list
 
     t_old = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Old', scopes=[]),
+        metadata=PATMetadata(name='Old', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_old.last_used_at = current_time - datetime.timedelta(days=1)
@@ -840,7 +862,7 @@ def test_list_pat_order_last_used(mongo_function, order_by, expected_names: list
 
     t_new = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='New', scopes=[]),
+        metadata=PATMetadata(name='New', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_new.last_used_at = current_time
@@ -868,7 +890,7 @@ def test_list_pat_order_expires(mongo_function, order_by, expected_names: list[s
 
     t_soon = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Soon', scopes=[]),
+        metadata=PATMetadata(name='Soon', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_soon.expired_at = current_time + datetime.timedelta(days=1)
@@ -876,7 +898,7 @@ def test_list_pat_order_expires(mongo_function, order_by, expected_names: list[s
 
     t_later = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Later', scopes=[]),
+        metadata=PATMetadata(name='Later', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     t_later.expired_at = current_time + datetime.timedelta(days=10)
@@ -907,7 +929,7 @@ def test_get_own_token_success(mongo_function):
     # Create token
     created = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='My Token', scopes=[]),
+        metadata=PATMetadata(name='My Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     pat_id = str(created.pat.id)
@@ -935,7 +957,7 @@ def test_get_others_token_fails(mongo_function):
     # Victim creates a token
     victim_token = create_pat(
         user_id=victim_id,
-        metadata=PATMetadata(name='Secret Token', scopes=[]),
+        metadata=PATMetadata(name='Secret Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     ).pat
     pat_id = str(victim_token.id)
@@ -954,7 +976,7 @@ def test_get_expired_token(mongo_function):
 
     created = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Expired Token', scopes=[]),
+        metadata=PATMetadata(name='Expired Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     pat = created.pat
@@ -981,7 +1003,7 @@ def test_get_revoked_token(mongo_function):
 
     created = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Revoked Token', scopes=[]),
+        metadata=PATMetadata(name='Revoked Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     pat_id = str(created.pat.id)
@@ -1021,7 +1043,7 @@ def test_revoke_success(mongo_function):
     # Create a token
     result = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='To Revoke', scopes=[]),
+        metadata=PATMetadata(name='To Revoke', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     token_id = result.pat.id
@@ -1060,7 +1082,7 @@ def test_revoke_wrong_user_security(mongo_function):
     # Create token for victim
     result = create_pat(
         user_id=owner_id,
-        metadata=PATMetadata(name='Victim Token', scopes=[]),
+        metadata=PATMetadata(name='Victim Token', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     token_id = result.pat.id
@@ -1093,7 +1115,7 @@ def test_revoke_already_revoked(mongo_function, monkeypatch):
     user_id = 'u_double'
     result = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Double Tap', scopes=[]),
+        metadata=PATMetadata(name='Double Tap', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     token_id = str(result.pat.id)
@@ -1137,7 +1159,7 @@ def test_authenticate_success(mongo_function):
     # Create a valid token
     result = create_pat(
         user_id=user_id,
-        metadata=PATMetadata(name='Login Key', scopes=[]),
+        metadata=PATMetadata(name='Login Key', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     raw_token = result.raw_token
@@ -1158,7 +1180,7 @@ def test_authenticate_updates_last_used(mongo_function):
     # Create token
     result = create_pat(
         user_id='u_usage',
-        metadata=PATMetadata(name='Usage Test', scopes=[]),
+        metadata=PATMetadata(name='Usage Test', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -1196,7 +1218,7 @@ def test_authenticate_fails_wrong_secret(mongo_function):
     # Create a real token
     real_result = create_pat(
         user_id='u_hacker',
-        metadata=PATMetadata(name='Real', scopes=[]),
+        metadata=PATMetadata(name='Real', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
 
@@ -1214,7 +1236,7 @@ def test_authenticate_fails_revoked(mongo_function):
     # Create & Revoke
     result = create_pat(
         user_id='u_revoked',
-        metadata=PATMetadata(name='Revoked', scopes=[]),
+        metadata=PATMetadata(name='Revoked', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     revoke_pat(user_id='u_revoked', pat_id=str(result.pat.id))
@@ -1230,7 +1252,7 @@ def test_authenticate_fails_expired(mongo_function):
     # Create token
     result = create_pat(
         user_id='u_expired',
-        metadata=PATMetadata(name='Expired', scopes=[]),
+        metadata=PATMetadata(name='Expired', scopes=DEFAULT_TEST_SCOPES),
         expires_in_days=30,
     )
     pat = result.pat
