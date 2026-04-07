@@ -47,6 +47,7 @@ from nomad.metainfo.metainfo import (
     Package,
     Quantity,
     Section,
+    SectionProxy,
     SubSection,
     derived,
 )
@@ -1151,6 +1152,16 @@ class SectionWithInheritance(SectionWithBoth):
     quantity = Quantity(type=float, description='Overridden quantity for test.')
 
 
+class SectionWithSelfReference(MSection):
+    m_def = Section(description='Test MSection with self reference.')
+    quantity = Quantity(type=str, description='Quantity for test.')
+    subsection = SubSection(
+        sub_section=SectionProxy('SectionWithSelfReference'),
+        repeats=False,
+        description='SubSection with self reference for test.',
+    )
+
+
 class TestToJsonSchema:
     """Test `m_to_json_schema` methods for Quantity and Definition."""
 
@@ -1622,6 +1633,29 @@ class TestToJsonSchema:
                     },
                 },
                 id='section-with-inheritance',
+            ),
+            pytest.param(
+                SectionWithSelfReference,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    'title': 'SectionWithSelfReference',
+                    'type': 'object',
+                    'description': 'Test MSection with self reference.',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithSelfReference@{SectionWithSelfReference.m_def.definition_id}',
+                    'properties': {
+                        'quantity': {
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithSelfReference.quantity@{SectionWithSelfReference.quantity.definition_id}',
+                            'type': 'string',
+                            'description': 'Quantity for test.',
+                        },
+                        'subsection': {
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithSelfReference@{SectionWithSelfReference.m_def.definition_id}',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithSelfReference.subsection@{SectionWithSelfReference.subsection.definition_id}',
+                            'description': 'SubSection with self reference for test.',
+                        },
+                    },
+                },
+                id='section-with-self-reference',
             ),
         ],
     )
