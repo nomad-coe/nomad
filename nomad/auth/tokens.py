@@ -174,9 +174,6 @@ def create_pat(
 
     Returns: (The saved PAT object, The RAW secret string)
     """
-    if not metadata.scopes:
-        raise ValueError('At least one scope must be selected.')
-
     # Check lifetime
     if expires_in_days is not None and expires_in_days <= 0:
         raise ValueError('Cannot create an already expired token.')
@@ -191,6 +188,13 @@ def create_pat(
             raise ValueError(
                 f'Requested lifetime ({expires_in_days} days) exceeds the maximum allowed ({config.auth.pat_max_lifetime} days).'
             )
+
+    # Ensure required scopes are not empty and valid
+    if not metadata.scopes:
+        raise ValueError('At least one scope must be selected.')
+
+    if invalid_scopes := set(metadata.scopes) - set(Scope.all_values()):
+        raise ValueError(f'Invalid scopes: {invalid_scopes}')
 
     # PAT shouldn't be able to operate on PATs
     if (
