@@ -102,7 +102,7 @@ async def check_user_access(
 
 app = FastAPI(dependencies=[Depends(check_user_access)])
 
-app.add_middleware(  # type: ignore
+app.add_middleware(
     CORSMiddleware,  # type: ignore
     allow_origins=['*'],
     allow_credentials=True,
@@ -117,9 +117,6 @@ async def add_upload_folder_path(request: Request, call_next):
     file = request.query_params['file']
     path = request.query_params['path']
     source = request.query_params['source']
-
-    if file.startswith('/uploads/'):
-        return await call_next(request)
 
     upload_path = f'/uploads/{upload_id}/{source}/'
     if source == 'archive' and isinstance(
@@ -160,3 +157,17 @@ async def unicorn_exception_handler(request: Request, e: Exception):
 
 
 app.include_router(h5grove_router.router)
+
+# Register trailing-slash aliases for h5grove endpoints so FastAPI does not issue
+# automatic redirects that can reconstruct the external URL with the wrong scheme.
+for route in list(h5grove_router.router.routes):
+    path = getattr(route, 'path', None)
+    if not path or path == '/' or path.endswith('/'):
+        continue
+    app.add_api_route(
+        f'{path}/',
+        route.endpoint,
+        methods=list(route.methods),
+        name=f'{route.name}_slash',
+        include_in_schema=False,
+    )
