@@ -102,3 +102,25 @@ def test_h5grove_auth(client, example_data):
 
     response = client.get(url)
     assert_response(response, 200)
+
+
+def test_h5grove_trailing_slash_does_not_redirect(
+    auth_headers,
+    h5grove_api,
+    upload_id,
+    temporal_worker,
+    example_data_nxs,
+):
+    test_file = 'test.h5'
+    file_path = f'{StagingUploadFiles(upload_id=upload_id, create=True)._raw_dir}{os.sep}{test_file}'
+    h5file = h5py.File(file_path, 'w')
+    h5file.create_dataset('entry', data='test')
+    h5file.close()
+
+    response = h5grove_api.get(
+        f'/meta/?file={test_file}&path=/&upload_id={upload_id}&source=raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
