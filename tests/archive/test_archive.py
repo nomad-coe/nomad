@@ -31,10 +31,11 @@ from nomad.archive import (
     RequiredReader,
     query_archive,
     read_archive,
+    to_json,
+    v2_magic_len,
     write_archive,
 )
 from nomad.archive.converter import convert_archive
-from nomad.archive.storage import _decode, _entries_per_block, to_json
 from nomad.config import config
 from nomad.datamodel import ClientContext, Context, EntryArchive
 from nomad.metainfo import (
@@ -77,9 +78,8 @@ def example_entry():
 
 def _unpack(data, pos=None):
     f = BytesIO(data)
-    from nomad.archive.storage_v2 import ArchiveWriter
 
-    offset = ArchiveWriter.magic_len
+    offset = v2_magic_len
     if pos is None:
         return msgpack.unpackb(f.read()[offset:], raw=False)
     else:
@@ -89,12 +89,12 @@ def _unpack(data, pos=None):
 
 def test_write_archive_empty():
     f = BytesIO()
-    write_archive(f, 0, [])
+    write_archive(f, {})
 
 
 def test_short_uuids():
     f = BytesIO()
-    write_archive(f, 1, [('0', {'archive': 'test'})])
+    write_archive(f, {'0': {'archive': 'test'}})
 
     packed_archive = f.getbuffer()
     f = BytesIO(packed_archive)
@@ -105,62 +105,15 @@ def test_short_uuids():
 
 def test_write_file(raw_files_function, example_uuid):
     path = os.path.join(config.fs.tmp, 'test.msg')
-    write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
+    write_archive(path, {example_uuid: {'archive': 'test'}})
     with read_archive(path) as archive:
         assert example_uuid in archive
         assert to_json(archive[example_uuid]) == {'archive': 'test'}
 
 
-def test_write_archive_single(example_uuid, example_entry):
-    f = BytesIO()
-    write_archive(f, 1, [(example_uuid, example_entry)])
-    packed_archive = f.getbuffer()
-    archive = _unpack(packed_archive)
-
-    assert 'toc_pos' in archive
-    assert 'toc' in archive
-    assert 'data' in archive
-    assert example_uuid in archive['data']
-    assert 'data' in archive['data'][example_uuid]
-    assert archive['data'][example_uuid]['data'] == example_entry
-
-    from nomad.archive.storage_v2 import TOCPacker as TOCPackerNew
-
-    toc_packer = TOCPackerNew(toc_depth=2)
-    _, global_toc = toc_packer.pack(example_entry)
-
-    assert archive['data'][example_uuid]['toc'] == global_toc
-    toc = _unpack(packed_archive, _decode(archive['toc_pos']))
-    assert example_uuid in toc
-    assert _unpack(packed_archive, _decode(toc[example_uuid][0])) == global_toc
-    assert _unpack(packed_archive, _decode(toc[example_uuid][1])) == example_entry
-
-
-def test_write_archive_multi(example_uuid, example_entry):
-    f = BytesIO()
-    example_uuids = create_example_uuid(0), create_example_uuid(1)
-    write_archive(
-        f, 2, [(example_uuids[0], example_entry), (example_uuids[1], example_entry)]
-    )
-    packed_archive = f.getbuffer()
-    archive = _unpack(packed_archive)
-
-    example_uuid = example_uuids[1]
-    assert 'toc_pos' in archive
-    assert 'toc' in archive
-    assert 'data' in archive
-    assert example_uuid in archive['data']
-    assert 'data' in archive['data'][example_uuid]
-    assert archive['data'][example_uuid]['data'] == example_entry
-
-    toc = archive['toc']
-    assert len(toc) == 2
-    assert example_uuid in toc
-
-
 def test_read_archive_single(example_uuid, example_entry):
     f = BytesIO()
-    write_archive(f, 1, [(example_uuid, example_entry)])
+    write_archive(f, {example_uuid: example_entry})
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
@@ -184,12 +137,15 @@ def test_read_archive_single(example_uuid, example_entry):
 def test_read_archive_multi(monkeypatch, example_uuid, example_entry):
     monkeypatch.setattr('nomad.config.archive.small_obj_optimization_threshold', 256)
 
+    _toc_uuid_size = utils.default_hash_len + 1
+    _toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
+    _entries_per_block = config.archive.block_size // _toc_item_size
+
     archive_size = _entries_per_block * 2 + 23
     f = BytesIO()
     write_archive(
         f,
-        archive_size,
-        [(create_example_uuid(i), example_entry) for i in range(0, archive_size)],
+        {create_example_uuid(i): example_entry for i in range(0, archive_size)},
     )
     packed_archive = f.getbuffer()
 
@@ -270,9 +226,7 @@ test_query_example: dict[Any, Any] = {
 )
 def test_query(query, ref):
     f = BytesIO()
-    write_archive(
-        f, 2, [(k, v) for k, v in test_query_example.items()], entry_toc_depth=1
-    )
+    write_archive(f, test_query_example)
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
@@ -289,10 +243,9 @@ def test_query(query, ref):
 )
 def test_keys(key):
     f = BytesIO()
-    write_archive(f, 1, [(key, dict(example='content'))])
-    packed_archive = f.getbuffer()
-    f = BytesIO(packed_archive)
-    assert key.strip() in query_archive(f, {key: '*'})
+    write_archive(f, {key: dict(example='content')})
+    f.seek(0)
+    assert key in query_archive(f, {key: '*'})
 
 
 @pytest.mark.skipif(
@@ -766,7 +719,7 @@ def test_required_reader(
     archive, required, inplace_result, root_result, resolve_inplace, temporal_worker
 ):
     f = BytesIO()
-    write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=2)
+    write_archive(f, {'entry_id': archive.m_to_dict()})
     packed_archive = f.getbuffer()
 
     with read_archive(BytesIO(packed_archive)) as archive_reader:
@@ -979,7 +932,7 @@ def test_required_reader_with_remote_reference(
     ]
 
     f = BytesIO()
-    write_archive(f, 1, [('entry_id', archive)], entry_toc_depth=2)
+    write_archive(f, {'entry_id': archive})
     packed_archive = f.getbuffer()
 
     with read_archive(BytesIO(packed_archive)) as archive_reader:
@@ -1057,7 +1010,7 @@ data:
     data.save(with_files=True, with_es=True, with_mongo=True)
 
     f = BytesIO()
-    write_archive(f, 1, [('id_example', yaml_archive)], entry_toc_depth=2)
+    write_archive(f, {'id_example': yaml_archive})
     with read_archive(BytesIO(f.getbuffer())) as archive_reader:
         required_reader = RequiredReader({'data': {'my_quantity': '*'}}, user=user1)
         results = required_reader.read(archive_reader, 'id_example', 'id_custom')

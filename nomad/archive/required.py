@@ -21,9 +21,10 @@ import copy
 import dataclasses
 import functools
 import re
-from typing import cast
+from typing import TypeAlias, cast
 
 from fastapi import HTTPException
+from msglc.reader import LazyDict, LazyList
 
 from nomad import utils
 from nomad.metainfo import (
@@ -43,10 +44,13 @@ from .query import (
     _extract_child,
     _extract_key_and_index,
     _query_archive_key_pattern,
-    to_json,
 )
 from .storage import ArchiveDict, ArchiveError, ArchiveList, ArchiveReader
-from .storage_v2 import ArchiveDict as NewArchiveDict
+from .storage_v2 import ArchiveDict as ArchiveDictNew
+from .storage_v2 import ArchiveList as ArchiveListNew
+from .utils import to_json
+
+GenericList: TypeAlias = LazyList | ArchiveListNew | ArchiveList | list
 
 
 class RequiredValidationError(Exception):
@@ -255,8 +259,13 @@ class RequiredReader:
         Reads the archive of the given entry id from the given archive reader and applies
         the instance's requirement specification.
         """
+        if entry_id in archive_reader:
+            archive_root = archive_reader[entry_id]
+        elif (normalized_id := utils.adjust_uuid_size(entry_id)) in archive_reader:
+            archive_root = archive_reader[normalized_id]
+        else:
+            raise KeyError(entry_id)
 
-        archive_root = archive_reader[utils.adjust_uuid_size(entry_id)]
         result_root: dict = {}
         ref_result_root: dict = {}
 
@@ -289,8 +298,6 @@ class RequiredReader:
         if isinstance(definition, Quantity):
             # it's a quantity ref, the archive is already resolved
             return to_json(archive[definition.name])
-
-        from .storage_v2 import ArchiveList as ArchiveListNew
 
         # it's a section ref
         archive = to_json(archive)
@@ -330,7 +337,7 @@ class RequiredReader:
             try:
                 result[prop] = (
                     [handle_item(item) for item in value]
-                    if isinstance(value, list | ArchiveList | ArchiveListNew)
+                    if isinstance(value, GenericList)
                     else handle_item(value)
                 )
             except ArchiveError as e:
@@ -552,7 +559,10 @@ class RequiredReader:
         if isinstance(archive_item, ArchiveDict):
             archive_item = to_json(archive_item)
 
-        if isinstance(archive_item, dict | NewArchiveDict) and 'm_def' in archive_item:
+        if (
+            isinstance(archive_item, dict | ArchiveDictNew | LazyDict)
+            and 'm_def' in archive_item
+        ):
             dataset = dataset.replace(
                 definition=self._resolve_definition(
                     dataset.upload_id,
@@ -604,9 +614,7 @@ class RequiredReader:
             try:
                 archive_child = _extract_child(archive_item, prop, index)
 
-                from .storage_v2 import ArchiveList as ArchiveListNew
-
-                if isinstance(archive_child, ArchiveListNew | ArchiveList | list):
+                if isinstance(archive_child, GenericList):
                     result[prop] = [
                         self._apply_required(
                             val, item, dataset.replace(definition=prop_def)

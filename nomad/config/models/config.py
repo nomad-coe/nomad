@@ -22,6 +22,7 @@ from enum import Enum
 from importlib.metadata import entry_points, version
 from urllib.parse import quote
 
+from msglc.config import configure
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -1478,7 +1479,7 @@ class BundleImport(ConfigBaseModel):
 class Archive(ConfigBaseModel):
     block_size: int = Field(
         1 * 2**20,
-        description='In case of using blocked TOC, this is the size of each block.',
+        description='Deprecated, not used in the latest storage. In case of using blocked TOC, this is the size of each block.',
     )
     read_buffer_size: int = Field(
         1 * 2**20,
@@ -1493,7 +1494,8 @@ class Archive(ConfigBaseModel):
         """,
     )
     toc_depth: int = Field(
-        10, description='Depths of table of contents in the archive.'
+        10,
+        description='Deprecated, not used in the latest storage. Depths of table of contents in the archive.',
     )
     small_obj_optimization_threshold: int = Field(
         1 * 2**20,
@@ -1521,6 +1523,20 @@ class Archive(ConfigBaseModel):
         To identify numerical lists.
         """,
     )
+
+    def initialize(self):
+        """
+        Pass corresponding configurations to the storage layer via msglc.
+        """
+        configure(
+            small_obj_optimization_threshold=self.small_obj_optimization_threshold,
+            write_buffer_size=self.read_buffer_size,
+            read_buffer_size=self.read_buffer_size,
+            fast_loading=self.fast_loading,
+            fast_loading_threshold=self.fast_loading_threshold,
+            trivial_size=self.trivial_size,
+            copy_chunk_size=self.copy_chunk_size,
+        )
 
 
 class MolIDSourceEnum(str, Enum):

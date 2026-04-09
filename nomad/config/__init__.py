@@ -165,7 +165,10 @@ def load_config(files: list[str] | None = None) -> Config:
     _plugins = config_final['plugins']
     del config_final['plugins']
 
-    return Config.model_validate(config_final)
+    validated = Config.model_validate(config_final)
+    validated.archive.initialize()
+
+    return validated
 
 
 def load_and_set_config(files: list[str] | None = None) -> Config:

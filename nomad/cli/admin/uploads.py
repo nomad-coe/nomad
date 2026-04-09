@@ -950,8 +950,9 @@ def integrity(
     not_preferred_suffix,
     check_all_entries,
 ):
+    from msglc import LazyWriter
+
     from nomad.app.v1.models import MetadataPagination, MetadataRequired
-    from nomad.archive.storage_v2 import ArchiveWriter
     from nomad.files import PublicUploadFiles, StagingUploadFiles
     from nomad.processing import Entry, Upload
     from nomad.search import search
@@ -1101,7 +1102,7 @@ def integrity(
 
         def _check_magic(path) -> bool:
             with open(path, 'rb') as f:
-                return ArchiveWriter.magic != f.read(ArchiveWriter.magic_len)
+                return LazyWriter.magic != f.read(LazyWriter.magic_len())
 
         if upload.published:
             upload_files = PublicUploadFiles(upload.upload_id)

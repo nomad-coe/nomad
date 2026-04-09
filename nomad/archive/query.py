@@ -20,13 +20,18 @@ import functools
 import re
 from collections.abc import Callable
 from io import BytesIO
-from typing import Any
+from typing import Any, TypeAlias
 
-from nomad import utils
+from msglc.reader import LazyList
 
-from .storage import ArchiveDict, ArchiveList, ArchiveReader, read_archive, to_json
+from .storage import ArchiveDict, ArchiveList, ArchiveReader
+from .storage_v2 import ArchiveList as ArchiveListNew
+from .utils import read_archive, to_json
 
 _query_archive_key_pattern = re.compile(r'^([\s\w\-]+)(\[([-?0-9]*)(:([-?0-9]*))?])?$')
+
+
+GenericList: TypeAlias = LazyList | ArchiveListNew | ArchiveList | list
 
 
 @functools.lru_cache(maxsize=1024)
@@ -62,9 +67,8 @@ def _extract_key_and_index(match) -> tuple[str, tuple[int, int] | int]:
 # @cached(thread_safe=False, max_size=1024)
 def _extract_child(archive_item, prop, index) -> dict | list:
     archive_child = archive_item[prop]
-    from .storage_v2 import ArchiveList as ArchiveListNew
 
-    is_list = isinstance(archive_child, ArchiveListNew | ArchiveList | list)
+    is_list = isinstance(archive_child, GenericList)
 
     if index is None and is_list:
         index = (0, None)
@@ -131,25 +135,16 @@ def query_archive(
     """
 
     if isinstance(f_or_archive_reader, ArchiveReader):
-        return _load_data(query_dict, f_or_archive_reader)
-    elif isinstance(f_or_archive_reader, BytesIO | str):
+        return _filter_archive(query_dict, f_or_archive_reader, transform=to_json)
+
+    if isinstance(f_or_archive_reader, BytesIO | str):
         with read_archive(f_or_archive_reader, **kwargs) as archive:
-            return _load_data(query_dict, archive)
+            return _filter_archive(query_dict, archive, transform=to_json)
 
-    else:
-        raise TypeError(
-            f'{f_or_archive_reader} is neither a file-like nor ArchiveReader'
-        )
+    raise TypeError(f'{f_or_archive_reader} is neither a file-like nor ArchiveReader')
 
 
-def _load_data(query_dict: dict[str, Any], archive_item: ArchiveDict) -> dict:
-    query_dict_with_fixed_ids = {
-        utils.adjust_uuid_size(key): value for key, value in query_dict.items()
-    }
-    return filter_archive(query_dict_with_fixed_ids, archive_item, transform=to_json)
-
-
-def filter_archive(
+def _filter_archive(
     required: str | dict[str, Any],
     archive_item: dict | ArchiveDict | str,
     transform: Callable,
@@ -188,8 +183,6 @@ def filter_archive(
 
     result: dict[str, Any] = {}
     for key, val in required.items():
-        key = key.strip()
-
         # process array indices
         match = _query_archive_key_pattern.match(key)
         if match:
@@ -203,15 +196,13 @@ def filter_archive(
         try:
             archive_child = _extract_child(archive_item, key, index)
 
-            from .storage_v2 import ArchiveList as ArchiveListNew
-
-            if isinstance(archive_child, ArchiveListNew | ArchiveList | list):
+            if isinstance(archive_child, GenericList):
                 result[key] = [
-                    filter_archive(val, item, transform=transform)
+                    _filter_archive(val, item, transform=transform)
                     for item in archive_child
                 ]
             else:
-                result[key] = filter_archive(val, archive_child, transform=transform)
+                result[key] = _filter_archive(val, archive_child, transform=transform)
 
         except (KeyError, IndexError):
             continue

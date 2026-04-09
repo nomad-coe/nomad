@@ -1240,7 +1240,7 @@ class StagingUploadFiles(UploadFiles):
         """Writes the data as archive file and returns the archive file size."""
         archive_file_object = self._archive_file_object(entry_id)
         try:
-            write_archive(archive_file_object.os_path, 1, data=[(entry_id, data)])
+            write_archive(archive_file_object.os_path, {entry_id: data})
         except Exception:
             # in case of failure, remove the possible corrupted archive file
             archive_file_object.delete()
@@ -1514,9 +1514,7 @@ class StagingUploadFiles(UploadFiles):
                 yield item, fo.os_path if fo.exists() else None
 
         try:
-            combine_archive(
-                target_dir.msg_fp(access).os_path, number_of_entries, create_iterator()
-            )
+            combine_archive(target_dir.msg_fp(access).os_path, create_iterator())
 
             import h5py
 

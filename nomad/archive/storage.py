@@ -17,43 +17,21 @@
 #
 from __future__ import annotations
 
-from collections.abc import Generator, Iterable, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from io import BufferedReader, BytesIO
-from typing import Any, cast
+from typing import cast
 
 import msgspec
 
 from nomad import utils
+from nomad.archive.utils import to_json
 from nomad.config import config
-
-_toc_uuid_size = utils.default_hash_len + 1
-_toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
-_entries_per_block = config.archive.block_size // _toc_item_size
-_bytes_per_block = _entries_per_block * _toc_item_size
-
-
-def unpackb(o):
-    return msgspec.msgpack.decode(o)  # type: ignore
 
 
 def _decode(position: bytes) -> tuple[int, int]:
     return int.from_bytes(
         position[:5], byteorder='little', signed=False
     ), int.from_bytes(position[5:], byteorder='little', signed=False)
-
-
-def _unpack_entry(data: bytes) -> tuple[Any, tuple[Any, Any]]:
-    entry_uuid = unpackb(data[:_toc_uuid_size])
-    positions_encoded = unpackb(data[_toc_uuid_size:])
-    return entry_uuid, (_decode(positions_encoded[0]), _decode(positions_encoded[1]))
-
-
-def to_json(data):
-    if hasattr(data, 'to_json'):
-        return data.to_json()
-
-    # no need to convert build-in types
-    return data
 
 
 class ArchiveError(Exception):
@@ -74,7 +52,7 @@ class ArchiveItem:
     def _read(self, position: tuple[int, int]):
         start, end = position
         raw_data = self._direct_read(end - start, start + self._offset)
-        return unpackb(raw_data)
+        return msgspec.msgpack.decode(raw_data)
 
     def _child(self, child_toc_entry):
         if isinstance(child_toc_entry, dict):
@@ -207,66 +185,6 @@ class ArchiveReader(ArchiveDict):
 
     def is_closed(self):
         return self._f.closed if isinstance(self._file_or_path, str) else True
-
-
-def read_archive(file_or_path: str | BytesIO, **kwargs) -> ArchiveReader:
-    """
-    Allows to read a msgpack-based archive.
-
-    Arguments:
-        file_or_path: A file path or file-like to the archive file that should be read. The
-            respective file has to be closed by the user. The returned obj supports the
-            'with' statement and has a 'close' method.
-
-    Returns:
-        A mapping (dict-like) that can be used to access the archive data. The mapping
-        will lazily load data as it is used. The mapping needs to be closed or used within
-        a 'with' statement to free the underlying file resource after use.
-    """
-    from .storage_v2 import ArchiveReader as ArchiveReaderNew
-    from .storage_v2 import ArchiveWriter as ArchiveWriterNew
-
-    # todo: replace implementation to enable automatic conversion
-    # if isinstance(file_or_path, str):
-    #     from nomad.archive.converter import convert_archive
-    #
-    #     convert_archive(file_or_path, overwrite=True)
-    #
-    # return ArchiveReaderNew(file_or_path, **kwargs)
-
-    if isinstance(file_or_path, str):
-        with open(file_or_path, 'rb') as f:
-            magic = f.read(ArchiveWriterNew.magic_len)
-    else:
-        file_or_path.seek(0)
-        magic = file_or_path.read(ArchiveWriterNew.magic_len)
-        file_or_path.seek(0)
-
-    if magic == ArchiveWriterNew.magic:
-        return ArchiveReaderNew(file_or_path, **kwargs)  # type: ignore
-
-    return ArchiveReader(file_or_path)
-
-
-def combine_archive(path: str, n_entries: int, data: Iterable[tuple]):
-    from .storage_v2 import ArchiveReader as ArchiveReaderNew
-    from .storage_v2 import ArchiveWriter as ArchiveWriterNew
-
-    with ArchiveWriterNew(
-        path, n_entries, toc_depth=config.archive.toc_depth
-    ) as writer:
-        for uuid, src_path in data:
-            if not src_path:
-                writer.add(uuid, {})
-                continue
-
-            with read_archive(src_path) as reader:
-                if isinstance(reader, ArchiveReaderNew):
-                    toc, data = reader.get_raw(uuid)
-                    writer.add_raw(uuid, toc, data)
-                else:
-                    # rare case, old reader new writer, toc is not compatible, has to repack
-                    writer.add(uuid, to_json(reader[uuid]))
 
 
 if __name__ == '__main__':

@@ -4173,15 +4173,14 @@ def example_data_with_reference(
         },  # remote reference
     ]
 
-    del json_dict['results']
-
     for index, ref in enumerate(ref_list):
         ref['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
-        json_dict['workflow2'] = ref
+        json_copy = {k: v for k, v in json_dict.items() if k is not 'results'}
+        json_copy['workflow2'] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
             entry_id=f'id_{index + 1:02d}',
-            entry_archive=EntryArchive.m_from_dict(json_dict),
+            entry_archive=EntryArchive.m_from_dict(json_copy),
         )
 
     for archive in data.archives.values():
