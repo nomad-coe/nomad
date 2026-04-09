@@ -31,7 +31,6 @@ from typing import Any
 import bs4
 import requests
 
-import nomad.archive.storage_v2
 from nomad import archive
 from nomad.archive import read_archive
 from nomad.config import config
@@ -243,9 +242,4 @@ def update_springer(max_n_query: int = 10, retry_time: int = 120):
 
         page += 1
 
-    nomad.archive.storage_v2.write_archive(
-        config.normalize.springer_db_path,
-        len(sp_data),
-        sp_data.items(),
-        entry_toc_depth=1,
-    )
+    archive.write_archive(config.normalize.springer_db_path, sp_data)

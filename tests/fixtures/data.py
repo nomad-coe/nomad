@@ -160,7 +160,7 @@ def oasis_publishable_upload(
         for file_name in os.listdir(archive_path):
             if file_name.endswith('.msg'):
                 full_path = os.path.join(archive_path, file_name)
-                new_data = []
+                new_data: dict = {}
                 with read_archive(full_path) as data:
                     for entry_id in data.keys():
                         archive_dict = to_json(data[entry_id])
@@ -172,8 +172,8 @@ def oasis_publishable_upload(
                             section_metadata.get('mainfile_key'),
                         )
                         section_metadata['entry_id'] = new_entry_id
-                        new_data.append((new_entry_id, archive_dict))
-                write_archive(full_path, len(new_data), new_data)
+                        new_data[new_entry_id] = archive_dict
+                write_archive(full_path, new_data)
 
     monkeypatch.setattr('nomad.bundles.BundleImporter.open', new_bundle_importer_open)
     monkeypatch.setattr(

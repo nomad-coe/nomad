@@ -26,12 +26,13 @@ import re
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import contextmanager
 from threading import Lock
-from typing import Any
+from typing import Any, TypeAlias
 
 import orjson
 from cachetools import TTLCache
 from fastapi import HTTPException
 from mongoengine import Q
+from msglc.reader import LazyDict, LazyList
 
 from nomad import utils
 from nomad.app.v1.models import (
@@ -96,8 +97,8 @@ from nomad.processing import Entry, ProcessStatus, Upload
 
 logger = utils.get_logger(__name__)
 
-GenericList = list | ArchiveList | ArchiveListNew
-GenericDict = dict | ArchiveDict | ArchiveDictNew
+GenericList: TypeAlias = list | ArchiveList | ArchiveListNew | LazyList
+GenericDict: TypeAlias = dict | ArchiveDict | ArchiveDictNew | LazyDict
 
 
 @dataclasses.dataclass(frozen=True)
@@ -308,29 +309,31 @@ class GraphNode:
             raise ArchiveError(f'Circular reference detected: {reference_url}.')
 
         # get the archive
-        other_archive_root = self.reader.load_archive(other_upload_id, other_entry_id)
-        if other_archive_root is None:
-            raise ArchiveError(
-                f'Could not load archive for {other_upload_id}/{other_entry_id}.'
+        with self.reader.load_archive(
+            other_upload_id, other_entry_id
+        ) as other_archive_root:
+            if other_archive_root is None:
+                raise ArchiveError(
+                    f'Could not load archive for {other_upload_id}/{other_entry_id}.'
+                )
+
+            try:
+                # now go to the target path
+                other_target = await _goto_path(other_archive_root, path_stack)
+            except (KeyError, IndexError):
+                raise ArchiveError(f'Archive {other_entry_id} does not contain {path}.')
+
+            return await self._switch_root(
+                self.replace(
+                    upload_id=other_upload_id,
+                    entry_id=other_entry_id,
+                    visited_path=self.visited_path.union({reference_url}),
+                    archive=other_target,
+                    archive_root=other_archive_root,
+                ),
+                resolve_inplace,
+                reference_url,
             )
-
-        try:
-            # now go to the target path
-            other_target = await _goto_path(other_archive_root, path_stack)
-        except (KeyError, IndexError):
-            raise ArchiveError(f'Archive {other_entry_id} does not contain {path}.')
-
-        return await self._switch_root(
-            self.replace(
-                upload_id=other_upload_id,
-                entry_id=other_entry_id,
-                visited_path=self.visited_path.union({reference_url}),
-                archive=other_target,
-                archive_root=other_archive_root,
-            ),
-            resolve_inplace,
-            reference_url,
-        )
 
     async def _switch_root(
         self, node: GraphNode, resolve_inplace: bool, reference_url: str
@@ -499,8 +502,10 @@ async def _populate_result(
         return container[k_or_i]
 
     if len(path) == 0:
-        assert isinstance(container_root, dict) and isinstance(value, dict)
-        _merge_dict(container_root, value)
+        assert isinstance(container_root, dict) and isinstance(
+            new_value := to_json(value), dict
+        )
+        _merge_dict(container_root, new_value)
         return
 
     target_container: dict | list = container_root
@@ -1079,7 +1084,8 @@ class GeneralReader:
 
         return dataset.to_mongo().to_dict()
 
-    def load_archive(self, upload_id: str, entry_id: str) -> ArchiveDict:
+    @contextmanager
+    def load_archive(self, upload_id: str, entry_id: str) -> Iterator[GenericDict]:
         if upload_id not in self.upload_pool:
             # get the archive
             # does the current user have access to the target archive?
@@ -1099,7 +1105,7 @@ class GeneralReader:
 
         try:
             with self.upload_pool[upload_id].read_archive(entry_id) as reader:
-                return reader[entry_id]
+                yield reader[entry_id]
         except KeyError:
             raise ArchiveError(
                 f'Archive {entry_id} does not exist in upload {entry_id}.'
@@ -1309,10 +1315,10 @@ class ArchiveLikeReader(GeneralReader):
                     cached_package := _fetch_package(f'{upload_id}:{entry_id}')
                 ) is not None:  # early fetch to avoid loading archive from disk
                     return cached_package.m_resolve_path(tokens)
-                archive = self.load_archive(upload_id, entry_id)
-                return await __resolve_definition_in_archive(
-                    archive, tokens, upload_id, entry_id
-                )
+                with self.load_archive(upload_id, entry_id) as archive:
+                    return await __resolve_definition_in_archive(
+                        archive, tokens, upload_id, entry_id
+                    )
 
         # use the conventional approach
         proxy = MSectionReference().normalize(
@@ -2657,30 +2663,36 @@ class ArchiveReader(ArchiveLikeReader):
             1. archive: dict | ArchiveDict
             2. upload_id: str, entry_id: str
         """
-        archive = args[0] if len(args) == 1 else self.load_archive(*args)
 
-        metadata = await goto_child(archive, 'metadata')
+        async def _task(_archive):
+            metadata = await goto_child(_archive, 'metadata')
 
-        with self._prepare_reading() as response:
-            await self._walk(
-                GraphNode(
-                    upload_id=await goto_child(metadata, 'upload_id'),
-                    entry_id=await goto_child(metadata, 'entry_id'),
-                    current_path=[],
-                    result_root=response,
-                    ref_result_root=self.global_root,
-                    archive=archive,
-                    archive_root=archive,
-                    definition=EntryArchive.m_def,
-                    visited_path=set(),
-                    current_depth=0,
-                    reader=self,
-                ),
-                self.required_query,
-                self.global_config,
-            )
+            with self._prepare_reading() as response:
+                await self._walk(
+                    GraphNode(
+                        upload_id=await goto_child(metadata, 'upload_id'),
+                        entry_id=await goto_child(metadata, 'entry_id'),
+                        current_path=[],
+                        result_root=response,
+                        ref_result_root=self.global_root,
+                        archive=_archive,
+                        archive_root=_archive,
+                        definition=EntryArchive.m_def,
+                        visited_path=set(),
+                        current_depth=0,
+                        reader=self,
+                    ),
+                    self.required_query,
+                    self.global_config,
+                )
 
-            return response
+                return response
+
+        if len(args) == 1:
+            return await _task(args[0])
+
+        with self.load_archive(*args) as archive:
+            return await _task(archive)
 
     async def _walk(
         self,
