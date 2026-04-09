@@ -24,6 +24,35 @@ from tests.metainfo.test_metainfo import SectionWithBoth, Simulation
 from .common import assert_response
 
 
+@pytest.mark.parametrize(
+    'identifier, expected_status',
+    [
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+            200,
+            id='with-correct-tag',
+        ),
+        pytest.param(
+            'tests.metainfo.test_metainfo.SectionWithBoth', 200, id='without-tag'
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth@nonexistent',
+            404,
+            id='with-incorrect-tag',
+        ),
+        pytest.param('nonexistent', 404, id='non-existent-module'),
+        pytest.param('non.existent', 404, id='non-existent-class'),
+        pytest.param(
+            'nomad.metainfo.data_type.Datatype', 400, id='valid-class-no-m_def'
+        ),
+    ],
+)
+def test_json_schema_by_id(client, identifier, expected_status):
+    """Test resolving schemas by identifier."""
+    response = client.get(f'schemas/{identifier}')
+    assert_response(response, expected_status)
+
+
 def test_json_schema_by_m_def(client):
     """Test identifier as m_def."""
     identifier = 'tests.metainfo.test_metainfo.SectionWithBoth'
@@ -79,19 +108,3 @@ def test_json_schema_by_m_def(client):
             },
         }
     }
-
-
-@pytest.mark.parametrize(
-    'identifier, expected_status',
-    [
-        pytest.param('nonexistent', 404, id='non-existent-module'),
-        pytest.param('non.existent', 404, id='non-existent-class'),
-        pytest.param(
-            'nomad.metainfo.data_type.Datatype', 400, id='valid-class-no-m_def'
-        ),
-    ],
-)
-def test_json_schema_by_qualified_name_invalid(client, identifier, expected_status):
-    """Test identifier pointing to non-Definition class (without m_def), or non-existent class."""
-    response = client.get(f'schemas/{identifier}')
-    assert_response(response, expected_status)

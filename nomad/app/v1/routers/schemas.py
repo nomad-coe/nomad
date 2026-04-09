@@ -49,9 +49,15 @@ async def get_schema(
         str,
         Path(
             description="""
-Schema identifier. For now, we only support using the qualified name of a section,
-e.g. `package_name.schema_packages.calculations.MySchema`. This will return the latest
-schema registered into the system.
+Schema identifier given as a fully qualified Python class name, optionally followed by
+`@<tag>` to pin a specific version. For example:
+  - `package_name.schema_packages.calculations.MySchema` — resolves to the most recently added definition.
+  - `package_name.schema_packages.calculations.MySchema@<definition_id>` — resolves and
+    verifies that the definition ID matches the given tag.
+
+Note that for now only the tag corresponding to the most recently added definition is
+supported, but in the future we may allow access to older versions of the schema by their
+tags.
 """
         ),
     ],
@@ -96,7 +102,7 @@ Format for the returned schema. Available formats:
     ] = SerializationFormat.JSONSCHEMA,
 ):
     """
-    Returns the serialized scehma for the given id. The returned
+    Returns the serialized schema for the given id. The returned
     schema is serialized in the format specified by the `format` query parameter.
     """
 
@@ -126,7 +132,18 @@ Format for the returned schema. Available formats:
 
         return section
 
-    section = resolve_m_def(m_def=schema_id)
+    # Split the identifier into qualified name and optional tag
+    qualified_name, _, tag = schema_id.partition('@')
+
+    # Resolve class
+    section = resolve_m_def(m_def=qualified_name)
+
+    # Check the tag if provided
+    if tag and tag != section.m_def.definition_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Tag {tag} could not be found for {qualified_name}. Note that only the tag corresponding to the most recently added definition is currently supported.',
+        )
 
     if format == SerializationFormat.JSONSCHEMA:
         return JSONResponse(
