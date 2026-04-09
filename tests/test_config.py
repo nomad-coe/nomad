@@ -30,8 +30,15 @@ from nomad.utils import flatten_dict
 from .utils import assert_log
 
 
+def assert_dict_str_str(dct: dict):
+    for k, v in dct.items():
+        assert isinstance(k, str), f'key {k} is not a string'
+        assert isinstance(v, str), f'value {v} is not a string'
+
+
 def load_test_config(conf_yaml, conf_env, mockopen=None, monkeypatch=None):
     if conf_env:
+        assert_dict_str_str(conf_env)
         monkeypatch.setattr('os.environ', conf_env)
     config_file = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')
     if conf_yaml:
@@ -181,44 +188,20 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
     'conf_yaml, conf_env, conf_expected',
     [
         pytest.param(
-            {
-                # TODO: the NORTH part is only needed to reset the tool
-                'north': {'tools': {'include': []}},
-                'plugins': {
-                    'options': {
-                        'dosnormalizer:dos_normalizer_entry_point': {
-                            'name': 'yaml',
-                        }
-                    }
-                },
-            },
-            {'plugins': {'include': ['dosnormalizer:dos_normalizer_entry_point']}},
-            {
-                'plugins': {
-                    'entry_points': {
-                        'include': ['dosnormalizer:dos_normalizer_entry_point'],
-                        'options': {
-                            'dosnormalizer:dos_normalizer_entry_point': {
-                                'name': 'yaml',
-                                'plugin_package': 'dosnormalizer',
-                                'description': 'Normalizer for the DOS data.',
-                                'entry_point_type': 'normalizer',
-                            }
-                        },
-                    }
-                }
-            },
+            {'services': {'api_host': 'example.com', 'api_port': 1234}},
+            {'services': {'api_port': '4321', 'https': 'true'}},
+            {'services': {'api_host': 'example.com', 'api_port': 4321, 'https': True}},
             id='dictionary: merges',
         ),
         pytest.param(
-            {'north': {'tools': {'include': []}}, 'plugins': {'include': ['a']}},
-            {'plugins': {'include': ['b']}},
-            {'plugins': {'entry_points': {'include': ['b']}}},
+            {'oasis': {'allowed_users': ['a@x.yz', 'b@x.yz']}},
+            {'oasis': {'allowed_users': '["c@x.yz", "d@x.yz"]'}},
+            {'oasis': {'allowed_users': ['c@x.yz', 'd@x.yz']}},
             id='list: overrides',
         ),
         pytest.param(
             {'services': {'api_timeout': 100}},
-            {'services': {'api_timeout': 200}},
+            {'services': {'api_timeout': '200'}},
             {'services': {'api_timeout': 200}},
             id='scalar: overrides',
         ),
@@ -682,4 +665,40 @@ def test_normalized_url(conf_yaml, conf_expected, mockopen, monkeypatch):
 )
 def test_authorized_users(conf_yaml, conf_expected, mockopen, monkeypatch):
     config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
+    assert_config(config, conf_expected)
+
+
+@pytest.mark.parametrize(
+    'conf_env, conf_expected',
+    [
+        pytest.param(
+            {'NOMAD_OASIS_ALLOWED_USERS': '["a@x.yz", "b@x.yz"]'},
+            {'oasis': {'allowed_users': ['a@x.yz', 'b@x.yz']}},
+            id='import-list',
+        ),
+        pytest.param(
+            {
+                'NOMAD_SERVICES_HTTPS': 'true',
+                'NOMAD_SERVICES_HTTPS_UPLOAD': 'True',
+                'NOMAD_SERVICES_FORCE_RAW_FILE_DECODING': 'on',
+                'NOMAD_SERVICES_OPTIMADE_ENABLED': 'false',
+                'NOMAD_SERVICES_DCAT_ENABLED': 'off',
+                'NOMAD_SERVICES_H5GROVE_ENABLED': '0',
+            },
+            {
+                'services': {
+                    'https': True,
+                    'https_upload': True,
+                    'force_raw_file_decoding': True,
+                    'optimade_enabled': False,
+                    'dcat_enabled': False,
+                    'h5grove_enabled': False,
+                }
+            },
+            id='boolean-versions',
+        ),
+    ],
+)
+def test_json_values(conf_env, conf_expected, monkeypatch):
+    config = load_test_config({}, conf_env, monkeypatch=monkeypatch)
     assert_config(config, conf_expected)
