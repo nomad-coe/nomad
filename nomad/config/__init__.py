@@ -32,6 +32,7 @@ and .yaml files. This is done automatically on import. The precedence is env ove
 over defaults.
 """
 
+import json
 import logging
 import os
 import sys
@@ -108,6 +109,10 @@ def _load_config_env() -> dict[str, Any]:
         if all([not key.startswith(field) for field in Config.model_fields.keys()]):
             continue
 
+        try:
+            value = json.loads(value)
+        except json.decoder.JSONDecodeError:
+            pass
         add_deep(config_data, key, value)
 
     return config_data
