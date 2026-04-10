@@ -20,7 +20,9 @@
 from tempfile import NamedTemporaryFile
 
 import pytest
+from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 from starlette.routing import Mount
 
 from nomad.app.v1.models.models import User
@@ -302,3 +304,46 @@ def test_user_dependency_on_all_endpoints():
         "The following endpoints require auth but shouldn't:\n"
         + '\n'.join(unexpected_auth_routes)
     )
+
+
+# Tests for mount_with_trailing_slash_redirect
+
+
+@pytest.fixture
+def plugin_client():
+    """
+    Build a minimal parent app with a sub-app mounted via
+    mount_with_trailing_slash_redirect, and return a TestClient
+    configured not to follow redirects automatically.
+    """
+    from nomad.app.main import mount_with_trailing_slash_redirect
+
+    parent = FastAPI()
+    sub = FastAPI()
+
+    @sub.get('/')
+    async def sub_root():
+        return {'ok': True}
+
+    mount_with_trailing_slash_redirect(parent, '/my-plugin', sub)
+    return TestClient(parent, follow_redirects=False)
+
+
+def test_api_plugin_no_slash_redirects(plugin_client):
+    """GET /my-plugin (no trailing slash) must return 307 → /my-plugin/."""
+    response = plugin_client.get('/my-plugin')
+    assert response.status_code == 307
+    assert response.headers['location'] == '/my-plugin/'
+
+
+def test_api_plugin_no_slash_preserves_query_string(plugin_client):
+    """GET /my-plugin?foo=bar must redirect to /my-plugin/?foo=bar."""
+    response = plugin_client.get('/my-plugin?foo=bar')
+    assert response.status_code == 307
+    assert response.headers['location'] == '/my-plugin/?foo=bar'
+
+
+def test_api_plugin_with_slash_serves(plugin_client):
+    """GET /my-plugin/ (with trailing slash) must return 200 directly."""
+    response = plugin_client.get('/my-plugin/', follow_redirects=True)
+    assert response.status_code == 200
