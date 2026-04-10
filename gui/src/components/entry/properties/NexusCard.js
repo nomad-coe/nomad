@@ -28,9 +28,14 @@ const useNexusCardStyles = makeStyles(theme => ({
   }
 }))
 
+const VALID_NEXUS_PARSERS = [
+  'pynxtools.nomad.entrypoints:nexus_parser',
+  'pynxtools.nomad.parsers:nexus_parser'
+]
+
 const NexusCard = React.memo(function NexusCard({index}) {
   const classes = useNexusCardStyles()
-  if (index.parser_name !== 'pynxtools.nomad.entrypoints:nexus_parser') {
+  if (!VALID_NEXUS_PARSERS.includes(index.parser_name)) {
     return null
   }
   return (
