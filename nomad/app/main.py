@@ -23,7 +23,7 @@ from fastapi.exception_handlers import (
     http_exception_handler as default_http_exception_handler,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi_cache import FastAPICache
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from temporalio.client import Client
@@ -40,6 +40,29 @@ from .static import GuiFiles
 from .static import app as static_files_app
 from .v1.main import app as v1_app
 from .v1.routers import apps as apps_router
+
+
+def mount_with_trailing_slash_redirect(
+    parent_app: FastAPI, mount_path: str, mounted_app: FastAPI
+):
+    normalized_path = mount_path.rstrip('/')
+
+    @parent_app.api_route(
+        normalized_path, methods=['GET', 'HEAD'], include_in_schema=False
+    )
+    async def redirect_to_trailing_slash(request: Request):
+        path_with_slash = (
+            request.url.path
+            if request.url.path.endswith('/')
+            else f'{request.url.path}/'
+        )
+        query = f'?{request.url.query}' if request.url.query else ''
+        return RedirectResponse(
+            url=f'{path_with_slash}{query}',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        )
+
+    parent_app.mount(normalized_path, mounted_app)
 
 
 @asynccontextmanager
@@ -198,7 +221,11 @@ for entry_point in config.plugins.entry_points.filtered_values():
         assert isinstance(api_app, FastAPI), (
             f'Error loading entry point "{entry_point.id}": The load method of an API entry point must return a FastAPI instance'
         )
-        app.mount(f'{app_base}/{entry_point.prefix}', api_app)
+        mount_with_trailing_slash_redirect(
+            app,
+            f'{app_base}/{entry_point.prefix}',
+            api_app,
+        )
 
 # Make sure to mount this last, as it is a catch-all routes that are not yet mounted.
 app.mount(app_base, static_files_app)
