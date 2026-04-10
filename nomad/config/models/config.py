@@ -39,6 +39,9 @@ from .north import NORTH
 from .plugins import EntryPointType, PluginPackage, Plugins
 from .ui import UI
 
+logger = logging.getLogger(__name__)
+
+
 _DEFAULT_API_KEY = 'default-api-secret-that-is-long-enough'
 
 
@@ -340,7 +343,7 @@ class Auth(ConfigBaseModel):
         if v is None:
             return None
 
-        return [user.lower().strip() for user in v]
+        return list(dict.fromkeys(user.lower().strip() for user in v))
 
     unauthenticated_user_scopes: OptionsGlob = Field(
         OptionsGlob(include=['*:read']),
@@ -494,7 +497,10 @@ class Oasis(ConfigBaseModel):
     )
     allowed_users: list[str] | None = Field(
         None,
-        description='Use `auth.authorized_users` instead.',
+        description="""Use `auth.authorized_users` instead.
+        Previously it would also imply `require_authentication=True`,
+        use `auth.require_authentication` instead.
+        """,
         deprecated=True,
     )
     uses_central_user_management: bool = Field(
@@ -1710,9 +1716,6 @@ class Config(ConfigBaseModel):
 
         return f'{base}/gui'
 
-    def rabbitmq_url(self):
-        return f'pyamqp://{self.rabbitmq.user}:{self.rabbitmq.password}@{self.rabbitmq.host}//'
-
     def north_url(self, ssl: bool = True):
         return self.api_url(
             ssl=ssl,
@@ -1742,18 +1745,38 @@ class Config(ConfigBaseModel):
                 values.ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.api_base_path.rstrip("/")}/north'
 
         # Backwards compatibility for auth settings stored in the oasis config.
-        # Only apply if the deprecated oasis.* field was explicitly set AND
-        # the new auth.* field was NOT explicitly set by the user.
-        if (
-            'require_authentication' in values.oasis.model_fields_set
-            and 'require_authentication' not in values.auth.model_fields_set
-        ):
+        if 'require_authentication' in values.oasis.model_fields_set:
+            if 'require_authentication' in values.auth.model_fields_set:
+                raise ValueError(
+                    'You cannot use new and deprecated `require_authentication` together'
+                )
+
+            logger.warning(
+                'Use auth.require_authentication instead of oasis.require_authentication'
+            )
             values.auth.require_authentication = values.oasis.require_authentication
-        if (
-            'allowed_users' in values.oasis.model_fields_set
-            and 'authorized_users' not in values.auth.model_fields_set
-        ):
+
+        # Only apply if the deprecated oasis.* field was explicitly set
+        # AND the new auth.* field was NOT explicitly set.
+        if 'allowed_users' in values.oasis.model_fields_set:
+            if 'authorized_users' in values.auth.model_fields_set:
+                raise ValueError(
+                    'You cannot use new and deprecated user whitelist together'
+                )
+
+            logger.warning('Use auth.authorized_users instead of oasis.allowed_users')
             values.auth.authorized_users = values.oasis.allowed_users
+
+            # Previously `oasis.allowed_users` would implicitly enable `require_authentication`
+            if (
+                'require_authentication' not in values.auth.model_fields_set
+                and 'require_authentication' not in values.oasis.model_fields_set
+            ):
+                logger.warning(
+                    'Use auth.require_authentication=True if you want to require '
+                    'authentication'
+                )
+                values.auth.require_authentication = True
 
         # Fill in the default MolID cache path if not set
         molid_cache_path = values.molid.cache_path
