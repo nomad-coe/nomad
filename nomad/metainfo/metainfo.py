@@ -431,10 +431,25 @@ class QuantityType(Datatype):
     def serialize(self, value, **kwargs):
         if isinstance(value, Datatype):
             return value.serialize_self()
-        if isinstance(value, Reference):
-            transform = kwargs.get('transform')
-            serialized = value.serialize_self(kwargs.get('section'))
-            return transform(serialized) if transform is not None else serialized
+        elif isinstance(value, Reference):
+            # When requesting stable references, use this simplified serialization
+            if type(value) in {
+                Reference,
+                QuantityReference,
+                MSectionReference,
+            } and kwargs.get('stable_references', False):
+                target = value.target_section_def
+                type_data = f'{target.qualified_name()}@{target.definition_id}'
+                return {
+                    'type_kind': 'quantity_reference'
+                    if type(value) is QuantityReference
+                    else 'reference',
+                    'type_data': type_data,
+                }
+            else:
+                transform = kwargs.get('transform')
+                serialized = value.serialize_self(kwargs.get('section'))
+                return transform(serialized) if transform is not None else serialized
 
         raise MetainfoError(f'Type {value} is not a valid quantity type.')
 
@@ -559,7 +574,7 @@ class Reference:
 
         return value.qualified_name()
 
-    def serialize(self, value, *, section, transform=None):
+    def serialize(self, value, *, section, transform=None, **kwargs):
         def _convert(v, p=None):
             if isinstance(v, list):
                 return [
@@ -568,6 +583,14 @@ class Reference:
 
             if isinstance(v, MProxy) and v.m_proxy_resolved is None:
                 intermediate = v.m_serialize_proxy_value()
+            # When requesting stable references, use this simplified serialization
+            elif (
+                kwargs.get('stable_references', False)
+                and isinstance(v, MSection)
+                and hasattr(v, 'qualified_name')
+                and hasattr(v, 'definition_id')
+            ):
+                intermediate = f'{v.qualified_name()}@{v.definition_id}'
             else:
                 intermediate = self._serialize_impl(section, v)
 
@@ -622,9 +645,10 @@ class QuantityReference(Reference):
         return self.target_quantity_def.definition_id
 
     def serialize_self(self, section):
+        type_data = self.target_quantity_def.m_path()
         return {
             'type_kind': 'quantity_reference',
-            'type_data': self.target_quantity_def.m_path(),
+            'type_data': type_data,
         }
 
     def _normalize_impl(self, value, **kwargs):
@@ -1634,6 +1658,7 @@ class MSection(metaclass=MObjectMeta):
         include_defaults: bool = False,
         include_derived: bool = False,
         resolve_references: bool = False,
+        stable_references: bool = False,
         categories: list[Category | type[MCategory]] | None = None,
         include: TypingCallable[[Definition, MSection], bool] | None = None,
         exclude: TypingCallable[[Definition, MSection], bool] | None = None,
@@ -1688,6 +1713,9 @@ class MSection(metaclass=MObjectMeta):
                 might have to ensure that the result is JSON-serializable.  By
                 default, values are serialized to JSON according to the quantity
                 type.
+            stable_references: If true, use stable identifiers for definition
+                references (e.g. base_sections, sub_section) instead of path-based
+                keys. Stable identifiers use the format `qualified_name@tag`.
             subsection_as_dict: If true, try to serialize subsections as dictionaries.
                 Only possible when the keys are unique. Otherwise, serialize as list.
             return_as_generator: If true, return as a generator instead of a dict.
@@ -1706,6 +1734,7 @@ class MSection(metaclass=MObjectMeta):
             include_defaults=include_defaults,
             include_derived=include_derived,
             resolve_references=resolve_references,
+            stable_references=stable_references,
             exclude=exclude,
             transform=transform,
             subsection_as_dict=subsection_as_dict,
@@ -1774,7 +1803,10 @@ class MSection(metaclass=MObjectMeta):
 
             if isinstance(quantity_type, Datatype) or not resolve_references:
                 return quantity_type.serialize(
-                    target_value, section=self, transform=_transform_wrapper
+                    target_value,
+                    section=self,
+                    transform=_transform_wrapper,
+                    stable_references=stable_references,
                 )
 
             # need to resolve references
@@ -1878,7 +1910,22 @@ class MSection(metaclass=MObjectMeta):
                     and self.m_parent_sub_section.sub_section != self.m_def
                 )
             ):
-                yield 'm_def', self.m_def.definition_reference(self)
+                if stable_references:
+                    if isinstance(self, Definition):
+                        # For Definition instances, use the instance's own
+                        # identity (e.g. 'nomad.datamodel.metainfo.plot')
+                        # rather than the meta-type (e.g. 'nomad.metainfo.metainfo.Package').
+                        yield (
+                            'm_def',
+                            f'{self.qualified_name()}@{self.definition_id}',
+                        )
+                    else:
+                        yield (
+                            'm_def',
+                            f'{self.m_def.qualified_name()}@{self.m_def.definition_id}',
+                        )
+                else:
+                    yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
 

@@ -73,6 +73,7 @@ from nomad.graph.model import (
     DefinitionType,
     DirectiveType,
     EntryQuery,
+    MDefFormatType,
     MetainfoPagination,
     MetainfoQuery,
     RequestConfig,
@@ -2744,6 +2745,9 @@ class ArchiveReader(ArchiveLikeReader):
                 continue
 
             if key == Token.DEF:
+                if current_config.m_def_format is MDefFormatType.short:
+                    # m_def was already written as a compact string by _check_definition
+                    continue
                 if isinstance(node.definition, Quantity):
                     self._log(
                         f'Only support "m_def" token on sections, try defining "m_def" request on the parent.'
@@ -3021,23 +3025,33 @@ class ArchiveReader(ArchiveLikeReader):
 
         custom_def: str | None = await async_get(node.archive, 'm_def', None)
         custom_def_id: str | None = await async_get(node.archive, 'm_def_id', None)
+
+        use_qualified = config.m_def_format is MDefFormatType.short
+
         if custom_def is None and custom_def_id is None:
-            if config.include_definition is DefinitionType.both:
+            if use_qualified or config.include_definition is DefinitionType.both:
                 definition = node.definition
                 if isinstance(definition, SubSection):
                     definition = definition.sub_section.m_resolved()
-                with DefinitionReader(
-                    RequestConfig(directive=DirectiveType.plain),
-                    user=self.user,
-                    init=False,
-                    config=config,
-                    global_root=self.global_root,
-                ) as reader:
+                if use_qualified:
                     await _populate_result(
                         node.result_root,
                         node.current_path + [Token.DEF],
-                        await reader.read(definition),
+                        f'{definition.qualified_name()}@{definition.definition_id}',
                     )
+                else:
+                    with DefinitionReader(
+                        RequestConfig(directive=DirectiveType.plain),
+                        user=self.user,
+                        init=False,
+                        config=config,
+                        global_root=self.global_root,
+                    ) as reader:
+                        await _populate_result(
+                            node.result_root,
+                            node.current_path + [Token.DEF],
+                            await reader.read(definition),
+                        )
             return node
 
         try:
@@ -3048,7 +3062,13 @@ class ArchiveReader(ArchiveLikeReader):
             )
             return node
 
-        if config.include_definition is not DefinitionType.none:
+        if use_qualified:
+            await _populate_result(
+                node.result_root,
+                node.current_path + [Token.DEF],
+                f'{new_def.qualified_name()}@{new_def.definition_id}',
+            )
+        elif config.include_definition is not DefinitionType.none:
             with DefinitionReader(
                 RequestConfig(directive=DirectiveType.plain),
                 user=self.user,
