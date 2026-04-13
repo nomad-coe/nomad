@@ -1714,3 +1714,189 @@ class TestToJsonSchema:
 
         json.dumps(schema)
         assert schema == expected
+
+
+class TestStableReferences:
+    """Tests for the stable_references flag in m_to_dict."""
+
+    def test_m_def_uses_stable_identifier(self):
+        """When stable_references=True, the m_def field should use
+        qualified_name@definition_id format."""
+
+        class Parent(MSection):
+            pass
+
+        class Child(Parent):
+            pass
+
+        child = Child()
+        result = child.m_to_dict(with_meta=True, stable_references=True)
+        expected_ref = f'{Child.m_def.qualified_name()}@{Child.m_def.definition_id}'
+        assert result['m_def'] == expected_ref
+
+    def test_m_def_without_stable_references(self):
+        """Without stable_references, m_def should use the default
+        definition_reference."""
+
+        class Parent(MSection):
+            pass
+
+        class Child(Parent):
+            pass
+
+        child = Child()
+        result_stable = child.m_to_dict(with_meta=True, stable_references=True)
+        result_default = child.m_to_dict(with_meta=True, stable_references=False)
+        # The stable format includes @<hash>, the default does not
+        assert '@' in result_stable['m_def']
+        assert result_stable['m_def'] != result_default['m_def']
+
+    def test_base_sections_use_stable_identifier(self):
+        """When stable_references=True, base_sections references in a definition's
+        serialized form should use the stable format."""
+
+        class Base(MSection):
+            pass
+
+        class Derived(Base):
+            pass
+
+        result = Derived.m_def.m_to_dict(stable_references=True)
+        base_refs = result.get('base_sections', [])
+        assert len(base_refs) > 0
+        for ref in base_refs:
+            assert '@' in ref, f'Expected stable reference format, got: {ref}'
+            name, hash_part = ref.rsplit('@', 1)
+            assert len(hash_part) > 0
+            assert name == Base.m_def.qualified_name()
+
+    def test_sub_section_type_uses_stable_identifier(self):
+        """When stable_references=True, the sub_section's type reference
+        should use the stable format."""
+
+        class Inner(MSection):
+            pass
+
+        class Outer(MSection):
+            inner = SubSection(sub_section=Inner)
+
+        result = Outer.m_def.m_to_dict(stable_references=True)
+        sub_sections = result.get('sub_sections', [])
+        assert len(sub_sections) > 0
+        inner_sub = sub_sections[0]
+        sub_section_ref = inner_sub.get('sub_section')
+        # sub_section is a Reference-typed quantity, serialized as a string
+        assert isinstance(sub_section_ref, str)
+        assert '@' in sub_section_ref, (
+            f'Expected stable reference format, got: {sub_section_ref}'
+        )
+
+    def test_quantity_type_reference_uses_stable_identifier(self):
+        """When stable_references=True, a quantity whose type is a Reference
+        should serialize the type using the stable format."""
+
+        class Target(MSection):
+            pass
+
+        class Container(MSection):
+            ref = Quantity(type=Target)
+
+        result = Container.m_def.m_to_dict(stable_references=True)
+        quantities = result.get('quantities', [])
+        ref_qty = [q for q in quantities if q['name'] == 'ref'][0]
+        type_info = ref_qty['type']
+        assert type_info['type_kind'] == 'reference'
+        assert '@' in type_info['type_data']
+
+    def test_stable_references_propagates_to_subsections(self):
+        """The stable_references flag should propagate recursively to
+        nested subsection data."""
+
+        class Inner(MSection):
+            value = Quantity(type=str)
+
+        class Middle(MSection):
+            inner = SubSection(sub_section=Inner)
+
+        class Outer(MSection):
+            middle = SubSection(sub_section=Middle)
+
+        outer = Outer()
+        middle = Middle()
+        inner = Inner(value='test')
+        middle.m_add_sub_section(Middle.inner, inner)
+        outer.m_add_sub_section(Outer.middle, middle)
+
+        result = outer.m_to_dict(with_meta=True, stable_references=True)
+        # Check nested m_def values use stable format
+        middle_dict = result['middle']
+        assert '@' in middle_dict['m_def']
+        inner_dict = middle_dict['inner']
+        assert '@' in inner_dict['m_def']
+
+    def test_stable_reference_format_is_deterministic(self):
+        """The stable reference should be deterministic — calling m_to_dict
+        twice should yield the same result."""
+
+        class MySection(MSection):
+            pass
+
+        section = MySection()
+        result1 = section.m_to_dict(with_meta=True, stable_references=True)
+        result2 = section.m_to_dict(with_meta=True, stable_references=True)
+        assert result1 == result2
+
+    def test_stable_reference_contains_qualified_name_and_hash(self):
+        """The stable reference format should be
+        'qualified_name@definition_id'."""
+
+        class MySection(MSection):
+            pass
+
+        section = MySection()
+        result = section.m_to_dict(with_meta=True, stable_references=True)
+        m_def_ref = result['m_def']
+        parts = m_def_ref.split('@')
+        assert len(parts) == 2
+        assert parts[0] == MySection.m_def.qualified_name()
+        assert parts[1] == MySection.m_def.definition_id
+
+    def test_definition_m_def_uses_instance_identity(self):
+        """For Definition instances (Section, Package, etc.), the m_def should
+        use the instance's own qualified_name@definition_id, not the
+        meta-type's (e.g. 'nomad.metainfo.metainfo.Section')."""
+
+        class Base(MSection):
+            pass
+
+        class Derived(Base):
+            pass
+
+        # Derived.m_def is a Section (which is a Definition)
+        result = Derived.m_def.m_to_dict(stable_references=True)
+        m_def_ref = result['m_def']
+        parts = m_def_ref.split('@')
+        assert len(parts) == 2
+        # Should be the instance's own identity, not 'nomad.metainfo.metainfo.Section'
+        assert parts[0] == Derived.m_def.qualified_name()
+        assert parts[1] == Derived.m_def.definition_id
+        assert 'nomad.metainfo.metainfo.Section' not in parts[0]
+
+    def test_data_section_reference_unchanged(self):
+        """Data-level references between section instances are not affected by
+        stable_references: only definition references are stabilized."""
+
+        class Target(MSection):
+            name = Quantity(type=str)
+
+        class Container(MSection):
+            ref = Quantity(type=Target)
+
+        target = Target(name='hello')
+        container = Container()
+        container.ref = target
+
+        result_stable = container.m_to_dict(stable_references=True)
+        result_default = container.m_to_dict(stable_references=False)
+        # Data references should be identical regardless of stable_references
+        assert result_stable.get('ref') == result_default.get('ref')

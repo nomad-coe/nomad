@@ -4415,3 +4415,175 @@ def test_file_system_reader_resolved_directory_uses_batch_lookup(
 
     assert response['mainfile_for_id_01']['entry']['entry_id'] == 'id_01'
     assert response['mainfile_for_id_02']['entry']['entry_id'] == 'id_02'
+
+
+def test_m_def_format_short(user1, custom_data):
+    """Test that m_def_format='short' produces compact 'qualified_name@definition_id' strings."""
+
+    def _read_entry(required):
+        with EntryReader(required, user=user1) as reader:
+            return reader.sync_read('id_example')
+
+    # --- Test 1: custom definition with m_def_format='short' ---
+    # The 'data' section has a custom m_def pointing to a local definition (MySection).
+    # With m_def_format='short', we expect m_def to be a compact string.
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                }
+            },
+        }
+    )
+    archive_data = response['archive']['data']
+    m_def_value = archive_data['m_def']
+    # m_def should be a string, not a dict
+    assert isinstance(m_def_value, str), (
+        f'Expected m_def to be a compact string, got {type(m_def_value)}: {m_def_value}'
+    )
+    # It should contain '@' separator between qualified_name and definition_id
+    assert '@' in m_def_value, (
+        f'Expected m_def to contain @ separator, got: {m_def_value}'
+    )
+    qualified_name, definition_id = m_def_value.split('@', 1)
+    assert 'MySection' in qualified_name, (
+        f'Expected qualified_name to contain MySection, got: {qualified_name}'
+    )
+    assert len(definition_id) > 0, 'Expected non-empty definition_id'
+    # The other quantities should still be present
+    assert archive_data['my_quantity'] == 'test_value'
+
+    # --- Test 2: standard (non-custom) section with m_def_format='short' ---
+    # The 'metadata' section uses a standard definition (EntryMetadata).
+    # With m_def_format='short', each sub-section should get a compact m_def string.
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'metadata': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                }
+            },
+        }
+    )
+    archive_metadata = response['archive']['metadata']
+    m_def_value = archive_metadata['m_def']
+    assert isinstance(m_def_value, str), (
+        f'Expected m_def to be a compact string, got {type(m_def_value)}: {m_def_value}'
+    )
+    assert '@' in m_def_value
+    qualified_name, definition_id = m_def_value.split('@', 1)
+    # EntryMetadata is the section definition for metadata
+    assert 'EntryMetadata' in qualified_name, (
+        f'Expected qualified_name to contain EntryMetadata, got: {qualified_name}'
+    )
+
+    # --- Test 3: default m_def_format (full) should still return dict ---
+    # Without m_def_format or with m_def_format='full',
+    # the m_def should remain a dict (the legacy behavior).
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'include_definition': 'both',
+                    },
+                }
+            },
+        }
+    )
+    archive_data = response['archive']['data']
+    m_def_value = archive_data['m_def']
+    assert isinstance(m_def_value, dict), (
+        f'Expected m_def to be a dict with default format, got {type(m_def_value)}: {m_def_value}'
+    )
+
+    # --- Test 4: m_def_format='short' with multiple named sections ---
+    # Request both 'data' and 'metadata' sections with short m_def format.
+    # Both sections should get compact m_def strings.
+    response = _read_entry(
+        {
+            'm_request': {
+                'directive': 'plain',
+                'm_def_format': 'short',
+            },
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                },
+                'metadata': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                },
+            },
+        }
+    )
+    archive = response['archive']
+    # 'data' section should have compact m_def
+    assert isinstance(archive['data']['m_def'], str)
+    assert '@' in archive['data']['m_def']
+    # 'metadata' section should also have compact m_def
+    assert isinstance(archive['metadata']['m_def'], str)
+    assert '@' in archive['metadata']['m_def']
+
+
+def test_m_def_format_short_with_explicit_m_def(user1, custom_data):
+    """Test that m_def_format='short' works when m_def is also explicitly requested.
+
+    When both m_def_format='short' and an explicit m_def sub-request are present,
+    the short format should take precedence and the request should not fail with
+    "'str' object does not support item assignment".
+    """
+
+    def _read_entry(required):
+        with EntryReader(required, user=user1) as reader:
+            return reader.sync_read('id_example')
+
+    # m_def_format='short' on config, plus explicit m_def sub-request
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                    'm_def': {
+                        'm_request': {
+                            'directive': 'plain',
+                        },
+                    },
+                }
+            },
+        }
+    )
+    # Should not have any errors
+    assert 'm_errors' not in response, (
+        f'Unexpected errors in response: {response.get("m_errors")}'
+    )
+    archive_data = response['archive']['data']
+    # m_def should be a compact short string (not a dict), since m_def_format takes precedence
+    m_def_value = archive_data['m_def']
+    assert isinstance(m_def_value, str), (
+        f'Expected m_def to be a compact string, got {type(m_def_value)}: {m_def_value}'
+    )
+    assert '@' in m_def_value
+    assert 'MySection' in m_def_value
+    # Other quantities should still be present
+    assert archive_data['my_quantity'] == 'test_value'
