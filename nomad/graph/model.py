@@ -128,6 +128,14 @@ class DefinitionType(Enum):
         return self.value
 
 
+class MDefFormatType(Enum):
+    full = 'full'
+    short = 'short'
+
+    def __repr__(self):
+        return self.value
+
+
 class ResolveType(Enum):
     upload = 'upload'
     user = 'user'
@@ -262,6 +270,15 @@ class RequestConfig(BaseModel):
         If `custom`, the custom definition will be included.
         If `both`, both original and custom definitions will be included, with custom definitions taking precedence.
         If `none`, no definition will be included.
+        """,
+    )
+    m_def_format: MDefFormatType = Field(
+        MDefFormatType.full,
+        description="""
+        Control the format of `m_def` values in the response.
+        If `full` (default), the full definition object is returned as-is.
+        If `short`, `m_def` is returned as a compact string `"qualified_name@tag"`.
+        When set to `short`, `include_definition` is implicitly treated as `both`.
         """,
     )
     index: tuple[int] | tuple[int | None, int | None] | None = Field(
@@ -403,6 +420,7 @@ class RequestConfig(BaseModel):
             and self.max_list_size is None
             and self.max_dict_size is None
             and self.include == frozenset({'*'})
+            and self.m_def_format == MDefFormatType.full
         )
 
 
