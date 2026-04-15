@@ -66,34 +66,6 @@ EntryInfoResource = create_model(
     ),
 )
 
-EntryInfoResource = create_model(
-    'EntryInfoResource',
-    formats=(
-        Annotated[
-            list[str],
-            Field(
-                description='List of output formats available for this type of entry.'
-            ),
-        ]
-    ),
-    description=(Annotated[str, Field(description='Description of the entry.')], ...),
-    properties=(
-        Annotated[
-            dict[str, dict],
-            Field(
-                description='A dictionary describing queryable properties for this entry type.'
-            ),
-        ],
-        ...,
-    ),
-    output_fields_by_format=(
-        Annotated[
-            dict[str, list[str]],
-            Field(description='Dictionary of available output fields.'),
-        ],
-        ...,
-    ),
-)
 from optimade.models.optimade_json import Success
 
 
