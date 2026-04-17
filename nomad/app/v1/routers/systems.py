@@ -26,7 +26,9 @@ import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import Response
 
+from nomad.app.v1.routers.auth import get_current_user
 from nomad.atomutils import Formula, unwrap_positions, wrap_positions
+from nomad.auth.scopes import Scope
 from nomad.datamodel.metainfo.system import Atoms as NOMADAtoms
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms
 from nomad.units import ureg
@@ -34,7 +36,6 @@ from nomad.utils import deep_get, query_list_to_dict, strip
 
 from ..models import HTTPExceptionModel, User
 from ..utils import create_responses
-from .auth import get_current_user
 from .entries import answer_entry_archive_request
 
 router = APIRouter()
@@ -299,8 +300,8 @@ _serialization_error_response = (
         _file_response, _not_found_response, _serialization_error_response
     ),
 )
-async def get_entry_raw_file(
-    user: Annotated[User, Depends(get_current_user())],
+def get_entry_raw_file(
+    user: Annotated[User, Depends(get_current_user([Scope.SYSTEMS_READ]))],
     entry_id: Annotated[
         str,
         Path(

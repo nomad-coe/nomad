@@ -36,6 +36,7 @@ section annotations/categories.
 from .storage import (
     to_json,
     read_archive,
+    combine_archive,
     ArchiveError,
     ArchiveReader,
     ArchiveDict,

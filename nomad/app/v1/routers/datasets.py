@@ -26,10 +26,13 @@ from fastapi import Query as FastApiQuery
 from pydantic import BaseModel, Field, field_validator
 
 from nomad import datamodel, processing, utils
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.config import config
+from nomad.datacite import DataCiteException
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.metainfo.elasticsearch_extension import entry_type
-from nomad.mongo.doi import DOI, DOIException
+from nomad.mongo.doi import DOI
 from nomad.search import search, update_by_query
 from nomad.utils import create_uuid, strip
 
@@ -46,7 +49,6 @@ from ..models import (
     User,
 )
 from ..utils import create_responses, parameter_dependency_from_model
-from .auth import get_current_user
 from .entries import _do_exhaustive_search
 
 router = APIRouter()
@@ -170,6 +172,19 @@ _existing_dataset_with_findable_state = (
     },
 )
 
+_datacite_not_enabled = (
+    status.HTTP_403_FORBIDDEN,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'The DataCite DOI service is not enabled on this deployment.',
+    },
+)
+
+
+def _create_exception(status_code, response_dict):
+    return HTTPException(status_code, detail=response_dict.get('description'))
+
+
 Dataset = datamodel.Dataset.m_def.a_pydantic.model
 
 
@@ -244,7 +259,7 @@ class DatasetPagination(Pagination):
 
 dataset_pagination_parameters = parameter_dependency_from_model(
     'dataset_pagination_parameters',
-    DatasetPagination,  # type: ignore
+    DatasetPagination,
 )
 
 
@@ -278,15 +293,19 @@ class DatasetCreate(BaseModel):  # type: ignore
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_datasets(
+def get_datasets(
     request: Request,
     pagination: Annotated[DatasetPagination, Depends(dataset_pagination_parameters)],
-    dataset_id: Annotated[str | None, FastApiQuery()] = None,
-    dataset_name: Annotated[str | None, FastApiQuery()] = None,
-    user_id: Annotated[list[str] | None, FastApiQuery()] = None,
-    dataset_type: Annotated[str | None, FastApiQuery()] = None,
-    doi: Annotated[str | None, FastApiQuery()] = None,
-    prefix: Annotated[str | None, FastApiQuery()] = None,
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.DATASETS_READ])),
+    ],
+    dataset_id: Annotated[str, FastApiQuery()] = None,
+    dataset_name: Annotated[str, FastApiQuery()] = None,
+    user_id: Annotated[list[str], FastApiQuery()] = None,
+    dataset_type: Annotated[str, FastApiQuery()] = None,
+    doi: Annotated[str, FastApiQuery()] = None,
+    prefix: Annotated[str, FastApiQuery()] = None,
 ):
     """
     Retrieves all datasets that match the given criteria.
@@ -326,9 +345,13 @@ async def get_datasets(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_dataset(
+def get_dataset(
     dataset_id: Annotated[
         str, Path(description='The unique dataset id of the dataset to retrieve.')
+    ],
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.DATASETS_READ])),
     ],
 ):
     """
@@ -355,9 +378,12 @@ async def get_dataset(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_datasets(
+def post_datasets(
     create: DatasetCreate,
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.DATASETS_WRITE], allow_anonymous=False)),
+    ],
 ):
     """
     Create a new dataset.
@@ -450,11 +476,14 @@ async def post_datasets(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def delete_dataset(
+def delete_dataset(
     dataset_id: Annotated[
         str, Path(description='The unique dataset id of the dataset to delete.')
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.DATASETS_DELETE], allow_anonymous=False)),
+    ],
 ):
     """
     Delete an dataset.
@@ -491,6 +520,7 @@ async def delete_dataset(
     summary='Assign a DOI to a dataset',
     response_model=DatasetResponse,
     responses=create_responses(
+        _datacite_not_enabled,
         _bad_id_response,
         _dataset_is_fixed_response,
         _dataset_has_unpublished_contents,
@@ -500,41 +530,41 @@ async def delete_dataset(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def assign_doi(
+def assign_doi(
     dataset_id: Annotated[
-        str, Path(description='The unique dataset id of the dataset to delete.')
+        str, Path(description='The unique dataset id of the dataset to assign DOI.')
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.DATASETS_ASSIGN_DOI], allow_anonymous=False)),
+    ],
 ):
     """
-    Assign a DOI to a dataset.
+    Assign a DOI at DataCite to this dataset.
+
+    Conditions:
+        - The DataCite service must be enabled on this deployment.
+        - The dataset must contain at least one entry.
+        - The user must be the owner of the dataset.
     """
 
+    if not config.datacite.enabled:
+        raise _create_exception(*_datacite_not_enabled)
+
+    # Check if dataset exists
     dataset = DatasetDefinitionCls.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     if dataset is None:
-        raise HTTPException(
-            status_code=_bad_id_response[0], detail=_bad_id_response[1]['description']
-        )
+        raise _create_exception(*_bad_id_response)
 
+    # Check if dataset already has a DOI
     if dataset.doi is not None:
-        doi = DOI.objects(doi=dataset.doi).first()  # type: ignore
-        if type(doi) is DOI and not (doi.state == 'findable'):
-            _delete_dataset(user=user, dataset_id=dataset_id, dataset=dataset)
-            raise HTTPException(
-                status_code=_existing_dataset_with_findable_state[0],
-                detail=_existing_dataset_with_findable_state[1]['description'],
-            )
-        raise HTTPException(
-            status_code=_existing_name_response[0],
-            detail=_dataset_is_fixed_response[1]['description'],
-        )
+        raise _create_exception(*_dataset_is_fixed_response)
 
+    # Check if current user is owner of the dataset
     if dataset.user_id != user.user_id:
-        raise HTTPException(
-            status_code=_forbidden_user_response[0],
-            detail=_forbidden_user_response[1]['description'],
-        )
+        raise _create_exception(*_forbidden_user_response)
 
+    # Check if dataset is empty
     response = search(
         owner='admin',
         query={'datasets.dataset_id': dataset_id},
@@ -542,10 +572,9 @@ async def assign_doi(
         user_id=config.services.admin_user_id,
     )
     if response.pagination.total == 0:
-        raise HTTPException(
-            status_code=_dataset_is_empty[0], detail=_dataset_is_empty[1]['description']
-        )
+        raise _create_exception(*_dataset_is_empty)
 
+    # Check if dataset has unpublished contents
     response = search(
         owner='admin',
         query={'datasets.dataset_id': dataset_id, 'published': False},
@@ -554,25 +583,23 @@ async def assign_doi(
     )
 
     if response.pagination.total > 0:
-        raise HTTPException(
-            status_code=_dataset_has_unpublished_contents[0],
-            detail=_dataset_has_unpublished_contents[1]['description'],
-        )
+        raise _create_exception(*_dataset_has_unpublished_contents)
 
-    doi = DOI.create(title=f'NOMAD dataset: {dataset.dataset_name}', user=user)
+    doi = DOI.create()
 
     try:
-        doi.create_draft()
+        doi.create_draft(
+            title=f'NOMAD dataset: {dataset.dataset_name}',
+            publicationYear=datetime.now(timezone.utc).year,
+            user=user,
+        )
         doi.make_findable()
-    except DOIException:
+    except DataCiteException:
         if doi.doi:
             dataset.doi = doi.doi
             dataset.save()
 
-        raise HTTPException(
-            status_code=_datacite_did_not_resolve[0],
-            detail=_datacite_did_not_resolve[1]['description'],
-        )
+        raise _create_exception(*_datacite_did_not_resolve)
 
     dataset.doi = doi.doi
     dataset.save()

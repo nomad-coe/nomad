@@ -9,6 +9,16 @@ from nomad.logtransfer import transfer_logs
 from nomad.utils import structlogging
 
 
+@pytest.fixture(scope='module')
+def api_v1(monkeysession, api_v1):
+    # TODO: why logtransfer need federation permission?
+    monkeysession.setattr(
+        'nomad.config.config.auth.unauthenticated_user_scopes',
+        {'include': ['*:read', 'federation:*']},
+    )
+    return api_v1
+
+
 @pytest.fixture(scope='function')
 def log_handler(monkeypatch, raw_files_function):
     from structlog.stdlib import LoggerFactory

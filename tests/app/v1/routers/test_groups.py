@@ -85,7 +85,7 @@ def test_dirty_group_in_default_groups(groups_module, group_molds):
     [
         pytest.param('user1', 200, id='user1'),
         pytest.param('user2', 200, id='user2'),
-        pytest.param('invalid', 200, id='invalid-user'),
+        pytest.param('invalid', 401, id='invalid-user'),
         pytest.param(None, 200, id='guest-user'),
     ],
 )
@@ -98,6 +98,9 @@ def test_get_groups(
 ):
     response = perform_get(client, base_url, auth_headers[user_label])
     assert_response(response, expected_status_code)
+
+    if expected_status_code != 200:
+        return
 
     response_groups = UserGroupResponse.model_validate_json(response.content)
     for response_group in response_groups.data:
@@ -181,7 +184,7 @@ def test_get_filtered_groups(
     [
         pytest.param('user1', 200, id='user1'),
         pytest.param('user2', 200, id='user2'),
-        pytest.param('invalid', 200, id='invalid-user'),
+        pytest.param('invalid', 401, id='invalid-user'),
         pytest.param(None, 200, id='guest-user'),
     ],
 )
@@ -198,6 +201,9 @@ def test_get_group(
     response = perform_get(client, f'{base_url}/{ref_group.group_id}', user_auth)
     assert_response(response, expected_status_code)
 
+    if expected_status_code != 200:
+        return
+
     response_group = UserGroup.model_validate_json(response.content)
     group = get_mongo_user_group(response_group.group_id)
     assert_group(group, response_group)
@@ -209,7 +215,7 @@ def test_get_group(
     [
         pytest.param('user1', 404, id='user1'),
         pytest.param('user2', 404, id='user2'),
-        pytest.param('invalid', 404, id='invalid-user'),
+        pytest.param('invalid', 401, id='invalid-user'),
         pytest.param(None, 404, id='guest-user'),
     ],
 )

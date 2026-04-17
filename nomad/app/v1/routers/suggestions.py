@@ -26,10 +26,11 @@ from elasticsearch_dsl.utils import AttrList
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.metainfo.elasticsearch_extension import entry_index, entry_type
 
 from ..models import User
-from .auth import get_current_user
 
 router = APIRouter()
 
@@ -81,7 +82,7 @@ class SuggestionsRequest(BaseModel):
 async def get_suggestions(
     request: Request,
     data: SuggestionsRequest,
-    user: Annotated[User, Depends(get_current_user())],
+    _user: Annotated[User, Depends(get_current_user([Scope.SUGGESTIONS_READ]))],
 ):
     global suggestable_quantities
     if suggestable_quantities is None:

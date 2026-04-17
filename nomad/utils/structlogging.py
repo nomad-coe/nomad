@@ -345,9 +345,10 @@ def configure_logging(console_log_level=config.services.console_log_level):
     logging.basicConfig(level=logging.DEBUG)
 
     for handler in root.handlers:
-        if not isinstance(
-            handler,
-            LogstashHandler | LogtransferHandler,
+        # Avoid circular imports by checking the class name for WorkflowRoutingHandler
+        if (
+            not isinstance(handler, (LogstashHandler, LogtransferHandler))
+            and type(handler).__name__ != 'WorkflowRoutingHandler'
         ):
             handler.setLevel(console_log_level)
             handler.setFormatter(ConsoleFormatter())

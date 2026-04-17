@@ -356,7 +356,7 @@ def test_nomad_distro_metadata(monkeypatch, project_urls, version_str, expected_
     def mock_version(package_name):
         return version_str
 
-    monkeypatch.setattr('nomad.utils.metadata', lambda x: mock_metadata(x))
+    monkeypatch.setattr('nomad.utils.metadata', mock_metadata)
     monkeypatch.setattr('nomad.utils.version', mock_version)
 
     actual_url = nomad_distro_metadata()
@@ -370,7 +370,7 @@ def test_nomad_distro_package_not_found(monkeypatch):
     def mock_version(package_name):
         return '1.2.3'
 
-    monkeypatch.setattr('nomad.utils.metadata', lambda x: mock_metadata(x))
+    monkeypatch.setattr('nomad.utils.metadata', mock_metadata)
     monkeypatch.setattr('nomad.utils.version', mock_version)
 
     actual_url = nomad_distro_metadata()

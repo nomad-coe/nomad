@@ -37,12 +37,9 @@ class NomadStructureMapper(StructureMapper):
 
     @classproperty
     def ALL_ATTRIBUTES(cls) -> set[str]:  # pylint: disable=no-self-argument
-        result = getattr(cls, '_ALL_ATTRIBUTES', None)
-        if result is None:
-            result = StructureMapper.ALL_ATTRIBUTES  # pylint: disable=no-member
-            cls._ALL_ATTRIBUTES = result
-
-        return result
+        # Delegate to the upstream mapper each time to avoid freezing a stale
+        # provider-field snapshot during early import-time initialization.
+        return StructureMapper.ALL_ATTRIBUTES  # pylint: disable=no-member
 
 
 class StructureCollection(EntryCollection):
@@ -128,102 +125,102 @@ class StructureCollection(EntryCollection):
             upload_files_cache[upload_id] = upload_files
 
         try:
-            archive_reader = upload_files.read_archive(entry_id)
+            with upload_files.read_archive(entry_id) as archive_reader:
+                entry_archive_reader = archive_reader[entry_id]
+                archive = {'metadata': to_json(entry_archive_reader['metadata'])}
+
+                # Lazy load results if only if results provider specfic field is requested
+                def get_results():
+                    if 'results' not in archive:
+                        archive['results'] = to_json(entry_archive_reader['results'])
+
+                attrs = archive['metadata'].get('optimade', {})
+
+                attrs['immutable_id'] = entry_id
+                attrs['id'] = entry_id
+                attrs['last_modified'] = archive['metadata']['upload_create_time']
+
+                # TODO this should be removed, once all data is reprocessed with the right normalization
+                original_formula = attrs['chemical_formula_hill']
+                if original_formula is not None:
+                    formula = Formula(original_formula)
+                    attrs['chemical_formula_reduced'] = formula.format('reduced')
+                    attrs['chemical_formula_anonymous'] = formula.format('anonymous')
+                    attrs['chemical_formula_hill'] = formula.format('hill')
+                    attrs['chemical_formula_descriptive'] = attrs[
+                        'chemical_formula_hill'
+                    ]
+                dimension_types = attrs['dimension_types']
+                if isinstance(dimension_types, int):
+                    attrs['dimension_types'] = [1] * dimension_types + [0] * (
+                        3 - dimension_types
+                    )
+                    attrs['nperiodic_dimensions'] = dimension_types
+                elif isinstance(dimension_types, list):
+                    attrs['nperiodic_dimensions'] = sum(dimension_types)
+
+                if response_fields is not None:
+                    for request_field in response_fields:
+                        if not request_field.startswith('_nmd_'):
+                            continue
+
+                        if request_field == '_nmd_archive_url':
+                            attrs[request_field[5:]] = (
+                                config.api_url() + f'/archive/{upload_id}/{entry_id}'
+                            )
+                            continue
+
+                        if request_field == '_nmd_entry_page_url':
+                            attrs[request_field[5:]] = config.gui_url(
+                                f'entry/id/{upload_id}/{entry_id}'
+                            )
+                            continue
+
+                        if request_field == '_nmd_raw_file_download_url':
+                            attrs[request_field[5:]] = (
+                                config.api_url() + f'/raw/calc/{upload_id}/{entry_id}'
+                            )
+                            continue
+
+                        search_quantity = provider_specific_fields().get(
+                            request_field[5:]
+                        )
+                        if search_quantity is None:
+                            # if unknown properties where provided, we will ignore them as per
+                            # optimade spec
+                            continue
+
+                        try:
+                            path = search_quantity.qualified_name.split('.')
+                            if path[0] == 'results':
+                                get_results()
+                            section = archive
+                            for segment in path:
+                                if isinstance(section, list):
+                                    if len(section) == 0:
+                                        value = None
+                                        break
+                                    section = section[0]
+                                value = section[segment]
+                                section = value
+
+                            # Empty values are not stored and only the magnitude of
+                            # Quantities is stored.
+                            if value is not None:
+                                if isinstance(value, ureg.Quantity):
+                                    value = value.magnitude
+                                attrs[request_field[5:]] = value
+                        except Exception:
+                            # TODO there a few things that can go wrong. Most notable the search
+                            # quantity might have a path with repeated sections. This won't be
+                            # handled right now.
+                            pass
+                return attrs
         except KeyError:
             logger.error(
                 'missing archive entry', upload_id=upload_id, entry_id=entry_id
             )
             return None
-
-        entry_archive_reader = archive_reader[entry_id]
-        archive = {'metadata': to_json(entry_archive_reader['metadata'])}
-
-        # Lazy load results if only if results provider specfic field is requested
-        def get_results():
-            if 'results' not in archive:
-                archive['results'] = to_json(entry_archive_reader['results'])
-
-        attrs = archive['metadata'].get('optimade', {})
-
-        attrs['immutable_id'] = entry_id
-        attrs['id'] = entry_id
-        attrs['last_modified'] = archive['metadata']['upload_create_time']
-
-        # TODO this should be removed, once all data is reprocessed with the right normalization
-        original_formula = attrs['chemical_formula_hill']
-        if original_formula is not None:
-            formula = Formula(original_formula)
-            attrs['chemical_formula_reduced'] = formula.format('reduced')
-            attrs['chemical_formula_anonymous'] = formula.format('anonymous')
-            attrs['chemical_formula_hill'] = formula.format('hill')
-            attrs['chemical_formula_descriptive'] = attrs['chemical_formula_hill']
-        dimension_types = attrs['dimension_types']
-        if isinstance(dimension_types, int):
-            attrs['dimension_types'] = [1] * dimension_types + [0] * (
-                3 - dimension_types
-            )
-            attrs['nperiodic_dimensions'] = dimension_types
-        elif isinstance(dimension_types, list):
-            attrs['nperiodic_dimensions'] = sum(dimension_types)
-
-        if response_fields is not None:
-            for request_field in response_fields:
-                if not request_field.startswith('_nmd_'):
-                    continue
-
-                if request_field == '_nmd_archive_url':
-                    attrs[request_field[5:]] = (
-                        config.api_url() + f'/archive/{upload_id}/{entry_id}'
-                    )
-                    continue
-
-                if request_field == '_nmd_entry_page_url':
-                    attrs[request_field[5:]] = config.gui_url(
-                        f'entry/id/{upload_id}/{entry_id}'
-                    )
-                    continue
-
-                if request_field == '_nmd_raw_file_download_url':
-                    attrs[request_field[5:]] = (
-                        config.api_url() + f'/raw/calc/{upload_id}/{entry_id}'
-                    )
-                    continue
-
-                search_quantity = provider_specific_fields().get(request_field[5:])
-                if search_quantity is None:
-                    # if unknown properties where provided, we will ignore them as per
-                    # optimade spec
-                    continue
-
-                try:
-                    path = search_quantity.qualified_name.split('.')
-                    if path[0] == 'results':
-                        get_results()
-                    section = archive
-                    for segment in path:
-                        if isinstance(section, list):
-                            if len(section) == 0:
-                                value = None
-                                break
-                            section = section[0]
-                        value = section[segment]
-                        section = value
-
-                    # Empty values are not stored and only the magnitude of
-                    # Quantities is stored.
-                    if value is not None:
-                        if isinstance(value, ureg.Quantity):
-                            value = value.magnitude
-                        attrs[request_field[5:]] = value
-                except Exception:
-                    # TODO there a few things that can go wrong. Most notable the search
-                    # quantity might have a path with repeated sections. This won't be
-                    # handled right now.
-                    pass
-
-        archive_reader.close()
-
-        return attrs
 
     def _es_to_optimade_results(
         self, es_results: list[dict], response_fields: set[str]

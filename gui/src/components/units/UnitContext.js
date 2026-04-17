@@ -39,7 +39,7 @@ UnitMathJS.PREFIXES.PINT = prefixes
 // Customize the unit parsing to allow certain special symbols
 const isAlphaOriginal = UnitMathJS.isValidAlpha
 const isSpecialChar = function(c) {
-  const specialChars = new Set(['_', 'Å', 'Å', 'å', '°', 'µ', 'ö', 'é', '∞', 'Δ', '%', '‰'])
+  const specialChars = new Set(['_', 'Å', 'Å', 'å', '°', 'µ', 'ö', 'é', '∞', 'Δ', '%', '‰', 'ħ'])
   return specialChars.has(c)
 }
 const isGreekLetter = function(c) {
@@ -79,7 +79,7 @@ export const dimensionMap = {}
 for (const def of unitList) {
   const name = def.name
   const dimension = def.dimension
-  if (isNil(dimension)) {
+  if (isNil(dimension) || def.constant) {
     continue
   }
   const oldInfo = dimensionMap[dimension] || {

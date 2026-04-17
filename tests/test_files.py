@@ -212,14 +212,10 @@ class UploadFilesFixtures:
     @pytest.fixture(scope='function')
     def test_upload_id(self) -> Generator[str, None, None]:
         for cls in [StagingUploadFiles, PublicUploadFiles]:
-            directory = DirectoryObject(cls.base_folder_for('test_upload'))
-            if directory.exists():
-                directory.delete()
+            DirectoryObject(cls.base_folder_for('test_upload')).delete()  # type: ignore
         yield 'test_upload'
         for cls in [StagingUploadFiles, PublicUploadFiles]:
-            directory = DirectoryObject(cls.base_folder_for('test_upload'))
-            if directory.exists():
-                directory.delete()
+            DirectoryObject(cls.base_folder_for('test_upload')).delete()  # type: ignore
 
 
 class UploadFilesContract(UploadFilesFixtures):
@@ -267,12 +263,9 @@ class UploadFilesContract(UploadFilesFixtures):
             for file_path in entry.files:
                 assert upload_files.raw_file_size(file_path) > 0
 
-    @pytest.mark.parametrize('prefix', [None, 'examples'])
-    def test_raw_directory_list_prefix(self, test_upload: UploadWithFiles, prefix: str):
+    def test_raw_directory_list_prefix(self, test_upload: UploadWithFiles):
         _, _, upload_files = test_upload
-        path_infos = upload_files.raw_directory_list(
-            recursive=True, files_only=True, path_prefix=prefix
-        )
+        path_infos = upload_files.raw_listdir(recursive=True, files_only=True)
         raw_files = list(path_info.path for path_info in path_infos)
         assert_example_files(raw_files)
 
@@ -282,9 +275,9 @@ class UploadFilesContract(UploadFilesFixtures):
         # Add file to root to test corner case
         append_raw_files(upload_id, 'tests/data/proc/examples_template/1.aux', '1.aux')
         # Test recursive call (but do not verify result)
-        upload_files.raw_directory_list(path, files_only=False, recursive=True)
+        upload_files.raw_listdir(path, files_only=False, recursive=True)
         # Test non-recursive call, verify result partially
-        raw_files = list(upload_files.raw_directory_list(path, files_only=True))
+        raw_files = list(upload_files.raw_listdir(path, files_only=True))
         if not path:
             assert len(raw_files) == 1
             assert raw_files[0].size == 8
@@ -420,8 +413,8 @@ class TestStagingUploadFiles(UploadFilesContract):
         upload_files = PublicUploadFiles(upload_id)
         for filename in filenames:
             try:
-                pf = upload_files.raw_file('examples_template/' + filename)
-                pf.read()
+                with upload_files.raw_file('examples_template/' + filename) as pf:
+                    pf.read()
                 assert filename.endswith('.stripped'), (
                     'Non-stripped POTCAR file could be read'
                 )
@@ -449,10 +442,38 @@ class TestStagingUploadFiles(UploadFilesContract):
         test_upload = StagingUploadFiles(test_upload_id, create=True)
         assert test_upload.is_empty()
         test_upload.add_rawfiles(example_file)
-        path_infos = test_upload.raw_directory_list(recursive=True, files_only=True)
+        path_infos = test_upload.raw_listdir(recursive=True, files_only=True)
         assert sorted(list(path_info.path for path_info in path_infos)) == sorted(
             example_file_contents
         )
+
+    def test_raw_listdir_page(self, test_upload_id):
+        test_upload = StagingUploadFiles(test_upload_id, create=True)
+        test_upload.add_rawfiles(example_file)
+
+        all_items = list(
+            test_upload.raw_listdir(
+                'examples_template', recursive=True, files_only=True
+            )
+        )
+        page = test_upload.raw_listdir_page(
+            'examples_template',
+            start=1,
+            end=3,
+            recursive=True,
+            files_only=True,
+            order='desc',
+        )
+
+        expected_paths = [
+            path_info.path
+            for path_info in sorted(
+                all_items, key=lambda item: item.path, reverse=True
+            )[1:3]
+        ]
+
+        assert page.total == len(all_items)
+        assert [path_info.path for path_info in page.content] == expected_paths
 
     @pytest.mark.parametrize('prefix_size', [0, 2])
     def test_prefix_size(self, monkeypatch, prefix_size):
@@ -523,26 +544,20 @@ class TestPublicUploadFiles(UploadFilesContract):
             # Artificially create an empty archive files and raw zip file with the opposite access
             # TODO: This should only be needed for an interim period
             other_access = 'public' if embargo_length else 'restricted'
-            other_raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(
-                public_upload_files, other_access
-            )
-            other_msg_file_object = PublicUploadFiles._create_msg_file_object(
-                public_upload_files, other_access
-            )
             # Fill them with dummy content (we should never try to open them)
-            with open(other_raw_zip_file_object.os_path, mode='wb') as f:
+            with open(public_upload_files.zip_fp(other_access).os_path, mode='wb') as f:
                 f.write(b'-' * empty_zip_file_size)
-            with open(other_msg_file_object.os_path, mode='wb') as f:
+            with open(public_upload_files.msg_fp(other_access).os_path, mode='wb') as f:
                 f.write(b'-' * empty_archive_file_size)
         return test_upload_id, entries, PublicUploadFiles(test_upload_id)
 
     def test_to_staging_upload_files(self, test_upload):
         _, entries, upload_files = test_upload
         access = upload_files.access
-        assert upload_files.to_staging_upload_files() is None
-        staging_upload_files = upload_files.to_staging_upload_files(create=True)
+        assert upload_files.to_staging() is None
+        staging_upload_files = upload_files.to_staging(create=True)
         assert staging_upload_files is not None
-        assert str(staging_upload_files) == str(upload_files.to_staging_upload_files())
+        assert str(staging_upload_files) == str(upload_files.to_staging())
 
         upload_path = upload_files.os_path
         all_files = list(
@@ -587,7 +602,7 @@ class TestPublicUploadFiles(UploadFilesContract):
                     'Files with other access should be empty'
                 )
 
-        assert upload_files.to_staging_upload_files() is None
+        assert upload_files.to_staging() is None
 
     def test_repack(self, test_upload):
         upload_id, entries, upload_files = test_upload
@@ -654,12 +669,8 @@ class TestPublicUploadFiles(UploadFilesContract):
         upload_files.delete()
 
         public_upload_files = PublicUploadFiles(test_upload_id)
-        v2_file = PublicUploadFiles._create_msg_file_object(
-            public_upload_files, public_upload_files.access, fallback=False
-        )
-        v1_file = PublicUploadFiles._create_msg_file_object(
-            public_upload_files, public_upload_files.access, fallback=True
-        )
+        v2_file = public_upload_files.msg_fp(public_upload_files.access, fallback=False)
+        v1_file = public_upload_files.msg_fp(public_upload_files.access, fallback=True)
         assert not v2_file.exists()
         assert os.path.basename(v1_file.os_path) == 'archive-public-v1.msg.msg'
 
@@ -796,7 +807,7 @@ def append_raw_files(upload_id: str, path_source: str, path_in_upload: str):
     """
     upload_files = UploadFiles.get(upload_id)
     if isinstance(upload_files, PublicUploadFiles):
-        zip_path = upload_files.raw_zip_file_object().os_path  # type: ignore
+        zip_path = upload_files.raw_zip_file_object().os_path
         with zipfile.ZipFile(zip_path, 'a') as zf:
             zf.write(path_source, path_in_upload)
     else:

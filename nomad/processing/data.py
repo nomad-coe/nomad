@@ -30,8 +30,10 @@ entries, and files
 
 import asyncio
 import base64
+import concurrent.futures
 import copy
 import hashlib
+import os
 import os.path
 import threading
 import uuid
@@ -94,9 +96,10 @@ from nomad.files import (
     RawPathInfo,
     StagingUploadFiles,
     UploadFiles,
-    create_tmp_dir,
+    mkdtemp,
 )
 from nomad.metainfo.data_type import Datatype, Datetime
+from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup, user_group_exists
 from nomad.mongo.package import PackageDefinition
 from nomad.normalizing import normalizers
@@ -1748,6 +1751,8 @@ class Upload(Proc):
         reviewer_groups: A list of reviewer groups, cf. `reviewers`.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, processing, upload).
+        doi: The optional Document Object Identifier (DOI) for this upload. Only the DOI
+            name (prefix + "/" + suffix) is stored.
 
         publish_directly: Boolean indicating that this upload should be published after initial processing.
         from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
@@ -1771,6 +1776,7 @@ class Upload(Proc):
     publish_time = DateTimeField()
     embargo_length = IntField(default=0, required=True)
     license = StringField(default='CC BY 4.0', required=True)
+    doi = EmbeddedDocumentField(EmbeddedDOI, default=None)
 
     from_oasis = BooleanField(default=False)
     oasis_deployment_url = StringField(default=None)
@@ -1829,15 +1835,13 @@ class Upload(Proc):
         """
         Reset the process status of all entries in the upload that will be reprocessed.
         """
-        entries_to_reset = []
-        for entry in Entry.objects(upload_id=self.upload_id):
-            if self._passes_process_filter(entry.mainfile, path_filter, updated_files):
-                entries_to_reset.append(entry.entry_id)
+        query = {'upload_id': self.upload_id}
+        if path_filter:
+            query['mainfile__startswith'] = path_filter
+        elif updated_files is not None:
+            query['mainfile__in'] = list(updated_files)
 
-        if entries_to_reset:
-            Entry.objects(
-                upload_id=self.upload_id, entry_id__in=entries_to_reset
-            ).update(set__process_status=ProcessStatus.READY)
+        Entry.objects(**query).update(set__process_status=ProcessStatus.READY)
 
     async def await_workflows(self):
         self.reload()
@@ -2046,7 +2050,7 @@ class Upload(Proc):
         logger.info('started to unpublish')
 
         try:
-            self.upload_files.to_staging_upload_files(create=True, include_archive=True)
+            self.upload_files.to_staging(create=True, include_archive=True)
         except Exception as e:
             logger.error('unpublish failed', exc_info=e)
             raise
@@ -2113,7 +2117,7 @@ class Upload(Proc):
         if target_deployment_url is None:
             target_deployment_url = config.oasis.central_nomad_deployment_url
 
-        tmp_dir = create_tmp_dir('export_' + self.upload_id)
+        tmp_dir = mkdtemp('export_' + self.upload_id)
         bundle_path = os.path.join(tmp_dir, self.upload_id + '.zip')
         try:
             self.set_last_status_message('Creating bundle.')
@@ -2206,7 +2210,7 @@ class Upload(Proc):
                     example_upload_id=entry_point_id,
                     file_operations=file_operations,
                     publish_directly=self.publish_directly,
-                    workflow_tmp_dir=create_tmp_dir(f'{self.upload_id}_{workflow_id}'),
+                    workflow_tmp_dir=mkdtemp(f'{self.upload_id}_{workflow_id}'),
                 ),
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
@@ -2259,6 +2263,7 @@ class Upload(Proc):
         reprocess_settings: dict[str, Any] | None = None,
         path_filter: str | None = None,
         only_updated_files: bool = False,
+        trigger_processing: bool = True,
     ):
         if self.process_status == ProcessStatus.RUNNING:
             raise ProcessAlreadyRunning
@@ -2271,6 +2276,7 @@ class Upload(Proc):
                 reprocess_settings,
                 path_filter,
                 only_updated_files,
+                trigger_processing=trigger_processing,
             ),
         )
 
@@ -2280,6 +2286,7 @@ class Upload(Proc):
         reprocess_settings: dict[str, Any] | None = None,
         path_filter: str | None = None,
         only_updated_files: bool = False,
+        trigger_processing: bool = True,
     ):
         """
         Internal method to start a temporal process upload workflow.
@@ -2294,11 +2301,12 @@ class Upload(Proc):
             path_filter=path_filter,
             only_updated_files=only_updated_files,
             workflow_id=workflow_id,
-            workflow_tmp_dir=create_tmp_dir(f'{self.upload_id}_{workflow_id}'),
+            workflow_tmp_dir=mkdtemp(f'{self.upload_id}_{workflow_id}'),
+            trigger_processing=trigger_processing,
         )
         try:
             handle = await client.start_workflow(
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 data,
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
@@ -2368,8 +2376,8 @@ class Upload(Proc):
         assert is_safe_relative_path(target_dir), 'Bad target path provided'
         target_path = os.path.join(target_dir, os.path.basename(path))
         staging_upload_files = self.staging_upload_files
-        if staging_upload_files.raw_path_exists(target_path):
-            assert staging_upload_files.raw_path_is_file(target_path), (
+        if staging_upload_files.raw_exists(target_path):
+            assert staging_upload_files.raw_isfile(target_path), (
                 'Target path is a directory'
             )
 
@@ -2488,7 +2496,7 @@ class Upload(Proc):
 
     @property
     def staging_upload_files(self) -> StagingUploadFiles:
-        return self.upload_files.to_staging_upload_files()
+        return self.upload_files.to_staging()
 
     @classmethod
     def _passes_process_filter(
@@ -2529,9 +2537,7 @@ class Upload(Proc):
             self.set_last_status_message('Refreshing staging files')
             self._cleanup_staging_files()
             with utils.timer(logger, 'upload extracted'):
-                self.upload_files.to_staging_upload_files(
-                    create=True, include_archive=True
-                )
+                self.upload_files.to_staging(create=True, include_archive=True)
         elif not StagingUploadFiles.exists_for(self.upload_id):
             # Create staging files
             self.set_last_status_message('Creating staging files')
@@ -2589,14 +2595,22 @@ class Upload(Proc):
             # create checksum
             hash = hashlib.sha224()
             is_potcar = False
-            with open(
-                self.staging_upload_files.raw_file_object(path).os_path, 'rb'
+            start_read = True
+            lines_to_write = []
+            with self.staging_upload_files.raw_file(
+                path, mode='rb', compression='infer'
             ) as orig_f:
                 for line in orig_f.readlines():
                     hash.update(line)
+                    if b'End of Dataset' in line:
+                        # start read next potcar block, if concatenated
+                        start_read = True
+                    if start_read:
+                        lines_to_write.append(line.decode('utf-8'))
                     # check if this is indeed a POTCAR file
                     if b'END of PSCTR' in line:
                         is_potcar = True
+                        start_read = False
             if not is_potcar:
                 return
 
@@ -2610,15 +2624,7 @@ class Upload(Proc):
                 stripped_f.write(
                     f'Stripped POTCAR file. Checksum of original file (sha224): {checksum}\n'
                 )
-            os.system(
-                f"""
-                    awk < '{self.staging_upload_files.raw_file_object(path).os_path}' >> '{self.staging_upload_files.raw_file_object(stripped_path).os_path}' '
-                    BEGIN {{ dump=1 }}
-                    /End of Dataset/ {{ dump=1 }}
-                    dump==1 {{ print }}
-                    /END of PSCTR/ {{ dump=0 }}'
-                """
-            )
+                stripped_f.writelines(lines_to_write)
             if config.process.exclude_potcar:
                 # remove unstripped POTCAR file
                 self.warning('Removing POTCAR file from upload.')
@@ -2650,39 +2656,53 @@ class Upload(Proc):
             # Scan everything
             scan = [('', True)]
 
+        # Collect all files to be processed
+        all_path_infos: list[RawPathInfo] = []
         for path, recursive in scan:
             path_infos: Iterable[RawPathInfo] = (
                 [RawPathInfo(path=path, is_file=True, size=None, access=None)]
-                if staging_upload_files.raw_path_is_file(path)
-                else staging_upload_files.raw_directory_list(
-                    path, recursive, files_only=True
-                )
+                if staging_upload_files.raw_isfile(path)
+                else staging_upload_files.raw_listdir(path, recursive, files_only=True)
             )
+            all_path_infos.extend(path_infos)
 
-            for path_info in path_infos:
-                self._preprocess_files(path_info.path)
+        # 1. Sequential pre-pass for files that need preprocessing (e.g., POTCARs)
+        # These are processed sequentially because _preprocess_files is not thread-safe.
+        for path_info in all_path_infos:
+            self._preprocess_files(path_info.path)
 
-                if not staging_upload_files.raw_path_exists(path_info.path):
-                    continue
-                if skip_matching and path_info.path not in entries_metadata:
-                    continue
+        # 2. Parallel matching for all collected files
+        def match_task(path_info: RawPathInfo):
+            if not staging_upload_files.raw_exists(path_info.path):
+                return None
+            if skip_matching and path_info.path not in entries_metadata:
+                return None
 
-                try:
-                    parser, mainfile_keys = match_parser(
-                        staging_upload_files.raw_file_object(path_info.path).os_path
-                    )
-                    if parser is not None:
-                        mainfile_keys_including_main_entry: list[str] = [None] + (
-                            mainfile_keys or []
-                        )  # type: ignore
-                        for mainfile_key in mainfile_keys_including_main_entry:
-                            yield path_info.path, mainfile_key, parser
-                except Exception as e:
-                    self.get_logger().error(
-                        'exception while matching pot. mainfile',
-                        mainfile=path_info.path,
-                        exc_info=e,
-                    )
+            try:
+                parser, mainfile_keys = parsing.parsers.match_parser(
+                    staging_upload_files.raw_file_object(path_info.path).os_path
+                )
+                if parser is not None:
+                    return path_info.path, mainfile_keys, parser
+            except Exception as e:
+                self.get_logger().error(
+                    'exception while matching pot. mainfile',
+                    mainfile=path_info.path,
+                    exc_info=e,
+                )
+            return None
+
+        # Determine number of workers based on CPU count but capped for I/O efficiency
+        max_workers = min(32, (os.cpu_count() or 1) * 4)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for result in executor.map(match_task, all_path_infos):
+                if result:
+                    path, mainfile_keys, parser = result
+                    mainfile_keys_including_main_entry: list[str] = [None] + (
+                        mainfile_keys or []
+                    )  # type: ignore
+                    for mainfile_key in mainfile_keys_including_main_entry:
+                        yield path, mainfile_key, parser
 
     def match_all(
         self,
@@ -2716,9 +2736,17 @@ class Upload(Proc):
             if not self.published or reprocess_settings.rematch_published:
                 old_entries = set()
                 processing_entries = []
+                # Pre-load all entries into a dictionary for O(1) lookup
+                existing_entries_cache = {}
                 with utils.timer(logger, 'existing entries scanned'):
-                    for entry in Entry.objects(upload_id=self.upload_id):  # type: ignore  # type: ignore  # type: ignore
-                        if entry.process_running:
+                    for entry in Entry.objects(upload_id=self.upload_id).only(
+                        'entry_id', 'mainfile', 'parser_name', 'process_status'
+                    ):
+                        existing_entries_cache[entry.entry_id] = entry
+                        if entry.process_status in [
+                            ProcessStatus.PENDING,
+                            ProcessStatus.RUNNING,
+                        ]:
                             processing_entries.append(entry.entry_id)
                         if self._passes_process_filter(
                             entry.mainfile, path_filter, updated_files
@@ -2727,6 +2755,8 @@ class Upload(Proc):
 
                 with utils.timer(logger, 'matching completed'):
                     entries = []
+                    # Track entries that need parser name updates to batch update them later
+                    parser_name_updates: dict[str, list[str]] = {}
                     for mainfile, mainfile_key, parser in self.match_mainfiles(
                         path_filter, updated_files
                     ):
@@ -2743,36 +2773,45 @@ class Upload(Proc):
                             or reprocess_settings.add_matched_entries_to_published,
                             metadata_handler=metadata_handler,
                             logger=logger,
+                            existing_entries=existing_entries_cache,
                         )
 
                         if was_created:
                             entries.append(entry)
-                            # batched write if memory is an issue
-                            # if len(entries) > 1000:
-                            #     Entry.objects.insert(entries)
-                            #     entries = []
                         elif entry is not None:
+                            # entry was found in cache
+                            if not self.published and parser.name != entry.parser_name:
+                                parser_name_updates.setdefault(parser.name, []).append(
+                                    entry.entry_id
+                                )
                             old_entries.remove(entry.entry_id)
 
                 with utils.timer(logger, 'storing entry metadata to mongo'):
                     if entries:
                         Entry.objects.insert(entries)  # type: ignore
 
-                        # Delete old entries
-                    if len(old_entries) > 0:
-                        logger.warn(
-                            'Some entries did not match', count=len(old_entries)
-                        )
-                        if (
-                            not self.published
-                            or reprocess_settings.delete_unmatched_published_entries
-                        ):
-                            for entry_id in old_entries:
-                                search.delete_entry(
-                                    entry_id=entry_id, update_materials=False
-                                )
-                                entry = Entry.get(entry_id)
-                                entry.delete()
+                    if parser_name_updates:
+                        for parser_name, entry_ids in parser_name_updates.items():
+                            Entry.objects(
+                                upload_id=self.upload_id, entry_id__in=entry_ids
+                            ).update(set__parser_name=parser_name)
+
+                # Delete old entries
+                if len(old_entries) > 0:
+                    logger.warn('Some entries did not match', count=len(old_entries))
+                    if (
+                        not self.published
+                        or reprocess_settings.delete_unmatched_published_entries
+                    ):
+                        old_entries_list = list(old_entries)
+                        for entry_id in old_entries_list:
+                            search.delete_entry(
+                                entry_id=entry_id, update_materials=False
+                            )
+                        Entry.objects(
+                            upload_id=self.upload_id,
+                            entry_id__in=old_entries_list,
+                        ).delete()
 
                 # No entries *should* be processing, but if there are, we reset them to
                 # to minimize problems (should be safe to do so).
@@ -2791,6 +2830,12 @@ class Upload(Proc):
                             },
                         )
 
+                # Finally, reset the process status of all relevant entries.
+                # This logic replaces the need for match_all_activity to call
+                # reset_entry_processing_status separately.
+                with utils.timer(logger, 'resetting process status'):
+                    self.reset_entry_processing_status(path_filter, updated_files)
+
         except Exception as e:
             # try to remove the staging copy in failure case
             logger.error('failed to perform matching', exc_info=e)
@@ -2807,19 +2852,28 @@ class Upload(Proc):
         can_create: bool,
         metadata_handler: MetadataEditRequestHandler,
         logger,
+        existing_entries: dict[str, Entry] | None = None,
     ) -> tuple[Entry, bool, MetadataEditRequestHandler]:
         entry_id = utils.generate_entry_id(self.upload_id, mainfile, mainfile_key)
         entry = None
         was_created = False
         try:
-            entry = Entry.get(entry_id)
+            if existing_entries is not None:
+                entry = existing_entries.get(entry_id)
+                if entry is None:
+                    raise KeyError()
+            else:
+                entry = Entry.get(entry_id)
+
             # Matching entry already exists.
             if raise_if_exists:
                 assert False, f'An entry already exists for mainfile {mainfile}'
             # Ensure that we update the parser if in staging
             if not self.published and parser.name != entry.parser_name:
                 entry.parser_name = parser.name
-                entry.save()
+                # Note: individual save() is still used here if no batch mechanism provided by caller
+                if existing_entries is None:
+                    entry.save()
         except KeyError:
             # No existing entry found
             if can_create:
@@ -2923,7 +2977,7 @@ class Upload(Proc):
         """
         Used when parsers add/modify raw files during processing.
         """
-        assert self.upload_files.raw_path_is_file(path), (
+        assert self.upload_files.raw_isfile(path), (
             'Provided path does not denote a file'
         )
         logger = self.get_logger()
@@ -2984,10 +3038,74 @@ class Upload(Proc):
             return ProcessStatus.WAITING_FOR_RESULT
         self.cleanup()
 
-    def cleanup(self):
+    def _index_cleanup_entries(
+        self, entries: list[EntryMetadata], refresh: bool = True
+    ):
+        logger = self.get_logger()
+        with utils.timer(logger, 'upload entries and materials indexed'):
+            archives = cast(list[EntryArchive], [entry.m_parent for entry in entries])
+            indexing_errors = search.index(
+                archives,
+                update_materials=config.process.index_materials,
+                refresh=refresh,
+            )
+
+            if indexing_errors:
+                with utils.timer(logger, 'updated mongo entries failing to index'):
+                    entry_mongo_writes = [
+                        UpdateOne(
+                            {'_id': entry_id},
+                            {
+                                '$set': dict(
+                                    process_status=ProcessStatus.FAILURE,
+                                    last_status_message='Failed to index in ES',
+                                ),
+                                '$push': dict(errors=f'Failed to index in ES: {error}'),
+                            },
+                        )
+                        for entry_id, error in indexing_errors.items()
+                    ]
+                    Entry._get_collection().bulk_write(entry_mongo_writes)
+
+                failed_archives = []
+                with utils.timer(logger, 'created minimal archives to re-index'):
+                    for archive in archives:
+                        if archive.entry_id in indexing_errors:
+                            try:
+                                archive.metadata.processed = False
+                                if not archive.metadata.processing_errors:
+                                    archive.metadata.processing_errors = []
+                                archive.metadata.processing_errors.append(
+                                    f'Failed to index in ES: {indexing_errors[archive.entry_id]}'
+                                )
+                                failed_archives.append(
+                                    EntryArchive(
+                                        m_context=self.archive_context,
+                                        metadata=archive.metadata,
+                                    )
+                                )
+                            except Exception as e:
+                                logger.warn(
+                                    'could not create minimal failed archive',
+                                    entry_id=archive.entry_id,
+                                    exc_info=e,
+                                )
+
+                with utils.timer(logger, 're-indexed failed entries'):
+                    indexing_errors = search.index(
+                        failed_archives,
+                        update_materials=config.process.index_materials,
+                        refresh=refresh,
+                    )
+                    if indexing_errors:
+                        logger.warn(
+                            'some failed entries could not be re-indexed',
+                            entry_ids=sorted(indexing_errors.keys()),
+                        )
+
+    def cleanup_prepare(self):
         """
-        The process step that "cleans" the processing, i.e. removed obsolete files and performs
-        pending archival operations. Depends on the type of processing.
+        Performs upload-level cleanup work before per-entry indexing.
         """
         self.set_last_status_message('Cleanup')
         logger = self.get_logger()
@@ -3032,70 +3150,17 @@ class Upload(Proc):
                 self.last_update = datetime.now(timezone.utc)
                 self.save()
 
-        with self.entries_metadata() as entries:
-            with utils.timer(logger, 'upload entries and materials indexed'):
-                archives = [entry.m_parent for entry in entries]
-                indexing_errors = search.index(
-                    archives,
-                    update_materials=config.process.index_materials,
-                    refresh=True,
-                )
+    def cleanup_entries_batch(
+        self, entry_ids: Sequence[str] | None = None, refresh: bool = True
+    ):
+        with self.entries_metadata(entry_ids=entry_ids) as entries:
+            self._index_cleanup_entries(entries, refresh=refresh)
 
-                if indexing_errors:
-                    # Some entries could not be indexed in ES
-                    # Set entry status to failed for the affected entries
-                    with utils.timer(logger, 'updated mongo entries failing to index'):
-                        entry_mongo_writes = [
-                            UpdateOne(
-                                {'_id': entry_id},
-                                {
-                                    '$set': dict(
-                                        process_status=ProcessStatus.FAILURE,
-                                        last_status_message='Failed to index in ES',
-                                    ),
-                                    '$push': dict(
-                                        errors=f'Failed to index in ES: {error}'
-                                    ),
-                                },
-                            )
-                            for entry_id, error in indexing_errors.items()
-                        ]
-                        Entry._get_collection().bulk_write(entry_mongo_writes)
-                    # Try indexing minimal archives in ES for the ones that failed
-                    failed_archives = []
-                    with utils.timer(logger, 'created minimal archives to re-index'):
-                        for archive in archives:
-                            if archive.entry_id in indexing_errors:
-                                try:
-                                    archive.metadata.processed = False
-                                    if not archive.metadata.processing_errors:
-                                        archive.metadata.processing_errors = []
-                                    archive.metadata.processing_errors.append(
-                                        f'Failed to index in ES: {indexing_errors[archive.entry_id]}'
-                                    )
-                                    failed_archives.append(
-                                        EntryArchive(
-                                            m_context=self.archive_context,
-                                            metadata=archive.metadata,
-                                        )
-                                    )
-                                except Exception as e:
-                                    logger.warn(
-                                        'could not create minimal failed archive',
-                                        entry_id=archive.entry_id,
-                                        exc_info=e,
-                                    )
-                    with utils.timer(logger, 're-indexed failed entries'):
-                        indexing_errors = search.index(
-                            failed_archives,
-                            update_materials=config.process.index_materials,
-                            refresh=True,
-                        )
-                        if indexing_errors:
-                            logger.warn(
-                                'some failed entries could not be re-indexed',
-                                entry_ids=sorted(indexing_errors.keys()),
-                            )
+    def cleanup_finalize(self):
+        """
+        Performs upload-level cleanup work after per-entry indexing.
+        """
+        logger = self.get_logger()
 
         # send email about process finish
         if not self.publish_directly and self.main_author_user.email:
@@ -3125,6 +3190,15 @@ class Upload(Proc):
                 # probably due to email configuration problems
                 # don't fail or present this error to clients
                 logger.error('could not send after processing email', exc_info=e)
+
+    def cleanup(self):
+        """
+        The process step that "cleans" the processing, i.e. removed obsolete files and performs
+        pending archival operations. Depends on the type of processing.
+        """
+        self.cleanup_prepare()
+        self.cleanup_entries_batch(refresh=True)
+        self.cleanup_finalize()
 
     def _cleanup_staging_files(self):
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
@@ -3182,17 +3256,19 @@ class Upload(Proc):
         )
 
     @contextmanager
-    def entries_metadata(self) -> Iterator[list[EntryMetadata]]:
+    def entries_metadata(
+        self, entry_ids: Sequence[str] | None = None
+    ) -> Iterator[list[EntryMetadata]]:
         """
         This is the :py:mod:`nomad.datamodel` transformation method to transform
         processing upload's entries into list of :class:`EntryMetadata` objects.
         """
         try:
             # read all entry objects first to avoid missing cursor errors
-            yield [
-                entry.full_entry_metadata(self)
-                for entry in list(Entry.objects(upload_id=self.upload_id))  # type: ignore
-            ]
+            entry_query = Entry.objects(upload_id=self.upload_id)  # type: ignore
+            if entry_ids is not None:
+                entry_query = entry_query.filter(entry_id__in=list(entry_ids))
+            yield [entry.full_entry_metadata(self) for entry in list(entry_query)]
 
         finally:
             self.upload_files.close()  # Because full_entry_metadata reads the archive files.

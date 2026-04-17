@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import logging
 import os
 import warnings
@@ -23,14 +22,25 @@ from enum import Enum
 from importlib.metadata import entry_points, version
 from urllib.parse import quote
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
+from nomad.auth.scopes import _resolve_scopes
 from nomad.config.models.pagination import PaginationBaseModel
 
-from .common import ConfigBaseModel, Options
+from .common import ConfigBaseModel, Options, OptionsGlob
 from .north import NORTH
 from .plugins import EntryPointType, PluginPackage, Plugins
 from .ui import UI
+
+logger = logging.getLogger(__name__)
+
 
 _DEFAULT_API_KEY = 'default-api-secret-that-is-long-enough'
 
@@ -156,6 +166,15 @@ class Services(ConfigBaseModel):
     """,
     )
 
+    actions_log_level: int | str = Field(
+        logging.INFO,
+        description="""
+        The log level that controls action logging for all NOMAD Actions.
+        The level is given in Python `logging` log level numbers.
+        Note: Users will be able to view these logs via the UI.
+    """,
+    )
+
     upload_limit: int = Field(
         10,
         description="""
@@ -222,8 +241,12 @@ class Services(ConfigBaseModel):
         True,
         description='If true, all queries to the /entries/query API endpoint will be logged.',
     )
+
     # Validators
     _console_log_level = field_validator('console_log_level', mode='before')(
+        normalize_loglevel
+    )
+    _actions_log_level = field_validator('actions_log_level', mode='before')(
         normalize_loglevel
     )
 
@@ -248,6 +271,143 @@ class Services(ConfigBaseModel):
             host_and_port += ':' + str(api_port)
         base_path = self.api_base_path.strip('/')
         return f'{protocol}://{host_and_port}/{base_path}/{api}'
+
+
+def resolve_scopes_valid(scope_options):
+    """Contains a concrete set of scopes for unauthenticated user as resolved from
+    unauthenticated_user_scopes."""
+
+    # If no include/exclude is given, return all scopes.
+    if not scope_options:
+        return _resolve_scopes('*:*')
+
+    include = None
+    exclude = None
+    if isinstance(scope_options, OptionsGlob):
+        include = scope_options.include
+        exclude = scope_options.exclude
+    elif isinstance(scope_options, dict):
+        include = scope_options.get('include')
+        exclude = scope_options.get('exclude')
+    else:
+        raise TypeError(
+            "Auth scope configuration must be a mapping with 'include'/'exclude'."
+        )
+
+    # If no include is given, default to all scopes. This is different from an empty list.
+    if include is None:
+        include = {'*:*'}
+    # If no exclude is given, default to empty set.
+    if not exclude:
+        exclude = {}
+
+    return _resolve_scopes(include) - _resolve_scopes(exclude)
+
+
+class Auth(ConfigBaseModel):
+    """
+    Authentication/authorization-related configurations.
+    """
+
+    require_authentication: bool = Field(
+        False,
+        description="""
+            If True, all API requests require authentication (=users must be logged in).
+            If false, unauthenticated users can still perform actions as defined by
+            `unauthenticated_user_scopes`.
+        """,
+    )
+    reject_unauthorized_users: bool = Field(
+        True,
+        description="""
+            If True, any users that are not specified in `auth.authorized_users` are
+            rejected access with an HTTP 403 response code. Multiple NOMAD deployments may
+            share the same keycloak instance, and users can thus be authenticated
+            correctly, without having authorization to access the deployment. If False,
+            unauthorized users can still perform actions as defined by
+            `unathorized_user_scopes`.
+        """,
+    )
+    authorized_users: list[str] | None = Field(
+        None,
+        description="""
+            A list of usernames or user account emails that are authorized to access this
+            NOMAD deployment. If not specified, all users recognized by the Keycloak
+            instance are allowed.
+        """,
+    )
+
+    @field_validator('authorized_users')
+    @classmethod
+    def normalize_authorized_users(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+
+        return list(dict.fromkeys(user.lower().strip() for user in v))
+
+    unauthenticated_user_scopes: OptionsGlob = Field(
+        OptionsGlob(include=['*:read']),
+        description="""
+            Controls the API scopes granted to unauthenticated (=not logged in) users.
+
+            Semantics:
+                - `include` defines the baseline granted scopes. Defaults to all scopes if
+                  not defined or null.
+                - `exclude` removes scopes from that baseline. Defaults to an empty set.
+                - Wildcards are supported (e.g. `"*:read"` for read-only, `"*:*"` for all).
+
+            For the complete list of scopes (resources/actions), refer to the
+            `nomad.auth.scopes.Scope` Enum.
+        """,
+    )
+    unauthorized_user_scopes: OptionsGlob = Field(
+        OptionsGlob(include=['*:read']),
+        description="""
+            Controls the API scopes granted to unauthorized users (=users who can log in
+            through Keycloak, but that are not allowed to access this NOMAD deployment).
+
+            Semantics:
+                - `include` defines the baseline granted scopes. Defaults to all scopes if
+                  not defined or null.
+                - `exclude` removes scopes from that baseline. Defaults to an empty set.
+                - Wildcards are supported (e.g. `"*:read"` for read-only, `"*:*"` for all).
+
+            For the complete list of scopes (resources/actions), refer to the
+            `nomad.auth.scopes.Scope` Enum.
+        """,
+    )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def unauthenticated_user_scopes_resolved(self) -> set[str]:
+        """Contains a concrete set of scopes for unauthenticated user as resolved from
+        unauthenticated_user_scopes."""
+        return resolve_scopes_valid(self.unauthenticated_user_scopes)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def unauthorized_user_scopes_resolved(self) -> set[str]:
+        """Contains a concrete set of scopes for unauthorized users as resolved from
+        unauthorized_user_scopes."""
+        return resolve_scopes_valid(self.unauthorized_user_scopes)
+
+    # Personal access token (PAT) related
+
+    pat_pruning_time: float = Field(
+        365,
+        gt=0,
+        description='Number of days to keep expired and revoked tokens before cleanup.',
+    )
+    pat_max_lifetime: float | None = Field(
+        default=365,
+        gt=0,
+        description='Max token lifetime in days. None allows infinite lifetime.',
+    )
+    pat_max_active_per_user: int = Field(
+        default=100,
+        gt=1,
+        description='Max number of active tokens (not expired/revoked) for each user.',
+    )
 
 
 class FooterLink(ConfigBaseModel):
@@ -335,13 +495,13 @@ class Oasis(ConfigBaseModel):
         False,
         description='Set to `True` to indicate that this deployment is a NOMAD Oasis.',
     )
-    allowed_users: list[str] = Field(
+    allowed_users: list[str] | None = Field(
         None,
-        description="""
-        A list of usernames or user account emails. These represent a white-list of
-        allowed users. With this, users will need to login right-away and only the
-        listed users might use this deployment. All API requests must have authentication
-        information as well.""",
+        description="""Use `auth.authorized_users` instead.
+        Previously it would also imply `require_authentication=True`,
+        use `auth.require_authentication` instead.
+        """,
+        deprecated=True,
     )
     uses_central_user_management: bool = Field(
         False,
@@ -363,11 +523,11 @@ class Oasis(ConfigBaseModel):
         The URL of the terms of service.
     """,
     )
-    require_authentication: bool = Field(
-        False,
-        description="""
-        If True, authentication is required to access sensitive API endpoints.
-    """,
+
+    require_authentication: bool | None = Field(
+        None,
+        description='Use `auth.require_authentication` instead.',
+        deprecated=True,
     )
 
 
@@ -409,12 +569,21 @@ class FS(ConfigBaseModel):
                      'nomad username': '/path/on/disk/to/work/folder/specific/for/user'
     """,
     )
+    actions: str = Field(
+        '.volumes/fs/actions',
+        description='Internal path used for storing action logs and artifacts.',
+    )
+    actions_external: str | None = Field(
+        None,
+        description='External/absolute path for action artifacts. If None, derived from working_directory.',
+    )
     local_tmp: str = Field(
         '/tmp',
         description='Local temporary directory on the host system (outside of NOMAD volumes).',
     )
     prefix_size: int = Field(
         2,
+        ge=0,
         description='Number of characters from upload/entry IDs used as directory prefixes in storage.',
     )
     archive_version_suffix: str | list[str] = Field(
@@ -457,6 +626,9 @@ class FS(ConfigBaseModel):
         if values.north_home_external is None:
             values.north_home_external = get_external_path(values.north_home)
 
+        if values.actions_external is None:
+            values.actions_external = get_external_path(values.actions)
+
         return values
 
 
@@ -488,6 +660,26 @@ class Elastic(ConfigBaseModel):
     bulk_size: int = Field(
         1000,
         description='Number of documents per bulk indexing/request batch.',
+    )
+    bulk_retry_attempts: int = Field(
+        5,
+        ge=1,
+        description='Number of retry attempts for rejected Elasticsearch bulk requests.',
+    )
+    bulk_retry_initial_backoff: float = Field(
+        1.0,
+        ge=0.0,
+        description='Initial backoff in seconds for Elasticsearch bulk retries.',
+    )
+    bulk_retry_max_backoff: float = Field(
+        30.0,
+        ge=0.0,
+        description='Maximum backoff in seconds for Elasticsearch bulk retries.',
+    )
+    bulk_retry_jitter: float = Field(
+        0.5,
+        ge=0.0,
+        description='Maximum random jitter in seconds added to Elasticsearch bulk retries.',
     )
     max_payload_size: int = Field(
         90 * 1024 * 1024,  # 90 MB
@@ -578,6 +770,71 @@ class ProcessingTimeouts(ConfigBaseModel):
     )
 
 
+class WorkerConfig(ConfigBaseModel):
+    pool_size: int = Field(
+        1,
+        description="""
+            Number of worker processes in the pool. These workers are responsible for
+            core NOMAD activities such as entry and upload processing.
+        """,
+    )
+    max_tasks_per_child: int = Field(
+        100,
+        description="""
+            Maximum number of tasks a worker process will execute before
+            it is restarted to prevent potential memory leaks.
+        """,
+    )
+    max_concurrent_activities: int | None = Field(
+        None,
+        description="""
+            Maximum number of concurrent activities that each worker process
+            can handle. If not set, the worker will use resource-based tuning.
+        """,
+    )
+    target_memory_usage: float = Field(
+        0.8,
+        description="""
+            Target memory usage for the worker tuner. If max_concurrent_activities is not set,
+            the worker will try to keep memory usage below this threshold.
+            It is not recommended to increase this above 0.8 as it might limit performance.
+        """,
+    )
+    target_cpu_usage: float = Field(
+        0.8,
+        description="""
+            Target CPU usage for the worker tuner. If max_concurrent_activities is not set,
+            the worker will try to keep CPU usage below this threshold.
+            It is not recommended to increase this above 0.8 as it might limit performance.
+        """,
+    )
+    activity_ramp_throttle: int = Field(
+        200,
+        description="""
+            If max_concurrent_activities is not set, this is the ramp throttle
+            for the activity slot supplier in milliseconds.
+            It is the minimum time the worker will wait between handing out new slots.
+            This value matters because how many resources a task will use cannot be determined ahead of time,
+            and thus the system should wait to see how much resources are used before issuing more slots.
+        """,
+    )
+    max_activity_slots: int = Field(
+        20,
+        description="""
+            If max_concurrent_activities is not set, this is the maximum number of
+            slots for the activity slot supplier.
+        """,
+    )
+    min_activity_slots: int | None = Field(
+        None,
+        description="""
+            If max_concurrent_activities is not set, this optionally overrides the
+            minimum number of activity slots for resource-based tuning.
+            If unset, NOMAD uses `pool_size` as the minimum.
+        """,
+    )
+
+
 class Temporal(ConfigBaseModel):
     host: str = Field(
         'localhost',
@@ -599,6 +856,33 @@ class Temporal(ConfigBaseModel):
         1,
         description='Graceful shutdown timeout (in seconds) for Temporal workers.',
     )
+    entry_workflow_batch_concurrency: int = Field(
+        5,
+        ge=1,
+        description="""
+            Controls how many entry batch processing workflows are processed at the
+            same time. Only used for very large uploads where entries are split
+            into temporary batches.
+        """,
+    )
+    entry_concurrency_target: int = Field(
+        50,
+        ge=1,
+        description="""
+            Approximate number of entries to process concurrently inside one
+            batch-processing workflow. Together with `entry_activity_batch_size`,
+            this determines how many batch activities run at the same time.
+        """,
+    )
+    entry_activity_batch_size: int = Field(
+        5,
+        ge=1,
+        description="""
+            Number of entries grouped into a single process-entry activity invocation.
+            Larger values reduce Temporal scheduling/event overhead for fast entries,
+            but increase the amount of work retried together on transient failures.
+        """,
+    )
     prometheus_bind_address: str | None = Field(
         None,
         description='The bind address for the Prometheus metrics server. If not set, the runtime will not be configured with Prometheus metrics.',
@@ -608,10 +892,23 @@ class Temporal(ConfigBaseModel):
         description='Timeout configuration for individual processing workflows and activities.',
     )
 
+    internal_worker: WorkerConfig = Field(
+        default_factory=WorkerConfig,
+        description='Configuration for the internal action worker.',
+    )
+    cpu_worker: WorkerConfig = Field(
+        default_factory=lambda: WorkerConfig(pool_size=12),
+        description='Configuration for the CPU action worker.',
+    )
+    gpu_worker: WorkerConfig = Field(
+        default_factory=lambda: WorkerConfig(pool_size=12),
+        description='Configuration for the GPU action worker.',
+    )
+
 
 class Keycloak(ConfigBaseModel):
     server_url: str = Field(
-        'https://nomad-lab.eu/fairdi/keycloak/auth/',
+        'https://nomad-lab.eu/fairdi/keycloak/auth',
         description='Internal base URL of the Keycloak server used by NOMAD.',
     )
     public_server_url: str | None = Field(
@@ -642,6 +939,8 @@ class Keycloak(ConfigBaseModel):
     @model_validator(mode='after')
     @classmethod
     def __validate(cls, values):
+        values.server_url = values.server_url.rstrip('/')
+
         if values.public_server_url is None:
             values.public_server_url = values.server_url
         return values
@@ -920,24 +1219,24 @@ class Client(ConfigBaseModel):
 
 class DataCite(ConfigBaseModel):
     mds_host: str = Field(
-        'https://mds.datacite.org',
-        description='Base URL of the DataCite MDS (Metadata Store) service.',
+        'https://api.test.datacite.org',
+        description='Base URL of the DataCite REST API.',
     )
     enabled: bool = Field(
         False,
         description='If True, NOMAD will register DOIs via DataCite for published uploads/datasets.',
     )
     prefix: str = Field(
-        '10.17172',
+        '10.83696',  # test prefix
         description='DataCite DOI prefix assigned to this NOMAD deployment.',
     )
     user: str = Field(
         '*',
-        description='DataCite MDS username.',
+        description='DataCite username.',
     )
     password: str = Field(
         '*',
-        description='DataCite MDS password.',
+        description='DataCite password.',
     )
 
 
@@ -1031,7 +1330,7 @@ class RFC3161Timestamp(ConfigBaseModel):
     server: str = Field(
         'http://zeitstempel.dfn.de', description='The rfc3161ng timestamping host.'
     )
-    cert: str = Field(
+    cert: str | None = Field(
         None,
         description='Path to the optional rfc3161ng timestamping server certificate.',
     )
@@ -1074,7 +1373,7 @@ class BundleExport(ConfigBaseModel):
             General default settings.
         """,
     )
-    default_settings_cli: BundleExportSettings = Field(
+    default_settings_cli: BundleExportSettings | None = Field(
         None,
         description="""
             Additional default settings, applied when exporting using the CLI. This allows
@@ -1230,6 +1529,34 @@ class Archive(ConfigBaseModel):
     )
 
 
+class MolIDSourceEnum(str, Enum):
+    CACHE = 'cache'
+    API = 'api'
+
+
+class MolID(ConfigBaseModel):
+    """
+    Configuration for the MolID integration.
+    """
+
+    enabled: bool = Field(
+        True,
+        description='If True, the MolID service is enabled and may be used to resolve chemical compound information from.',
+    )
+    sources: list[MolIDSourceEnum] = Field(
+        [MolIDSourceEnum.CACHE, MolIDSourceEnum.API],
+        description='List of sources that are queried in the given order when resolving chemical compound information.',
+    )
+    cache_write: bool = Field(
+        True,
+        description='If True, any API reads are persisted to a cache for faster future access.',
+    )
+    cache_path: str | None = Field(
+        None,
+        description='Path to the MolID cache file. If not specified, defaults to a `molid_cache.db` file in the `fs.tmp` directory.',
+    )
+
+
 class Pagination(ConfigBaseModel, PaginationBaseModel):
     pass
 
@@ -1255,6 +1582,10 @@ class Config(ConfigBaseModel):
     services: Services = Field(
         default_factory=Services,
         description='Settings for core NOMAD services (API, worker, north).',
+    )
+    auth: Auth = Field(
+        default_factory=Auth,
+        description='Authentication/authorization-related configurations.',
     )
     meta: Meta = Field(
         default_factory=Meta,
@@ -1344,6 +1675,10 @@ class Config(ConfigBaseModel):
         default_factory=Archive,
         description='Low-level archive storage and performance tuning options.',
     )
+    molid: MolID = Field(
+        default_factory=MolID,
+        description='Configuration for the chemical compound resolution with MolID.',
+    )
     ui: UI = Field(
         default_factory=UI,
         description='Configuration for the NOMAD web UI and its endpoints.',
@@ -1381,9 +1716,6 @@ class Config(ConfigBaseModel):
 
         return f'{base}/gui'
 
-    def rabbitmq_url(self):
-        return f'pyamqp://{self.rabbitmq.user}:{self.rabbitmq.password}@{self.rabbitmq.host}//'
-
     def north_url(self, ssl: bool = True):
         return self.api_url(
             ssl=ssl,
@@ -1412,6 +1744,46 @@ class Config(ConfigBaseModel):
             if services and north:
                 values.ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.api_base_path.rstrip("/")}/north'
 
+        # Backwards compatibility for auth settings stored in the oasis config.
+        if 'require_authentication' in values.oasis.model_fields_set:
+            if 'require_authentication' in values.auth.model_fields_set:
+                raise ValueError(
+                    'You cannot use new and deprecated `require_authentication` together'
+                )
+
+            logger.warning(
+                'Use auth.require_authentication instead of oasis.require_authentication'
+            )
+            values.auth.require_authentication = values.oasis.require_authentication
+
+        # Only apply if the deprecated oasis.* field was explicitly set
+        # AND the new auth.* field was NOT explicitly set.
+        if 'allowed_users' in values.oasis.model_fields_set:
+            if 'authorized_users' in values.auth.model_fields_set:
+                raise ValueError(
+                    'You cannot use new and deprecated user whitelist together'
+                )
+
+            logger.warning('Use auth.authorized_users instead of oasis.allowed_users')
+            values.auth.authorized_users = values.oasis.allowed_users
+
+            # Previously `oasis.allowed_users` would implicitly enable `require_authentication`
+            if (
+                'require_authentication' not in values.auth.model_fields_set
+                and 'require_authentication' not in values.oasis.model_fields_set
+            ):
+                logger.warning(
+                    'Use auth.require_authentication=True if you want to require '
+                    'authentication'
+                )
+                values.auth.require_authentication = True
+
+        # Fill in the default MolID cache path if not set
+        molid_cache_path = values.molid.cache_path
+        if molid_cache_path is None:
+            molid_cache_path = os.path.join(values.fs.tmp, 'molid_cache.db')
+            values.molid.cache_path = molid_cache_path
+
         return values
 
     def get_plugin_entry_point(self, id: str) -> EntryPointType:
@@ -1439,13 +1811,9 @@ class Config(ConfigBaseModel):
         (pkgutil.get_loader will run code in the package root __init__). Instead
         this function should be called to instantiate the plugins before the
         nomad application is started.
-
-        TODO: Once we migrate to Pydantic v2, we should add the computed_field +
-        cached_property decorator to the 'plugins' field instead of using this
-        function.
         """
         from nomad.config import _merge, _plugins
-        from nomad.config.models.plugins import NorthToolEntryPoint
+        from nomad.config.models.plugins import NORTHToolEntryPoint
 
         if self.plugins is None:
 
@@ -1528,7 +1896,7 @@ class Config(ConfigBaseModel):
             # fully migrate to using entry points for the NORTH tools.
             for key, tool in self.north.tools.filtered_items():
                 if key not in plugin_entry_point_ids:
-                    _plugins['entry_points']['options'][key] = NorthToolEntryPoint(
+                    _plugins['entry_points']['options'][key] = NORTHToolEntryPoint(
                         id=key, north_tool=tool
                     )
                     # If a list of includes is given, add the activated north tools into
@@ -1549,11 +1917,11 @@ class Config(ConfigBaseModel):
                             )
 
             # Assign URL-safe identifiers to all entry points and check for collisions
-            self._assign_url_safe_ids(_plugins['entry_points']['options'])
+            self._assign_url_safe_ids(_plugins['entry_points'])
 
             self.plugins = Plugins.model_validate(_plugins)
 
-    def _assign_url_safe_ids(self, entry_points_options: dict) -> None:
+    def _assign_url_safe_ids(self, entry_points: dict) -> None:
         """Assigns URL-safe identifiers to all entry points.
 
         For each entry point, if a custom id_url_safe is provided, it is validated
@@ -1571,7 +1939,12 @@ class Config(ConfigBaseModel):
             str, tuple[str, str]
         ] = {}  # Maps url_safe_id -> original entry_point_id
 
-        for entry_point_id, config in entry_points_options.items():
+        # Iterate over all the activated entry points to assign URL-safe identifiers and
+        # check for collisions
+        for entry_point_id in Options.model_validate(entry_points).filtered_keys():
+            config = entry_points.get('options', {}).get(entry_point_id)
+            if not config:
+                continue
             # Get id_url_safe, and plugin_type from config (dict or BaseModel)
             if isinstance(config, dict):
                 custom_url_safe_id = config.get('id_url_safe')

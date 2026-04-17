@@ -1,15 +1,29 @@
 import tempfile
 import uuid
+from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
 import pytest
+from temporalio.client import WorkflowFailureError
 
 from nomad.actions import TaskQueue
-from nomad.processing.base import ProcessStatus
+from nomad.processing.base import ProcessFailure, ProcessStatus
+from nomad.processing.data import Upload
+from nomad.workflows.activities import (
+    get_cleanup_entry_batch_from_file,
+    get_entry_batch_from_file,
+    handle_heartbeat_failure_activity,
+    next_level_entries,
+    prepare_cleanup_activity,
+    process_entry_batch_activity,
+)
 from nomad.workflows.shared_objects import (
+    CleanupEntriesResult,
+    CleanupEntryBatchFromFileInput,
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
     EntriesToBeProcessedResult,
+    EntryBatchFromFileInput,
     ImportBundleWorkflowInput,
     ProcessEntryActivityInput,
     ProcessExampleUploadWorkflowInput,
@@ -17,6 +31,7 @@ from nomad.workflows.shared_objects import (
     PublishUploadWorkflowInput,
     UploadProcessingWorkflowInput,
 )
+from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE
 
 # Test Constants
 TEST_UPLOAD_ID = 'test-upload-123'
@@ -106,7 +121,9 @@ def mock_data_layer(monkeypatch):
 
     # Mock Entry class and instances
     mock_entry_instance = MagicMock()
-    mock_entry_objects = Mock()
+    mock_entry_objects = MagicMock()
+    mock_entry_objects.__iter__.return_value = iter([])
+    mock_entry_objects.count.return_value = 0
     mock_entry_class = Mock()
     mock_entry_class.get.return_value = mock_entry_instance
     mock_entry_class.objects.return_value = mock_entry_objects
@@ -157,6 +174,9 @@ def mock_data_layer(monkeypatch):
     mock_processing_timeouts.remove_workflow_id_timeout = 7200
     mock_processing_timeouts.cleanup_workflow_tmp_dir_timeout = 7200
     mock_temporal_config.processing_timeouts = mock_processing_timeouts
+    mock_temporal_config.entry_workflow_batch_concurrency = 1
+    mock_temporal_config.entry_concurrency_target = 1
+    mock_temporal_config.entry_activity_batch_size = 1
     mock_config.reprocess = mock_reprocess
     mock_config.temporal = mock_temporal_config
     monkeypatch.setattr('nomad.config.config', mock_config)
@@ -314,6 +334,208 @@ class TestProcessEntryWorkflow:
             'If this keeps happening contact NOMAD/ your oasis admin for support.'
         ]
 
+    @pytest.mark.asyncio
+    async def test_non_retryable_failure_propagates(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        """Test permanent single-entry failures still surface to callers."""
+        mock_data_layer[
+            'entry_instance'
+        ]._process_entry_local.side_effect = ProcessFailure('permanent failure')
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.process_entry_input()
+
+            with pytest.raises(Exception):
+                await env.client.execute_workflow(
+                    'ProcessEntryWorkflow',
+                    input_data,
+                    id='test-process-entry-non-retryable-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+
+class TestProcessEntryActivities:
+    def test_retryable_batch_failure_is_raised_after_other_entries_run(
+        self,
+        mock_data_layer,
+    ):
+        """Test retryable failures do not stop later entries in the same batch."""
+        first_entry = MagicMock()
+        second_entry = MagicMock()
+        entries_by_id = {
+            'entry-1': first_entry,
+            'entry-2': second_entry,
+        }
+        mock_data_layer['entry_class'].get.side_effect = lambda entry_id: entries_by_id[
+            entry_id
+        ]
+        first_entry._process_entry_local.side_effect = Exception('retryable failure')
+
+        with pytest.raises(Exception, match='retryable failure'):
+            process_entry_batch_activity(
+                [
+                    ProcessEntryActivityInput(
+                        upload_id=TEST_UPLOAD_ID,
+                        entry_id='entry-1',
+                        workflow_id=str(uuid.uuid4()),
+                    ),
+                    ProcessEntryActivityInput(
+                        upload_id=TEST_UPLOAD_ID,
+                        entry_id='entry-2',
+                        workflow_id=str(uuid.uuid4()),
+                    ),
+                ]
+            )
+
+        second_entry._process_entry_local.assert_called_once()
+        assert second_entry.process_status == ProcessStatus.SUCCESS
+        second_entry.save.assert_called_once()
+
+    def test_heartbeat_failure_does_not_overwrite_success(
+        self,
+        mock_data_layer,
+    ):
+        """Test heartbeat recovery keeps already-successful entries untouched."""
+        entry = mock_data_layer['entry_instance']
+        entry.process_status = ProcessStatus.SUCCESS
+
+        handle_heartbeat_failure_activity(TestFixtures.process_entry_input())
+
+        entry.fail.assert_not_called()
+        entry.save.assert_not_called()
+
+    def test_get_entry_batch_from_file_loads_specific_batch_file(self, tmp_path):
+        batch_dir = tmp_path
+        (batch_dir / 'entry_batch_1.json').write_text(
+            '["entry-4", "entry-5", "entry-6", "entry-7"]'
+        )
+
+        batch = get_entry_batch_from_file(
+            EntryBatchFromFileInput(
+                upload_id=TEST_UPLOAD_ID,
+                batch_dir_path=str(batch_dir),
+                batch_id=1,
+            )
+        )
+
+        assert [entry.entry_id for entry in batch] == [
+            'entry-4',
+            'entry-5',
+            'entry-6',
+            'entry-7',
+        ]
+
+
+class TestNextLevelEntriesActivity:
+    def test_small_entry_sets_stay_in_memory(
+        self,
+        mock_data_layer,
+    ):
+        """Small batches stay in workflow state."""
+        mock_data_layer['upload_instance'].next_level_entries.return_value = [
+            Mock(entry_id=f'entry-{idx}') for idx in range(999)
+        ]
+
+        result = next_level_entries(TestFixtures.upload_processing_input())
+
+        assert result is not None
+        assert result.directory is None
+        assert result.entries is not None
+        assert len(result.entries) == 999
+
+    def test_large_entry_sets_use_fixed_size_batch_files(
+        self,
+        mock_data_layer,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(
+            'nomad.workflows.activities.config', mock_data_layer['config']
+        )
+        mock_data_layer['config'].temporal.entry_activity_batch_size = 2
+        mock_data_layer['upload_instance'].next_level_entries.return_value = [
+            Mock(entry_id=f'entry-{idx}') for idx in range(2500)
+        ]
+
+        result = next_level_entries(TestFixtures.upload_processing_input())
+
+        assert result is not None
+        assert result.entries is None
+        assert result.directory is not None
+        assert result.total_batches == 3
+        assert (Path(result.directory) / 'entry_batch_0.json').exists()
+        assert (Path(result.directory) / 'entry_batch_1.json').exists()
+        assert (Path(result.directory) / 'entry_batch_2.json').exists()
+
+
+class TestCleanupActivities:
+    def test_prepare_cleanup_small_upload_uses_fast_path(
+        self,
+        mock_data_layer,
+    ):
+        mock_entries = [Mock(entry_id=f'entry-{idx}') for idx in range(50)]
+        mock_data_layer['entry_class'].objects.return_value = mock_entries
+
+        result = prepare_cleanup_activity(TestFixtures.upload_processing_input())
+
+        assert result is None
+        mock_data_layer['upload_instance'].cleanup.assert_called_once()
+
+    def test_medium_cleanup_entry_sets_stay_in_memory(
+        self,
+        mock_data_layer,
+    ):
+        mock_entries = [Mock(entry_id=f'entry-{idx}') for idx in range(150)]
+        mock_data_layer['entry_class'].objects.return_value = mock_entries
+
+        result = prepare_cleanup_activity(TestFixtures.upload_processing_input())
+
+        assert result.directory is None
+        assert result.entry_ids == [f'entry-{idx}' for idx in range(150)]
+        mock_data_layer['upload_instance'].cleanup_prepare.assert_called_once()
+        mock_data_layer['upload_instance'].cleanup_entries_batch.assert_not_called()
+        mock_data_layer['upload_instance'].cleanup_finalize.assert_not_called()
+
+    def test_cleanup_entry_batch_from_file_loads_specific_batch_file(self, tmp_path):
+        batch_dir = tmp_path
+        (batch_dir / 'cleanup_batch_1.json').write_text(
+            '["entry-4", "entry-5", "entry-6"]'
+        )
+
+        batch = get_cleanup_entry_batch_from_file(
+            CleanupEntryBatchFromFileInput(
+                upload_id=TEST_UPLOAD_ID,
+                batch_dir_path=str(batch_dir),
+                batch_id=1,
+            )
+        )
+
+        assert batch == ['entry-4', 'entry-5', 'entry-6']
+
+
+class TestUploadCleanupHelpers:
+    def test_reset_entry_processing_status_prefers_path_filter(self, monkeypatch):
+        entry_objects = Mock()
+        mock_entry_class = Mock()
+        mock_entry_class.objects = entry_objects
+        monkeypatch.setattr('nomad.processing.data.Entry', mock_entry_class)
+
+        upload = Upload(upload_id=TEST_UPLOAD_ID)
+        upload.reset_entry_processing_status(
+            path_filter='some/path',
+            updated_files={'different/file.txt'},
+        )
+
+        entry_objects.assert_called_once_with(
+            upload_id=TEST_UPLOAD_ID,
+            mainfile__startswith='some/path',
+        )
+        entry_objects.return_value.update.assert_called_once_with(
+            set__process_status=ProcessStatus.READY
+        )
+
 
 class TestBatchProcessEntriesWorkflow:
     """Tests for BatchProcessEntriesWorkflow."""
@@ -445,6 +667,88 @@ class TestBatchProcessEntriesWorkflow:
         assert mock_data_layer['entry_class'].get.call_count == 0
 
 
+class TestBatchCleanupEntriesWorkflow:
+    @pytest.mark.asyncio
+    async def test_small_cleanup_batch_direct_processing(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        cleanup_result = CleanupEntriesResult(
+            upload_id=TEST_UPLOAD_ID,
+            entry_ids=[f'entry-{idx}' for idx in range(5)],
+        )
+
+        async with temporal_worker() as env:
+            await env.client.execute_workflow(
+                'BatchCleanupEntriesWorkflow',
+                cleanup_result,
+                id='test-batch-cleanup-small',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+        mock_data_layer[
+            'upload_instance'
+        ].cleanup_entries_batch.assert_called_once_with(
+            [f'entry-{idx}' for idx in range(5)], refresh=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_large_cleanup_batch_uses_continue_as_new(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        entry_ids = [f'entry-{idx}' for idx in range(CLEANUP_ENTRY_BATCH_SIZE + 5)]
+        cleanup_result = CleanupEntriesResult(
+            upload_id=TEST_UPLOAD_ID,
+            entry_ids=entry_ids,
+        )
+
+        async with temporal_worker() as env:
+            await env.client.execute_workflow(
+                'BatchCleanupEntriesWorkflow',
+                cleanup_result,
+                id='test-batch-cleanup-large',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+        assert mock_data_layer['upload_instance'].cleanup_entries_batch.call_count == 2
+        first_call, second_call = mock_data_layer[
+            'upload_instance'
+        ].cleanup_entries_batch.call_args_list
+        assert first_call.kwargs == {'refresh': True}
+        assert second_call.kwargs == {'refresh': True}
+        assert len(first_call.args[0]) <= CLEANUP_ENTRY_BATCH_SIZE
+        assert len(second_call.args[0]) <= CLEANUP_ENTRY_BATCH_SIZE
+        assert len(first_call.args[0]) + len(second_call.args[0]) == len(entry_ids)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_batch_failure_fails_workflow(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        cleanup_result = CleanupEntriesResult(
+            upload_id=TEST_UPLOAD_ID,
+            entry_ids=[f'entry-{idx}' for idx in range(5)],
+        )
+        mock_data_layer[
+            'upload_instance'
+        ].cleanup_entries_batch.side_effect = Exception('cleanup failed')
+
+        with pytest.raises(WorkflowFailureError) as exc_info:
+            async with temporal_worker() as env:
+                await env.client.execute_workflow(
+                    'BatchCleanupEntriesWorkflow',
+                    cleanup_result,
+                    id='test-batch-cleanup-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+        assert 'cleanup failed' in str(exc_info.value.cause.cause)
+
+
 class TestProcessUploadWorkflow:
     """Tests for ProcessUploadWorkflow."""
 
@@ -480,7 +784,7 @@ class TestProcessUploadWorkflow:
             input_data = TestFixtures.upload_processing_input()
 
             await env.client.execute_workflow(
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 input_data,
                 id='test-process-upload-workflow',
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
@@ -521,7 +825,7 @@ class TestProcessUploadWorkflow:
             input_data = TestFixtures.upload_processing_input()
 
             await env.client.execute_workflow(
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 input_data,
                 id='test-process-upload-workflow-levels',
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
@@ -529,6 +833,30 @@ class TestProcessUploadWorkflow:
 
         # Verify next_level_entries was called multiple times
         assert mock_data_layer['upload_instance'].next_level_entries.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_match_all_failure_surfaces_activity_message(
+        self,
+        mock_data_layer,
+        temporal_worker,
+    ):
+        """Test that child workflow failures preserve the underlying activity message."""
+        mock_data_layer['upload_instance'].match_all.side_effect = Exception(
+            'match_all activity failed'
+        )
+
+        with pytest.raises(WorkflowFailureError):
+            async with temporal_worker() as env:
+                await env.client.execute_workflow(
+                    'UpdateUploadWorkflow',
+                    TestFixtures.upload_processing_input(),
+                    id='test-process-upload-workflow-match-all-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+        mock_data_layer['upload_instance'].fail.assert_called()
+        failure_details = mock_data_layer['upload_instance'].fail.call_args.args[0]
+        assert 'match_all' in failure_details
 
 
 class TestProcessExampleUploadWorkflow:
@@ -841,7 +1169,7 @@ class TestWorkflowErrorHandling:
                 'Process process_entry failed',
             ),
             (
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 TestFixtures.upload_processing_input,
                 'update_files',
                 'upload_instance',
@@ -902,8 +1230,8 @@ class TestWorkflowErrorHandling:
 
         mock_target.fail = mock_fail
 
-        # Special setup for ProcessUploadWorkflow
-        if workflow_class == 'ProcessUploadWorkflow':
+        # Special setup for UpdateUploadWorkflow
+        if workflow_class == 'UpdateUploadWorkflow':
             monkeypatch.setattr('nomad.workflows.activities.parser_min_level', 0)
 
         async with temporal_worker() as env:
@@ -991,7 +1319,7 @@ class TestWorkflowErrorHandling:
             input_data = TestFixtures.upload_processing_input()
 
             await env.client.execute_workflow(
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 input_data,
                 id='test-partial-entry-failure',
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
@@ -1004,8 +1332,8 @@ class TestWorkflowErrorHandling:
         )
 
         # Verify that entry processing was attempted for both entries
-        # 18 calls accounts for the number of retries
-        assert mock_data_layer['entry_class'].get.call_count == 18
+        # 4 calls accounts for the number of retries
+        assert mock_data_layer['entry_class'].get.call_count == 4
 
         # Verify that the upload workflow completed successfully
         # (The upload should not be marked as failed due to individual entry failures)
@@ -1070,7 +1398,7 @@ class TestWorkflowPerformanceAndScalability:
             )
 
             await env.client.execute_workflow(
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 input_data,
                 id='test-process-upload-huge-dataset',
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
@@ -1119,7 +1447,7 @@ class TestWorkflowPerformanceAndScalability:
         mock_data_layer['upload_instance'].update_files.return_value = {'file1.txt'}
 
         # Mock parser_level to change with each call
-        def mock_parser_level_side_effect():
+        def mock_parser_level_side_effect(_self):
             return current_parser_level
 
         type(mock_data_layer['upload_instance']).parser_level = property(
@@ -1148,7 +1476,7 @@ class TestWorkflowPerformanceAndScalability:
             )
 
             await env.client.execute_workflow(
-                'ProcessUploadWorkflow',
+                'UpdateUploadWorkflow',
                 input_data,
                 id='test-process-upload-multi-level',
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,

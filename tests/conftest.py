@@ -28,7 +28,9 @@ from io import StringIO
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 from nomad.config import config
 
@@ -271,6 +273,7 @@ def api_v1(monkeysession, user_molds):
     connect to the NOMAD v1 at ``nomad.config.client.url``, the patch will redirect to the
     fast api under test.
     """
+
     test_client = TestClient(app, base_url='http://testserver/api/v1/')
 
     def call_test_client(method, url, *args, **kwargs):
@@ -302,6 +305,43 @@ def api_v1(monkeysession, user_molds):
     monkeysession.setattr('nomad.client.api.Auth.__call__', __call__)
 
     return test_client
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_api_v1(monkeypatch, user_molds):
+    """
+    This fixture provides an HTTP client with AsyncClient that accesses
+    the fast api. The patch will redirect all requests to the fast api under test.
+    """
+    transport = ASGITransport(app=app)
+    test_client = AsyncClient(transport=transport, base_url='http://testserver/api/v1/')
+
+    monkeypatch.setattr(
+        'nomad.client.archive.ArchiveQuery._fetch_url',
+        'http://testserver/api/v1/entries/query',
+    )
+    monkeypatch.setattr(
+        'nomad.client.archive.ArchiveQuery._download_url',
+        'http://testserver/api/v1/entries/archive/query',
+    )
+
+    monkeypatch.setattr('httpx.AsyncClient.get', getattr(test_client, 'get'))
+    monkeypatch.setattr('httpx.AsyncClient.put', getattr(test_client, 'put'))
+    monkeypatch.setattr('httpx.AsyncClient.post', getattr(test_client, 'post'))
+    monkeypatch.setattr('httpx.AsyncClient.delete', getattr(test_client, 'delete'))
+
+    def mocked_auth_headers(self) -> dict:
+        for user in user_molds.values():
+            if user['username'] == self.user or user['email'] == self.user:
+                return dict(Authorization=f'Bearer {user["user_id"]}')
+        return {}
+
+    monkeypatch.setattr('nomad.client.api.Auth.headers', mocked_auth_headers)
+
+    try:
+        yield test_client
+    finally:
+        await test_client.aclose()
 
 
 @pytest.fixture(scope='module')

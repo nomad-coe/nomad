@@ -559,7 +559,7 @@ async def test_client_external_schema(
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/upload1')
     async with temporal_worker():
-        await asyncio.to_thread(lambda: upload1.process_upload())
+        await asyncio.to_thread(upload1.process_upload)
         await upload1.await_workflows()
 
     upload2_files = files.StagingUploadFiles('upload2_id', create=True)
@@ -602,7 +602,7 @@ async def test_circular_external_schema(
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/circular')
     async with temporal_worker():
-        await asyncio.to_thread(lambda: upload1.process_upload())
+        await asyncio.to_thread(upload1.process_upload)
         await upload1.await_workflows()
     for entry in Entry.objects(upload_id='upload_id'):
         assert entry.process_status == ProcessStatus.SUCCESS

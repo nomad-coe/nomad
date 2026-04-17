@@ -1136,9 +1136,11 @@ class Formula:
         gcd = reduce(math.gcd, counts)
         symbols_sorted = sorted(
             symbols,
-            key=lambda x: float('inf')
-            if x == self.placeholder_symbol
-            else get_el_sp(x).iupac_ordering,
+            key=lambda x: (
+                float('inf')
+                if x == self.placeholder_symbol
+                else get_el_sp(x).iupac_ordering
+            ),
         )
         count_iupac = {symbol: int(count[symbol] / gcd) for symbol in symbols_sorted}
 

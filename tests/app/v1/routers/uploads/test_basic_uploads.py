@@ -32,17 +32,19 @@ from fastapi.testclient import TestClient
 
 from nomad import files, infrastructure, processing
 from nomad.bundles import BundleExporter
+from nomad.common import now
 from nomad.config import config
 from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.datamodel import EntryMetadata
 from nomad.files import PublicUploadFiles, StagingUploadFiles, UploadFiles
 from nomad.processing import Entry, ProcessStatus, Upload
+from nomad.utils.exampledata import ExampleData
 from tests.app.v1.routers.common import assert_response, perform_get
 from tests.config.models.test_plugins import (
     mock_example_upload_entry_point,
     mock_plugin_package,
 )
-from tests.fixtures.infrastructure import TemporalWorkerContext
+from tests.fixtures.infrastructure import DataciteMock, TemporalWorkerContext
 from tests.processing import test_data as test_processing
 from tests.processing.test_edit_metadata import (
     all_admin_metadata,
@@ -59,7 +61,7 @@ from tests.test_files import (
     example_file_vasp_with_binary,
 )
 from tests.test_search import assert_search_upload
-from tests.utils import build_url, set_upload_entry_metadata
+from tests.utils import assert_doi_name, build_url, set_upload_entry_metadata
 
 from .common import assert_upload
 
@@ -235,12 +237,8 @@ def assert_file_upload_and_processing(
                             for path in zf.namelist():
                                 if not path.endswith('/'):
                                     target_path_full = os.path.join(target_path, path)
-                                    assert upload_files.raw_path_exists(
-                                        target_path_full
-                                    )
-                                    assert upload_files.raw_path_is_file(
-                                        target_path_full
-                                    )
+                                    assert upload_files.raw_exists(target_path_full)
+                                    assert upload_files.raw_isfile(target_path_full)
                     elif os.path.isdir(source_path):
                         for root, _, filepaths in os.walk(source_path):
                             for filepath in filepaths:
@@ -251,15 +249,15 @@ def assert_file_upload_and_processing(
                                     else os.path.join(rel_dir, filepath)
                                 )
                                 target_path_full = os.path.join(target_path, path)
-                                assert upload_files.raw_path_exists(target_path_full)
-                                assert upload_files.raw_path_is_file(target_path_full)
+                                assert upload_files.raw_exists(target_path_full)
+                                assert upload_files.raw_isfile(target_path_full)
                     else:
                         if mode == 'stream':
                             # Must specify file_name
                             file_name = query_args['file_name']
                         target_path_full = os.path.join(target_path, file_name)
-                        assert upload_files.raw_path_exists(target_path_full)
-                        assert upload_files.raw_path_is_file(target_path_full)
+                        assert upload_files.raw_exists(target_path_full)
+                        assert upload_files.raw_isfile(target_path_full)
                         assert (
                             upload_files.raw_file_size(target_path_full)
                             == os.stat(source_path).st_size
@@ -268,8 +266,8 @@ def assert_file_upload_and_processing(
                 upload_files = files.UploadFiles.get(upload_id)
                 file_name = os.path.basename(source_paths[0])
                 target_path_full = os.path.join(target_path, file_name)
-                assert upload_files.raw_path_exists(target_path_full)
-                assert upload_files.raw_path_is_file(target_path_full)
+                assert upload_files.raw_exists(target_path_full)
+                assert upload_files.raw_isfile(target_path_full)
 
         assert_expected_mainfiles(upload_id, expected_mainfiles)
     return response, processed_response_data
@@ -448,6 +446,7 @@ def get_upload_entries_metadata(
     'user, upload_id_key, expected_status_code',
     [
         pytest.param('user1', 'id_unpublished_w', 200, id='valid-upload_id'),
+        pytest.param('user1', 'id_published_doi', 200, id='published-with-doi'),
         pytest.param('user1', 'silly_value', 404, id='invalid-upload_id'),
         pytest.param(None, 'id_unpublished_w', 401, id='no-credentials'),
         pytest.param('invalid', 'id_unpublished_w', 401, id='invalid-credentials'),
@@ -459,6 +458,7 @@ def test_get_upload(
     auth_headers,
     client,
     example_data_writeable,
+    example_data_published_doi,
     user,
     upload_id_key,
     expected_status_code,
@@ -1124,8 +1124,8 @@ async def test_post_upload_raw_create_dir_path(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         upload = Upload.get(upload_id)
-        assert upload.upload_files.raw_path_exists(path)
-        assert not upload.upload_files.raw_path_is_file(path)
+        assert upload.upload_files.raw_exists(path)
+        assert not upload.upload_files.raw_isfile(path)
 
 
 @pytest.mark.parametrize(
@@ -1283,10 +1283,10 @@ async def test_delete_upload_raw_path(
             upload_files = StagingUploadFiles(upload_id)
             if path == '':
                 # Deleting the root folder = the folder itself should be emptied, but not deleted.
-                assert not list(upload_files.raw_directory_list(''))
+                assert not list(upload_files.raw_listdir(''))
             else:
                 # Deleting a file or folder within the raw folder - it should disappear.
-                assert not upload_files.raw_path_exists(path)
+                assert not upload_files.raw_exists(path)
 
             assert_expected_mainfiles(upload_id, expected_mainfiles)
 
@@ -1484,7 +1484,7 @@ async def test_post_upload_edit(
             verify_only=verify_only,
         )
         url = f'uploads/{upload_id}/edit'
-        edit_start = datetime.now(timezone.utc).isoformat()[0:22]
+        edit_start = now().isoformat()[0:22]
         response = await asyncio.to_thread(
             lambda: client.post(url, headers=user_auth, json=edit_request_json)
         )
@@ -1916,9 +1916,7 @@ async def test_post_upload_action_process(
             set_upload_entry_metadata(
                 non_empty_processed_with_temporal, internal_example_user_metadata
             )
-            await asyncio.to_thread(
-                lambda: non_empty_processed_with_temporal.publish_upload()
-            )
+            await asyncio.to_thread(non_empty_processed_with_temporal.publish_upload)
 
         monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
         monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
@@ -2061,11 +2059,11 @@ async def test_post_upload_action_delete_entry_files(
                 handle = env.client.get_workflow_handle(workflow_ids[0])
                 await handle.result()
             for path in expect_exists or []:
-                assert upload.upload_files.raw_path_exists(path), (
+                assert upload.upload_files.raw_exists(path), (
                     f'Missing expected path: {path}'
                 )
             for path in expect_not_exists or []:
-                assert not upload.upload_files.raw_path_exists(path), (
+                assert not upload.upload_files.raw_exists(path), (
                     f'Expected path not to exist: {path}'
                 )
 
@@ -2423,7 +2421,7 @@ async def test_post_upload_bundle(
         # Create the bundle
         set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
         if publish:
-            await asyncio.to_thread(lambda: non_empty_processed.publish_upload())
+            await asyncio.to_thread(non_empty_processed.publish_upload)
             await non_empty_processed.await_workflows()
         upload = non_empty_processed
         upload_id = upload.upload_id
@@ -2462,7 +2460,7 @@ async def test_post_upload_bundle(
 
 
 def _raw_path_exists(upload_id: str, path: str):
-    return Upload.get(upload_id).upload_files.raw_path_exists(path)
+    return Upload.get(upload_id).upload_files.raw_exists(path)
 
 
 async def _perform_move_or_copy(
@@ -2475,6 +2473,7 @@ async def _perform_move_or_copy(
     # This is the path of the parent folder where is supposed to end the file
     # If empty string it will be stored in the raw directory
     final_destination_folder_path: str,
+    trigger_processing: bool = True,
 ):
     return await asyncio.to_thread(
         lambda: client.put(
@@ -2484,6 +2483,7 @@ async def _perform_move_or_copy(
                     'copy_or_move': copy_or_move,
                     'file_name': new_file_name,
                     'copy_or_move_source_path': source_path,
+                    'trigger_processing': trigger_processing,
                 },
             ),
             headers=user,
@@ -2492,7 +2492,7 @@ async def _perform_move_or_copy(
 
 
 @pytest.mark.parametrize(
-    'source_path, new_file_name, expected_status_code, expected_error_message, orignal_file_should_exist',
+    'source_path, new_file_name, expected_status_code, expected_error_message, orignal_file_should_exist, trigger_processing',
     [
         pytest.param(
             'examples_template/0.aux',
@@ -2500,13 +2500,24 @@ async def _perform_move_or_copy(
             200,
             None,
             False,
+            True,
             id='success-rename-file',
+        ),
+        pytest.param(
+            'examples_template/0.aux',
+            'random_file_name.aux',
+            200,
+            None,
+            False,
+            False,
+            id='success-rename-file-without-reprocessing',
         ),
         pytest.param(
             'examples_template/0.aux',
             '1.aux',
             409,
             'The provided path already exists',
+            True,
             True,
             id='conflicting-file-rename',
         ),
@@ -2516,8 +2527,10 @@ async def _perform_move_or_copy(
             409,
             'No file or folder with that source path',
             False,
+            True,
             id='renaming-a-non-existing-file',
         ),
+        # TODO: Add folder rename tests when folder rename is supported
     ],
 )
 @pytest.mark.asyncio
@@ -2532,10 +2545,11 @@ async def test_rename_file_or_folder(
     expected_status_code: int,
     expected_error_message: None | str,
     orignal_file_should_exist: bool,
+    trigger_processing: bool,
 ):
     upload_id: str = non_empty_processed_with_temporal.upload_id
     user = auth_headers['user1']
-    async with temporal_worker():
+    async with temporal_worker() as env:
         parent_folder = '/'.join(source_path.split('/')[:-1])
         rename_result = await _perform_move_or_copy(
             client,
@@ -2545,11 +2559,16 @@ async def test_rename_file_or_folder(
             new_file_name=new_file_name,
             copy_or_move='move',
             final_destination_folder_path=parent_folder,
+            trigger_processing=trigger_processing,
         )
         assert rename_result.status_code == expected_status_code
         if expected_status_code == 200:
-            await asyncio.to_thread(
-                lambda: block_until_completed(client, upload_id, user)
+            await _assert_trigger_reprocessing_behavior(
+                env,
+                client,
+                upload_id,
+                user,
+                trigger_processing,
             )
             assert not _raw_path_exists(upload_id, source_path)
             assert _raw_path_exists(upload_id, f'{parent_folder}/{new_file_name}')
@@ -2564,3 +2583,206 @@ async def test_rename_file_or_folder(
                 assert _raw_path_exists(upload_id, source_path)
             else:
                 assert not _raw_path_exists(upload_id, source_path)
+
+
+async def _get_list_of_started_workflows(temporal_env):
+    matching_workflows = []
+    async for execution in temporal_env.client.list_workflows():
+        matching_workflows.append(execution.raw_info.type.name)
+    return matching_workflows
+
+
+async def _assert_trigger_reprocessing_behavior(
+    env,
+    client: TestClient,
+    upload_id: str,
+    user,
+    trigger_processing: None | bool,
+):
+    """
+    Waits for possible processing and asserts that the correct workflows are started based on the trigger_processing flag.
+    """
+    if trigger_processing is True or (trigger_processing is None):
+        await asyncio.to_thread(lambda: assert_processing(client, upload_id, user))
+        matching_workflows = await _get_list_of_started_workflows(env)
+        assert 'UpdateUploadWorkflow' in matching_workflows
+        assert 'ProcessUploadWorkflow' in matching_workflows
+    else:
+        await asyncio.to_thread(lambda: block_until_completed(client, upload_id, user))
+        matching_workflows = await _get_list_of_started_workflows(env)
+        assert 'UpdateUploadWorkflow' in matching_workflows
+        assert 'ProcessUploadWorkflow' not in matching_workflows
+
+
+@pytest.mark.parametrize(
+    'trigger_processing',
+    [
+        pytest.param(True, id='trigger-processing'),
+        pytest.param(False, id='no-processing'),
+        pytest.param(None, id='default-processing'),
+    ],
+)
+@pytest.mark.asyncio
+async def test_delete_raw_path_trigger_processing_option(
+    temporal_worker,
+    non_empty_processed_with_temporal,
+    client: TestClient,
+    auth_headers,
+    trigger_processing: None | bool,
+):
+    upload_id: str = non_empty_processed_with_temporal.upload_id
+    user = auth_headers['user1']
+    path_to_delete = 'examples_template/1.aux'
+    async with temporal_worker() as env:
+        url = build_url(
+            f'uploads/{upload_id}/raw/{path_to_delete}',
+            query_args={'trigger_processing': trigger_processing},
+        )
+        delete_result = await asyncio.to_thread(
+            lambda: client.delete(
+                url,
+                headers=user,
+            )
+        )
+        assert_response(delete_result, 200)
+        await _assert_trigger_reprocessing_behavior(
+            env,
+            client,
+            upload_id,
+            user,
+            trigger_processing,
+        )
+
+        upload_files = StagingUploadFiles(upload_id)
+        assert not upload_files.raw_path_exists(path_to_delete)
+
+
+@pytest.mark.parametrize(
+    'trigger_processing',
+    [
+        pytest.param(True, id='trigger-reprocessing'),
+        pytest.param(False, id='no-reprocessing'),
+        pytest.param(None, id='default-reprocessing'),
+    ],
+)
+@pytest.mark.asyncio
+async def test_put_upload_raw_path_trigger_processing_option(
+    temporal_worker,
+    non_empty_processed_with_temporal,
+    client: TestClient,
+    auth_headers,
+    trigger_processing: None | bool,
+):
+    upload_id: str = non_empty_processed_with_temporal.upload_id
+    user = auth_headers['user1']
+    path_to_upload = example_file_aux  # contains '1.aux'
+    async with temporal_worker() as env:
+        url = build_url(
+            f'uploads/{upload_id}/raw/',
+            query_args={
+                'trigger_processing': trigger_processing,
+            },
+        )
+        upload_response = await asyncio.to_thread(
+            lambda: perform_post_put_file(
+                client,
+                'PUT',
+                url,
+                'multipart',
+                path_to_upload,
+                user,
+            )
+        )
+        assert_response(upload_response, 200)
+        await _assert_trigger_reprocessing_behavior(
+            env,
+            client,
+            upload_id,
+            user,
+            trigger_processing,
+        )
+
+        upload_files = StagingUploadFiles(upload_id)
+        assert upload_files.raw_path_exists('1.aux')
+
+
+@pytest.fixture
+def create_upload(elastic_function, raw_files_function, mongo_function, user1):
+
+    default_upload = dict(
+        upload_id='upload_id',
+    )
+
+    default_entry = dict(
+        upload_id=default_upload['upload_id'],
+        entry_id='entry_id',
+    )
+
+    def _create(
+        *,
+        upload: dict | None = None,
+        entry: dict | None = None,
+        skip_entry: bool = False,
+    ):
+        data = ExampleData(main_author=user1)
+        upload = default_upload | (upload or {})
+        data.create_upload(**upload)
+
+        if not skip_entry:
+            entry = default_entry | (entry or {})
+            data.create_entry(**entry)
+
+        data.save()
+        return data
+
+    return _create
+
+
+@pytest.mark.parametrize(
+    'upload_label, user, datacite_enabled, status_code',
+    [
+        pytest.param('published', 'user1', True, 200, id='plain'),
+        pytest.param('published', None, True, 401, id='no-user'),
+        pytest.param('published', 'user2', True, 403, id='wrong-user'),
+        pytest.param('published', 'user1', False, 403, id='datacite-disabled'),
+        pytest.param('with_doi', 'user1', True, 400, id='with-doi'),
+        pytest.param('unpublished', 'user1', True, 400, id='unpublished'),
+        pytest.param('empty', 'user1', True, 400, id='empty'),
+        pytest.param(None, 'user1', True, 404, id='non-existing'),
+    ],
+)
+def test_assign_doi_upload(
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    create_upload,
+    upload_label,
+    user,
+    datacite_enabled,
+    status_code,
+):
+    datacite_mock.set_enabled(datacite_enabled)
+
+    if upload_label == 'published':
+        data = create_upload(upload={'publish_time': now()})
+    elif upload_label == 'with_doi':
+        upload = {'publish_time': now(), 'doi': {'id': '10.83696/test-doi'}}
+        data = create_upload(upload=upload)
+    elif upload_label == 'unpublished':
+        data = create_upload()
+    elif upload_label == 'empty':
+        data = create_upload(skip_entry=True)
+
+    headers = auth_headers[user]
+    response = client.post(f'uploads/upload_id/action/assign-doi', headers=headers)
+
+    assert_response(response, status_code)
+    if not datacite_enabled:
+        assert 'not enabled' in response.json()['detail']
+    if status_code != 200:
+        return
+
+    response = response.json()
+    assert_upload(response)
+    doi_name = response['data']['doi']['id']
+    assert_doi_name(doi_name)

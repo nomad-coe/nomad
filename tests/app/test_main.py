@@ -16,263 +16,21 @@
 # limitations under the License.
 #
 
-import re
-import urllib
+
 from tempfile import NamedTemporaryFile
-from unittest.mock import MagicMock
 
 import pytest
-from fastapi import FastAPI
 from fastapi.routing import APIRoute
-from starlette.responses import PlainTextResponse
-from starlette.routing import Mount, Route
-from starlette.testclient import TestClient
+from starlette.routing import Mount
 
-from nomad.app.main import OASIS_AUTH_WHITELIST, OasisAuthenticationMiddleware
-from nomad.auth.keycloak import KeycloakError
-from tests import ORIGINAL_API_BASE_PATH
-
-# Tests for `OasisAuthenticationMiddleware`
-
-
-@pytest.mark.parametrize(
-    'whitelist_patterns, request_path, expected_status, expected_text',
-    [
-        # Exact match: allow only `/info`
-        ([r'^/info$'], '/info', 200, 'I am nomad'),
-        (
-            [r'^/info$'],
-            '/protected',
-            401,
-            'Authentication required.',
-        ),
-        (
-            [r'^/info$'],
-            '/protected/info',
-            401,
-            'Authentication required.',
-        ),
-        # Prefix match: allow `/info` and all under `/info/...`
-        ([r'^/info'], '/info', 200, 'I am nomad'),
-        (
-            [r'^/info'],
-            '/protected',
-            401,
-            'Authentication required.',
-        ),
-        # Allow `/protected` path
-        ([r'^/protected'], '/protected', 200, 'protected endpoint'),
-        # Allow nested route
-        ([r'^/protected/info'], '/protected/info', 200, 'I am nested'),
-        # Catch-all: allow everything
-        ([r'.*'], '/protected', 200, 'protected endpoint'),
-        # No match at all: all endpoints require auth
-        (
-            [r'^/nonexistent$'],
-            '/info',
-            401,
-            'Authentication required.',
-        ),
-        (
-            [r'^/nonexistent$'],
-            '/protected',
-            401,
-            'Authentication required.',
-        ),
-    ],
-)
-def test_oasis_auth_middleware_whitelist(
-    whitelist_patterns, request_path, expected_status, expected_text, monkeypatch
-):
-    def create_client():
-        app = FastAPI()
-
-        @app.get('/protected')
-        async def protected():
-            return PlainTextResponse('protected endpoint')
-
-        @app.get('/info')
-        async def info():
-            return PlainTextResponse('I am nomad')
-
-        @app.get('/protected/info')
-        async def nested():
-            return PlainTextResponse('I am nested')
-
-        app.add_middleware(OasisAuthenticationMiddleware, whitelist=whitelist_patterns)
-        return TestClient(app)
-
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
-
-    response = create_client().get(request_path)
-
-    assert response.status_code == expected_status
-    if expected_text is not None:
-        assert response.text == expected_text
-
-
-@pytest.fixture
-def app_middleware_client():
-    """FastAPI client for testing OasisAuthenticationMiddleware."""
-
-    def app():
-        app = FastAPI()
-
-        @app.get('/protected')
-        async def protected():
-            return PlainTextResponse('protected endpoint')
-
-        @app.get('/info')
-        async def info():
-            return PlainTextResponse('I am nomad')
-
-        app.add_middleware(OasisAuthenticationMiddleware, whitelist={'^/info'})
-        return app
-
-    return TestClient(app())
-
-
-@pytest.fixture
-def mock_user():
-    user = MagicMock()
-    user.email = 'someone@example.com'
-    return user
-
-
-@pytest.mark.parametrize('token_source', ['header', 'cookie'])
-def test_oasis_auth_middleware_valid_keycloak_token(
-    app_middleware_client, monkeypatch, mock_user, token_source
-):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
-    monkeypatch.setattr(
-        'nomad.auth.keycloak.keycloak.tokenauth', lambda token: mock_user
-    )
-    monkeypatch.setattr('nomad.config.oasis.allowed_users', {mock_user.email})
-    monkeypatch.setattr(
-        'nomad.app.v1.routers.auth.datamodel.User.get',
-        lambda *args, **kwargs: mock_user,
-    )
-    if token_source == 'header':
-        response = app_middleware_client.get(
-            '/protected', headers={'Authorization': 'Bearer valid'}
-        )
-    else:  # cookie
-        cookie_val = urllib.parse.quote('Bearer valid')
-        response = app_middleware_client.get(
-            '/protected', cookies={'Authorization': cookie_val}
-        )
-    assert response.status_code == 200
-    assert response.text == 'protected endpoint'
-
-
-def test_oasis_auth_middleware_invalid_keycloak_token(
-    app_middleware_client, monkeypatch
-):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
-
-    def mock_tokenauth(token):
-        raise KeycloakError('Invalid token')
-
-    monkeypatch.setattr('nomad.auth.keycloak.keycloak.tokenauth', mock_tokenauth)
-
-    response = app_middleware_client.get(
-        '/protected', headers={'Authorization': 'Bearer invalid'}
-    )
-
-    assert response.status_code == 401
-    assert response.text == 'Invalid token'
-
-
-@pytest.mark.parametrize(
-    'token_auth, token_param',
-    [
-        ('get_user_from_upload_token', 'Upload-Token'),
-        ('get_user_from_simple_token', 'Authorization'),
-    ],
-)
-def test_oasis_auth_middleware_upload_simple_token(
-    token_auth, token_param, app_middleware_client, monkeypatch, mock_user
-):
-    """Test passing auth middleware with upload/simple tokens."""
-    monkeypatch.setattr(
-        'nomad.app.v1.routers.auth.config.oasis.require_authentication', True
-    )
-
-    monkeypatch.setattr(
-        f'nomad.app.v1.routers.auth.{token_auth}',
-        lambda *args, **kwargs: mock_user,
-    )
-
-    monkeypatch.setattr(
-        'nomad.app.v1.routers.auth.config.oasis.allowed_users', {mock_user.email}
-    )
-    monkeypatch.setattr(
-        'nomad.app.v1.routers.auth.datamodel.User.get',
-        lambda *args, **kwargs: mock_user,
-    )
-
-    if token_param == 'Upload-Token':
-        # Upload token in "Upload-Token" header
-        response = app_middleware_client.get(
-            '/protected',
-            headers={token_param: 'abc'},
-        )
-    else:
-        # Need to patch `get_user_from_keycloak_token` because middleware
-        # cannot differentiate keycloak token from simple token,
-        # and would try simple token in `get_user_from_keycloak_token`
-        # first as it's enabled by default
-        monkeypatch.setattr(
-            'nomad.app.v1.routers.auth.get_user_from_keycloak_token',
-            lambda *args, **kwargs: None,
-        )
-        monkeypatch.setattr(
-            'nomad.app.v1.routers.auth.jwt.decode',
-            lambda *args, **kwargs: {'user': mock_user.user_id, 'exp': 600},
-        )
-
-        # Simple token as "Authorization: Bearer <token>"
-        response = app_middleware_client.get(
-            '/protected',
-            headers={token_param: 'Bearer abc'},
-        )
-
-    assert response.status_code == 200
-    assert response.text == 'protected endpoint'
-
-
-def test_oasis_auth_middleware_user_not_allowed(
-    app_middleware_client, monkeypatch, mock_user
-):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
-    monkeypatch.setattr(
-        'nomad.auth.keycloak.keycloak.tokenauth', lambda token: mock_user
-    )
-    monkeypatch.setattr('nomad.config.oasis.allowed_users', {})
-    response = app_middleware_client.get(
-        '/protected', headers={'Authorization': 'Bearer valid'}
-    )
-    assert response.status_code == 403
-    assert response.text == 'You are not authorized to access this Oasis'
-
-
-def test_oasis_auth_middleware_rejects_legacy_query_token(
-    monkeypatch, app_middleware_client
-):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
-    response = app_middleware_client.get('/protected?token=abc123')
-
-    assert response.status_code == 400
-    assert 'Passing upload token via query parameter' in response.text
-
+from nomad.app.v1.models.models import User
+from nomad.auth.scopes import Scope, _resolve_scopes
+from nomad.auth.tokens import AuthResult
 
 # Tests for `/alive`, `/-/health` and static files app (`/docs` and `/gui`)
 
 
-@pytest.mark.parametrize('require_auth', [True, False])
-def test_alive_health(monkeypatch, client, require_auth):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', require_auth)
-
+def test_alive_health(client):
     assert client.get('/alive').status_code == 200
     assert client.get('/-/health').status_code == 200
 
@@ -304,121 +62,243 @@ def test_gui(client, path, monkeypatch):
         assert rv.status_code == 200
 
 
-# Verify `OasisAuthenticationMiddleware` is applied correctly in NOMAD
+# Test scopes enforcing
 
 
-def collect_all_routes(
-    app: FastAPI, prefix: str = ''
-) -> tuple[list[tuple[str, str, Route]], list[tuple[str, str, Route]]]:
+@pytest.fixture
+def allowed_user() -> User:
+    return User(user_id='123', email='test@example.com', username='tester')
+
+
+@pytest.fixture
+def patch_user_get(monkeypatch):
     """
-    Recursively collects (method, full_path, route) as tuples from a FastAPI app.
-
-    Returns:
-        (protected_routes, always_open_routes) based on whitelist matching.
+    Patch nomad.app.v1.routers.auth.datamodel.User.get to return the given user.
     """
 
-    def infer_app_name_from_path(path: str) -> str:
-        if path.startswith('/api/v1'):
-            return 'v1_app'
-        elif path.startswith('/optimade'):
-            return 'optimade_app'
-        elif path.startswith('/dcat'):
-            return 'dcat_app'
-        elif path.startswith('/h5grove'):
-            return 'h5grove_app'
+    def _apply(user: User | None) -> None:
+        monkeypatch.setattr(
+            'nomad.app.v1.routers.auth.datamodel.User.get',
+            lambda *args, **kwargs: user,
+        )
 
-        return 'main_app'
-
-    protected_routes: list[tuple[str, str, Route]] = []
-    whitelisted_routes: list[tuple[str, str, Route]] = []
-
-    for route in app.router.routes:
-        full_path = ORIGINAL_API_BASE_PATH + prefix + getattr(route, 'path', '')
-
-        if isinstance(route, APIRoute | Route):
-            method: str = sorted(route.methods)[0]  # one method each endpoint
-            app_name: str = infer_app_name_from_path(full_path)
-
-            # `main_app` should not be affected by this auth middleware
-            if app_name == 'main_app' or any(
-                re.search(pattern, full_path)
-                for pattern in OASIS_AUTH_WHITELIST[app_name]
-            ):
-                whitelisted_routes.append((method, full_path, route))
-            else:
-                protected_routes.append((method, full_path, route))
-
-        elif isinstance(route, Mount):
-            subapp = route.app
-            if isinstance(subapp, FastAPI):
-                sub_protected, sub_whitelisted = collect_all_routes(subapp, full_path)
-                protected_routes.extend(sub_protected)
-                whitelisted_routes.extend(sub_whitelisted)
-
-        else:
-            raise ValueError(f'Unknown {type(route)=}')
-
-    return protected_routes, whitelisted_routes
+    return _apply
 
 
-@pytest.fixture(scope='function')
-def route_collections(client, monkeypatch) -> dict[str, list[tuple[str, str, Route]]]:
-    monkeypatch.setattr('nomad.config.config.oasis.require_authentication', True)
+@pytest.fixture
+def patch_keycloak_result(monkeypatch, allowed_user):
+    """
+    Patch keycloak token resolution to return an AuthResult with chosen scopes.
+    """
 
-    protected_routes, always_open_routes = collect_all_routes(client.app)
-    return {'protected': protected_routes, 'whitelisted': always_open_routes}
+    def _apply(scopes: set[str]) -> None:
+        monkeypatch.setattr(
+            'nomad.app.v1.routers.auth.get_user_from_keycloak_token',
+            lambda _token: AuthResult(allowed_user, _resolve_scopes(scopes)),
+        )
 
-
-def test_all_protected_endpoints(client, route_collections, monkeypatch):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
-
-    protected_routes = route_collections['protected']
-
-    failures: list[str] = []
-    for method, path, _ in protected_routes:
-        method_func = {
-            'GET': client.get,
-            'POST': client.post,
-            'PUT': client.put,
-            'DELETE': client.delete,
-            'HEAD': client.head,
-        }.get(method)
-
-        if method_func is None:
-            failures.append(f'Unsupported HTTP {method=} for {path=}')
-            continue
-
-        try:
-            response = method_func(path)
-            if response.status_code != 401:
-                failures.append(
-                    f'Expected 401 for {method} {path}, but got {response.status_code}.\n'
-                    f'Response: {response.text}'
-                )
-        except Exception as e:
-            failures.append(f'Error testing {method} {path}: {str(e)}')
-
-    if failures:
-        pytest.fail('\n'.join(failures))
+    return _apply
 
 
-def test_all_whitelisted_endpoints(client, route_collections, monkeypatch):
-    monkeypatch.setattr('nomad.config.oasis.require_authentication', True)
+@pytest.fixture
+def force_keycloak_path(monkeypatch):
+    """
+    Ensure the resolver does not authenticate via simple token first.
 
-    whitelisted_routes = route_collections['whitelisted']
+    Both simple_token and keycloak_token can read from the same Authorization header.
+    The resolver checks simple-token first, so we force that branch to return None.
+    """
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.get_user_from_simple_token',
+        lambda _token: None,
+    )
 
-    failures: list[str] = []
-    for method, path, _ in whitelisted_routes:
-        if method == 'GET':
-            try:
-                response = client.get(path)
-                if response.status_code not in {200, 404}:
-                    failures.append(
-                        f'Expected 200 or 404 for GET {path}, but got {response.status_code}. '
-                        f'Response: {response.text}'
-                    )
-            except Exception as e:
-                failures.append(f'Error testing GET {path}: {str(e)}')
 
-    if failures:
-        pytest.fail('\n'.join(failures))
+def test_anonymous_allowed(client, monkeypatch):
+    monkeypatch.setattr(
+        'nomad.config.config.auth.unauthenticated_user_scopes',
+        {'include': ['*:read']},
+    )
+
+    response = client.get('/api/v1/apps/entry-points')
+    assert response.status_code == 200
+
+    monkeypatch.setattr(
+        'nomad.config.config.auth.unauthenticated_user_scopes', {'include': []}
+    )
+
+    response = client.get('/api/v1/apps/entry-points')
+    assert response.status_code == 403
+    assert 'Missing scopes' in response.json()['detail']
+
+
+def test_anonymous_not_allowed(client, monkeypatch):
+    monkeypatch.setattr(
+        'nomad.config.config.auth.unauthenticated_user_scopes', {'include': {'*:*'}}
+    )
+
+    response = client.get('/api/v1/auth/signature_token')
+    assert response.status_code == 401
+    assert response.json()['detail'] == 'Authentication required.'
+
+
+def test_authenticated_missing_scope(
+    client,
+    auth_headers,
+    allowed_user,
+    patch_user_get,
+    patch_keycloak_result,
+    force_keycloak_path,
+):
+    patch_user_get(allowed_user)
+
+    patch_keycloak_result({Scope.UPLOADS_READ})
+
+    response = client.get('/api/v1/apps/entry-points', headers=auth_headers['user1'])
+    assert response.status_code == 403
+    detail = response.json()['detail']
+    assert 'Missing scopes' in detail
+    assert Scope.APPS_READ in detail
+
+
+def test_authenticated_success(
+    client,
+    auth_headers,
+    allowed_user,
+    patch_user_get,
+    patch_keycloak_result,
+    force_keycloak_path,
+):
+    patch_user_get(allowed_user)
+    patch_keycloak_result({Scope.APPS_READ})
+
+    response = client.get('/api/v1/apps/entry-points', headers=auth_headers['user1'])
+    assert response.status_code == 200
+
+
+def test_external_app_optimade(
+    client,
+    auth_headers,
+    allowed_user,
+    patch_user_get,
+    patch_keycloak_result,
+    force_keycloak_path,
+):
+    patch_user_get(allowed_user)
+
+    patch_keycloak_result({Scope.EXTERNAL_OPTIMADE_READ})
+    response = client.get('/optimade/info', headers=auth_headers['user1'])
+
+    assert response.status_code == 200
+
+    patch_keycloak_result(set())
+    response = client.get('/optimade/info', headers=auth_headers['user1'])
+
+    assert response.status_code == 403
+    assert 'Missing scopes' in response.json()['detail']
+
+
+def test_external_app_h5grove(
+    client,
+    auth_headers,
+    allowed_user,
+    patch_user_get,
+    patch_keycloak_result,
+    force_keycloak_path,
+    example_data,
+):
+    patch_user_get(allowed_user)
+
+    patch_keycloak_result({Scope.EXTERNAL_H5GROVE_READ, Scope.UPLOADS_READ})
+    url = '/h5grove/?upload_id=id_published&file=id_published_1&path=/&source=archive'
+
+    response = client.get(url, headers=auth_headers['user1'])
+    assert response.status_code == 200
+
+    patch_keycloak_result(set())
+    response = client.get(url, headers=auth_headers['user1'])
+
+    assert response.status_code == 403
+    assert 'Missing scopes' in response.json()['detail']
+
+
+def test_external_app_dcat(
+    client,
+    auth_headers,
+    allowed_user,
+    patch_user_get,
+    patch_keycloak_result,
+    force_keycloak_path,
+):
+    patch_user_get(allowed_user)
+
+    patch_keycloak_result(set())
+    response = client.get('/dcat/catalog/?format=turtle', headers=auth_headers['user1'])
+
+    assert response.status_code == 403
+    assert 'Missing scopes' in response.json()['detail']
+
+    # TODO: here I didn't manage to do a "success" case test because
+    # dcat doesn't seem to have any lightweight endpoint and would
+    # always need some data (see `test_dcat.py`)
+
+
+# Ensure auth dependency is injected correctly to all endpoints
+
+
+def test_user_dependency_on_all_endpoints():
+    from nomad.app.main import app
+
+    ignored_mounts = {'/optimade', '/dcat', '/h5grove'}
+
+    whitelisted_endpoints = {
+        '/alive',
+        '/-/health',
+    }
+    expected_unprotected = {'/api/v1/auth/token'}
+
+    missing_auth_routes = []
+    unexpected_auth_routes = []
+
+    def inspect_routes(routes, prefix=''):
+        for route in routes:
+            if isinstance(route, Mount):
+                if route.path in ignored_mounts:
+                    continue
+                if hasattr(route.app, 'routes'):
+                    inspect_routes(route.app.routes, prefix + route.path)
+
+            elif isinstance(route, APIRoute):
+                full_path = prefix + route.path
+
+                if full_path in whitelisted_endpoints:
+                    continue
+
+                # Introspect the dependency tree
+                has_auth = False
+                if hasattr(route, 'dependant'):
+                    for dep in route.dependant.dependencies:
+                        callable_name = getattr(dep.call, '__name__', '')
+                        if callable_name == 'current_user':
+                            has_auth = True
+                            break
+
+                method = list(route.methods)[0] if route.methods else 'UNKNOWN'
+
+                if full_path in expected_unprotected:
+                    if has_auth:
+                        unexpected_auth_routes.append(f'{method} {full_path}')
+                else:
+                    if not has_auth:
+                        missing_auth_routes.append(f'{method} {full_path}')
+
+    inspect_routes(app.routes)
+
+    assert not missing_auth_routes, (
+        'The following endpoints are missing the auth dependency:\n'
+        + '\n'.join(missing_auth_routes)
+    )
+    assert not unexpected_auth_routes, (
+        "The following endpoints require auth but shouldn't:\n"
+        + '\n'.join(unexpected_auth_routes)
+    )

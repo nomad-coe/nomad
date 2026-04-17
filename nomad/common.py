@@ -21,8 +21,8 @@ source code. Notably, this module should be importable anywhere in the NOMAD
 source code without circular imports.
 """
 
+import importlib.util
 import os
-import pkgutil
 import shutil
 import tarfile
 import zipfile
@@ -46,16 +46,14 @@ def get_package_path(package_name: str) -> str:
         root_package = package_path_segments[0]
         package_dirs = package_path_segments[1:]
         package_path = os.path.join(
-            os.path.dirname(
-                pkgutil.get_loader(root_package).get_filename()  # type: ignore
-            ),
+            os.path.dirname(importlib.util.find_spec(root_package).origin),  # type:ignore
             *package_dirs,
         )
         if not os.path.isdir(package_path):
             # We could not find it this way. Let's try to official way
-            package_path = os.path.dirname(
-                pkgutil.get_loader(package_name).get_filename()  # type: ignore
-            )
+            if package_module_spec := importlib.util.find_spec(package_name):
+                if package_origin := package_module_spec.origin:
+                    package_path = os.path.dirname(package_origin)
     except Exception as e:
         raise ValueError(f'The python package {package_name} cannot be loaded.', e)
 
@@ -77,7 +75,7 @@ def download_file(url: str, filepath: str) -> str | None:
         ValueError: If the given file cannot be downloaded.
     """
     if os.path.isdir(filepath):
-        filename = url.rsplit('/')[-1]
+        filename = url.rsplit('/', maxsplit=1)[-1]
         final_filepath = os.path.join(filepath, filename)
     else:
         filename = os.path.basename(filepath)

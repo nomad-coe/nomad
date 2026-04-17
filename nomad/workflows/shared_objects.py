@@ -70,6 +70,7 @@ class UploadWorkflowIdInput:
     process_name: str
     failure_message: str | None = None
     error_details: str | None = None
+    trigger_processing: bool = True
 
 
 @dataclass
@@ -101,6 +102,7 @@ class UploadProcessingWorkflowInput:
     workflow_id: str
     workflow_tmp_dir: str
     file_operations: list[dict[str, Any]] | None = None
+    trigger_processing: bool = True
     reprocess_settings: dict[str, Any] | None = None
     path_filter: str | None = None
     only_updated_files: bool = False
@@ -121,8 +123,37 @@ class EntriesToBeProcessedResult:
     upload_id: str
     entries: list[ProcessEntryActivityInput] | None = None
     directory: str | None = None
+    current_sub_batch_index: int = 0
+    current_batch_id: int = 0
     total_batches: int = 0
     next_parser_level: int | None = None
+
+
+@dataclass
+class CleanupEntryBatchFromFileInput:
+    upload_id: str
+    batch_dir_path: str
+    batch_id: int
+
+
+@dataclass
+class CleanupEntriesBatchActivityInput:
+    """Input for one cleanup indexing batch."""
+
+    upload_id: str
+    entry_ids: list[str]
+    refresh: bool = True
+
+
+@dataclass
+class CleanupEntriesResult:
+    """Prepared cleanup work. Empty means the fast path already finished cleanup."""
+
+    upload_id: str
+    entry_ids: list[str] | None = None
+    directory: str | None = None
+    current_sub_batch_index: int = 0
+    total_batches: int = 0
 
 
 @dataclass

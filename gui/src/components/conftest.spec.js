@@ -83,7 +83,7 @@ beforeEach(async () => {
 const fs = require('fs')
 const crypto = require('crypto')
 const { execSync } = require('child_process')
-const keycloakURL = `${keycloakBase}realms/fairdi_nomad_test/protocol/openid-connect/token`
+const keycloakURL = `${keycloakBase}/realms/fairdi_nomad_test/protocol/openid-connect/token`
 
 jest.mock('@react-keycloak/web', () => {
   const originalModule = jest.requireActual('@react-keycloak/web')

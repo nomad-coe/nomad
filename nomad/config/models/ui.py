@@ -89,6 +89,7 @@ dimensions = [
     'luminance',
     'illuminance',
     'electric_potential',
+    'electric_field_gradient',
     'capacitance',
     'activity',
 ]
@@ -155,6 +156,7 @@ class UnitSystem(ConfigBaseModel):
             'luminance': 'nit',
             'illuminance': 'lx',
             'electric_potential': 'V',
+            'electric_field_gradient': 'V/m^2',
             'capacitance': 'F',
             'activity': 'kat',
         }
@@ -663,7 +665,7 @@ class HistogramBase(ConfigBaseModel):
     n_bins: int | None = Field(
         None,
         description="""
-        Maximum number of histogram bins. Notice that the actual number of bins
+        Maximum number of histogram bins to request. Notice that the returned number of bins
         may be smaller if there are fewer data items available.
         """,
     )
@@ -738,6 +740,90 @@ class PeriodicTableBase(ConfigBaseModel):
         if quantity is not None and search_quantity is None:
             values['search_quantity'] = quantity
             del values['quantity']
+
+        return values
+
+
+class Markers(ConfigBaseModel):
+    """Configuration for plot markers."""
+
+    color: Axis | None = Field(
+        None,
+        description='Configures the information source and display options for the marker colors.',
+    )
+
+
+class BoxPlotBase(ConfigBaseModel):
+    """Base model for configuring box plot components."""
+
+    type: Literal['box_plot'] = Field(
+        description='Set as `box_plot` to get this component type.',
+        json_schema_extra={'hidden': True},
+    )  # type: ignore[call-overload]
+    sample_size: int = Field(
+        1000,
+        description="""
+        Maximum number of samples to fetch. Notice that the actual number of data points
+        may be more or less, depending on how many entries exist and how many of the
+        requested values each entry contains.
+        """,
+    )
+    show_points: bool = Field(
+        True,
+        description='Whether to show individual data points.',
+    )
+    y: Axis = Field(
+        description='Configures the information source and display options for the y-axis.'
+    )
+    group_by: str | None = Field(
+        None,
+        description="""
+        Optional quantity used to group data into separate boxes along the x-axis. The
+        groups will be ordered by the number of points matching each group in a descending
+        order.
+        """,
+    )
+    group_by_size: int = Field(
+        10,
+        description="""
+        Maximum number of groups to request when `group_by` is set. Note that the returned
+        number of groups may be smaller because any group which does not contain the
+        y-value still count in this limit, but are not returned to avoid visualization of
+        empty groups.
+        """,
+    )
+    subgroup_by: str | None = Field(
+        None,
+        description="""
+        Optional quantity used to subgroup the groups into separate boxes along the
+        x-axis. The subgroups will be ordered by the number of points matching each group
+        in a descending order.
+        """,
+    )
+    subgroup_by_size: str | None = Field(
+        None,
+        description="""
+        Maximum number of subgroups to request when `subgroup_by` is set. Note that the
+        returned number of subgroups may be smaller because any subgroup which does not
+        contain the y-value still count in this limit, but are not returned to avoid
+        visualization of empty groups.
+        """,
+    )
+    autorange: bool = Field(
+        True,
+        description='Whether to automatically set the range according to the data limits.',
+    )
+    markers: Markers | None = Field(
+        None,
+        description='Configures the information source and display options for the markers.',
+    )
+
+    @model_validator(mode='before')
+    @classmethod
+    def _validate(cls, values):
+        if isinstance(values, BaseModel):
+            values = values.model_dump(exclude_none=True)
+        values['type'] = 'box_plot'
 
         return values
 
@@ -1058,15 +1144,6 @@ class AxisLimitedScale(AxisQuantity):
     )
 
 
-class Markers(ConfigBaseModel):
-    """Configuration for plot markers."""
-
-    color: Axis | None = Field(
-        None,
-        description='Configures the information source and display options for the marker colors.',
-    )
-
-
 class Widget(ConfigBaseModel):
     """Common configuration for all widgets."""
 
@@ -1180,6 +1257,15 @@ class WidgetScatterPlot(Widget):
         more or less, depending on how many entries exist and how many of the
         requested values each entry contains.
         """,
+        deprecated="""Deprecated, use 'sample_size' instead.""",
+    )
+    sample_size: int = Field(
+        1000,
+        description="""
+        Maximum number of samples to fetch. Notice that the actual number of data points
+        may be more or less, depending on how many entries exist and how many of the
+        requested values each entry contains.
+        """,
     )
     drag_mode: str = Field(
         DragModeEnum.ZOOM,
@@ -1212,6 +1298,12 @@ class WidgetScatterPlot(Widget):
         y = values.get('y')
         if isinstance(y, str):
             values['y'] = {'search_quantity': y}
+
+        # size backwards compatibility
+        size = values.get('size')
+        if size:
+            values['sample_size'] = size
+
         return values
 
 
@@ -1245,6 +1337,15 @@ class WidgetScatterPlotDeprecated(WidgetScatterPlot):
         return values
 
 
+class WidgetBoxPlot(Widget, BoxPlotBase):
+    """Box plot widget configuration."""
+
+    type: Literal['box_plot'] = Field(  # type: ignore[assignment]
+        description='Set as `box_plot` to get this type.',
+        json_schema_extra={'hidden': True},
+    )  # type: ignore[call-overload]
+
+
 # The 'discriminated union' feature of Pydantic is used here:
 # https://docs.pydantic.dev/usage/types/#discriminated-unions-aka-tagged-unions
 WidgetAnnotated = Annotated[
@@ -1252,6 +1353,7 @@ WidgetAnnotated = Annotated[
     | WidgetHistogram
     | WidgetScatterPlot
     | WidgetScatterPlotDeprecated
+    | WidgetBoxPlot
     | WidgetPeriodicTable
     | WidgetPeriodicTableDeprecated,
     Field(discriminator='type'),

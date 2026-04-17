@@ -1,8 +1,11 @@
+import asyncio
+from datetime import datetime, timedelta, timezone
 from importlib.metadata import EntryPoint
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel
+from temporalio import workflow
 from temporalio.client import WorkflowExecutionStatus
 
 from nomad.actions.action import Action
@@ -10,10 +13,16 @@ from nomad.actions.manager import (
     _get_param_schema,
     _validate_with_pydantic,
     get_action_result,
+    get_action_result_async,
     get_action_status,
+    get_action_status_async,
     get_all_action_schemas,
-    get_all_user_actions,
+    get_user_action,
+    list_user_actions,
     start_action,
+    start_action_async,
+    stop_action,
+    submit_signal_input,
     validate_action_arg,
 )
 from nomad.mongo.action import ActionDocument
@@ -36,9 +45,11 @@ def mock_action_entry_point():
     mock_action.description = 'My action description'
     mock_action.task_queue = 'my-task-queue'
 
-    mock_workflow = MagicMock()
-    mock_workflow.run = my_workflow_run
-    mock_action.workflow = mock_workflow
+    class DummyWorkflow:
+        async def run(self, args: MyActionArgs):
+            pass
+
+    mock_action.workflow = DummyWorkflow
 
     mock_entry_point = MagicMock(spec=EntryPoint)
     mock_entry_point.load.return_value = mock_action
@@ -96,7 +107,219 @@ def test_get_all_action_schemas(monkeypatch, mock_action_entry_point):
     assert 'arg1' in schemas[0].json_schema['properties']
 
 
-def test_start_action(monkeypatch, mongo_function, user1, mock_action_entry_point):
+@workflow.defn
+class RealTemporalWorkflowWithSignal:
+    @workflow.run
+    async def run(self, args: MyActionArgs):
+        pass
+
+    @workflow.signal
+    def test_signal(self, signal_arg: int):
+        pass
+
+
+@workflow.defn
+class RealTemporalWorkflowWithAliasedSignal:
+    @workflow.run
+    async def run(self, args: MyActionArgs):
+        pass
+
+    @workflow.signal(name='runtime_signal_name')
+    def method_signal_name(self, signal_arg: int):
+        pass
+
+
+def test_get_all_action_schemas_temporal_signal(monkeypatch):
+    mock_action = MagicMock(spec=Action)
+    mock_action.name = 'Temporal Action'
+    mock_action.description = 'Temporal action description'
+    mock_action.task_queue = 'temporal-task-queue'
+    mock_action.workflow = RealTemporalWorkflowWithSignal
+
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+    mock_entry_point.name = 'Temporal Action'
+    mock_entry_point.description = 'Temporal action description'
+    mock_entry_point.task_queue = 'temporal-task-queue'
+    mock_entry_point.plugin_package = 'temporal-plugin'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'temporal-action': mock_entry_point},
+    )
+    schemas = get_all_action_schemas()
+    assert len(schemas) == 1
+    assert schemas[0].action_id == 'temporal-action'
+    assert schemas[0].signals is not None
+    assert len(schemas[0].signals) == 1
+
+    signal_schema = schemas[0].signals[0].get('test_signal')
+    assert signal_schema is not None
+    assert signal_schema.get('type') == 'integer'
+
+
+def test_get_all_action_schemas_uses_python_method_name_for_signal(monkeypatch):
+    mock_action = MagicMock(spec=Action)
+    mock_action.name = 'Temporal Action'
+    mock_action.description = 'Temporal action description'
+    mock_action.task_queue = 'temporal-task-queue'
+    mock_action.workflow = RealTemporalWorkflowWithAliasedSignal
+
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+    mock_entry_point.name = 'Temporal Action'
+    mock_entry_point.description = 'Temporal action description'
+    mock_entry_point.task_queue = 'temporal-task-queue'
+    mock_entry_point.plugin_package = 'temporal-plugin'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'temporal-action': mock_entry_point},
+    )
+    schemas = get_all_action_schemas()
+    assert len(schemas) == 1
+    assert schemas[0].signals is not None
+    assert schemas[0].signals[0].get('method_signal_name') is not None
+    assert schemas[0].signals[0].get('runtime_signal_name') is None
+
+
+def test_start_action_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_start_action_async(action_id, data):
+        assert action_id == 'my-action'
+        return 'workflow-sync-id'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._start_action_async',
+        mock_start_action_async,
+    )
+
+    assert start_action('my-action', object()) == 'workflow-sync-id'
+
+
+@pytest.mark.asyncio
+async def test_start_action_sync_facade_works_inside_running_loop(monkeypatch):
+    running_loop = asyncio.get_running_loop()
+    observed_loops: list[asyncio.AbstractEventLoop] = []
+
+    async def mock_init_async_mongo():
+        observed_loops.append(asyncio.get_running_loop())
+
+    async def mock_start_action_async(action_id, data):
+        assert action_id == 'my-action'
+        observed_loops.append(asyncio.get_running_loop())
+        return 'workflow-thread-id'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._start_action_async',
+        mock_start_action_async,
+    )
+
+    assert start_action('my-action', object()) == 'workflow-thread-id'
+    assert len(observed_loops) == 2
+    assert all(loop is not running_loop for loop in observed_loops)
+
+
+@pytest.mark.asyncio
+async def test_start_action_sync_facade_propagates_exceptions(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_start_action_async(action_id, data):
+        raise RuntimeError('boom')
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._start_action_async',
+        mock_start_action_async,
+    )
+
+    with pytest.raises(RuntimeError, match='boom'):
+        start_action('my-action', object())
+
+
+def test_get_action_status_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_get_action_status_async(action_instance_id, user_id):
+        assert action_instance_id == 'workflow-1'
+        assert user_id == 'user-1'
+        return WorkflowExecutionStatus.RUNNING
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._get_action_status_async',
+        mock_get_action_status_async,
+    )
+
+    status = get_action_status('workflow-1', 'user-1')
+    assert status == WorkflowExecutionStatus.RUNNING
+    assert status.name == 'RUNNING'
+
+
+def test_stop_action_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_stop_action_async(action_instance_id, user_id):
+        assert action_instance_id == 'workflow-1'
+        assert user_id == 'user-1'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager._stop_action_async',
+        mock_stop_action_async,
+    )
+
+    assert stop_action('workflow-1', 'user-1') is None
+
+
+def test_get_action_result_sync_facade_returns_value(monkeypatch):
+    async def mock_init_async_mongo():
+        return None
+
+    async def mock_get_action_result_async(action_instance_id, user_id):
+        assert action_instance_id == 'workflow-1'
+        assert user_id == 'user-1'
+        return {'result': 'success'}
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.infrastructure.init_async_mongo',
+        mock_init_async_mongo,
+    )
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_action_result_async',
+        mock_get_action_result_async,
+    )
+
+    result = get_action_result('workflow-1', 'user-1')
+    assert result == {'result': 'success'}
+
+
+@pytest.mark.asyncio
+async def test_start_action(
+    monkeypatch, mongo_function, async_mongo_function, user1, mock_action_entry_point
+):
     monkeypatch.setattr(
         'nomad.actions.manager.get_actions',
         lambda: {'my-action': mock_action_entry_point},
@@ -110,9 +333,17 @@ def test_start_action(monkeypatch, mongo_function, user1, mock_action_entry_poin
     )
 
     args = MyActionArgs(arg1='test', arg2=123, user_id=user1.user_id)
-    action_instance_id = start_action('my-action', args)
+    action_instance_id = await start_action_async('my-action', args)
 
     assert action_instance_id is not None
+
+    # Verify the document was actually created in the DB
+    doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == action_instance_id
+    )
+    assert doc is not None
+    assert doc.action_id == 'my-action'
+    assert doc.status == 'PENDING'
 
 
 @pytest.fixture
@@ -140,7 +371,10 @@ def mock_temporal_client(monkeypatch):
     return mock_client
 
 
-def test_get_action_status(mongo_function, user1, mock_temporal_client):
+@pytest.mark.asyncio
+async def test_get_action_status(
+    mongo_function, async_mongo_function, user1, mock_temporal_client
+):
     action_doc = ActionDocument(
         action_id='my-action',
         action_instance_id='workflow-123',
@@ -148,19 +382,56 @@ def test_get_action_status(mongo_function, user1, mock_temporal_client):
         status='PENDING',
         input_data={},
     )
-    action_doc.save()
+    await action_doc.insert()
 
-    status = get_action_status('workflow-123', user1.user_id)
+    status = await get_action_status_async('workflow-123', user1.user_id)
     assert status == WorkflowExecutionStatus.RUNNING
 
-    action_doc.reload()
-    assert action_doc.status == 'RUNNING'
+    # Verify the status was updated in the DB
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-123'
+    )
+    assert updated_doc.status == 'RUNNING'
 
     with pytest.raises(Exception):
-        get_action_status('nonexistent-workflow', user1.user_id)
+        await get_action_status_async('nonexistent-workflow', user1.user_id)
 
 
-def test_get_action_result(mongo_function, user1, mock_temporal_client):
+@pytest.mark.asyncio
+async def test_get_action_status_returns_terminated_when_workflow_missing(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-missing',
+        user_id=user1.user_id,
+        status='RUNNING',
+        input_data={},
+    )
+    await action_doc.insert()
+
+    async def mock_get_workflow_status_safe(action_instance_id):
+        assert action_instance_id == 'workflow-missing'
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._get_workflow_status_safe',
+        mock_get_workflow_status_safe,
+    )
+
+    status = await get_action_status_async('workflow-missing', user1.user_id)
+    assert status == WorkflowExecutionStatus.TERMINATED
+
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-missing'
+    )
+    assert updated_doc is not None
+    assert updated_doc.status == 'TERMINATED'
+
+
+@pytest.mark.asyncio
+async def test_get_action_result(
+    mongo_function, async_mongo_function, user1, mock_temporal_client
+):
     action_doc = ActionDocument(
         action_id='my-action',
         action_instance_id='workflow-123',
@@ -168,43 +439,254 @@ def test_get_action_result(mongo_function, user1, mock_temporal_client):
         status='RUNNING',
         input_data={},
     )
-    action_doc.save()
+    await action_doc.insert()
 
-    result = get_action_result('workflow-123', user1.user_id)
+    result = await get_action_result_async('workflow-123', user1.user_id)
     assert result == {'result': 'success'}
 
-    action_doc.reload()
-    assert action_doc.status == 'COMPLETED'
-    assert action_doc.results == {'result': 'success'}
+    # Verify results were saved to DB
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-123'
+    )
+    assert updated_doc.status == 'COMPLETED'
+    assert updated_doc.results == {'result': 'success'}
 
     with pytest.raises(Exception):
-        get_action_result('nonexistent-workflow', user1.user_id)
+        await get_action_result_async('nonexistent-workflow', user1.user_id)
 
 
-def test_get_all_user_actions(monkeypatch, mongo_function, user1):
-    ActionDocument(
+@pytest.mark.asyncio
+async def test_list_user_actions(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    await ActionDocument(
         action_id='my-action-1',
         action_instance_id='workflow-1',
         user_id=user1.user_id,
         status='PENDING',
         input_data={},
-    ).save()
-    ActionDocument(
+    ).insert()
+    await ActionDocument(
         action_id='my-action-2',
         action_instance_id='workflow-2',
         user_id=user1.user_id,
         status='COMPLETED',
         input_data={},
-    ).save()
+    ).insert()
 
-    def mock_update_status(action):
+    async def mock_update_status(action):
         pass
 
     monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
 
-    actions = get_all_user_actions(user1.user_id)
-    assert len(actions) == 2
+    page = await list_user_actions(user1.user_id)
+    assert len(page.items) == 2
+    assert page.total == 2
 
     # Test no actions for user
-    actions = get_all_user_actions('other-user')
-    assert len(actions) == 0
+    empty_page = await list_user_actions('other-user')
+    assert len(empty_page.items) == 0
+    assert empty_page.total == 0
+
+
+@pytest.mark.asyncio
+async def test_list_user_actions_page_size_one_cursor_chain(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    base_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    for i in range(3):
+        await ActionDocument(
+            action_id=f'my-action-{i}',
+            action_instance_id=f'workflow-{i}',
+            user_id=user1.user_id,
+            status='COMPLETED',
+            input_data={},
+            created_at=base_time + timedelta(seconds=i),
+            updated_at=base_time + timedelta(seconds=i),
+        ).insert()
+
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+
+    first_page = await list_user_actions(user1.user_id, page_size=1)
+    assert first_page.total == 3
+    assert len(first_page.items) == 1
+    assert first_page.next_cursor is not None
+    assert first_page.items[0].action_id == 'my-action-2'
+
+    second_page = await list_user_actions(
+        user1.user_id, page_size=1, cursor=first_page.next_cursor
+    )
+    assert second_page.total == 3
+    assert len(second_page.items) == 1
+    assert second_page.next_cursor is not None
+    assert second_page.items[0].action_id == 'my-action-1'
+
+    third_page = await list_user_actions(
+        user1.user_id, page_size=1, cursor=second_page.next_cursor
+    )
+    assert third_page.total == 3
+    assert len(third_page.items) == 1
+    assert third_page.next_cursor is None
+    assert third_page.items[0].action_id == 'my-action-0'
+
+
+@pytest.mark.asyncio
+async def test_list_user_actions_filters_by_upload_id(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    await ActionDocument(
+        action_id='my-action-1',
+        action_instance_id='workflow-1',
+        user_id=user1.user_id,
+        upload_id='upload-a',
+        status='COMPLETED',
+        input_data={},
+    ).insert()
+    await ActionDocument(
+        action_id='my-action-2',
+        action_instance_id='workflow-2',
+        user_id=user1.user_id,
+        upload_id='upload-b',
+        status='COMPLETED',
+        input_data={},
+    ).insert()
+    await ActionDocument(
+        action_id='my-action-3',
+        action_instance_id='workflow-3',
+        user_id=user1.user_id,
+        upload_id='upload-a',
+        status='COMPLETED',
+        input_data={},
+    ).insert()
+
+    async def mock_update_status(action):
+        pass
+
+    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+
+    filtered_page = await list_user_actions(user1.user_id, upload_id='upload-a')
+    assert filtered_page.total == 2
+    assert len(filtered_page.items) == 2
+    assert {item.upload_id for item in filtered_page.items} == {'upload-a'}
+
+
+@pytest.mark.asyncio
+async def test_get_user_action_backfills_results_for_completed_action(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-completed-no-results',
+        user_id=user1.user_id,
+        status='COMPLETED',
+        input_data={},
+        results={},
+    )
+    await action_doc.insert()
+
+    async def mock_get_workflow_result_safe(action_instance_id):
+        assert action_instance_id == 'workflow-completed-no-results'
+        return {'foo': 'bar'}
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._get_workflow_result_safe',
+        mock_get_workflow_result_safe,
+    )
+
+    result = await get_user_action('workflow-completed-no-results', user1.user_id)
+    assert result is not None
+    assert result.results == {'foo': 'bar'}
+
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-completed-no-results'
+    )
+    assert updated_doc is not None
+    assert updated_doc.results == {'foo': 'bar'}
+
+
+@pytest.mark.asyncio
+async def test_submit_signal_input_requires_pending_request(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-submit-1',
+        user_id=user1.user_id,
+        status='RUNNING',
+        input_data={},
+    )
+    await action_doc.insert()
+
+    mock_action = MagicMock(spec=Action)
+    mock_action.workflow = RealTemporalWorkflowWithSignal
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'my-action': mock_entry_point},
+    )
+
+    with pytest.raises(Exception, match='No pending signal input request found'):
+        await submit_signal_input(
+            action_instance_id='workflow-submit-1',
+            user_id=user1.user_id,
+            signal_fn_name='test_signal',
+            data=1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_submit_signal_input_clears_pending_request(
+    monkeypatch, mongo_function, async_mongo_function, user1
+):
+    action_doc = ActionDocument(
+        action_id='my-action',
+        action_instance_id='workflow-submit-2',
+        user_id=user1.user_id,
+        status='RUNNING',
+        input_data={},
+        signal_input_requests=[
+            {'signal_fn_name': 'test_signal', 'title': 'x', 'content': 'hello'}
+        ],
+    )
+    await action_doc.insert()
+
+    mock_action = MagicMock(spec=Action)
+    mock_action.workflow = RealTemporalWorkflowWithSignal
+    mock_entry_point = MagicMock(spec=EntryPoint)
+    mock_entry_point.load.return_value = mock_action
+
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'my-action': mock_entry_point},
+    )
+
+    async def mock_signal_workflow(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._async_signal_workflow', mock_signal_workflow
+    )
+
+    await submit_signal_input(
+        action_instance_id='workflow-submit-2',
+        user_id=user1.user_id,
+        signal_fn_name='test_signal',
+        data=1,
+    )
+
+    updated_doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == 'workflow-submit-2'
+    )
+    assert updated_doc.signal_input_requests == []
+    assert len(updated_doc.signal_inputs_submitted) == 1
+    submitted_input = updated_doc.signal_inputs_submitted[0]
+    assert submitted_input['signal_fn_name'] == 'test_signal'
+    assert submitted_input['data'] == 1
+    assert submitted_input['title'] == 'x'
+    assert submitted_input['content'] == 'hello'
+    assert 'timestamp' in submitted_input

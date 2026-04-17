@@ -280,7 +280,7 @@ def test_match(
         monkeypatch.setattr('nomad.parsing.parsers.parsers', parsers)
 
     matched_mainfiles = {}
-    for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
+    for path_info in upload_files.raw_listdir(recursive=True, files_only=True):
         mainfile = path_info.path
         parser, _mainfile_keys = match_parser(
             upload_files.raw_file_object(mainfile).os_path

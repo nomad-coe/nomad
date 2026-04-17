@@ -244,7 +244,7 @@ class MatchingParser(Parser):
         self._mainfile_contents_dict = mainfile_contents_dict
         self._supported_compressions = supported_compressions
 
-        self._ls = lru_cache(maxsize=16)(lambda directory: os.listdir(directory))
+        self._ls = lru_cache(maxsize=16)(os.listdir)
 
     def __repr__(self):
         return self.name

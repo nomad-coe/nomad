@@ -17,19 +17,17 @@
 #
 import datetime
 import os
-import random
 import re
-import time
-from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import h5py
 import numpy as np
-import requests
 from ase.data import atomic_masses, atomic_numbers, chemical_symbols
+from molid.search.service import SearchConfig, SearchService
 from unidecode import unidecode
 
 from nomad import utils
+from nomad.config import config
 from nomad.datamodel.data import ArchiveSection, Schema
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.metainfo.annotations import (
@@ -58,144 +56,39 @@ from nomad.units import ureg
 if TYPE_CHECKING:
     from structlog.stdlib import BoundLogger
 
-PUB_CHEM_PUG_PATH = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound'
-CAS_API_PATH = 'https://commonchemistry.cas.org/api'
-EXTERNAL_API_TIMEOUT = 5
-
 m_package = SchemaPackage()
+_ELEMENTS = chemical_symbols[1:]
 
 
-def throttle_wait():
-    """Function for waiting before an API request to prevent throttling."""
-    time.sleep(random.randint(1, 3))
-
-
-def pub_chem_add_throttle_header(response: requests.Response, message: str = '') -> str:
-    """Function for adding the PubChem PUG API throttling control header to a message."""
-    if 'X-Throttling-Control' in response.headers:
-        message += f' (Throttling-Control: {response.headers["X-Throttling-Control"]})'
-    return message
-
-
-def pub_chem_api_get_properties(
-    cid: int, properties: Iterable[str]
-) -> requests.Response:
-    """
-    Function for performing a get request to the PubChem PUG API to get properties for a
-    given compound identifier.
-
-    Args:
-        cid (int): The compound identifier of the compound of interest.
-        properties (Iterable[str]): The properties to retrieve the value for.
-
-    Returns:
-        requests.Response: The response as returned from the PubChem PUG API.
-    """
-    return requests.get(
-        url=f'{PUB_CHEM_PUG_PATH}/cid/{cid}/property/{str.join(",", properties)}/JSON',
-        timeout=EXTERNAL_API_TIMEOUT,
-    )
-
-
-def pub_chem_api_get_synonyms(cid: int) -> requests.Response:
-    """
-    Function for performing a get request to the PubChem PUG API to get properties for a
-    given compound identifier.
-
-    Args:
-        cid (int): The compound identifier of the compound of interest.
-
-    Returns:
-        requests.Response: The response as returned from the PubChem PUG API.
-    """
-    return requests.get(
-        url=f'{PUB_CHEM_PUG_PATH}/cid/{cid}/synonyms/JSON',
-        timeout=EXTERNAL_API_TIMEOUT,
-    )
-
-
-def pub_chem_api_search(path: str, search: str) -> requests.Response:
-    """
-    Function for performing a get request to the PubChem PUG API to search the given path
-    for a given string.
-
-    Args:
-        path (str): The path (property) to search for.
-        search (str): The string to search for a match with.
-
-    Returns:
-        requests.Response: The response as returned from the PubChem PUG API.
-    """
-    return requests.get(
-        url=f'{PUB_CHEM_PUG_PATH}/{path}/{search}/cids/JSON',
-        timeout=EXTERNAL_API_TIMEOUT,
-    )
-
-
-def cas_api_search(search: str) -> requests.Response:
-    """
-    Function for performing a get request to the CAS API to search for a match with the
-    given string.
-
-    Args:
-        search (str): The string to search for a match with.
-
-    Returns:
-        requests.Response: The response as returned from the CAS API.
-    """
-    return requests.get(
-        f'{CAS_API_PATH}/search?q={search}',
-        timeout=EXTERNAL_API_TIMEOUT,
-    )
-
-
-def cas_api_details(cas_rn: str) -> requests.Response:
-    """
-    Function for performing a get request to the CAS API to get the details for the
-    substance with the given CAS registry number.
-
-    Args:
-        cas_rn (str): The CAS registry number of the substance for which to get details.
-
-    Returns:
-        requests.Response: The response as returned from the CAS API.
-    """
-    return requests.get(
-        f'{CAS_API_PATH}/detail?cas_rn={cas_rn}',
-        timeout=EXTERNAL_API_TIMEOUT,
-    )
-
-
-def is_cas_rn(candidate: str) -> bool:
-    """
-    Help function for checking if a candidate string is a valid CAS Registry Number.
-
-    Args:
-        candidate (str): The candidate string to be checked.
-
-    Returns:
-        bool: Whether or not the candidate string is a valid CAS Registry Number.
-    """
-    try:
-        match = re.fullmatch(
-            r'(?P<p1>\d{2,7})-(?P<p2>\d{2})-(?P<check>\d{1})', candidate
-        )
-        if match is None:
-            return False
-        check = (
-            sum(
-                [
-                    int(c) * (i + 1)
-                    for i, c in enumerate(
-                        reversed(match.group('p1') + match.group('p2'))
-                    )
-                ]
-            )
-            % 10
-        )
-        return int(match.group('check')) == check
-    except (AttributeError, TypeError):
+def _is_formula_token(tok: str) -> bool:
+    if not tok or not tok[0].isupper() or len(tok) > 50:
         return False
+    i, n = 0, len(tok)
+    seen_elems = 0
+    while i < n:
+        if not tok[i].isupper():
+            return False
+        sym = tok[i]
+        i += 1
+        if i < n and tok[i].islower():
+            sym += tok[i]
+            i += 1
+        if sym not in _ELEMENTS:
+            return False
+        seen_elems += 1
+        while i < n and tok[i].isdigit():
+            i += 1
+    # require at least 2 elements or one with a numeric count to avoid "My", "He" false positives
+    return seen_elems >= 2 or any(ch.isdigit() for ch in tok)
+
+
+def _first_formula_token(text: str | None) -> str | None:
+    if not text:
+        return None
+    for token in re.split(r'[^\w]+', text):
+        if token and _is_formula_token(token):
+            return token
+    return None
 
 
 class BaseSection(Schema):
@@ -843,181 +736,167 @@ class PureSubstance(System):
         ),
     )
 
-    def _populate_from_cid(self, logger: 'BoundLogger') -> None:
-        """
-        Private method for populating unfilled properties by searching the PubChem using
-        the CID in `pub_chem_cid`.
+    def _apply_molid_record(self, rec: dict[str, Any]) -> None:
+        # Core naming
+        if self.name is None and rec.get('Title'):
+            self.name = rec['Title']
+        if self.iupac_name is None and rec.get('IUPACName'):
+            self.iupac_name = rec['IUPACName']
 
-        Args:
-            logger (BoundLogger): A structlog logger.
-        """
-        properties = {
-            'Title': 'name',
-            'IUPACName': 'iupac_name',
-            'MolecularFormula': 'molecular_formula',
-            'ExactMass': 'molecular_mass',
-            'MolecularWeight': 'molar_mass',
-            'MonoisotopicMass': 'monoisotopic_mass',
-            'InChI': 'inchi',
-            'InChIKey': 'inchi_key',
-            'SMILES': 'smile',
-        }
-        types = {  # Needed because PubChems API sometimes returns floats as strings
-            'Title': str,
-            'IUPACName': str,
-            'MolecularFormula': str,
-            'ExactMass': float,
-            'MolecularWeight': float,
-            'MonoisotopicMass': float,
-            'InChI': str,
-            'InChIKey': str,
-            'SMILES': str,
-        }
-        response = pub_chem_api_get_properties(
-            cid=self.pub_chem_cid, properties=properties
-        )
-        if not response.ok:
-            msg = f'Property request to PubChem responded with: {response}'
-            logger.warn(pub_chem_add_throttle_header(response, msg))
-            return
-        self.pub_chem_link = (
-            f'https://pubchem.ncbi.nlm.nih.gov/compound/{self.pub_chem_cid}'
-        )
-        try:
-            property_values = response.json()['PropertyTable']['Properties'][0]
-        except (KeyError, IndexError):
-            property_values = {}
-        for property_name in properties:  # noqa
-            if getattr(self, properties[property_name], None) is None:
-                try:
-                    property_value = property_values[property_name]
-                    if not isinstance(property_value, types[property_name]):
-                        property_value = types[property_name](property_value)
-                    setattr(
-                        self,
-                        properties[property_name],
-                        property_value,
-                    )
-                except KeyError:
-                    logger.warn(
-                        f'Property "{property_name}" missing from PubChem response.'
-                    )
-                except ValueError:
-                    logger.warn(
-                        f'Property "{property_name}" in PubChem response is not of '
-                        f'the expected type "{types[property_name]}".'
-                    )
-        if self.cas_number is None:
-            response = pub_chem_api_get_synonyms(cid=self.pub_chem_cid)
-            if not response.ok:
-                msg = f'Synonyms request to PubChem responded with: {response}'
-                logger.warn(pub_chem_add_throttle_header(response, msg))
-                return
-            response_dict = response.json()
+        # Formula / masses
+        if self.chemical_formula is None and rec.get('MolecularFormula'):
+            self.chemical_formula = rec['MolecularFormula']
+        if self.molar_mass is None and rec.get('MolecularWeight'):
+            self.molar_mass = rec['MolecularWeight']
+
+        # InChI / InChIKey
+        if self.inchi is None and rec.get('InChI'):
+            self.inchi = rec['InChI']
+        if self.inchi_key is None and rec.get('InChIKey'):
+            self.inchi_key = rec['InChIKey']
+
+        # SMILES (populate both smiles + canonical_smiles if empty)
+        if rec.get('IsomericSMILES'):
+            if self.smile is None:
+                self.smile = rec['IsomericSMILES']
+            if self.canonical_smile is None:
+                self.canonical_smile = rec['CanonicalSMILES']
+
+        # CAS
+        if self.cas_number is None and rec.get('CAS'):
+            self.cas_number = rec['CAS']
+
+        # PubChem CID + link
+        cid = rec.get('CID')
+        if cid is not None:
             try:
-                synonyms = response_dict['InformationList']['Information'][0]['Synonym']
-            except (KeyError, IndexError):
-                synonyms = []
-            for synonym in synonyms:
-                if is_cas_rn(synonym):
-                    self.cas_number = synonym
-                    break
+                self.pub_chem_cid = int(cid)
+                self.pub_chem_link = (
+                    f'https://pubchem.ncbi.nlm.nih.gov/compound/{self.pub_chem_cid}'
+                )
+            except Exception:
+                pass
 
-    def _pub_chem_search_unique(
-        self, search: str, path: str, logger: 'BoundLogger'
-    ) -> bool:
+    def _build_molid_service(self, logger):
         """
-        Private method for searching the PubChem API for CIDs using the provided `path`
-        and `search` strings.
-
-        Args:
-            search (str): The string containing the search value.
-            path (str): The path to search the string for.
-            logger (BoundLogger): A structlog logger.
-
-        Returns:
-            bool: _description_
+        Create a MolID SearchService using NOMAD config if available,
+        otherwise fall back to MolID's own defaults (~/.molid.env).
         """
-        response = pub_chem_api_search(path=path, search=search)
-        if response.status_code == 404:
-            logger.info(f'No results for PubChem search for {path}="{search}".')
-            return False
-        elif not response.ok:
-            logger.warn(f'PubChem search for {path}="{search}" yielded: {response}')
-            return False
-        try:
-            cids = response.json()['IdentifierList']['CID']
-        except KeyError:
-            logger.warn(f'CID search request to PubChem response missing CID list.')
-            return False
-        if len(cids) == 0:
-            return False
-        elif len(cids) > 1:
-            urls = [f'https://pubchem.ncbi.nlm.nih.gov/compound/{cid}' for cid in cids]
-            logger.warn(
-                f'Search for PubChem CID yielded {len(cids)} results: '
-                f'{", ".join(urls)}. Using {urls[0]}'
-            )
-        self.pub_chem_cid = cids[0]
-        return True
+        cache_path = config.molid.cache_path
+        sources = config.molid.sources
+        cache_write = config.molid.cache_write
 
-    def _find_cid(self, logger: 'BoundLogger') -> None:
-        """
-        Private method for finding the PubChem CID using the filled attributes in the
-        following order:
+        cfg = SearchConfig(sources=list(sources), cache_writes=cache_write)
+        return SearchService(master_db=None, cache_db=cache_path, cfg=cfg), cache_path
 
-        1. `smile`
-        2. `canonical_smile`
-        3. `inchi_key`
-        4. `iupac_name`
-        5. `name`
-        6. `molecular_formula`
+    def _lookup_with_molid(self, logger, archive=None) -> None:
+        # Entry title (never used as a candidate)
+        entry_title = (
+            getattr(getattr(archive, 'data', None), 'name', None) if archive else None
+        )
 
-        The first hit will populate the `pub_chem_cid` attribute and return.
+        ps_name = None
+        if archive is not None and getattr(archive, 'data', None) is not None:
+            ps = getattr(archive.data, 'pure_substance', None)
+            if ps is not None and getattr(ps, 'name', None):
+                ps_name = ps.name
 
-        Args:
-            logger ('BoundLogger'): A structlog logger.
-        """
-        for search, path in (
-            (self.smile, 'smiles'),
-            (self.canonical_smile, 'smiles'),
-            (self.inchi_key, 'inchikey'),
-            (self.iupac_name, 'name'),
-            (self.name, 'name'),
-            (self.molecular_formula, 'fastformula'),
-            # (self.name, 'fastformula'),
-            # gives error 500 when a non existing ff is used
-            (self.cas_number, 'name'),
-        ):
-            if search and self._pub_chem_search_unique(search, path, logger):
-                self._populate_from_cid(logger)
+        self_name = getattr(self, 'name', None)
+
+        # Choose a section name that is not the entry title
+        sec_name_raw = ps_name if ps_name is not None else self_name
+        if sec_name_raw == entry_title:
+            sec_name_raw = None
+
+        # Try to recover a formula token from section/entry text
+        formula_token = _first_formula_token(sec_name_raw) or _first_formula_token(
+            entry_title
+        )
+        mf_from_name = formula_token
+
+        # If we don’t have a clean section name but did find a formula token, use that as 'name' too
+        if sec_name_raw is None and formula_token:
+            sec_name = formula_token
+        else:
+            sec_name = sec_name_raw
+
+        # Collect subsection-only identifiers
+        smiles_value = (self.smile or self.canonical_smile) or None
+        iupac = self.iupac_name or None
+
+        candidates = [
+            (
+                'cid',
+                str(self.pub_chem_cid)
+                if getattr(self, 'pub_chem_cid', None) is not None
+                else None,
+            ),
+            ('smiles', smiles_value),
+            ('inchi', self.inchi or None),
+            ('inchikey', self.inchi_key or None),
+            ('cas', self.cas_number or None),
+            ('molecularformula', mf_from_name or (self.chemical_formula or None)),
+            ('name', iupac),
+            ('name', sec_name),
+        ]
+
+        logger.debug(
+            'MolID candidates',
+            entry_title=entry_title,
+            ps_name=ps_name,
+            self_name=self_name,
+            chosen=sec_name,
+            candidates=[(k, v) for (k, v) in candidates if v],
+        )
+
+        # Build MolID service
+        svc, cache_db = self._build_molid_service(logger)
+
+        for id_type, value in candidates:
+            if not value:
+                continue
+            logger.debug(f'MolID TRY {id_type}={value}')
+            try:
+                records, source = svc.search({id_type: value})
+            except Exception as e:
+                logger.error(f'MolID {id_type}={value} -> {e}')
+                continue
+            if records:
+                logger.debug(
+                    f'MolID hit via {id_type} ({source} with {cache_db}), n={len(records)}'
+                )
+                self._apply_molid_record(records[0])
+                return
+
+        logger.info('MolID: no matching records from any candidate.')
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         """
         The normalizer method for the `PureSubstance` class.
 
         This method will:
-        - populate the results.material section and the elemental
-        composition sub section using the molecular formula.
-        - attempt to get data on the substance instance from the PubChem
-        PUG REST API: https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest
-        If a PubChem CID is specified the details are retrieved directly.
-        Otherwise a search query is made for the filled attributes in the following order:
-        1. `smile`
-        2. `canonical_smile`
-        3. `inchi_key`
-        4. `iupac_name`
-        5. `name`
-        6. `molecular_formula`
-        7. `cas_number`
+        - Attempt to get data on the substance instance from the PubChem PUG REST API:
+          https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest using MolID. You can configure
+          the MolID query behaviour and caching using the `molid` section in the NOMAD
+          configuration. If a PubChem CID is specified the details are retrieved directly.
+          Otherwise a search query is made for the filled attributes in the following
+          order:
+
+            1. `smile`
+            2. `canonical_smile`
+            3. `inchi_key`
+            4. `iupac_name`
+            5. `name`
+            6. `molecular_formula`
+            7. `cas_number`
 
         Args:
             archive (EntryArchive): The archive that is being normalized.
             logger ('BoundLogger'): A structlog logger.
         """
+
         super().normalize(archive, logger)
-        #     if logger is None:
-        #         logger = utils.get_logger(__name__)
+        logger = logger or utils.get_logger(__name__)
         #     if self.molecular_formula:
         #         if not archive.results:
         #             archive.results = Results()
@@ -1035,14 +914,18 @@ class PureSubstance(System):
         #                 )
         #         except Exception as e:
         #             logger.warn('Could not analyse chemical formula.', exc_info=e)
-        if self.pub_chem_cid:
-            if any(getattr(self, value) is None for value in self.m_def.all_quantities):
-                self._populate_from_cid(logger)
-        else:
-            self._find_cid(logger)
+
+        # Fill missing identifiers via MolID
+        if config.molid.enabled:
+            needs_fill = any(
+                getattr(self, qname, None) is None
+                for qname in self.m_def.all_quantities.keys()
+            )
+            if needs_fill:
+                self._lookup_with_molid(logger, archive=archive)
 
 
-# def elemental_composition_from_formula(formula: Formula) -> List[ElementalComposition]:
+# def elemental_composition_from_formula(formula: Formula) -> list[ElementalComposition]:
 #     """
 #     Help function for generating list of `ElementalComposition` instances from
 #     `nomad.atomutils.Formula` item

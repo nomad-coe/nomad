@@ -10,6 +10,15 @@ from nomad.config import config
 from nomad.utils.structlogging import LogstashFormatter
 
 
+@pytest.fixture(scope='module')
+def api_v1(monkeysession, api_v1):
+    monkeysession.setattr(
+        'nomad.config.config.auth.unauthenticated_user_scopes',
+        {'include': ['*:read', 'federation:*']},
+    )
+    return api_v1
+
+
 def create_log_record(msg='testmsg') -> bytes:
     record = logging.LogRecord(
         name='test',

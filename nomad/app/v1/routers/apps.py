@@ -18,15 +18,17 @@ import fnmatch
 import re
 from enum import Enum
 from threading import Lock
-from typing import Any
+from typing import Annotated, Any
 
 import jmespath
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from nomad.app.v1.models import HTTPExceptionModel
+from nomad.app.v1.models import HTTPExceptionModel, User
 from nomad.app.v1.models.pagination import Pagination
+from nomad.app.v1.routers.auth import get_current_user
 from nomad.app.v1.utils import create_responses
+from nomad.auth.scopes import Scope
 from nomad.config import config
 from nomad.config.models.plugins import AppEntryPoint
 from nomad.config.models.ui import (
@@ -450,7 +452,12 @@ def _initialize_search_quantities():
     response_model=dict[str, Any],
     response_model_exclude_none=True,
 )
-async def get_entry_points():
+async def get_entry_points(
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.APPS_READ])),
+    ],
+):
     """Entry point for getting information about all apps"""
     initialize_search_quantities()
 
@@ -565,7 +572,13 @@ def _build_app_response(app: App) -> dict[str, Any]:
     response_model_exclude_none=True,
     responses=create_responses(_bad_app_not_found, _bad_search_quantity_parse),
 )
-async def get_entry_point(app_path: str):
+async def get_entry_point(
+    app_path: str,
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.APPS_READ])),
+    ],
+):
     """Entry point for getting information about a specific app"""
     initialize_search_quantities()
 
@@ -592,7 +605,13 @@ async def get_entry_point(app_path: str):
     response_model_exclude_none=True,
     responses=create_responses(_bad_search_quantity_parse),
 )
-async def validate(app: App):
+async def validate(
+    app: App,
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.APPS_READ])),
+    ],
+):
     """Validates the given app configuration and return the validated version together
     with the search quantities that are used in it.
     """
@@ -609,7 +628,13 @@ async def validate(app: App):
     response_model_exclude_none=True,
     responses=create_responses(_bad_app_not_found),
 )
-async def get_entry_point_search_quantities(data: SearchQuantityRequest):
+async def get_entry_point_search_quantities(
+    data: SearchQuantityRequest,
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.APPS_READ])),
+    ],
+):
     """Entry point for suggestions for search quantities"""
     initialize_search_quantities()
 

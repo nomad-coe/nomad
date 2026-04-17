@@ -18,7 +18,7 @@
 
 import json
 import re
-from typing import Any, Literal
+from typing import Any
 from urllib.parse import urlencode
 
 import pytest
@@ -425,16 +425,6 @@ def pagination_test_parameters(
             id='page-param-only-with-page-size',
         ),
     ]
-
-
-def get_quantity(name: str, resource: Literal['entries', 'materials']) -> str:
-    """Used to map a quantity name to the correct ES path based on the resource."""
-    material_prefix = 'results.material.'
-    if name.startswith(material_prefix) and resource == 'materials':
-        name = name[len(material_prefix) :]
-    elif resource == 'materials':
-        name = f'entries.{name}'
-    return name
 
 
 def aggregation_test_parameters(
@@ -866,34 +856,27 @@ def aggregation_test_parameters(
     return tests
 
 
-def aggregation_test_parameters_default(resource: Literal['entries', 'materials']):
+def aggregation_test_parameters_default():
     """Convenience function for constructing default aggregation tests.
-
-    Args:
-        resource: The targeted resource, either 'entries' or 'materials'.
 
     Returns: List of pytest parameters for testing aggregation calls.
     """
     return aggregation_test_parameters(
-        str={'name': get_quantity('entry_id', resource), 'total': 23, 'size': 32},
-        empty={
-            'name': get_quantity('results.material.symmetry.structure_name', resource)
-        },
+        str={'name': 'entry_id', 'total': 23, 'size': 32},
+        empty={'name': 'results.material.symmetry.structure_name'},
         enum={
-            'name': get_quantity('results.material.dimensionality', resource),
+            'name': 'results.material.dimensionality',
             'total': 1,
             'size': 1,
         },
         bool={
-            'name': get_quantity(
-                'results.properties.electronic.dos_electronic.spin_polarized', resource
-            ),
+            'name': 'results.properties.electronic.dos_electronic.spin_polarized',
             'total': 2,
             'size': 2,
         },
-        int={'name': get_quantity('results.properties.n_calculations', resource)},
+        int={'name': 'results.properties.n_calculations'},
         pagination={
-            'name': get_quantity('upload_id', resource),
+            'name': 'upload_id',
             'total': 8,
             'size': 8,
             'page_after_value': 'id_published',
@@ -901,53 +884,48 @@ def aggregation_test_parameters_default(resource: Literal['entries', 'materials'
             'page_after_value_size': 3,
         },
         histogram_int={
-            'name': get_quantity('results.properties.n_calculations', resource),
+            'name': 'results.properties.n_calculations',
             'interval': 1,
             'buckets': 10,
             'interval_size': 1,
             'bucket_size': 1,
         },
         histogram_date={
-            'name': get_quantity('upload_create_time', resource),
+            'name': 'upload_create_time',
             'interval': '1d',
             'interval_size': 1,
             'default_size': 1,
         },
         include={
-            'name': get_quantity('entry_id', resource),
+            'name': 'entry_id',
             'include': '_0',
             'total': 9,
             'size': 9,
         },
         metrics={
-            'name': get_quantity('results.method.simulation.program_name', resource),
+            'name': 'results.method.simulation.program_name',
             'total': n_code_names,
             'size': n_code_names,
         },
         fixed={
-            'name': get_quantity('results.method.simulation.program_name', resource),
+            'name': 'results.method.simulation.program_name',
             'total': n_code_names,
             'size': n_code_names,
         },
         pagination_order_by={
-            'name_str': get_quantity('main_author.name', resource),
-            'name_int': get_quantity('results.properties.n_calculations', resource),
-            'name_date': get_quantity('upload_create_time', resource),
+            'name_str': 'main_author.name',
+            'name_int': 'results.properties.n_calculations',
+            'name_date': 'upload_create_time',
         },
     )
 
 
-def aggregation_exclude_from_search_test_parameters(
-    resource: Literal['entries', 'materials'], total_per_entity: int, total: int
-):
-    entry_id = get_quantity('entry_id', resource)
-    upload_id = get_quantity('upload_id', resource)
-    program_name = get_quantity('results.method.simulation.program_name', resource)
-    n_elements = get_quantity('results.material.n_elements', resource)
-    band_gap = get_quantity(
-        'results.properties.electronic.band_structure_electronic.band_gap.value',
-        resource,
-    )
+def aggregation_exclude_from_search_test_parameters(total_per_entity: int, total: int):
+    entry_id = 'entry_id'
+    upload_id = 'upload_id'
+    program_name = 'results.method.simulation.program_name'
+    n_elements = 'results.material.n_elements'
+    band_gap = 'results.properties.electronic.band_structure_electronic.band_gap.value'
 
     def make_aggs(aggs):
         """Given a list of aggregation definitions, returns the API-compatible
@@ -1311,6 +1289,14 @@ def assert_aggregations(
         assert len(data) == 2
         assert isinstance(data[0], float | int)
         assert isinstance(data[1], float | int)
+    elif agg_type == 'percentiles':
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        for item in data:
+            assert 'percentiles' in item, 'Missing percentiles dict in response'
+            assert isinstance(item['percentiles'], dict)
+            assert 'count' in item
+            assert isinstance(item['count'], int)
     elif agg_type == 'statistics':
         assert 'metrics' in agg_response
         for metric in agg.get('metrics', []):
@@ -1384,18 +1370,13 @@ def assert_aggregation_response(
     size,
     status_code,
     user,
-    resource: Literal['entries', 'materials'],
 ):
     """Checks that the aggregation response is as expected."""
 
     agg_id = 'test_agg_name'
     aggregations = {agg_id: aggregation}
-    if resource == 'entries':
-        default_key = 'entry_id'
-        metadata_test = perform_entries_metadata_test
-    elif resource == 'materials':
-        default_key = 'material_id'
-        metadata_test = perform_materials_metadata_test
+    default_key = 'entry_id'
+    metadata_test = perform_entries_metadata_test
 
     response_json = metadata_test(
         client,
@@ -1467,7 +1448,8 @@ def assert_pagination(
 def assert_browser_download_headers(response, media_type: str, filename: str):
     if media_type:
         assert (
-            response.headers['Content-Type'].split(';')[0] == media_type.split(';')[0]
+            response.headers['Content-Type'].split(';')[0]
+            == media_type.split(';', maxsplit=1)[0]
         )
     content_disposition = response.headers['Content-Disposition']
     assert 'attachment;' in content_disposition
@@ -1555,12 +1537,9 @@ def perform_owner_test(
     )
 
 
-def perform_quantity_search_test(
-    name, resource: Literal['entries', 'materials'], search, result, client
-):
-    quantity = get_quantity(name, resource)
+def perform_quantity_search_test(quantity, search, result, client):
     body = {'query': {f'{quantity}': search}}
-    response = client.post(f'{resource}/query', json=body, headers={})
+    response = client.post(f'entries/query', json=body, headers={})
     assert_response(response, 200)
     response = response.json()
     api_result = deep_get(response['data'][0], *quantity.split('.'))

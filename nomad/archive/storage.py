@@ -17,7 +17,7 @@
 #
 from __future__ import annotations
 
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from io import BufferedReader, BytesIO
 from typing import Any, cast
 
@@ -246,6 +246,27 @@ def read_archive(file_or_path: str | BytesIO, **kwargs) -> ArchiveReader:
         return ArchiveReaderNew(file_or_path, **kwargs)  # type: ignore
 
     return ArchiveReader(file_or_path)
+
+
+def combine_archive(path: str, n_entries: int, data: Iterable[tuple]):
+    from .storage_v2 import ArchiveReader as ArchiveReaderNew
+    from .storage_v2 import ArchiveWriter as ArchiveWriterNew
+
+    with ArchiveWriterNew(
+        path, n_entries, toc_depth=config.archive.toc_depth
+    ) as writer:
+        for uuid, src_path in data:
+            if not src_path:
+                writer.add(uuid, {})
+                continue
+
+            with read_archive(src_path) as reader:
+                if isinstance(reader, ArchiveReaderNew):
+                    toc, data = reader.get_raw(uuid)
+                    writer.add_raw(uuid, toc, data)
+                else:
+                    # rare case, old reader new writer, toc is not compatible, has to repack
+                    writer.add(uuid, to_json(reader[uuid]))
 
 
 if __name__ == '__main__':

@@ -329,7 +329,7 @@ class KeycloakUserManagement(UserManagement):
             True
         ):  # TODO (self.__admin_client is None:), client becomes unusable after 60s
             self.__admin_client = KeycloakAdmin(
-                server_url=config.keycloak.server_url,
+                server_url=config.keycloak.server_url + '/',
                 username=config.keycloak.username,
                 password=config.keycloak.password,
                 realm_name=config.keycloak.realm_name,

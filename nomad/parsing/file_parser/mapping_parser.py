@@ -7,7 +7,7 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import h5py
 import jmespath
@@ -25,16 +25,227 @@ from nomad.parsing.parser import ArchiveParser
 from nomad.units import ureg
 from nomad.utils import get_logger
 
+"""
+Mapping parser framework for declarative data transformation and file format conversion.
+
+This module provides a flexible, annotation-driven system for parsing various file formats
+(XML, HDF5, JSON, text) and transforming data between representations. The framework supports:
+
+Architecture:
+    - Path-based data access using jmespath or jsonpath_ng expressions
+    - Declarative mapping specifications via metainfo annotations or dictionaries
+    - Transformation functions for complex data manipulations
+    - Bidirectional conversion between file formats and Python dictionaries
+
+Key Components:
+    - :class:`MappingParser`: Abstract base class for format-specific parsers
+    - :class:`Mapper`/:class:`Transformer`: Declarative mapping and transformation specification
+    - :class:`Path`/:class:`Data`: Path resolution and data extraction abstractions
+    - Specialized parsers: :class:`XMLParser`, :class:`HDF5Parser`, :class:`MetainfoParser`, :class:`TextParser`
+
+Terminology:
+    **path (lowercase)**:
+        A string expression for navigating nested data structures. Can be:
+        - jmespath syntax: 'a.b[0].c' (see :class:`JmespathParser`)
+        - jsonpath_ng syntax: '$.a.b[0].c'
+        Context determines which parser is used.
+
+    **Path (class)**:
+        :class:`Path` object that wraps a path string with resolution logic.
+        Handles relative vs absolute paths, parent relationships, and computed
+        attributes (relative_path, absolute_path, reduced_path).
+
+    **mapper (lowercase)**:
+        Generic term for a mapping specification. Can refer to:
+        - Dictionary specification passed to :meth:`BaseMapper.from_dict`
+        - String/tuple in annotation (e.g., `a_hdf5=Mapper(mapper='source.path')`)
+        - :class:`BaseMapper` subclass instance (Mapper or Transformer)
+
+    **Mapper (class)**:
+        :class:`Mapper` class - a composite containing sub-mappers for nested transformations.
+        Distinguished from :class:`Transformer` by having a `mappers` list.
+
+    **Transformer (class)**:
+        :class:`Transformer` class - executes a function on source data paths.
+        Distinguished from :class:`Mapper` by having `function_name` and `function_args`.
+
+    **data_object**:
+        Format-specific representation of parsed data:
+        - h5py.Group for HDF5
+        - etree.Element for XML
+        - MSection instance for metainfo
+        - TextFileParser for text files
+
+    **source/target** (in mapping context):
+        - source: Where to read data from (input side of transformation)
+        - target: Where to write data to (output side of transformation)
+        In :class:`BaseMapper`: `source` is a :class:`Data` object specifying input,
+        `target` is a :class:`Data` object specifying output path.
+
+Data Flow Pipeline:
+    The complete transformation from source file to target data_object follows these steps:
+
+    **Step 1: Source Loading**
+        source.filepath → source.load_file() → source.data_object
+        - Parser reads file and creates format-specific representation
+        - Example: HDF5Parser loads file into h5py.Group object
+
+    **Step 2: Source Serialization**
+        source.data_object → source.to_dict() → source.data
+        - Format-specific object converted to dictionary
+        - Attributes stored with attribute_prefix (@), values with value_key (__value)
+        - Example: h5py.Group becomes nested dict with @attr keys
+
+    **Step 3: Mapper Execution**
+        source.data → mapper.get_data() → transformed_dict
+        - Mapper recursively traverses source.data extracting values via paths
+        - Transformers call functions on parser to reshape/compute data
+        - Paths resolved via PathParser (jmespath or jsonpath_ng)
+        - Result is dict with relative path keys (e.g., {'.positions': [...], '.species': [...]})
+
+    **Step 4: Target Population**
+        transformed_dict → target.set_data() → target.data
+        - Transformed dict merged into target.data using Path.set_data()
+        - Update modes control merge behavior (merge/append/replace)
+        - Paths created automatically if missing
+
+    **Step 5: Target Deserialization**
+        target.data → target.from_dict() → target.data_object
+        - Dictionary deserialized into format-specific object
+        - Example: MetainfoParser populates MSection via m_set/m_add_sub_section
+        - Example: HDF5Parser creates Groups/Datasets from dict
+
+    Complete Example:
+        >>> # Start with HDF5 file
+        >>> with HDF5Parser(filepath='input.h5') as source:
+        ...     # Step 1: h5py.Group loaded
+        ...     # Step 2: Converted to {'calculation': {'energy': 1.5}}
+        ...     with MetainfoParser(data_object=MySection()) as target:
+        ...         # Mapper defined via annotations or from_dict
+        ...         # Step 3: {'calculation.energy'} → {'.energy': 1.5 * ureg.eV}
+        ...         source.convert(target)
+        ...         # Step 4: {'.energy': ...} set in target.data
+        ...         # Step 5: MySection.energy populated with 1.5 * ureg.eV
+
+Usage Pattern:
+    1. Load source data via a :class:`MappingParser` subclass
+    2. Define mappings using annotations or :meth:`BaseMapper.from_dict`
+    3. Convert source to target using :meth:`MappingParser.convert`
+    4. Target parser receives transformed data in its native dictionary format
+
+Example:
+    >>> with HDF5Parser(filepath='data.h5') as source:
+    ...     with MetainfoParser(data_object=MySection()) as target:
+    ...         source.convert(target)
+
+API Stability:
+    **Parser Developer Interface** (stable):
+        - :class:`MappingParser`: Abstract base class for file parsers
+        - :class:`XMLParser`, :class:`HDF5Parser`, :class:`MetainfoParser`, :class:`TextParser`: Format-specific parsers
+        - :meth:`MappingParser.convert`: Main conversion entry point
+        - :meth:`MappingParser.parse`: Parse and build mapper from annotations
+        - :class:`MapperAnnotation`: Annotation dataclass for metainfo
+        - :meth:`BaseMapper.from_dict`: Construct mappers from dict specifications
+        - :class:`Mapper`/:class:`Transformer` (declarative usage only): Use in annotations
+          or dict specifications passed to :meth:`BaseMapper.from_dict`. Do not instantiate
+          or modify instances directly.
+
+        These classes provide stable interfaces for parsing files and defining mappings.
+        Safe to use, extend, and rely upon across NOMAD versions.
+
+        **Declarative usage example**:
+            >>> # Stable: Using Mapper in annotation
+            >>> class MySection(MSection):
+            ...     energy = Quantity(type=float, a_hdf5=Mapper(mapper='calc.energy'))
+            >>>
+            >>> # Stable: Using dict specification
+            >>> mapper_dict = {'mapper': 'calc.energy', 'target': '.energy'}
+            >>> mapper = BaseMapper.from_dict(mapper_dict)  # Stable factory method
+            >>>
+            >>> # Unstable: Direct instantiation (avoid)
+            >>> mapper = Mapper(mappers=[...])  # Internal API, may change
+
+    **Internal, unstable APIs**:
+        - :class:`JmespathOptions`, :class:`TreeInterpreter`, :class:`ParsedResult`: Jmespath customization internals
+        - :class:`JmespathParser`, :class:`PathParser`: Path resolution internals
+        - :class:`Path`, :class:`Data`: Internal data structures
+        - :class:`BaseMapper`: Mapper base class (use :meth:`BaseMapper.from_dict` instead)
+        - :class:`MetainfoMapper`, :class:`MetainfoBaseMapper`: Metainfo-specific internals
+
+        These are implementation details. API may change without notice.
+        Do not instantiate, subclass, or rely on these classes directly.
+
+Extension Guide:
+    To create a new format parser, subclass :class:`MappingParser` and implement:
+
+    >>> class MyFormatParser(MappingParser):
+    ...     def load_file(self) -> Any:
+    ...         '''Load file into format-specific object.'''
+    ...         return load_my_format(self.filepath)
+    ...
+    ...     def to_dict(self, **kwargs) -> dict[str | int, Any]:
+    ...         '''Convert format-specific object to dictionary.
+    ...
+    ...         Use self.attribute_prefix (default '@') for attributes.
+    ...         Use self.value_key (default '__value') for values with attributes.
+    ...         '''
+    ...         return {'key': self.data_object.extract_data()}
+    ...
+    ...     def from_dict(self, dct: dict[str, Any]) -> None:
+    ...         '''Populate data_object from dictionary.'''
+    ...         for key, value in dct.items():
+    ...             self.data_object.set_field(key, value)
+    ...
+    ...     def build_mapper(self) -> BaseMapper:
+    ...         '''Optional: Build mapper from format-specific metadata.
+    ...
+    ...         If not needed, inherit default implementation or return empty Mapper.
+    ...         '''
+    ...         return Mapper.from_dict({'mapper': []})
+
+    Your parser will automatically inherit convert(), parse(), and path resolution.
+"""
+
 MAPPING_ANNOTATION_KEY = 'mapping'
+"""Key for accessing mapping annotations in metainfo definitions.
+
+Used by `MetainfoParser` to retrieve mapper specifications from quantity/section annotations.
+Multiple annotation keys can coexist (e.g., 'hdf5', 'xml', 'json') for format-specific mappings.
+"""
 
 COMPRESSIONS = {
     b'\x1f\x8b\x08': ('gz', gzip.open),
     b'\x42\x5a\x68': ('bz2', bz2.open),
     b'\xfd\x37\x7a': ('xz', lzma.open),
 }
+"""Mapping of file magic numbers to compression formats and their open functions.
+
+Used by `MappingParser.open` property to automatically detect and handle compressed files.
+Maps the first 3 bytes of a file to (extension, open_function) tuples for gzip, bzip2, and xz.
+"""
 
 
 class JmespathOptions(jmespath.visitor.Options):
+    """Extended options for custom jmespath operations.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Extends the standard jmespath Options with custom flags for controlling
+    search and modification behavior in `TreeInterpreter` and `ParsedResult`.
+
+    Attributes:
+        pop (bool): Whether to remove data from source during traversal (default: False).
+        search (bool): Whether in search mode (True) or set mode (False) (default: True).
+                      In search mode, missing paths return None. In set mode, missing
+                      paths are created automatically.
+
+    Args:
+        **kwargs: Custom option attributes. Attributes matching parent class are passed
+                 to `jmespath.visitor.Options`, others are stored as instance attributes.
+    """
+
     def __init__(self, **kwargs):
         self.pop = False
         self.search = True
@@ -50,6 +261,45 @@ LOGGER = get_logger(__name__)
 
 
 class TreeInterpreter(jmespath.visitor.TreeInterpreter):
+    """Extended jmespath interpreter supporting path creation and data modification.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Extends standard jmespath traversal to enable:
+    - Automatic creation of missing paths during set operations
+    - Tracking of traversal context (stack, indices, keys) for data modification
+    - Parent node tracking for conditional path creation logic
+
+    The interpreter maintains a traversal stack to record the path taken through
+    the data structure, enabling both read and write operations on nested data.
+
+    Attributes:
+        stack (list): Stack of dictionaries/lists traversed during path evaluation.
+        indices (list[list[int]]): Indices accessed at each stack level (for arrays).
+        keys (list[str]): Keys accessed at each stack level (for dictionaries).
+        _parent_key (str): Internal key for storing parent node type in AST nodes.
+
+    Dependencies:
+        Uses: :class:`JmespathOptions` to control search vs. set behavior
+        Used by: :class:`ParsedResult` for path traversal and data modification
+
+    Example:
+        Given data = {'a': {'b': [{'c': 1}, {'c': 2}]}} and path 'a.b[1].c':
+
+        During traversal:
+        - After 'a': stack=[{'b': [...]}, keys=['a'], indices=[[]]
+        - After 'b': stack=[{'b': [...]}, [...]], keys=['a', 'b'], indices=[[], []]
+        - After '[1]': stack=[{'b': [...]}, [...], {'c': 2}], keys=['a', 'b', 'c'], indices=[[], [1], []]
+
+        This allows `ParsedResult.set()` to navigate back through the stack
+        and modify the data at the correct nested location.
+
+    Args:
+        options (JmespathOptions | None): Options controlling search vs. set behavior.
+    """
+
     def __init__(self, options=None):
         self.stack = []
         self._current_node = None
@@ -62,7 +312,21 @@ class TreeInterpreter(jmespath.visitor.TreeInterpreter):
         self._parent_key = '__parent'
         super().__init__(options)
 
-    def visit(self, node, *args, **kwargs):
+    def visit(self, node: dict[str, Any], *args, **kwargs) -> Any:
+        """Visit a node in the jmespath AST, annotating children with parent context.
+
+        Marks each child node with its parent's type (e.g., 'index_expression', 'pipe')
+        to enable context-aware decisions in specialized visit methods. The stack itself
+        is populated by `visit_field`, not this method.
+
+        Args:
+            node (dict): AST node with 'type' and 'children' keys.
+            *args: Passed to parent visit method.
+            **kwargs: Passed to parent visit method.
+
+        Returns:
+            Any: Result of visiting the node.
+        """
         node_type = node.get('type')
         for child in node.get('children'):
             if hasattr(child, 'get'):
@@ -72,25 +336,53 @@ class TreeInterpreter(jmespath.visitor.TreeInterpreter):
         node.pop(self._parent_key, None)
         return value
 
-    def visit_field(self, node, value):
+    def visit_field(self, node: dict[str, Any], value: dict[str, Any] | list) -> Any:
+        """Visit a field access node, creating paths if in set mode.
+
+        This is where the traversal stack is populated. In set mode (search=False),
+        missing fields are automatically created. In search mode, missing fields return None.
+
+        The field node represents a key access like 'b' in the jmespath expression 'a.b.c'.
+        See `JmespathParser` for jmespath syntax details.
+
+        Behavior:
+        - Lists: Takes the last element (or creates one in set mode if empty)
+        - Set mode + index_expression parent: Creates arrays for fields like 'a.b[0]'
+        - Set mode: Creates empty dicts/arrays using setdefault
+        - Updates stack/indices/keys for later modification by `ParsedResult.set()`
+
+        Args:
+            node (dict): AST node with 'value' key containing the field name.
+            value (dict | list): Current data being traversed.
+
+        Returns:
+            Any | None: The field value, or None if not found (search mode) or not a dict.
+        """
         parent = node.get(self._parent_key, None)
+        # Handle list values: take last element or create one in set mode
         if isinstance(value, list):
             if not value and not self._options.search:
-                value.append({})
+                value.append({})  # Create empty dict for path creation
             if not value:
-                return None
-            value = value[-1]
+                return None  # Empty list in search mode
+            value = value[-1]  # Access last element for field lookup
         if not hasattr(value, 'get'):
-            return None
+            return None  # Value is not dict-like, cannot access fields
+        value = cast(dict[str, Any], value)
 
+        # In set mode, create missing fields automatically
         if not self._options.search:
+            # If parent is index_expression (e.g., 'a.b[0]'), ensure field is a list
             if parent == 'index_expression' and not isinstance(
                 value.get(node['value']), list
             ):
                 value[node['value']] = []
 
+            # Create field if missing: array for index_expression parent, dict otherwise
             value.setdefault(node['value'], [] if parent == 'index_expression' else {})
 
+        # Track indices for nested structures: if current value is same as parent's
+        # field value, we're accessing it at index 0
         if self.stack and not self.indices[-1]:
             parent_stack = self.stack[-1].get(self.keys[-1], {})
             if value == parent_stack or (
@@ -98,77 +390,147 @@ class TreeInterpreter(jmespath.visitor.TreeInterpreter):
             ):
                 self.indices[-1] = [0]
 
+        # Add current field to traversal stack (unless in comparator context)
         if parent != 'comparator':
-            self.indices.append([])
-            self.stack.append(value)
-            self.keys.append(node['value'])
+            self.indices.append(
+                []
+            )  # Indices for this level (populated by visit_index/visit_slice)
+            self.stack.append(value)  # Current dict/list
+            self.keys.append(node['value'])  # Field name
 
         try:
             return value.get(node['value'])
         except AttributeError:
             return None
 
-    def visit_index_expression(self, node, value):
+    def visit_index_expression(self, node: dict[str, Any], value: Any) -> Any:
         value = super().visit_index_expression(node, value)
         if node.get(self._parent_key) == 'pipe' and self.indices:
             self.indices[-1] = []
         return value
 
-    def visit_index(self, node, value):
+    def visit_index(self, node: dict[str, Any], value: list) -> Any:
         if not isinstance(value, list):
             return None
 
         index = node['value']
         n_value = len(value)
+        # In search mode, out-of-bounds access returns None
         if self._options.search and index >= n_value:
             return None
 
+        # In set mode, extend array to accommodate index
+        # Calculate how many elements to add: handles both positive and negative indices
         n_target = abs(index) - n_value + (0 if index < 0 else 1)
         value.extend([{} for _ in range(n_target)])
 
+        # Record which index was accessed for later stack navigation
         if self.indices:
             self.indices[-1] = [index]
         return value[index]
 
-    def visit_slice(self, node, value):
+    def visit_slice(self, node: dict[str, Any], value: list) -> list | None:
         if not isinstance(value, list):
             return None
 
+        # Parse slice notation: [start:stop:step]
         s = slice(*node['children'])
         n_value = len(value)
+        # Calculate which indices the slice will access
         indices = list(range(s.start or 0, s.stop or n_value or 1, s.step or 1))
         if indices:
             max_index = max(np.abs(indices))
             min_index = min(indices)
+            # Calculate how many elements needed to accommodate slice range
             n_target = (
                 max_index
                 - n_value
                 + (0 if min_index < 0 and max_index == -min_index else 1)
             )
 
+            # In search mode, out-of-bounds slice returns None
             if max_index >= n_value and self._options.search:
                 return None
 
+            # In set mode, extend array to fit slice
             value.extend([{} for _ in range(n_target)])
         # if isinstance(value, h5py.Group):
         #     return [g for g in value.values()][s]
+        # Record which indices were accessed for later stack navigation
         self.indices[-1] = indices
         return value[s]
 
 
 class ParsedResult(jmespath.parser.ParsedResult):
-    def _set_value(self, value, options, data):
+    """Extended parsed jmespath expression supporting bidirectional data access.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Extends the standard jmespath `ParsedResult` to support both search (read) and
+    set (write) operations on nested data structures. Uses `TreeInterpreter` to
+    track traversal context for modification.
+
+    The set operation works by:
+    1. Traversing the path using :class:`TreeInterpreter` (which records stack/indices/keys)
+    2. Navigating back through the stack to the modification point
+    3. Setting the new data at the correct nested location
+    4. Optionally removing (popping) the modified data from the structure
+
+    Dependencies:
+        Uses: :class:`TreeInterpreter` for path traversal with stack tracking
+        Uses: :class:`JmespathOptions` to configure search vs. set mode
+        Used by: :class:`JmespathParser` (returns ParsedResult from parse())
+        Used by: :class:`PathParser` (calls search/set methods)
+
+    Example:
+        >>> parser = JmespathParser()
+        >>> result = parser.parse('a.b[1].c')
+        >>> data = {'a': {'b': [{'c': 3}, {'c': 4}]}}
+        >>> result.search(data)  # Returns: 4
+        # Index [1] selects the second element {'c': 4}, then '.c' accesses its value
+        >>> result.set(data, 99)  # Sets data['a']['b'][1]['c'] = 99
+        >>> data  # {'a': {'b': [{'c': 3}, {'c': 99}]}}
+    """
+
+    def _set_value(
+        self, value: dict[str, Any], options: JmespathOptions, data: Any
+    ) -> tuple[Any, Any]:
+        """Internal method to traverse path and optionally set/pop data.
+
+        Uses `TreeInterpreter` to visit the parsed expression tree, building up
+        the traversal stack. Then navigates the stack to set or remove data.
+
+        Args:
+            value: The dictionary to traverse.
+            options: Controls search vs. set mode and pop behavior.
+            data: New data to set at the path location. If None and not popping,
+                 only traversal is performed (search mode).
+
+        Returns:
+            tuple[Any, Any | list[Any]]: (result found at path, affected values).
+            - result: The data found at the path during traversal
+            - affected values: List of values at modified locations after setting
+              (or removed values if popping). Single value if one location affected,
+              list if multiple (e.g., slice operations). Empty list if data is None.
+        """
+        # Traverse path, building stack of dicts/lists visited
         self._interpreter = TreeInterpreter(options=options)
         result = self._interpreter.visit(self.parsed, value)
 
-        values = []
+        values: list[Any] = []
+        # If just searching (not setting/popping), return the found value
         if not options.pop and data is None:
             return result, values
 
+        # Filter stack to only include levels that contain actual values to modify
         stack, stack_indices, stack_keys = [], [], []
         for n, s in enumerate(self._interpreter.stack):
+            # Include if this is the final level (where data sits)
             add = s == self._interpreter.stack[-1]
             if not add:
+                # Or include if the field value is a leaf (not a dict/list)
                 val = s[self._interpreter.keys[n]]
                 add = val and not hasattr(
                     val[0] if isinstance(val, list) else val, 'get'
@@ -178,7 +540,9 @@ class ParsedResult(jmespath.parser.ParsedResult):
                 stack_indices.append(self._interpreter.indices[n])
                 stack_keys.append(self._interpreter.keys[n])
 
+        # Set data at each level in the filtered stack
         for n, indices in enumerate(stack_indices):
+            # If data is list matching stack levels, use corresponding element
             d = (
                 data[n]
                 if isinstance(data, list)
@@ -186,6 +550,7 @@ class ParsedResult(jmespath.parser.ParsedResult):
                 and len(data) == len(stack_indices)
                 else data
             )
+            # No indices: setting a simple field (e.g., 'a.b.c')
             if not indices:
                 stack[n][stack_keys[n]] = d
                 v = (
@@ -195,9 +560,12 @@ class ParsedResult(jmespath.parser.ParsedResult):
                 )
                 values.append(v)
                 continue
+            # Indices present: setting array elements (e.g., 'a.b[0:3].c')
             map_data = isinstance(d, list) and len(d) == len(indices)
+            # Iterate backwards to avoid index shifting when popping
             for nd in range(len(indices) - 1, -1, -1):
                 index = indices[nd]
+                # If data list matches indices, map element-wise; otherwise broadcast same value
                 stack[n][stack_keys[n]][index] = d[nd] if map_data else d
                 v = (
                     stack[n][stack_keys[n]][index]
@@ -208,31 +576,126 @@ class ParsedResult(jmespath.parser.ParsedResult):
 
         return result, values[0] if len(values) == 1 else values
 
-    def search(self, value, **kwargs):
+    def search(self, value: dict[str, Any], **kwargs) -> Any:
+        """Search for data at the jmespath expression path.
+
+        Traverses the data structure following the parsed jmespath expression.
+        Returns None if the path doesn't exist.
+
+        Args:
+            value: Dictionary to search in.
+            **kwargs: Additional options passed to `JmespathOptions`.
+
+        Returns:
+            Any: Data found at the path, or None if path doesn't exist.
+        """
         options = JmespathOptions(search=True, **kwargs)
         return self._set_value(value, options, None)[0]
 
-    def set(self, value, data, **kwargs):
+    def set(self, value: dict[str, Any], data: Any, **kwargs) -> Any | list[Any]:
+        """Set data at the jmespath expression path, creating missing paths.
+
+        Traverses the data structure following the parsed jmespath expression,
+        automatically creating any missing intermediate dictionaries or arrays.
+        Sets the provided data at the final location.
+
+        Args:
+            value: Dictionary to modify (modified in-place).
+            data: Data to set at the path location.
+            **kwargs: Additional options (e.g., pop=True to remove after setting).
+
+        Returns:
+            Any | list[Any]: The data now at the path location(s). Returns a list
+            if the path affects multiple locations (e.g., slice), single value otherwise.
+        """
         options = JmespathOptions(search=False, **kwargs)
         return self._set_value(value, options, data)[1]
 
 
 class JmespathParser(jmespath.parser.Parser):
-    """
-    JmespathParser extension implementing search with pop and set functionalities.
+    """Extended jmespath parser with bidirectional data access (search and set).
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Extends the standard jmespath parser to return `ParsedResult` objects that support
+    both reading (search) and writing (set) operations on nested data structures.
+
+    Jmespath Path Syntax:
+        Jmespath expressions navigate nested dictionaries and lists using a query language.
+        Common patterns used in this framework:
+
+        - Field access: `a.b.c` accesses nested dict keys
+        - Array indexing: `a.b[0]` accesses first element
+        - Negative indexing: `a.b[-1]` accesses last element
+        - Slicing: `a.b[0:3]` accesses elements 0, 1, 2
+        - Filtering: `a.b[?@.c=='value']` filters array by condition
+        - Pipes: `a.b | [0]` chains operations
+        - Current node: `@` refers to current data in expressions
+
+    Examples:
+        >>> parser = JmespathParser()
+        >>> data = {'systems': [{'atoms': [{'symbol': 'H'}, {'symbol': 'O'}]}]}
+        >>> parser.parse('systems[0].atoms[1].symbol').search(data)
+        'O'
+        >>> parser.parse('systems[0].atoms[0].symbol').set(data, 'C')
+        'C'
+
+    See Also:
+        - https://jmespath.org for complete jmespath specification
+        - `ParsedResult` for search/set operation details
+        - `TreeInterpreter` for path creation behavior in set mode
     """
 
-    def parse(self, expression):
+    def parse(self, expression: str) -> ParsedResult:
+        """Parse a jmespath expression into a `ParsedResult` with search/set support.
+
+        Args:
+            expression: Jmespath path expression string.
+
+        Returns:
+            ParsedResult: Parsed expression supporting search() and set() operations.
+        """
         parsed_result = super().parse(expression)
         return ParsedResult(parsed_result.expression, parsed_result.parsed)
 
 
 class PathParser(BaseModel):
+    """Abstraction over different path query languages (jmespath, jsonpath_ng).
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Provides a unified interface for path-based data access regardless of the
+    underlying query language. Acts as a factory/adapter that delegates to the
+    appropriate parser implementation based on `parser_name`.
+
+    Relationship to other parsers:
+        - Creates and uses `JmespathParser` when parser_name='jmespath' (default)
+        - Creates and uses `JsonPathParser` when parser_name='jsonpath_ng'
+        - Used by `Path` and `Data` objects to perform actual path operations
+
+    Attributes:
+        parser_name: Name of the parser backend ('jmespath' or 'jsonpath_ng').
+    """
+
     parser_name: str = Field(
         'jmespath', description="""Name of the parser to perform parsing."""
     )
 
-    def get_data(self, path, source, **kwargs) -> Any:
+    def get_data(self, path: str, source: dict[str, Any], **kwargs) -> Any:
+        """Retrieve data from source using the configured parser.
+
+        Args:
+            path: Path expression in the configured parser's syntax.
+            source: Dictionary to search.
+            **kwargs: Parser-specific options (e.g., pop=True for jmespath).
+
+        Returns:
+            Any: Data found at path, or None if not found or parser unsupported.
+        """
         if self.parser_name == 'jmespath':
 
             def _get(path, source, **kwargs):
@@ -253,7 +716,18 @@ class PathParser(BaseModel):
 
         return None
 
-    def set_data(self, path, target, data, **kwargs) -> Any:
+    def set_data(self, path: str, target: dict[str, Any], data: Any, **kwargs) -> Any:
+        """Set data in target at the specified path using the configured parser.
+
+        Args:
+            path: Path expression in the configured parser's syntax.
+            target: Dictionary to modify (modified in-place).
+            data: Data to set at the path location.
+            **kwargs: Parser-specific options (e.g., pop=True for jmespath).
+
+        Returns:
+            Any: The data at the path location after setting, or None if parser unsupported.
+        """
         if self.parser_name == 'jmespath':
 
             def _set(path, target, data, **kwargs):
@@ -272,8 +746,29 @@ class PathParser(BaseModel):
 
 
 class Path(BaseModel, validate_assignment=True):
-    """
-    Wrapper for jmespath parser to get/set data from/to an input dictionary.
+    """Path specification with support for relative and absolute resolution.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Wraps path expressions (jmespath or jsonpath_ng) with automatic resolution of
+    relative paths based on parent context. Supports both data retrieval and
+    modification with various update modes.
+
+    Attributes (example: parent=Path(path='a.b'), child=Path(path='.c[0]', parent=parent)):
+        path:           User-defined path string                           -> '.c[0]'
+        parent:         Parent path for relative resolution                -> Path(path='a.b')
+        relative_path:  Path with leading '.' removed                      -> 'c[0]'
+        absolute_path:  Full path from root (parent + relative)            -> 'a.b.c[0]'
+        reduced_path:   Absolute path without indices/filters              -> 'a.b.c'
+        parser:         PathParser instance for path operations
+
+    Dependencies:
+        Uses: :class:`PathParser` to execute get_data/set_data operations
+        Used by: :class:`Data` to wrap path access
+        Used by: :class:`Transformer` for function_args specification
+        Used by: :meth:`MappingParser.set_data` for recursive path setting
     """
 
     path: str = Field('', description="""User-defined path to the data.""")
@@ -287,6 +782,45 @@ class Path(BaseModel, validate_assignment=True):
 
     @model_validator(mode='before')
     def get_relative_path(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Pydantic validator to compute path attributes before model construction.
+
+        The `@model_validator(mode='before')` decorator runs this method before field
+        assignment, allowing in-place modification of the values dictionary to compute
+        derived path attributes.
+
+        Computation steps:
+        1. Strip leading '.' from path to get relative_path
+        2. Join parent.absolute_path with relative_path to get absolute_path
+        3. Remove indices/filters from absolute_path to get reduced_path
+
+        Validation behavior:
+            - **Timing**: Runs BEFORE field assignment and type checking
+            - **Trigger**: Called during Path(...) construction or field assignment with validate_assignment=True
+            - **Error propagation**: Exceptions raised here become pydantic.ValidationError
+            - **Return requirement**: Must return the (possibly modified) values dict
+
+        Common validation errors:
+            - AttributeError: If parent is not None but lacks absolute_path
+              Solution: Ensure parent is a valid Path object
+            - TypeError: If path is not a string
+              Solution: Provide path as string, not Path object
+
+        Example:
+            Input:  values = {'path': '.c[0]', 'parent': Path(path='a.b')}
+            Step 1: relative_path = 'c[0]'
+            Step 2: absolute_path = 'a.b' + '.' + 'c[0]' = 'a.b.c[0]'
+            Step 3: reduced_path = 'a.b.c'  (removes '[0]')
+            Output: values updated in-place with these computed fields
+
+        Args:
+            values: Dictionary of field values being validated/assigned.
+
+        Returns:
+            dict[str, Any]: Modified values dictionary with computed path fields added.
+
+        Raises:
+            AttributeError: If parent is not None but lacks absolute_path attribute.
+        """
         relative_path = values.get('path', '')
         parent = values.get('parent')
         relative_path = re.sub(r'(?:^|(?<=\s))\.', '', relative_path)
@@ -302,56 +836,118 @@ class Path(BaseModel, validate_assignment=True):
 
         return values
 
-    def is_relative_path(self):
+    def is_relative_path(self) -> bool:
+        """Check if this path is relative (has leading '.' or a parent).
+
+        Returns:
+            bool: True if path is relative, False if absolute.
+        """
         return self.relative_path != self.path or self.parent is not None
 
     def get_data(self, source: dict[str, Any], **kwargs) -> Any:
+        """Retrieve data from source at this path's location.
+
+        Args:
+            source: Dictionary to search.
+            **kwargs: Options for parser (e.g., default=value to return if not found).
+
+        Returns:
+            Any: Data at path, or kwargs['default'] if path not found or error occurs.
+        """
         try:
             return self.parser.get_data(self.relative_path, source, **kwargs)
         except Exception:
             return kwargs.get('default')
 
     def set_data(self, data: Any, target: dict[str, Any], **kwargs) -> Any:
+        """Set data at this path's location with various update strategies.
+
+        Sets data at the path location, merging with existing data according to
+        update_mode. The target dictionary is modified in-place.
+
+        Update modes:
+            - 'replace' (default): Completely replace existing data
+            - 'append': Keep existing data if present, otherwise use new data
+            - 'merge' (dicts): Recursively merge keys from source into target
+            - 'merge@start' (lists): Align source[0] with target[0], insert non-overlapping
+            - 'merge@last' (lists): Align source[-1] with target[-1], extends backward
+            - 'merge@N' (lists): Align source[N] with target[0] (negative N supported)
+
+        List merge behavior:
+            For 'merge@last': start = len(source) - len(target), so if source=[1,2,3,4,5]
+            and target=[A,B], start=3, merging source[3] with target[0] and source[4] with
+            target[1]. Non-overlapping source elements (0,1,2) are inserted into target.
+
+            Out of bounds: Elements outside the merge window are inserted at their source
+            index position, growing the target list.
+
+        Args:
+            data: New data to set at the path.
+            target: Dictionary to modify (modified in-place).
+            **kwargs: Options including update_mode, passed to parser.set_data.
+
+        Returns:
+            Any: The data at the path location after setting and merging.
+
+        Example:
+            >>> path = Path(path='a.b')
+            >>> target = {'a': {'b': [10, 20]}}
+            >>> path.set_data([1, 2, 3, 4, 5], target, update_mode='merge@last')
+            >>> # Merges: source[3]->target[0], source[4]->target[1]
+            >>> # Inserts: source[0,1,2] at positions 0,1,2
+            >>> target  # {'a': {'b': [1, 2, 3, 10, 20]}}
+        """
         cur_data = self.get_data(target, **kwargs)
         update_mode = kwargs.get('update_mode')
         path = self.relative_path
 
         def update(source: Any, target: Any):
+            # Type mismatch: keep target if append mode, otherwise use source
             if not isinstance(source, type(target)):
                 return (
                     target if update_mode == 'append' and target is not None else source
                 )
 
+            # Dictionary merge: recursively merge all keys
             if isinstance(source, dict):
                 if update_mode != 'replace':
                     for key in list(source.keys()):
+                        # Recursively update each key (prefix with '.' for relative path)
                         target[f'.{key}'] = update(
                             source.get(key), target.get(f'.{key}')
                         )
                 return target
 
+            # List merge: complex alignment logic based on merge_at position
             if isinstance(source, list):
                 merge = re.match(r'merge(?:@(.+))*', update_mode or '')
                 if merge:
                     merge_at = merge.groups()[0]
+                    # Calculate starting index in source for alignment
                     if not merge_at or merge_at == 'start':
-                        start = 0
+                        start = 0  # Align source[0] with target[0]
                     elif merge_at == 'last':
-                        start = len(source) - len(target)
+                        start = len(source) - len(
+                            target
+                        )  # Align source[-1] with target[-1]
                     else:
-                        start = int(merge_at)
+                        start = int(merge_at)  # Align source[N] with target[0]
                     if start < 0:
-                        start += len(source)
+                        start += len(source)  # Handle negative indices
                     for n, d in enumerate(source):
+                        # If within merge window, recursively merge with target element
                         if n >= start and n < start + len(target):
                             update(d, target[n - start])
                         else:
+                            # Outside merge window, insert source element at its index
                             target.insert(n, d)
                 elif update_mode == 'append':
+                    # Append mode: prepend all source elements
                     for n, d in enumerate(source):
                         target.insert(n, update(d, {}))
                 return target
 
+            # Scalar values: keep target if append mode, otherwise use source
             return target if update_mode == 'append' and target is not None else source
 
         res = self.parser.set_data(path, target, data, **kwargs)
@@ -365,8 +961,32 @@ Path.model_rebuild()
 
 
 class Data(BaseModel, validate_assignment=True):
-    """
-    Wrapper for the path to the data or a transformer to extract the data.
+    """Wrapper for data access via either a direct path or a transformation function.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Use the stable Parser Developer API instead.
+
+    Provides a unified interface for data extraction that can be either a simple
+    path lookup or a complex transformation involving multiple source paths and
+    a function. Automatically resolves relative paths based on parent context.
+
+    Usage patterns:
+        - Simple path: `Data(path=Path(path='a.b.c'))` - direct data access
+        - Transformation: `Data(transformer=Transformer(...))` - computed data access
+        - Auto-inferred path: If transformer has one arg, that becomes the path
+
+    Attributes:
+        path: Path to the data (may be auto-set from transformer's single argument).
+        transformer: Transformer for computed data extraction (e.g., reshaping arrays).
+        parent: Parent path for relative path resolution.
+        path_parser: Parser for path operations (propagated to path/transformer args).
+
+    Dependencies:
+        Uses: :class:`Path` for direct path access
+        Uses: :class:`Transformer` for computed transformations
+        Uses: :class:`PathParser` (propagated to children)
+        Used by: :class:`BaseMapper` for source/target specification
     """
 
     path: Path = Field(None, description="""Path to the data.""")
@@ -380,6 +1000,32 @@ class Data(BaseModel, validate_assignment=True):
 
     @model_validator(mode='before')
     def set_attributes(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Pydantic validator to configure path, parent, and parser relationships.
+
+        Propagates parent and parser settings to nested path/transformer arguments,
+        and auto-infers path from transformer if it has a single argument.
+
+        Configuration steps:
+        1. If no path but transformer exists: set path from transformer's single arg
+           or use '@' (current node) for multi-arg transformers
+        2. If parent exists: propagate to all relative paths in transformer args
+        3. If path_parser exists: propagate to path and all transformer args
+
+        Validation behavior:
+            - **Timing**: Runs BEFORE field assignment (mode='before')
+            - **Side effects**: Modifies nested objects (Path, Transformer args) in-place
+            - **Error propagation**: Errors from nested Path/Transformer validators propagate
+              as pydantic.ValidationError with nested error details
+
+        Args:
+            values: Dictionary of field values being validated.
+
+        Returns:
+            dict[str, Any]: Modified values with configured relationships.
+
+        Raises:
+            pydantic.ValidationError: If nested Path or Transformer construction fails.
+        """
         if values.get('path') is None and values.get('transformer'):
             transformer = values['transformer']
             if len(transformer.function_args) == 1:
@@ -410,6 +1056,16 @@ class Data(BaseModel, validate_assignment=True):
         parser: 'MappingParser | None' = None,
         **kwargs,
     ) -> Any:
+        """Extract data via transformer or direct path lookup.
+
+        Args:
+            source_data: Dictionary to extract from (for relative paths).
+            parser: MappingParser instance providing absolute data root and functions.
+            **kwargs: Options passed to path/transformer get_data methods.
+
+        Returns:
+            Any: Transformed data (if transformer) or raw path data (if simple path).
+        """
         if self.transformer:
             value = self.transformer.get_data(source_data, parser, **kwargs)
             return self.transformer.normalize_data(value)
@@ -420,8 +1076,26 @@ class Data(BaseModel, validate_assignment=True):
 
 
 class BaseMapper(BaseModel):
-    """
-    Base class for a mapper.
+    """Base class for mapping specifications between source and target data.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Do not instantiate or subclass directly. Use :meth:`BaseMapper.from_dict`
+        to construct mappers from dictionary specifications or metainfo annotations.
+
+    Provides the foundation for declarative data transformation through `Mapper`
+    (nested mappers) and `Transformer` (function-based transformations). Mappers
+    are typically constructed via the `from_dict` factory method from dictionary
+    specifications or metainfo annotations.
+
+    Attributes:
+        source: Where to read data from (path or transformer).
+        target: Where to write data to (path).
+        indices: Which array elements to process (list of ints or function name string).
+        order: Execution priority (0=container/Mapper, 1=transformation/Transformer).
+        remove: Whether to remove data from source after reading.
+        cache: Whether to cache the transformation result.
+        all_paths: Internal list of all absolute paths for remove optimization.
     """
 
     source: 'Data' = Field(None, description="""Source data.""")
@@ -437,29 +1111,83 @@ class BaseMapper(BaseModel):
     )
 
     def get_data(self, source_data: Any, parser: 'MappingParser', **kwargs) -> Any:
+        """Extract data from source (implemented by subclasses).
+
+        Args:
+            source_data: Source dictionary to extract from.
+            parser: MappingParser providing functions and absolute data root.
+            **kwargs: Additional options (e.g., remove, debug).
+
+        Returns:
+            Any: Extracted/transformed data.
+        """
         return None
 
     def normalize_data(self, data: Any) -> Any:
+        """Post-process extracted data (e.g., apply units). Override in subclasses.
+
+        Args:
+            data: Raw extracted data.
+
+        Returns:
+            Any: Normalized data.
+        """
         return data
 
     @staticmethod
     def from_dict(
         dct: dict[str, Any], parent: 'BaseMapper | None' = None
     ) -> 'BaseMapper':
-        """
-        Convert dictionary to a BaseMapper object. Dictionary may contain the following
-            source: str or Path or tuple or Transformer to extract source data
-            target: str or Path object of target data
-            mapper:
-                str or Path object returns Transfomer with identity function
-                Tuple[str, List[str]] returns Transformer
-                List[Dict] returns Mapper
-            path: str or Path object returns Map object
-            function_name: str name of transformation function
-            function_args: List[str] of paths of data as arguments to function
-            indices: str or List of indices of data to include
-                str is function name to evaluate indices
-            remove: Remove data from source
+        """Factory method to construct mapper objects from dictionary specifications.
+
+        Converts various dictionary formats into `Transformer` or `Mapper` instances.
+        The dictionary structure determines which mapper type is created:
+
+        Dictionary keys:
+            source (str | Path | tuple | Data): Where to read data
+                - str/Path: Direct path to source data
+                - tuple: (function_name, [arg_paths], {kwargs}) for transformation
+                - Data: Pre-configured Data object
+            target (str | Path | Data): Where to write data (similar formats as source)
+            mapper: Determines the mapper type created:
+                - str/Path: Creates Transformer with identity function
+                - (func_name, [arg_paths]) or (func_name, [arg_paths], {kwargs}): Transformer
+                - [dict, ...]: Creates nested Mapper with sub-mappers
+            path: Shorthand for mapper (alternative to 'mapper' key)
+            function_name, function_args: Alternative to tuple format in mapper
+            indices (list[int] | str): Which array elements to process
+            remove (bool): Remove source data after reading
+            cache (bool): Cache transformation results
+            path_parser (str): Parser type ('jmespath' or 'jsonpath_ng')
+
+        Args:
+            dct: Dictionary specification of the mapper.
+            parent: Parent mapper for inheriting source/target context.
+
+        Returns:
+            BaseMapper: Constructed Transformer or Mapper instance.
+
+        Examples:
+            # Simple path mapping (identity):
+            >>> BaseMapper.from_dict({'mapper': 'a.b', 'target': 'c.d'})
+            # Returns Transformer with identity function from 'a.b' to 'c.d'
+
+            # Transformation:
+            >>> BaseMapper.from_dict({
+            ...     'mapper': ('reshape', ['a.b', 'a.n_rows']),
+            ...     'target': 'c.matrix'
+            ... })
+            # Returns Transformer calling parser.reshape(a.b, a.n_rows) -> c.matrix
+
+            # Nested mapping:
+            >>> BaseMapper.from_dict({
+            ...     'source': 'input.data',
+            ...     'mapper': [
+            ...         {'mapper': 'x', 'target': 'position_x'},
+            ...         {'mapper': 'y', 'target': 'position_y'}
+            ...     ]
+            ... })
+            # Returns Mapper with two Transformer sub-mappers
         """
         paths: dict[str, Data] = {}
         path_parser = dct.get('path_parser')
@@ -552,6 +1280,26 @@ class BaseMapper(BaseModel):
         return obj
 
     def get_required_paths(self) -> list[str]:
+        """Extract all source paths required by this mapper and its sub-mappers.
+
+        Traverses the mapper tree to collect all absolute paths referenced in source
+        data extraction. Used by parsers with `parse_only_required=True` to optimize
+        parsing by only loading necessary data.
+
+        Returns:
+            list[str]: Unique list of all absolute paths (without indices) needed.
+
+        Example:
+            >>> mapper = BaseMapper.from_dict({
+            ...     'mapper': [
+            ...         {'mapper': ('func', ['a.b[0].c', 'a.d']), 'target': 'x'},
+            ...         {'mapper': 'e.f', 'target': 'y'}
+            ...     ]
+            ... })
+            >>> mapper.get_required_paths()
+            ['a', 'a.b', 'a.b.c', 'a.d', 'e', 'e.f']
+        """
+
         def get_path_segments(parsed: dict[str, Any]) -> list[str]:
             segments: list[str] = []
             value = parsed.get('value')
@@ -595,18 +1343,46 @@ class BaseMapper(BaseModel):
 
 
 class Transformer(BaseMapper):
-    """
-    Mapper to perform a transformation of the data.
+    """Mapper that applies a transformation function to source data.
 
-    A static method with function_name should be implemented in the parser class.
+    Executes a function (defined as a static method on the parser class) with
+    arguments extracted from source data paths. If no function is specified,
+    applies identity transformation (returns data unchanged).
 
-        class Parser(MappingParser):
-            @staticmethod
-            def get_eigenvalues_energies(array: np.ndarray, n_spin: int, n_kpoints: int):
-                array = np.transpose(array)[0].T
-                return np.reshape(array, (n_spin, n_kpoints, len(array[0])))
+    The transformation function must be defined in the :class:`MappingParser` subclass
+    as a static method or regular method. Arguments are extracted from source
+    data using the paths specified in `function_args`.
 
-    If function is not defined, identity transformation is applied.
+    Attributes:
+        function_name: Name of the method to call on the parser instance.
+        function_args: List of Path objects specifying where to get function arguments.
+        function_kwargs: Additional keyword arguments to pass to the function.
+        order: Execution priority (1 for transformers, higher than Mapper's 0).
+
+    Dependencies:
+        Uses: :class:`Path` objects in function_args to extract argument data
+        Uses: :meth:`Path.get_data` to retrieve values from source
+        Calls: Method on :class:`MappingParser` instance (named by function_name)
+        Used by: :class:`Mapper` (executes transformers in its mappers list)
+        Used by: :class:`Data` (when Data.transformer is set)
+
+    Example:
+        Define transformation function in parser:
+        >>> class MyParser(MappingParser):
+        ...     @staticmethod
+        ...     def reshape_eigenvalues(array: np.ndarray, n_spin: int, n_k: int):
+        ...         array = np.transpose(array)[0].T
+        ...         return np.reshape(array, (n_spin, n_k, len(array[0])))
+
+        Use in mapping:
+        >>> transformer = Transformer(
+        ...     function_name='reshape_eigenvalues',
+        ...     function_args=[
+        ...         Path(path='eigenvalues'),
+        ...         Path(path='n_spin_channels'),
+        ...         Path(path='n_kpoints')
+        ...     ]
+        ... )
     """
 
     function_name: str = Field(
@@ -623,6 +1399,31 @@ class Transformer(BaseMapper):
     def get_data(
         self, source_data: dict[str, Any], parser: 'MappingParser', **kwargs
     ) -> Any:
+        """Execute transformation function with arguments from source paths.
+
+        Extracts data from each path in `function_args`, then calls the function
+        specified by `function_name` on the parser instance. If no function_name
+        is provided, applies identity transformation.
+
+        Data removal optimization: When remove=True, data is only popped from source
+        if this is the last mapper referencing that path. This is determined by checking
+        if `all_paths.count(reduced_path) <= 1`, where all_paths is populated by the
+        parent Mapper with all paths used across all sub-mappers. This prevents removing
+        data that other mappers still need.
+
+        Args:
+            source_data: Source dictionary for relative path lookups.
+            parser: MappingParser instance providing the transformation function
+                   and absolute data root.
+            **kwargs: Options including remove (bool, default from self.remove) and
+                     debug (bool, re-raise exceptions if True).
+
+        Returns:
+            Any: Transformed data, or None if transformation fails (unless debug=True).
+
+        Raises:
+            RuntimeError: If transformation fails and debug=True in kwargs.
+        """
         remove: bool = kwargs.get('remove', self.remove)
         func = (
             getattr(parser, self.function_name, None)
@@ -652,8 +1453,76 @@ Data.model_rebuild()
 
 
 class Mapper(BaseMapper, validate_assignment=True):
-    """
-    Mapper for nested mappers.
+    """Composite mapper containing multiple sub-mappers with orchestrated execution.
+
+    Executes a list of sub-mappers (Transformer or nested Mapper instances) to
+    transform source data into a target dictionary. Supports caching, filtering
+    by indices, and automatic path dependency tracking for optimized data removal.
+
+    The Mapper acts as a container coordinating:
+    - Sequential execution of sub-mappers (sorted by order if needed)
+    - Caching of transformation results to avoid redundant computation
+    - Filtering of array data by indices
+    - Aggregation of results into a target dictionary
+
+    Attributes:
+        mappers: List of BaseMapper instances (Transformer or Mapper) to execute.
+        order: Execution priority (0 for Mapper, executed before Transformer's 1).
+        __cache: Internal cache for transformation results (when cache=True).
+
+    Caching:
+        Two types of caching occur during :meth:`get_data` execution:
+
+        **Source Transformer Cache** (mapper.source.transformer.cache=True):
+            - **When**: Before extracting source data for a sub-mapper
+            - **Key**: mapper.source.transformer.function_name
+            - **Value**: Result of mapper.source.get_data()
+            - **Purpose**: Avoid re-extracting/transforming the same source data
+            - **Example**: Multiple sub-mappers use same expensive source transformation
+
+        **Transformer Result Cache** (mapper.cache=True on Transformer sub-mapper):
+            - **When**: After executing a Transformer sub-mapper
+            - **Key**: mapper.function_name
+            - **Value**: List of transformation results
+            - **Purpose**: Avoid re-executing transformation on each iteration
+            - **Example**: Transformer used in multiple iterations with same input
+
+        **Cache Lifecycle**:
+            - **Created**: During Mapper construction (__cache = {})
+            - **Populated**: First execution of get_data() for cached mappers
+            - **Checked**: Before each source extraction or transformer execution
+            - **Scope**: Per Mapper instance (not shared across Mapper instances)
+            - **Cleared**: Never (persists for Mapper lifetime)
+
+        **Execution Order**:
+            1. Check source transformer cache (if mapper.source.transformer.cache)
+            2. If miss, execute mapper.source.get_data() and cache result
+            3. Check transformer result cache (if isinstance(mapper, Transformer) and mapper.cache)
+            4. If miss, iterate and execute mapper.get_data(), cache results
+
+    Dependencies:
+        Contains: List of :class:`BaseMapper` instances (Transformer or nested Mapper)
+        Calls: :meth:`BaseMapper.get_data` on each sub-mapper (recursive for nested Mappers)
+        Calls: :meth:`BaseMapper.normalize_data` on transformation results
+        Calls: :meth:`Data.get_data` if mapper.source is set
+        Used by: :class:`MappingParser` as the top-level mapper
+        Used by: :class:`MetainfoParser` (builds Mapper tree from annotations)
+
+    Example:
+        >>> mapper = Mapper(mappers=[
+        ...     Transformer(
+        ...         function_name='extract_positions',
+        ...         function_args=[Path(path='atoms')],
+        ...         target=Data(path=Path(path='positions'))
+        ...     ),
+        ...     Transformer(
+        ...         function_name='extract_species',
+        ...         function_args=[Path(path='atoms')],
+        ...         target=Data(path=Path(path='species'))
+        ...     )
+        ... ])
+        >>> result = mapper.get_data({'atoms': [...]}, parser)
+        >>> result  # {'positions': [...], 'species': [...]}
     """
 
     mappers: list[BaseMapper] = Field([], description="""List of sub mappers.""")
@@ -662,37 +1531,66 @@ class Mapper(BaseMapper, validate_assignment=True):
 
     @model_validator(mode='before')
     def set_attributes(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Pydantic validator to propagate all_paths and remove settings to sub-mappers.
+
+        Collects all reduced paths from all sub-mappers and propagates them to each
+        sub-mapper's all_paths attribute. This enables data removal optimization:
+        each Transformer can check if it's the last reference to a path before popping.
+
+        Also propagates the remove flag to all sub-mappers for consistent behavior.
+
+        Validation behavior:
+            - **Timing**: Runs BEFORE field assignment (mode='before')
+            - **Side effects**: Recursively modifies all sub-mappers' all_paths and remove attributes
+            - **Execution**: Traverses entire mapper tree to collect and distribute path information
+
+        Args:
+            values: Dictionary of field values being validated.
+
+        Returns:
+            dict[str, Any]: Modified values with all_paths populated.
+        """
+
         def get_paths(mapper: BaseMapper) -> list[str]:
+            # Recursively collect all reduced_path strings from Transformer function_args
             paths = []
             if isinstance(mapper, Transformer):
+                # Leaf: extract reduced paths from all function arguments
                 paths.extend([p.reduced_path for p in mapper.function_args])
             elif isinstance(mapper, Mapper):
+                # Composite: recursively collect from all sub-mappers
                 for m in mapper.mappers:
                     paths.extend(get_paths(m))
             return paths
 
         def set_paths(mapper: BaseMapper, paths: list[str]):
+            # Recursively propagate all_paths to this mapper and all descendants
             mapper.all_paths = paths
             if isinstance(mapper, Mapper):
                 for m in mapper.mappers:
                     set_paths(m, paths)
 
         def set_remove(mapper: BaseMapper, remove: bool):
+            # Recursively propagate remove flag to this mapper and all descendants
             mapper.remove = remove
             if isinstance(mapper, Mapper):
                 for m in mapper.mappers:
                     set_remove(m, remove)
 
+        # Phase 1: Collect all paths from entire mapper tree
         paths = []
         for mapper in values.get('mappers', []):
             paths.extend(get_paths(mapper))
 
-        # propagate all properties to all mappers
+        # Phase 2: Propagate collected paths and remove flag to all mappers
         for mapper in values.get('mappers', []):
+            # Only set paths if not already provided (allow override)
             if not values.get('all_paths'):
                 set_paths(mapper, paths)
+            # Always propagate remove flag
             set_remove(mapper, values.get('remove'))
 
+        # Phase 3: Store collected paths on parent Mapper
         if not values.get('all_paths'):
             values['all_paths'] = paths
 
@@ -701,62 +1599,115 @@ class Mapper(BaseMapper, validate_assignment=True):
     def get_data(
         self, source_data: dict[str, Any], parser: 'MappingParser', **kwargs
     ) -> Any:
+        """Execute all sub-mappers and aggregate results into a dictionary.
+
+        Iterates through sub-mappers, executing each one and collecting results.
+        Handles caching, array iteration, indices filtering, and empty value detection.
+
+        Execution flow for each sub-mapper:
+        1. Determine source data (from mapper.source or use parent source_data)
+        2. Check cache if mapper.source.transformer.cache=True
+        3. Iterate over source data if it's a list, otherwise treat as single item
+        4. Execute mapper.get_data() for each item (RECURSIVE for nested Mappers)
+        5. Filter by indices if specified (can be list or function name on parser)
+        6. Skip empty values (None, [], {}, empty arrays)
+        7. Normalize and aggregate non-empty values
+        8. Store result at mapper.target.path in output dictionary
+
+        Recursion: When a sub-mapper is a `Mapper`, step 4 recursively calls this
+        method, creating a tree-like execution structure for deeply nested mappings.
+
+        Args:
+            source_data: Source dictionary to extract from.
+            parser: MappingParser instance providing functions and absolute data root.
+            **kwargs: Options passed to sub-mapper get_data methods.
+
+        Returns:
+            dict[str, Any]: Dictionary mapping target paths to transformed values.
+                           Single values if indices=None, lists if indices specified.
+        """
         dct = {}
         for mapper in self.mappers:
+            # Start with full source data unless mapper has custom source
             data = source_data
             if mapper.source:
                 data = None
+                # Check source transformer cache first
                 if mapper.source.transformer and mapper.source.transformer.cache:
                     data = self.__cache.get(mapper.source.transformer.function_name)
+                # Cache miss: extract and transform source data
                 if data is None:
                     data = mapper.source.get_data(source_data, parser, **kwargs)
+                    # Populate source transformer cache
                     if mapper.source.transformer and mapper.source.transformer.cache:
                         self.__cache.setdefault(
                             mapper.source.transformer.function_name, data
                         )
 
             def is_not_value(value: Any) -> bool:
+                # Empty numpy array
                 if isinstance(value, np.ndarray):
                     return value.size == 0
+                # Pint quantity: check underlying magnitude
                 if hasattr(value, 'magnitude'):
                     return is_not_value(value.magnitude)
 
+                # Check equality with common empty values
                 not_value: Any
                 for not_value in [None, [], {}]:
                     test = value == not_value
+                    # Handle numpy array comparison returning array of bools
                     result = test.any() if isinstance(test, np.ndarray) else test
                     if result:
                         return bool(result)
 
                 return False
 
+            # Resolve indices: can be direct list or parser attribute name
             indices = mapper.indices
             if isinstance(indices, str):
+                # Fetch attribute from parser (e.g., 'atom_indices')
                 indices = getattr(parser, indices, [])
                 if callable(indices):
                     indices = indices()
 
+            # Check transformer result cache
             value: list[Any] = []
             if isinstance(mapper, Transformer) and mapper.cache:
                 value = self.__cache.get(mapper.function_name, value)
 
+            # Cache miss or no caching: execute mapper on each data element
             if not value:
                 for n, d in enumerate(data if isinstance(data, list) else [data]):
                     v = mapper.get_data(d, parser, **kwargs)
+                    # Filter by indices if specified (only include matching positions)
                     if indices and n not in indices:
                         continue
+                    # Filter out empty values
                     if not is_not_value(v):
                         value.append(v)
+                # Populate transformer result cache
                 if value and mapper.cache and isinstance(mapper, Transformer):
                     self.__cache.setdefault(mapper.function_name, value)
+            # Store normalized values in result dict
             if value:
                 normalized_value = [mapper.normalize_data(v) for v in value]
+                # Single value if indices=None, list otherwise
                 dct[mapper.target.path.path] = (
                     normalized_value[0] if mapper.indices is None else normalized_value
                 )
         return dct
 
-    def sort(self, recursive=True):
+    def sort(self, recursive: bool = True) -> None:
+        """Sort sub-mappers by execution order.
+
+        Sorts mappers list in-place by the `order` attribute. By default, Mapper
+        instances have order=0 and Transformer instances have order=1, ensuring
+        container mappers execute before transformations.
+
+        Args:
+            recursive: If True, recursively sort all nested Mapper instances.
+        """
         self.mappers.sort(key=lambda m: m.order)
         if recursive:
             for mapper in self.mappers:
@@ -768,35 +1719,49 @@ Mapper.model_rebuild()
 
 
 class MappingParser(ABC):
-    """
-    A generic parser class to convert the contents of a file specified by filepath to a
-    dictionary. The data object is the abstract interface to the data which can defined
-    by implementing the load_file method.
+    """Abstract base class for file format parsers with bidirectional dict conversion.
 
-    If attributes are parsed, the data is wrapped in a dictionary with the attribute keys
-    prefixed by attribute_prefix while the value can be accesed by value_key.
+    Provides a framework for parsing files into dictionaries and converting between
+    different file formats through declarative mappers. Each subclass implements
+    format-specific loading (:meth:`load_file`), serialization (:meth:`to_dict`), and
+    deserialization (:meth:`from_dict`) methods.
 
-    data = {
-      'a' : {
-        'b': [
-          {'@name': 'item1', '__value': 'name'},
-          {'@name': 'item2', '__value': 'name2'}
-        ]
-      }
-    }
-    a.b[?"@name"==\'item2\'].__value
-    >> name2
+    Architecture:
+        - `data_object`: Format-specific representation (e.g., h5py.Group, etree.Element)
+        - `data`: Dictionary representation of the file (lazy-loaded via :meth:`to_dict`)
+        - `mapper`: Specification for transforming to/from other parsers
+        - `convert`: Method to transform data to another parser using a mapper
 
-    A mapping parser can be converted to another mapping parser using the convert method
-    by providing a mapper object.
+    Attribute representation:
+        For formats with attributes (XML, HDF5), attributes are stored with a prefix:
 
-    Attributes:
-        parse_only_required
-            Parse only data required by target parser.
-        attribute_prefix
-            Added to start of key to denote it is a data attribute.
-        value_key
-            Key to the value of the data.
+        data = {
+          'a': {
+            'b': [
+              {'@name': 'item1', '__value': 'value1'},
+              {'@name': 'item2', '__value': 'value2'}
+            ]
+          }
+        }
+
+        Access with jmespath: `a.b[?"@name"=='item2'].__value` returns 'value2'
+
+    Class attributes:
+        parse_only_required (bool): Only parse paths needed by mapper (optimization).
+        attribute_prefix (str): Prefix for attribute keys (default '@').
+        value_key (str): Key for element value when attributes present (default '__value').
+        logger: Logger instance for this module.
+
+    Dependencies:
+        Uses: :class:`BaseMapper` (typically :class:`Mapper`) for transformation specification
+        Calls: :meth:`BaseMapper.get_data` via :meth:`convert` to transform data
+        Calls: :meth:`Path.set_data` via :meth:`set_data` to populate target dictionary
+        Subclassed by: :class:`HDF5Parser`, :class:`XMLParser`, :class:`MetainfoParser`, :class:`TextParser`
+
+    Example:
+        >>> with HDF5Parser(filepath='data.h5') as source:
+        ...     with MetainfoParser(data_object=MySection()) as target:
+        ...         source.convert(target)  # Uses target's metainfo annotations as mapper
     """
 
     parse_only_required: bool = False
@@ -805,6 +1770,18 @@ class MappingParser(ABC):
     logger = get_logger(__name__)
 
     def __init__(self, **kwargs):
+        """Initialize parser with optional filepath, data_object, or mapper.
+
+        Args:
+            **kwargs: Initialization options:
+                - filepath (str): Path to file to parse
+                - data_object: Format-specific data object to populate (e.g., empty MSection
+                              instance for MetainfoParser, or existing h5py.Group for HDF5Parser)
+                - data (dict): Pre-loaded dictionary data (optional)
+                - mapper (BaseMapper): Mapping specification
+                - required_paths (list[str]): Paths to parse (if parse_only_required=True)
+                - open (Callable): Custom file open function
+        """
         for key, val in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, val)
@@ -817,23 +1794,50 @@ class MappingParser(ABC):
 
     @abstractmethod
     def load_file(self) -> Any:
+        """Load file into format-specific data object (implemented by subclasses).
+
+        Returns:
+            Any: Format-specific object (e.g., h5py.Group, etree.Element, TextFileParser).
+        """
         return {}
 
     @abstractmethod
     def to_dict(self, **kwargs) -> dict[str | int, Any]:
+        """Convert data_object to dictionary representation (implemented by subclasses).
+
+        Returns:
+            dict[str | int, Any]: Dictionary with attribute_prefix and value_key conventions.
+        """
         return {}
 
     @abstractmethod
     def from_dict(self, dct: dict[str, Any]):
+        """Populate data_object from dictionary (implemented by subclasses).
+
+        Args:
+            dct: Dictionary data to deserialize into data_object.
+        """
         pass
 
     def build_mapper(self) -> BaseMapper:
+        """Build default mapper for this parser (override in subclasses).
+
+        Returns:
+            BaseMapper: Empty Mapper by default. Subclasses like MetainfoParser
+                       build mappers from annotations.
+        """
         return Mapper()
 
     @property
     def open(self):
-        """
-        Opens the file with the provided open function or based on the file type.
+        """Get appropriate file open function, auto-detecting compression.
+
+        Checks file magic bytes against COMPRESSIONS dict to detect gzip, bzip2, or xz
+        compression. Returns the appropriate open function (gzip.open, bz2.open, etc.)
+        or standard open for uncompressed files.
+
+        Returns:
+            Callable: Open function to use (gzip.open, bz2.open, lzma.open, or open).
         """
         if self._open is not None:
             return self._open
@@ -886,6 +1890,16 @@ class MappingParser(ABC):
         self._mapper = value
 
     def set_data(self, data: Any, target: dict[str, Any], **kwargs) -> None:
+        """Recursively set dictionary data into target, creating paths as needed.
+
+        Takes transformed mapper output (nested dicts with path keys like '.a.b') and
+        sets each path into the target dictionary using Path.set_data().
+
+        Args:
+            data: Dictionary with path keys, list of dicts, or direct value.
+            target: Target dictionary to modify in-place.
+            **kwargs: Options including update_mode and remove.
+        """
         if isinstance(data, dict):
             for key in list(data.keys()):
                 path = Path(path=key)
@@ -905,6 +1919,17 @@ class MappingParser(ABC):
         mapper: BaseMapper,
         source_data: dict[str, Any],
     ) -> Any:
+        """Execute mapper to extract/transform data.
+
+        Convenience method that delegates to mapper.get_data(source_data, self).
+
+        Args:
+            mapper: Mapper or Transformer to execute.
+            source_data: Source dictionary to extract from.
+
+        Returns:
+            Any: Extracted/transformed data.
+        """
         return mapper.get_data(source_data, self)
 
     def convert(
@@ -914,7 +1939,34 @@ class MappingParser(ABC):
         update_mode: str = 'merge',
         remove: bool = False,
         debug: bool = False,
-    ):
+    ) -> None:
+        """Transform this parser's data into target parser using a mapper.
+
+        Main method for converting between file formats or data representations.
+        Executes the mapper to transform source data into target's dictionary format,
+        then deserializes into target's data_object.
+
+        Process:
+        1. Use target.mapper if no mapper provided
+        2. Get required paths from mapper (if parse_only_required=True)
+        3. Extract source data (from mapper.source or use self.data)
+        4. Execute mapper to get transformed dictionary
+        5. Set transformed data into target.data
+        6. Call target.from_dict to populate target.data_object
+
+        Args:
+            target: Destination parser to receive transformed data.
+            mapper: Mapping specification (uses target.mapper if None).
+            update_mode: How to merge data ('merge', 'replace', 'append', etc.).
+            remove: Remove source data after extraction (for memory efficiency).
+            debug: Re-raise exceptions from transformers instead of returning None.
+
+        Example:
+            >>> with HDF5Parser(filepath='input.h5') as source:
+            ...     with XMLParser(filepath='output.xml') as target:
+            ...         mapper = Mapper.from_dict({...})
+            ...         source.convert(target, mapper)
+        """
         if mapper is None:
             mapper = target.mapper
         if self.parse_only_required and mapper and not self._required_paths:
@@ -987,6 +2039,13 @@ class MetainfoBaseMapper(BaseMapper):
 
 
 class MetainfoMapper(MetainfoBaseMapper, Mapper):
+    """Metainfo-specific mapper with section definition tracking.
+
+    .. warning::
+        Internal implementation detail. API may change without notice.
+        Do not instantiate directly. Generated by :meth:`MetainfoParser.build_mapper`.
+    """
+
     m_def: str = Field(None, description="""Section definition.""")
 
     def get_data(
@@ -1012,8 +2071,38 @@ class MetainfoTransformer(MetainfoBaseMapper, Transformer):
 
 
 class MetainfoParser(MappingParser):
-    """
-    A parser for metainfo sections.
+    """Parser for NOMAD metainfo sections with annotation-driven mapper generation.
+
+    Automatically builds mappers from metainfo annotations, enabling declarative
+    data transformation from source formats (XML, HDF5, JSON) to metainfo sections.
+    Annotations are specified using the `Mapper` annotation on sections and quantities.
+
+    The parser traverses the metainfo schema and constructs a mapper tree by reading
+    annotations with the key specified by `annotation_key` (default: 'mapping').
+    Multiple annotation keys can be used for format-specific mappings (e.g., 'hdf5', 'xml').
+
+    Attributes:
+        annotation_key: Key to look up in metainfo annotations (default: 'mapping').
+        max_nested_level: Maximum depth for recursive section traversal (default: 3).
+
+    Dependencies:
+        Uses: :class:`MapperAnnotation` from metainfo annotations
+        Uses: :class:`MSection` as data_object type
+        Calls: :meth:`build_mapper` to construct :class:`MetainfoMapper` tree from annotations
+        Calls: :meth:`MSection.m_get_annotations` to retrieve mapping annotations
+        Calls: :meth:`MSection.m_set`/:meth:`MSection.m_add_sub_section` in :meth:`from_dict`
+
+    Example:
+        >>> class MySection(MSection):
+        ...     energy = Quantity(
+        ...         type=float,
+        ...         a_mapper=Mapper(mapper='calculation.energy', unit='eV')
+        ...     )
+        >>>
+        >>> with HDF5Parser(filepath='data.h5') as source:
+        ...     with MetainfoParser(data_object=MySection()) as target:
+        ...         target.annotation_key = 'hdf5'
+        ...         source.convert(target)  # Auto-builds mapper from annotations
     """
 
     def __init__(self, **kwargs):
@@ -1112,10 +2201,41 @@ class MetainfoParser(MappingParser):
                 pass
 
     def build_mapper(self, max_level: int | None = None) -> BaseMapper:
-        """
-        Builds a mapper for source data from the another parser with path or operator
-        specified in metainfo annotation with key annotation_key. The target path is
-        given by the sub section key.
+        """Build mapper tree from metainfo annotations on data_object schema.
+
+        Recursively traverses the metainfo section definition, collecting annotations
+        with key `annotation_key` from sections and quantities. Constructs a nested
+        `MetainfoMapper` tree where each node corresponds to a section or quantity.
+
+        Annotation lookup order (for sections):
+        1. Check SubSection itself for annotations
+        2. Check section definition (section.sub_section) for annotations
+        3. If still none, search all_inheriting_sections for annotations
+        4. When found on inheriting section, use that section's definition and set
+           `m_def` in mapper to resolve the correct polymorphic type
+
+        This inheritance search enables polymorphism: a base section without annotations
+        can defer to specialized inheriting sections that do have format-specific mappings.
+
+        Args:
+            max_level: Maximum depth for **self-referential** sections (defaults to
+                      self.max_nested_level=3). Prevents infinite recursion when a section
+                      references itself (e.g., Section.parent: Section). The level counter
+                      only increments for circular references; non-circular sub-sections
+                      are traversed without depth limit.
+
+        Returns:
+            BaseMapper: MetainfoMapper tree with source paths from annotations
+                       and target paths from schema structure.
+
+        Example with inheritance:
+            >>> class BaseProperty(MSection):
+            ...     pass  # No annotation
+            >>> class Energy(BaseProperty):
+            ...     value = Quantity(type=float, a_hdf5=Mapper(mapper='energy'))
+            >>>
+            >>> # When building mapper for a section containing BaseProperty subsection,
+            >>> # it will find Energy's annotation via all_inheriting_sections
         """
 
         def fill_mapper(
@@ -1132,9 +2252,11 @@ class MetainfoParser(MappingParser):
             section: SubSection | MSection, level: int = 0
         ) -> dict[str, Any]:
             mapper: dict[str, Any] = {}
+            # Stop recursion for self-referential sections (e.g., Section.parent: Section)
             if level >= (max_level or self.max_nested_level):
                 return mapper
 
+            # Get section definition: SubSection.sub_section or MSection.m_def
             section_def = (
                 section.sub_section
                 if isinstance(section, SubSection)
@@ -1144,7 +2266,8 @@ class MetainfoParser(MappingParser):
             if not section_def:
                 return mapper
 
-            # try to get annotation from sub-section
+            # Phase 1: Find annotation via 3-level lookup
+            # Level 1: Try SubSection itself (if applicable)
             annotation: MapperAnnotation = (
                 (section if isinstance(section, SubSection) else section_def)
                 .m_get_annotations(MAPPING_ANNOTATION_KEY, {})
@@ -1152,18 +2275,19 @@ class MetainfoParser(MappingParser):
             )
 
             if not annotation:
-                # get it from def
+                # Level 2: Try section definition
                 annotation = section_def.m_get_annotations(
                     MAPPING_ANNOTATION_KEY, {}
                 ).get(self.annotation_key)
 
             if isinstance(section, SubSection) and not annotation:
-                # search also all inheriting sections
+                # Level 3: Search all inheriting sections for annotations (polymorphism)
                 for inheriting_section in section_def.all_inheriting_sections or []:
                     annotation = inheriting_section.m_get_annotations(
                         MAPPING_ANNOTATION_KEY, {}
                     ).get(self.annotation_key)
                     if annotation:
+                        # Found annotation on derived section: use that section's schema
                         # TODO this does not work as it will applies to base class
                         # section.sub_section = inheriting_section
                         # TODO this is a hacky patch, metainfo should have an alternative
@@ -1172,18 +2296,22 @@ class MetainfoParser(MappingParser):
                         section_def = inheriting_section
                         break
 
+            # No annotation found anywhere: section not mapped
             if not annotation:
                 return mapper
 
+            # Phase 2: Build section-level mapper from annotation
             fill_mapper(mapper, annotation, ['remove', 'cache', 'path_parser'])
             mapper['source'] = annotation.mapper
 
+            # Phase 3: Collect quantity mappers (leaf values)
             mapper['mapper'] = []
             for name, quantity_def in section_def.all_quantities.items():
                 qannotation = quantity_def.m_get_annotations(
                     MAPPING_ANNOTATION_KEY, {}
                 ).get(self.annotation_key)
                 if qannotation:
+                    # Build relative target path (root section uses absolute '', others use '.name')
                     quantity_mapper = {
                         'mapper': qannotation.mapper,
                         'target': f'{"" if section == self.data_object else "."}{name}',
@@ -1195,22 +2323,29 @@ class MetainfoParser(MappingParser):
                     )
                     mapper['mapper'].append(quantity_mapper)
 
+            # Phase 4: Recursively collect sub-section mappers
+            # Build list of IDs to detect self-references (circular dependencies)
             all_ids = [section_def.definition_id]
             all_ids.extend([s.definition_id for s in section_def.all_base_sections])
             for name, sub_section in section_def.all_sub_sections.items():
                 # avoid recursion
                 # if sub_section.sub_section.definition_id in all_ids:
                 #     continue
-                # allow recursion up to max_level
+                # Check if this is a self-reference (e.g., Section.parent: Section)
                 nested = sub_section.sub_section.definition_id in all_ids
+                # Increment level only for self-references; non-circular sub-sections traverse freely
                 sub_section_mapper = build_section_mapper(
                     sub_section, level + (1 if nested else 0)
                 )
+                # Only add if mapper has content (sub-section was annotated)
                 if sub_section_mapper and sub_section_mapper.get('mapper'):
+                    # Build relative target path
                     sub_section_mapper['target'] = (
                         f'{"" if section == self.data_object else "."}{name}'
                     )
+                    # Repeating sub-sections use list indices, non-repeating use None
                     sub_section_mapper['indices'] = [] if sub_section.repeats else None
+                    # Check if SubSection itself has annotation (for custom source paths)
                     sannotation = sub_section.m_get_annotations(
                         MAPPING_ANNOTATION_KEY, {}
                     ).get(self.annotation_key)
@@ -1230,8 +2365,30 @@ class MetainfoParser(MappingParser):
 
 
 class HDF5Parser(MappingParser):
-    """
-    Mapping parser for HDF5.
+    """Parser for HDF5 files with bidirectional Group/Dataset to dictionary conversion.
+
+    Converts HDF5 hierarchical structure (Groups and Datasets) to dictionaries using
+    the attribute_prefix ('@') and value_key ('__value') conventions for HDF5 attributes.
+
+    HDF5 structure mapping:
+        - Groups become nested dictionaries
+        - Datasets become values (or dicts if they have attributes)
+        - Attributes become keys with '@' prefix
+        - Dataset values with attributes stored under '__value' key
+
+    Example HDF5 to dict conversion:
+        HDF5:
+            /calculation/energy (Dataset: 1.5, attrs: {'units': 'eV'})
+            /calculation/forces (Dataset: [[1,2,3]])
+
+        Dict:
+            {'calculation': {
+                'energy': {'@units': 'eV', '__value': 1.5},
+                'forces': [[1, 2, 3]]
+            }}
+
+    The parser supports parse_only_required optimization to only load specific
+    HDF5 paths needed by the mapper.
     """
 
     def load_file(self, **kwargs) -> h5py.Group:
@@ -1260,27 +2417,39 @@ class HDF5Parser(MappingParser):
             group: h5py.Group, root: dict[str | int, Any] | list[dict[str | int, Any]]
         ):
             for key, val in group.items():
+                # Convert numeric keys to int (e.g., '0', '1', '2' for list indices)
                 key = int(key) if key.isdecimal() else key
+                # Build dot-separated path for required_paths filtering (skip numeric parts)
                 path = '.'.join(
                     [p for p in val.name.split('/') if not p.isdecimal() and p]
                 )
+                # Skip if parse_only_required=True and path not in required list
                 if self._required_paths and path not in self._required_paths:
                     continue
+                # Case 1: List root + Group value (e.g., root=[{}, {}], val=Group at index 0)
                 if isinstance(root, list) and isinstance(val, h5py.Group):
+                    # Recursively fill the list element dict
                     group_to_dict(val, root[key])
                     set_attributes(val, root[key])
+                # Case 2: Dict root + Group value (most common case)
                 elif isinstance(root, dict) and isinstance(val, h5py.Group):
+                    # Determine if Group represents a list (has numeric child keys) or dict
                     default: list[dict[str, Any]] = [
                         {} if k.isdecimal() else None for k in val.keys()
                     ]
+                    # Use list if all children are numeric, dict otherwise
                     group_to_dict(
                         val, root.setdefault(key, {} if None in default else default)
                     )
+                    # Ensure empty Groups become {} not []
                     if not root[key]:
                         root[key] = {}
                     set_attributes(val, root[key])
+                # Case 3: Dataset value (leaf data)
                 elif isinstance(val, h5py.Dataset):
+                    # Read dataset data
                     data = val[()]
+                    # Convert numpy arrays and bytes to Python types
                     v = (
                         data.astype(str if data.dtype == np.object_ else data.dtype)
                         if isinstance(data, np.ndarray)
@@ -1288,12 +2457,15 @@ class HDF5Parser(MappingParser):
                         if isinstance(data, bytes)
                         else data
                     )
+                    # Convert numpy types to Python lists
                     v = v.tolist() if hasattr(v, 'tolist') else v
+                    # If Dataset has attributes, wrap value in dict with '__value' key
                     attrs = list(val.attrs.keys())
                     if attrs:
                         root[key] = {self.value_key: v}
                         set_attributes(val, root[key])
                     else:
+                        # No attributes: store value directly
                         root[key] = v  # type: ignore
             return root
 
@@ -1349,9 +2521,37 @@ class HDF5Parser(MappingParser):
 
 
 class XMLParser(MappingParser):
-    """
-    A mapping parser for XML files. The contents of the xml file are converted into
-    a dictionary using the lxml module (see https://lxml.de/).
+    """Parser for XML files with bidirectional Element to dictionary conversion.
+
+    Converts XML elements, attributes, and text to dictionaries using attribute_prefix
+    ('@') and value_key ('__value') conventions. Uses lxml for parsing with streaming
+    support (iterparse) for memory-efficient processing.
+
+    XML structure mapping:
+        - Elements become dictionary keys
+        - Attributes become keys with '@' prefix
+        - Text content becomes the value (or stored under '__value' if attributes exist)
+        - Repeated elements become lists
+        - Numeric text is automatically parsed to int/float
+
+    Example XML to dict conversion:
+        XML:
+            <calculation>
+                <energy units="eV">1.5</energy>
+                <atom index="0">H</atom>
+                <atom index="1">O</atom>
+            </calculation>
+
+        Dict:
+            {'calculation': {
+                'energy': {'@units': 'eV', '__value': 1.5},
+                'atom': [
+                    {'@index': 0, '__value': 'H'},
+                    {'@index': 1, '__value': 'O'}
+                ]
+            }}
+
+    See: https://lxml.de/ for underlying XML processing library.
     """
 
     def from_dict(self, dct: dict[str, Any]) -> None:
@@ -1408,6 +2608,7 @@ class XMLParser(MappingParser):
             except Exception:
                 return val
 
+        # Stack of dicts representing nested elements
         stack: list[dict[str | int, Any]] = []
         results: dict[str | int, Any] = {}
         if self.filepath is None:
@@ -1416,39 +2617,54 @@ class XMLParser(MappingParser):
         current_path = ''
         # TODO determine if iterparse is better than iterwalk
         with self.open(self.filepath, 'rb') as f:
+            # Stream parse XML: emit 'start' and 'end' events for each element
             for event, element in etree.iterparse(f, events=('start', 'end')):
                 tag = element.tag
                 if event == 'start':
+                    # Build dot-separated path as we descend the XML tree
                     current_path = tag if not current_path else f'{current_path}.{tag}'
+                    # Skip if parse_only_required=True and path not in required list
                     if (
                         self._required_paths
                         and current_path not in self._required_paths
                     ):
                         continue
+                    # Push new dict onto stack for this element
                     stack.append({tag: {}})
                 else:
+                    # 'end' event: element is fully parsed, pop from stack
                     path = current_path
+                    # Move up one level in path (e.g., 'a.b.c' -> 'a.b')
                     current_path = current_path.rsplit('.', 1)[0]
                     if self._required_paths and path not in self._required_paths:
                         continue
+                    # Pop completed element from stack
                     data = stack.pop(-1)
                     text = element.text.strip() if element.text else None
                     attrib = element.attrib
+                    # Process attributes (prefix with '@')
                     if attrib:
                         data.setdefault(tag, {})
                         data[tag].update(
                             (f'{self.attribute_prefix}{k}', v)
                             for k, v in attrib.items()
                         )
+                    # Process text content (convert numeric strings)
                     if text:
                         value = convert(text)
+                        # If attributes exist, store text under '__value' key
                         if attrib or data[tag]:
                             data[tag][self.value_key] = value
                         else:
+                            # No attributes: store text value directly
                             data[tag] = value
+                    # Merge into parent element (if stack not empty)
                     if stack and data:
+                        # Get parent dict from stack
                         parent = stack[-1][list(stack[-1].keys())[0]]
+                        # Handle repeated elements (convert to list)
                         if tag in parent:
+                            # Special case: nested list (list of lists) needs wrapping
                             if (
                                 isinstance(data[tag], list)
                                 and isinstance(parent[tag], list)
@@ -1456,17 +2672,21 @@ class XMLParser(MappingParser):
                                 and not isinstance(parent[tag][0], list)
                             ):
                                 parent[tag] = [parent[tag]]
+                            # Append to existing list
                             if isinstance(parent[tag], list):
                                 parent[tag].append(data[tag])
                             else:
+                                # First repeat: convert to list
                                 parent[tag] = [
                                     parent[tag],
                                     data[tag],
                                 ]
                         else:
+                            # First occurrence: store directly
                             # parent[tag] = [data[tag]] if attrib else data[tag]
                             parent[tag] = data[tag]
                     else:
+                        # No parent: this is the root element
                         results = data
         return results
 
@@ -1478,8 +2698,27 @@ class XMLParser(MappingParser):
 
 
 class TextParser(MappingParser):
-    """
-    Interface to text file parser.
+    """Adapter for NOMAD's TextFileParser (nomad.parsing.file_parser.TextParser).
+
+    Wraps TextFileParser to make it compatible with the MappingParser framework,
+    enabling text file parsing with regex-based matchers to be used in mapping
+    conversions. The TextFileParser results become the dictionary representation.
+
+    Attributes:
+        text_parser (TextFileParser): The TextFileParser instance to wrap.
+
+    Note:
+        from_dict is not implemented as text files are typically source-only formats.
+        Set text_parser attribute with a configured TextFileParser instance.
+
+    Example:
+        >>> from nomad.parsing.file_parser import TextParser as TextFileParser
+        >>> text_parser_instance = TextFileParser(quantities=[...])
+        >>> parser = TextParser(
+        ...     filepath='output.log',
+        ...     text_parser=text_parser_instance
+        ... )
+        >>> data = parser.to_dict()  # Returns TextFileParser results
     """
 
     text_parser: TextFileParser = None

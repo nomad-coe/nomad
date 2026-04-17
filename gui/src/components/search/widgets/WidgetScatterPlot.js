@@ -18,8 +18,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
 import { number, bool } from 'yup'
-import jmespath from 'jmespath'
-import { isEmpty, isArray, isEqual, range, isNil, flattenDeep } from 'lodash'
+import { isEmpty, range } from 'lodash'
 import {
   Divider,
   Tooltip,
@@ -37,7 +36,7 @@ import {DType, parseJMESPath} from '../../../utils'
 import { Quantity } from '../../units/Quantity'
 import { Unit } from '../../units/Unit'
 import { useUnitContext } from '../../units/UnitContext'
-import { getAxisConfig } from '../../plotting/common'
+import { getAxisConfig, getData } from '../../plotting/common'
 
 const stripDtypeSuffix = (quantity) => {
   return quantity?.replace(/#(int|float|str|bool|Datetime)$/, '') || quantity
@@ -165,97 +164,12 @@ export const WidgetScatterPlot = React.memo((
   const hits = useHits(id, required, pagination, hitsCallback)
   const dataRaw = useMemo(() => {
     if (!hits || error) return
-    function getData(hit) {
-      const hitData = {}
-
-      // Get each property using JMESPath. Errors at this stage will simply
-      // cause the entry to be ignored.
-      for (const [name, path] of [['x', xParsed.path], ['y', yParsed.path], ['color', colorParsed.path]]) {
-        if (isEmpty(path)) continue
-        let value
-        try {
-          value = jmespath.search(hit, path)
-        } catch (e) {
-          return {error: 'Invalid JMESPATH'}
-        }
-        // Missing x/y/color value will cause an error unless dealing with
-        // discretized colors
-        if (isNil(value)) {
-          if (name === 'color' && discrete) {
-            value = 'undefined'
-          } else {
-            return {error: 'Empty value'}
-          }
-        }
-        hitData[name] = value
-      }
-
-      // Get the shapes
-      const xShape = getShape(hitData.x)
-      const yShape = getShape(hitData.y)
-
-      // Check if x/y leaf shapes match
-      if (xShape[xShape.length - 1] !== yShape[yShape.length - 1]) {
-        return {error: 'Incompatible size for x/y'}
-      }
-
-      // If x/y shapes do not match, extend accordingly
-      const biggestShape = [xShape, yShape].reduce((prev, current) => {
-        return (prev.length > current.length)
-          ? prev
-          : current
-      })
-      hitData.x = extendFront(hitData.x, xShape, biggestShape)
-      hitData.y = extendFront(hitData.y, yShape, biggestShape)
-
-      // Modify color dimensions
-      let colorShape = colorParsed.path && getShape(hitData.color)
-      if (colorShape && !isEqual(colorShape, biggestShape)) {
-        // If color has one more dimension than other arrays and it is discrete,
-        // we reduce the last dimension to a single string
-        if (discrete && colorShape.length === biggestShape.length + 1) {
-          hitData.color = reduceInner(hitData.color)
-          colorShape = colorShape.slice(0, -1)
-        }
-        // Scalar color values are extended
-        if (colorShape.length === 0 || (colorShape.length === 1 && colorShape[0] === 1)) {
-          hitData.color = fill(
-            biggestShape,
-            colorShape.length === 0
-               ? hitData.color
-               : hitData.color[0]
-          )
-        // Colors are extended according to traces
-        } else if ((colorShape.length < biggestShape.length) && colorShape[0] === biggestShape[0]) {
-          hitData.color = extendBack(hitData.color, colorShape, biggestShape)
-        } else {
-          return {error: 'Incompatible size for color'}
-        }
-      }
-
-      // Remove null values
-      filterNull(hitData)
-
-      // Flatten arrays
-      hitData.x = flatten(hitData.x)
-      hitData.y = flatten(hitData.y)
-      hitData.color = colorParsed.path && flatten(hitData.color)
-
-      // If shapes still don't match, skip entry. TODO: This check is not ideal,
-      // since we may be accepting accidentally mathing sizes. A proper shape
-      // check that would also allow "ragged arrays" would be better.
-      if (hitData.x.length !== hitData.y.length || (colorParsed.path && hitData.x.length !== hitData.color.length)) {
-        return {error: 'Incompatible number of elements'}
-      }
-
-      return {hitData, nPoints: hitData.x.length}
-    }
     const x = []
     const y = []
     const color = colorParsed.path ? [] : undefined
     const id = []
     for (const hit of hits) {
-      const {hitData, error, nPoints} = getData(hit)
+      const {hitData, error, nPoints} = getData(hit, xParsed.path, yParsed.path, colorParsed.path, discrete)
       if (error || !nPoints) continue
       for (const i of range(nPoints)) {
         x.push(hitData.x[i])
@@ -417,151 +331,3 @@ export const schemaWidgetScatterPlot = schemaWidget.shape({
   size: number().integer().required('Size is required.'),
   autorange: bool()
 })
-
-/**
- * Used to flatten the input into a single array of values.
- */
-function flatten(input) {
-  return isArray(input)
-    ? flattenDeep(input)
-    : [input]
-}
-
-/**
- * Gets the shape of an abitrarily nested array.
- */
-function getShape(input) {
-  if (!isArray(input)) {
-    return []
-  }
-
-  const shape = []
-  let inner = input
-
-  while (isArray(inner)) {
-    shape.push(inner.length)
-    inner = inner.find(i => i != null)
-  }
-
-  return shape
-}
-
-/**
- * Validates and filters hitData by removing entries with null values.
- */
-function filterNull(input) {
-  // We only validate lists of x/y/color values
-  const hasColor = Boolean(input.color)
-  const isColorArray = hasColor && isArray(input.color)
-  if (!isArray(input.x) || !isArray(input.y) || (hasColor && !isColorArray)) {
-    return
-  }
-
-  const filtered = input.x.reduce(
-    (acc, curr, i) => {
-      const xVal = input.x[i]
-      const yVal = input.y[i]
-      const colorVal = hasColor ? input.color[i] : undefined
-      if (xVal === null || yVal === null || colorVal === null) {
-        return acc
-      }
-
-      acc.x.push(xVal)
-      acc.y.push(yVal)
-      if (hasColor) acc.color.push(colorVal)
-
-      return acc
-    },
-    { x: [], y: [], color: [] }
-  )
-
-  input.x = filtered.x
-  input.y = filtered.y
-  if (hasColor) {
-    input.color = filtered.color
-  }
-}
-
-/**
- * Reduces the innermost dimension into a single value.
- */
-function reduceInner(input) {
-  function reduceRec(inp) {
-    if (isArray(inp)) {
-      if (isArray(inp[0])) {
-        for (let i = 0; i < inp.length; ++i) {
-          inp[i] = reduceRec(inp[i])
-        }
-      } else {
-        return inp.sort().join(", ")
-      }
-    }
-    return inp
-  }
-  return reduceRec(input)
-}
-
-/**
- * Resizes the given array to a new size by extending the data to fit the front
- * dimensions (similar to array = array[None, :] in NumPy).
- */
-function extendFront(array, oldShape, newShape) {
-  // If shape is already correct, return the input array
-  const diff = newShape.length - oldShape.length
-  if (diff === 0) return array
-
-  // Extend the array
-  const extendedArray = []
-  function extendRec(depth) {
-    const dim = newShape[depth]
-    const hasData = depth === diff
-    if (hasData) {
-      return array
-    } else {
-      for (let j = 0; j < dim; ++j) {
-        extendedArray.push(extendRec(depth + 1))
-      }
-    }
-    return extendedArray
-  }
-  extendRec(0)
-  return extendedArray
-}
-
-/**
- * Resizes the given array to a new size by extending the data to fit the last
- * dimensions dimensions (similar to array = array[:, None] in NumPy).
- */
-function extendBack(array, oldShape, newShape) {
-  // If shape is already correct, return the input array
-  const diff = newShape.length - oldShape.length
-  if (diff === 0) return array
-
-  // Extend the array
-  const extendedArray = []
-  const nTraces = newShape[0]
-  for (let i = 0; i < nTraces; ++i) {
-    const traceArray = []
-    for (let j = 0; j < newShape[1]; ++j) {
-      traceArray.push([array[i]])
-    }
-    extendedArray.push(traceArray)
-  }
-  return extendedArray
-}
-
-/**
- * Creates a new array with the given shape, filled with the given value.
- */
-function fill(shape, fillValue) {
-  if (shape.length === 0) {
-    return fillValue
-  } else {
-    const innerShape = shape.slice(1)
-    const innerArray = []
-    for (let i = 0; i < shape[0]; i++) {
-        innerArray.push(fill(innerShape, fillValue))
-    }
-    return innerArray
-  }
-}

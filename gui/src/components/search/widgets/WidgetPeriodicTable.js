@@ -141,6 +141,7 @@ export const WidgetPeriodicTableEdit = React.memo((props) => {
         open={editing}
         visible={visible}
         title="Edit periodic table widget"
+        description='Displays a periodic table with occurrence of each element using a search quantity that contains chemical element names.'
         onClose={handleClose}
         onAccept={handleEditAccept}
         error={hasError}
@@ -177,7 +178,7 @@ export const WidgetPeriodicTableEdit = React.memo((props) => {
           </TextField>
         </WidgetEditOption>
       </WidgetEditGroup>
-      <WidgetEditGroup title="General">
+      <WidgetEditGroup title="Other">
         <WidgetEditOption>
           <InputTextField
             label="Title"

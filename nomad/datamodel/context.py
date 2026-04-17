@@ -812,7 +812,7 @@ class ClientContext(Context):
 
     def get_reference(self, mainfile: str) -> str:
         # TODO: use self.local_dir
-        return mainfile.split('/')[-1]
+        return mainfile.rsplit('/', maxsplit=1)[-1]
 
     def get_relative_path(self, mainfile):
         # TODO: use self.local_dir

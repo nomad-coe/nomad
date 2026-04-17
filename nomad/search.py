@@ -68,6 +68,9 @@ from nomad.app.v1.models.models import (
     MinMaxAggregationResponse,
     Pagination,
     PaginationResponse,
+    PercentilesAggregation,
+    PercentilesAggregationResponse,
+    PercentilesData,
     QuantityAggregation,
     Query,
     StatisticsAggregation,
@@ -111,6 +114,7 @@ class AggType(str, Enum):
     DATE_HISTOGRAM = 'date_histogram'
     AUTO_DATE_HISTOGRAM = 'auto_date_histogram'
     STATISTICS = 'statistics'
+    PERCENTILES = 'percentiles'
 
 
 def update_by_query(
@@ -1122,6 +1126,7 @@ def _api_to_es_aggregation(
     # When targeting nested fields, add nested aggregation
     longest_nested_key = None
     is_nested = False
+    outer_es_aggs = es_aggs
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_aggs.bucket(f'nested_agg:{name}', 'nested', path=nested_key)
@@ -1339,6 +1344,83 @@ def _api_to_es_aggregation(
         es_aggs.metric(agg_name + ':min', A('min', field=quantity.search_field))
         es_aggs.metric(agg_name + ':max', A('max', field=quantity.search_field))
 
+    elif isinstance(agg, PercentilesAggregation):
+        if quantity.annotation.mapping['type'] not in [
+            'integer',
+            'float',
+            'double',
+            'long',
+            'date',
+        ]:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a percentiles aggregation',
+                loc=['aggregations', name, 'percentiles', 'quantity'],
+            )
+
+        percentiles_agg = A(
+            'percentiles',
+            field=quantity.search_field,
+            percents=agg.percents,
+        )
+
+        if agg.group_by is not None:
+            group_quantity = validate_quantity(
+                agg.group_by,
+                doc_type=doc_type,
+                loc=['aggregation', name, 'percentiles', 'group_by'],
+            )
+            if not group_quantity.annotation.aggregatable:
+                raise QueryValidationError(
+                    'The group_by quantity cannot be used in a terms aggregation.',
+                    loc=['aggregation', name, 'percentiles', 'group_by'],
+                )
+            if group_quantity.dynamic:
+                raise NotImplementedError(
+                    'Percentiles aggregation with a group_by on dynamic quantity is not supported'
+                )
+
+            if is_nested:
+                # Place the terms aggregation outside the nested context so that
+                # non-nested group_by fields are resolved correctly. Inside each group
+                # bucket, add nested -> percentiles.
+                es_group = outer_es_aggs.bucket(
+                    agg_name + ':groups',
+                    A(
+                        'terms',
+                        field=group_quantity.search_field,
+                        size=agg.group_by_size,
+                    ),
+                )
+                es_nested_in_group = es_group.bucket(
+                    f'nested_agg:{name}',
+                    'nested',
+                    path=longest_nested_key,
+                )
+                # Handle the correct filtering for dynamic quantities in the nested
+                # context
+                if quantity.dynamic:
+                    es_nested_in_group = es_nested_in_group.bucket(
+                        f'nested_agg:{name}:filtered',
+                        A('filter', filter=quantity.dynamic_filter),
+                    )
+                es_nested_in_group.metric(agg_name + ':percentiles', percentiles_agg)
+            else:
+                es_group = es_aggs.bucket(
+                    agg_name + ':groups',
+                    A(
+                        'terms',
+                        field=group_quantity.search_field,
+                        size=agg.group_by_size,
+                    ),
+                )
+                es_group.metric(agg_name + ':percentiles', percentiles_agg)
+        else:
+            es_aggs.metric(agg_name + ':percentiles', percentiles_agg)
+            es_aggs.metric(
+                agg_name + ':count',
+                A('value_count', field=quantity.search_field),
+            )
+
     else:
         raise NotImplementedError()
 
@@ -1398,6 +1480,7 @@ def _es_to_api_aggregation(
     agg = cast(QuantityAggregation, agg)
     quantity = validate_quantity(agg.quantity, doc_type=doc_type)
     longest_nested_key = None
+    outer_es_aggs = es_aggs
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_aggs[f'nested_agg:{name}']
@@ -1547,6 +1630,74 @@ def _es_to_api_aggregation(
             )
         )
 
+    if isinstance(agg, PercentilesAggregation):
+        pct_data = []
+        group_quantity = None
+        if agg.group_by is not None:
+            group_quantity = validate_quantity(
+                agg.group_by,
+                doc_type=doc_type,
+                loc=['aggregation', name, 'percentiles', 'group_by'],
+            )
+            if group_quantity.dynamic:
+                raise NotImplementedError(
+                    'Percentiles aggregation with a group_by on dynamic quantity is not supported'
+                )
+
+            # When the y-axis quantity is nested but group_by is not, groups live outside
+            # the nested context.
+            if longest_nested_key is not None:
+                groups_parent = outer_es_aggs
+            else:
+                groups_parent = es_aggs
+
+            groups_agg = groups_parent[f'agg:{name}:groups']
+            for bucket in groups_agg.buckets:
+                # When the y-axis quantity is nested, percentiles are inside a nested
+                # sub-aggregation within each group bucket.
+                if longest_nested_key is not None:
+                    pcts_parent = bucket[f'nested_agg:{name}']
+                    if quantity.dynamic:
+                        pcts_parent = pcts_parent[f'nested_agg:{name}:filtered']
+                else:
+                    pcts_parent = bucket
+
+                pcts = pcts_parent[f'agg:{name}:percentiles']['values'].to_dict()
+                # Skip groups where the numeric quantity has no data (all
+                # percentile values are None).
+                if all(v is None for v in pcts.values()):
+                    continue
+                pct_data.append(
+                    PercentilesData(
+                        label=str(bucket['key']),
+                        percentiles={
+                            str(p): pcts.get(str(float(p))) for p in agg.percents
+                        },
+                        count=bucket.doc_count,
+                    )
+                )
+        else:
+            pcts = es_aggs[f'agg:{name}:percentiles']['values'].to_dict()
+            count = es_aggs[f'agg:{name}:count']['value']
+            # Skip if there are no matching documents (all percentile values
+            # are None), consistent with the grouped branch behaviour.
+            if not all(v is None for v in pcts.values()):
+                pct_data.append(
+                    PercentilesData(
+                        label='all',
+                        percentiles={
+                            str(p): pcts.get(str(float(p))) for p in agg.percents
+                        },
+                        count=int(count),
+                    )
+                )
+
+        return AggregationResponse(
+            percentiles=PercentilesAggregationResponse(
+                data=pct_data, **aggregation_dict
+            )
+        )
+
     raise NotImplementedError()
 
 
@@ -1558,6 +1709,7 @@ def _specific_agg(
     | DateHistogramAggregation
     | HistogramAggregation
     | MinMaxAggregation
+    | PercentilesAggregation
     | StatisticsAggregation
 ):
     if agg.terms is not None:
@@ -1574,6 +1726,9 @@ def _specific_agg(
 
     if agg.min_max is not None:
         return agg.min_max
+
+    if agg.percentiles is not None:
+        return agg.percentiles
 
     if agg.statistics is not None:
         return agg.statistics

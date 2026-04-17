@@ -30,7 +30,7 @@ from nomad.units import ureg
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 atom_label_re = re.compile(
-    '|'.join(sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True))
+    '|'.join(sorted(ase.data.chemical_symbols, key=len, reverse=True))
 )
 
 

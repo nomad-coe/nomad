@@ -65,6 +65,8 @@ from nomad.metainfo.util import (
     convert_to,
     default_hash,
     dict_to_named_list,
+    metainfo_to_json_schema,
+    quantity_to_json_schema,
     resolve_variadic_name,
     to_dict,
 )
@@ -429,10 +431,25 @@ class QuantityType(Datatype):
     def serialize(self, value, **kwargs):
         if isinstance(value, Datatype):
             return value.serialize_self()
-        if isinstance(value, Reference):
-            transform = kwargs.get('transform')
-            serialized = value.serialize_self(kwargs.get('section'))
-            return transform(serialized) if transform is not None else serialized
+        elif isinstance(value, Reference):
+            # When requesting stable references, use this simplified serialization
+            if type(value) in {
+                Reference,
+                QuantityReference,
+                MSectionReference,
+            } and kwargs.get('stable_references', False):
+                target = value.target_section_def
+                type_data = f'{target.qualified_name()}@{target.definition_id}'
+                return {
+                    'type_kind': 'quantity_reference'
+                    if type(value) is QuantityReference
+                    else 'reference',
+                    'type_data': type_data,
+                }
+            else:
+                transform = kwargs.get('transform')
+                serialized = value.serialize_self(kwargs.get('section'))
+                return transform(serialized) if transform is not None else serialized
 
         raise MetainfoError(f'Type {value} is not a valid quantity type.')
 
@@ -557,7 +574,7 @@ class Reference:
 
         return value.qualified_name()
 
-    def serialize(self, value, *, section, transform=None):
+    def serialize(self, value, *, section, transform=None, **kwargs):
         def _convert(v, p=None):
             if isinstance(v, list):
                 return [
@@ -566,6 +583,14 @@ class Reference:
 
             if isinstance(v, MProxy) and v.m_proxy_resolved is None:
                 intermediate = v.m_serialize_proxy_value()
+            # When requesting stable references, use this simplified serialization
+            elif (
+                kwargs.get('stable_references', False)
+                and isinstance(v, MSection)
+                and hasattr(v, 'qualified_name')
+                and hasattr(v, 'definition_id')
+            ):
+                intermediate = f'{v.qualified_name()}@{v.definition_id}'
             else:
                 intermediate = self._serialize_impl(section, v)
 
@@ -620,9 +645,10 @@ class QuantityReference(Reference):
         return self.target_quantity_def.definition_id
 
     def serialize_self(self, section):
+        type_data = self.target_quantity_def.m_path()
         return {
             'type_kind': 'quantity_reference',
-            'type_data': self.target_quantity_def.m_path(),
+            'type_data': type_data,
         }
 
     def _normalize_impl(self, value, **kwargs):
@@ -643,7 +669,9 @@ class QuantityReference(Reference):
     def _serialize_impl(self, section, value):
         parent_path: str = super()._serialize_impl(section, value)
 
-        return parent_path.split('@')[0] + f'/{self.target_quantity_def.name}'
+        return (
+            parent_path.split('@', maxsplit=1)[0] + f'/{self.target_quantity_def.name}'
+        )
 
 
 # Metainfo data storage and reflection interface
@@ -1630,6 +1658,7 @@ class MSection(metaclass=MObjectMeta):
         include_defaults: bool = False,
         include_derived: bool = False,
         resolve_references: bool = False,
+        stable_references: bool = False,
         categories: list[Category | type[MCategory]] | None = None,
         include: TypingCallable[[Definition, MSection], bool] | None = None,
         exclude: TypingCallable[[Definition, MSection], bool] | None = None,
@@ -1684,6 +1713,9 @@ class MSection(metaclass=MObjectMeta):
                 might have to ensure that the result is JSON-serializable.  By
                 default, values are serialized to JSON according to the quantity
                 type.
+            stable_references: If true, use stable identifiers for definition
+                references (e.g. base_sections, sub_section) instead of path-based
+                keys. Stable identifiers use the format `qualified_name@tag`.
             subsection_as_dict: If true, try to serialize subsections as dictionaries.
                 Only possible when the keys are unique. Otherwise, serialize as list.
             return_as_generator: If true, return as a generator instead of a dict.
@@ -1702,6 +1734,7 @@ class MSection(metaclass=MObjectMeta):
             include_defaults=include_defaults,
             include_derived=include_derived,
             resolve_references=resolve_references,
+            stable_references=stable_references,
             exclude=exclude,
             transform=transform,
             subsection_as_dict=subsection_as_dict,
@@ -1770,7 +1803,10 @@ class MSection(metaclass=MObjectMeta):
 
             if isinstance(quantity_type, Datatype) or not resolve_references:
                 return quantity_type.serialize(
-                    target_value, section=self, transform=_transform_wrapper
+                    target_value,
+                    section=self,
+                    transform=_transform_wrapper,
+                    stable_references=stable_references,
                 )
 
             # need to resolve references
@@ -1874,7 +1910,22 @@ class MSection(metaclass=MObjectMeta):
                     and self.m_parent_sub_section.sub_section != self.m_def
                 )
             ):
-                yield 'm_def', self.m_def.definition_reference(self)
+                if stable_references:
+                    if isinstance(self, Definition):
+                        # For Definition instances, use the instance's own
+                        # identity (e.g. 'nomad.datamodel.metainfo.plot')
+                        # rather than the meta-type (e.g. 'nomad.metainfo.metainfo.Package').
+                        yield (
+                            'm_def',
+                            f'{self.qualified_name()}@{self.definition_id}',
+                        )
+                    else:
+                        yield (
+                            'm_def',
+                            f'{self.m_def.qualified_name()}@{self.m_def.definition_id}',
+                        )
+                else:
+                    yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
 
@@ -2362,7 +2413,7 @@ class MSection(metaclass=MObjectMeta):
         Arguments:
             path_with_id: The reference URL. See `MProxy` for details on reference URLs.
         """
-        path = path_with_id.split('@')[0]
+        path = path_with_id.split('@', maxsplit=1)[0]
 
         section = self.m_root() if path.startswith('/') else self
 
@@ -2829,55 +2880,14 @@ class Definition(MSection):
 
         return streamable_dict(nested())
 
-    def m_to_json_schema(self) -> dict[str, Any]:
+    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
         """
         Generate JSON Schema for this Section, referencing each
         property (Quantity or SubSection) via `$defs`.
         """
-        schema: dict[str, Any] = {
-            '$schema': 'https://json-schema.org/draft/2020-12/schema',
-            'title': self.name,
-            'type': 'object',
-        }
-
-        properties: dict = {}
-        defs: dict = {}
-
-        # Add Quantities inline
-        for quantity in self.quantities:
-            quantity_schema = quantity.m_to_json_schema()
-            quantity_schema.pop('$schema', None)
-            properties[quantity.name] = quantity_schema
-
-        # Add SubSection to `$ref`
-        for subsection in self.sub_sections:
-            name = subsection.name
-            child_section = subsection.sub_section
-
-            # Recursively get JSON schema
-            child_schema = child_section.m_to_json_schema()
-            child_schema.pop('$schema', None)
-
-            defs[child_section.name] = child_schema
-
-            # Reference it in properties
-            if subsection.repeats:
-                properties[name] = {
-                    'type': 'array',
-                    'items': {'$ref': f'#/$defs/{child_section.name}'},
-                }
-            else:
-                properties[name] = {'$ref': f'#/$defs/{child_section.name}'}
-
-            if child_section.description is not None:
-                properties[name]['description'] = child_section.description
-
-        if properties:
-            schema['properties'] = properties
-        if defs:
-            schema['$defs'] = defs  # for Quantity it's empty
-
-        return schema
+        return metainfo_to_json_schema(
+            m_def=self, add_unit_value=add_unit_value, exclude=exclude
+        )
 
     def _hash_seed(self) -> str:
         """
@@ -3365,64 +3375,11 @@ class Quantity(Property):
             + ('T' if self.virtual else 'F')
         )
 
-    def m_to_json_schema(self) -> dict[str, Any]:
+    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
         """
-        Generate JSON Schema for a Quantity instance.
+        Generate a JSON Schema (Draft 2020-12) for this Quantity.
         """
-
-        def shape_to_json_schema(shape: list, base_type: str) -> dict[str, Any]:
-            """Recursively convert shape and base type to nested JSON Schema arrays."""
-
-            def parse_dim(dim):
-                if isinstance(dim, int):
-                    return {'minItems': dim, 'maxItems': dim}
-                if dim == '*':
-                    return {}
-                if isinstance(dim, str):
-                    if match := re.fullmatch(r'(\d+)?\.\.(\d+|\*)?', dim):
-                        min_, max_ = match.groups()
-                        out = {}
-                        if min_ is not None:
-                            out['minItems'] = int(min_)
-                        if max_ and max_ != '*':
-                            out['maxItems'] = int(max_)
-                        return out
-
-                    # Assume `shape` to be name of another `Quantity` in the Section
-                    return parse_dim('*')
-
-                raise TypeError(f'Unsupported shape dimension: {dim}')
-
-            def build(dimensions: list) -> dict[str, Any]:
-                if not dimensions:
-                    return {'type': base_type}
-                dim_spec = parse_dim(dimensions[0])
-                return {'type': 'array', **dim_spec, 'items': build(dimensions[1:])}
-
-            return build(shape)
-
-        # Determine base type
-        base_schema = to_json_schema_type(self.type)
-        base_type = base_schema['type']
-
-        if self.is_scalar:
-            schema: dict[str, Any] = {
-                '$schema': 'https://json-schema.org/draft/2019-09/schema',
-                **base_schema,
-            }
-        else:
-            schema = shape_to_json_schema(self.shape, base_type)
-            schema['$schema'] = 'https://json-schema.org/draft/2019-09/schema'
-
-        # Optional fields
-        if getattr(self, 'title', None):
-            schema['title'] = self.title
-        if getattr(self, 'description', None):
-            schema['description'] = self.description
-        if self.unit is not None:
-            schema['unit'] = str(self.unit)
-
-        return schema
+        return quantity_to_json_schema(self, add_unit_value=add_unit_value)
 
 
 class DirectQuantity(Quantity):
@@ -4407,9 +4364,9 @@ Quantity.is_scalar = Quantity(
 Quantity.use_full_storage = Quantity(
     type=bool,
     name='use_full_storage',
-    derived=lambda quantity: quantity.flexible_unit
-    or quantity.variable
-    or len(quantity.attributes) > 0,
+    derived=lambda quantity: (
+        quantity.flexible_unit or quantity.variable or len(quantity.attributes) > 0
+    ),
 )
 Quantity.flexible_unit = Quantity(type=bool, name='flexible_unit', default=False)
 Quantity.cached = Quantity(type=bool, name='cached', default=False)

@@ -348,7 +348,7 @@ async def test_tabular_entry_mode(
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('tests/data/parsers/tabular/')
     async with temporal_worker():
-        await asyncio.to_thread(lambda: upload.process_upload())
+        await asyncio.to_thread(upload.process_upload)
         await upload.await_workflows()
     assert upload is not None
     assert upload.processed_entries_count == 1

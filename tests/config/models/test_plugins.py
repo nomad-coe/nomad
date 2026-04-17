@@ -26,7 +26,7 @@ from nomad.config.models.north import NORTHTool
 from nomad.config.models.plugins import (
     APIEntryPoint,
     ExampleUploadEntryPoint,
-    NorthToolEntryPoint,
+    NORTHToolEntryPoint,
     UploadResource,
 )
 
@@ -297,6 +297,15 @@ def test_example_upload_entry_point_resources(
                 pass
 
         mock_plugin_package(monkeypatch, tmp_package_directory)
+
+        def mock_download_file(url, filepath):
+            with open(filepath, 'w'):
+                pass
+
+        monkeypatch.setattr(
+            'nomad.config.models.plugins.download_file', mock_download_file
+        )
+
         entry_point_id = 'nomad_plugin.module:identifier'
         config = {
             'plugin_package': 'nomad_test_plugin',
@@ -437,13 +446,32 @@ def test_api_entry_point_invalid(config, error, value):
         assert entry_point.prefix == value
 
 
+def test_api_entry_point():
+    class MyAPIEntryPoint(APIEntryPoint):
+        def load(self):
+            return 'loaded_api'
+
+    entry_point = MyAPIEntryPoint(
+        id='test_api',
+        prefix='/my/api',
+    )
+
+    assert entry_point.load() == 'loaded_api'
+    assert entry_point.prefix == 'my/api'
+    assert entry_point.dict_safe() == {
+        'id': 'test_api',
+        'entry_point_type': 'api',
+        'prefix': 'my/api',
+    }
+
+
 def test_north_tool_entry_point():
     tool = NORTHTool(
         short_description='A test tool',
         description='A test tool for testing',
         image='test_image',
     )
-    entry_point = NorthToolEntryPoint(
+    entry_point = NORTHToolEntryPoint(
         id='test_tool',
         north_tool=tool,
     )

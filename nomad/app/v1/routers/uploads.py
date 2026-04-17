@@ -46,13 +46,18 @@ from pydantic_core import PydanticCustomError
 
 from nomad import files, utils
 from nomad.app.v1.models.models import TransferBundleRequest
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.auth.tokens import generate_upload_token
 from nomad.bundles import BundleExporter, BundleImporter
 from nomad.common import get_compression_format, is_safe_basename, is_safe_relative_path
 from nomad.config import config
 from nomad.config.models.config import Reprocess
 from nomad.config.models.plugins import ExampleUploadEntryPoint
+from nomad.datacite import DataCiteException
+from nomad.datacite.service import create_doi_for_upload, publish_doi
 from nomad.files import PublicUploadFiles, StagingUploadFiles
+from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup
 from nomad.processing import (
     Entry,
@@ -116,6 +121,12 @@ class UploadRole(str, Enum):
     main_author = 'main_author'
     reviewer = 'reviewer'
     coauthor = 'coauthor'
+
+
+class DOI(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(description='The DOI name, e.g. 10.2345/nomad.6789-wxyz')
 
 
 class ProcData(BaseModel):
@@ -208,6 +219,7 @@ class UploadProcData(ProcData):
     license: str = Field(
         description='The license under which this upload is distributed.'
     )
+    doi: DOI | None = Field(None, description='The DOI assigned to this upload.')
     entries: int = Field(
         0, description='The number of identified entries in this upload.'
     )
@@ -277,7 +289,7 @@ class UploadProcDataPagination(Pagination):
 
 upload_proc_data_pagination_parameters = parameter_dependency_from_model(
     'upload_proc_data_pagination_parameters',
-    UploadProcDataPagination,  # type: ignore
+    UploadProcDataPagination,
 )
 
 
@@ -322,7 +334,7 @@ class EntryProcDataPagination(Pagination):
 
 entry_proc_data_pagination_parameters = parameter_dependency_from_model(
     'entry_proc_data_pagination_parameters',
-    EntryProcDataPagination,  # type: ignore
+    EntryProcDataPagination,
 )
 
 
@@ -347,6 +359,10 @@ class UploadProcDataQuery(BaseModel):
     upload_id: list[str] | None = Field(
         None,
         description='Search for uploads matching the given id. Multiple values can be specified.',
+    )
+    doi: list[str] | None = Field(
+        None,
+        description='Search for uploads matching the given doi. Multiple values can be specified.',
     )
     upload_name: list[str] | None = Field(
         None,
@@ -391,7 +407,7 @@ class UploadProcDataQuery(BaseModel):
 
 upload_proc_data_query_parameters = parameter_dependency_from_model(
     'upload_proc_data_query_parameters',
-    UploadProcDataQuery,  # type: ignore
+    UploadProcDataQuery,
 )
 
 
@@ -468,7 +484,7 @@ class RawDirPagination(Pagination):
 
 rawdir_pagination_parameters = parameter_dependency_from_model(
     'rawdir_pagination_parameters',
-    RawDirPagination,  # type: ignore
+    RawDirPagination,
     exclude=['order', 'order_by'],
 )
 
@@ -732,12 +748,81 @@ _upload_bundle_response = (
     {'content': {'application/zip': {'example': '<zipped bundle data>'}}},
 )
 
+_existing_upload_with_findable_state = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'The upload has failed to be submitted previously.',
+    },
+)
+
+_datacite_did_not_resolve = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        Datacite server couldn't resolve the request. Please try again later.
+    """
+        ),
+    },
+)
+
+_upload_already_has_doi = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The upload already has a DOI and cannot be changed anymore.
+    """
+        ),
+    },
+)
+
+_upload_is_empty = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The Upload is empty. No DOI can be assigned at this moment. Add some published
+        contents to the upload first.
+    """
+        ),
+    },
+)
+
+_upload_is_unpublished = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The upload is unpublished. No DOI can be assigned at the moment.
+        Publish the upload first.
+    """
+        ),
+    },
+)
+
+_datacite_not_enabled = (
+    status.HTTP_403_FORBIDDEN,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'The DataCite DOI service is not enabled on this deployment.',
+    },
+)
 
 _thank_you_message = f"""
 Thanks for uploading your data to nomad.
 Go back to {config.gui_url()} and press
 reload to see the progress on your upload
 and publish your data."""
+
+
+def _create_exception(status_code, response_dict):
+    return HTTPException(status_code, detail=response_dict.get('description'))
 
 
 @router.get(
@@ -749,8 +834,11 @@ and publish your data."""
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_command_examples(
-    user: Annotated[User, Depends(get_current_user(required=True))],
+def get_command_examples(
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.TOKENS_CREATE], allow_anonymous=False)),
+    ],
 ):
     """Get URL and example command for shell based uploads."""
     token = generate_upload_token(user)
@@ -787,13 +875,16 @@ async def get_command_examples(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_uploads(
+def get_uploads(
     request: Request,
     query: Annotated[UploadProcDataQuery, Depends(upload_proc_data_query_parameters)],
     pagination: Annotated[
         UploadProcDataPagination, Depends(upload_proc_data_pagination_parameters)
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_READ], allow_anonymous=False)),
+    ],
     roles: Annotated[
         list[UploadRole] | None,
         FastApiQuery(
@@ -814,6 +905,9 @@ async def get_uploads(
 
     if query.upload_id:
         mongo_query &= Q(upload_id__in=query.upload_id)
+
+    if query.doi:
+        mongo_query &= Q(doi__in=query.doi)
 
     if query.upload_name:
         mongo_query &= Q(upload_name__in=query.upload_name)
@@ -856,11 +950,11 @@ async def get_uploads(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload(
+def get_upload(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to retrieve.')
     ],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
     """
     Fetches a specific upload by its upload_id.
@@ -882,7 +976,7 @@ async def get_upload(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_entries(
+def get_upload_entries(
     request: Request,
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to retrieve entries for.')
@@ -890,7 +984,7 @@ async def get_upload_entries(
     pagination: Annotated[
         EntryProcDataPagination, Depends(entry_proc_data_pagination_parameters)
     ],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
     """
     Fetches the entries of a specific upload. Pagination is used to browse through the
@@ -958,7 +1052,7 @@ async def get_upload_entries(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_entry(
+def get_upload_entry(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     entry_id: Annotated[
         str,
@@ -966,7 +1060,10 @@ async def get_upload_entry(
             description='The unique id of the entry, belonging to the specified upload.'
         ),
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_READ], allow_anonymous=False)),
+    ],
 ):
     """
     Fetches a specific entry for a specific upload.
@@ -998,12 +1095,12 @@ async def get_upload_entry(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_rawdir_path(
+def get_upload_rawdir_path(
     request: Request,
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     pagination: Annotated[RawDirPagination, Depends(rawdir_pagination_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
     include_entry_info: Annotated[
         bool,
         FastApiQuery(
@@ -1028,7 +1125,7 @@ async def get_upload_rawdir_path(
     try:
         # Get upload files
         upload_files = upload.upload_files
-        if not upload_files.raw_path_exists(path):
+        if not upload_files.raw_exists(path):
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
                 detail=strip(
@@ -1044,7 +1141,7 @@ async def get_upload_rawdir_path(
             else ('embargoed' if upload.embargo_length else 'public'),
         )
 
-        if upload_files.raw_path_is_file(path):
+        if upload_files.raw_isfile(path):
             # Path denotes a file
             response.file_metadata = RawDirFileMetadata(
                 name=os.path.basename(path), size=upload_files.raw_file_size(path)
@@ -1060,7 +1157,7 @@ async def get_upload_rawdir_path(
             # Path denotes a directory
             start = pagination.get_simple_index()
             end = start + pagination.page_size
-            directory_list = upload_files.raw_directory_list(path)
+            directory_list = upload_files.raw_listdir(path)
             upload_files.close()
             content = []
             path_to_element: dict[str, RawDirElementMetadata] = {}
@@ -1118,9 +1215,9 @@ async def get_upload_rawdir_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_raw(
+def get_upload_raw(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
     """
     NOMAD manages the raw files of published uploads as a .zip file. This endpoint
@@ -1164,11 +1261,11 @@ async def get_upload_raw(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_raw_path(
+def get_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     files_params: Annotated[Files, Depends(files_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
     offset: Annotated[
         int | None,
         FastApiQuery(
@@ -1240,7 +1337,7 @@ async def get_upload_raw_path(
     # Get upload files
     upload_files = upload.upload_files
     try:
-        if not upload_files.raw_path_exists(path):
+        if not upload_files.raw_exists(path):
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
                 detail=strip(
@@ -1248,7 +1345,7 @@ async def get_upload_raw_path(
                 Not found. Invalid path?"""
                 ),
             )
-        if upload_files.raw_path_is_file(path):
+        if upload_files.raw_isfile(path):
             # File
             if files_params.compress:
                 media_type = 'application/zip'
@@ -1350,7 +1447,12 @@ async def put_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     user: Annotated[
-        User, Depends(get_current_user(required=True, allow_upload_token=True))
+        User,
+        Depends(
+            get_current_user(
+                [Scope.UPLOADS_WRITE], allow_anonymous=False, allow_upload_token=True
+            )
+        ),
     ],
     file: Annotated[list[UploadFile] | None, File()] = None,
     local_path: Annotated[
@@ -1417,6 +1519,15 @@ async def put_upload_raw_path(
             )
         ),
     ] = True,
+    trigger_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """
+            If set to true (default), reprocesses the upload after deleting the file/folder."""
+            ),
+        ),
+    ] = True,
 ):
     """
     Upload one or more files to the directory specified by `path` in the upload specified by `upload_id`.
@@ -1457,6 +1568,11 @@ async def put_upload_raw_path(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail='`include_archive` requires `wait_for_processing`.',
+        )
+    if wait_for_processing and not trigger_processing:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail='`trigger_processing` must be true when `wait_for_processing` is set.`',
         )
 
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
@@ -1533,7 +1649,7 @@ async def put_upload_raw_path(
             )
         if not compression_format and not overwrite_if_exists:
             full_path = os.path.join(path, os.path.basename(upload_path))
-            if upload_files.raw_path_exists(full_path):
+            if upload_files.raw_exists(full_path):
                 raise HTTPException(
                     status.HTTP_409_CONFLICT,
                     detail='The provided path already exists and overwrite_if_exists is set to False.',
@@ -1543,17 +1659,17 @@ async def put_upload_raw_path(
         # Process on worker (normal case)
         if copy_or_move:  # the case for move/copy an existing file
             path_to_target_file = os.path.join(path, file_name)
-            if upload_files.raw_path_exists(path_to_target_file):
+            if upload_files.raw_exists(path_to_target_file):
                 raise HTTPException(
                     status.HTTP_409_CONFLICT,
                     detail='The provided path already exists.',
                 )
-            if not upload_files.raw_path_exists(path):
+            if not upload_files.raw_exists(path):
                 raise HTTPException(
                     status.HTTP_404_NOT_FOUND,
                     detail='No file or folder with that path found.',
                 )
-            if not upload_files.raw_path_exists(copy_or_move_source_path):
+            if not upload_files.raw_exists(copy_or_move_source_path):
                 raise HTTPException(
                     status.HTTP_409_CONFLICT,
                     detail=f'No file or folder with that source path: {copy_or_move_source_path}',
@@ -1580,7 +1696,9 @@ async def put_upload_raw_path(
         # Initiate processing
         try:
             upload.process_upload(
-                file_operations=file_operations, only_updated_files=True
+                file_operations=file_operations,
+                only_updated_files=True,
+                trigger_processing=trigger_processing,
             )
         except ProcessAlreadyRunning:
             raise HTTPException(
@@ -1692,12 +1810,26 @@ async def put_upload_raw_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def delete_upload_raw_path(
+def delete_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     user: Annotated[
-        User, Depends(get_current_user(required=True, allow_upload_token=True))
+        User,
+        Depends(
+            get_current_user(
+                [Scope.UPLOADS_WRITE], allow_anonymous=False, allow_upload_token=True
+            )
+        ),
     ],
+    trigger_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """
+            If set to true (default), reprocesses the upload after deleting the file/folder."""
+            ),
+        ),
+    ] = True,
 ):
     """
     Delete file or folder located at the specified path in the specified upload. The upload
@@ -1711,7 +1843,7 @@ async def delete_upload_raw_path(
 
     upload_files = StagingUploadFiles(upload_id)
 
-    if not upload_files.raw_path_exists(path):
+    if not upload_files.raw_exists(path):
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             detail='No file or folder with that path found.',
@@ -1719,7 +1851,9 @@ async def delete_upload_raw_path(
 
     try:
         upload.process_upload(
-            file_operations=[dict(op='DELETE', path=path)], only_updated_files=True
+            file_operations=[dict(op='DELETE', path=path)],
+            only_updated_files=True,
+            trigger_processing=trigger_processing,
         )
     except ProcessAlreadyRunning:
         raise HTTPException(
@@ -1741,11 +1875,16 @@ async def delete_upload_raw_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_raw_create_dir_path(
+def post_upload_raw_create_dir_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
     user: Annotated[
-        User, Depends(get_current_user(required=True, allow_upload_token=True))
+        User,
+        Depends(
+            get_current_user(
+                [Scope.UPLOADS_WRITE], allow_anonymous=False, allow_upload_token=True
+            )
+        ),
     ],
 ):
     """
@@ -1757,7 +1896,7 @@ async def post_upload_raw_create_dir_path(
 
     if not path or not is_safe_relative_path(path):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='Bad path provided.')
-    if upload.staging_upload_files.raw_path_exists(path):
+    if upload.staging_upload_files.raw_exists(path):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail=f'Path `{path}` already exists.',
@@ -1786,8 +1925,8 @@ async def post_upload_raw_create_dir_path(
     response_model_exclude_none=True,
     responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload),
 )
-async def get_upload_entry_archive_mainfile(
-    user: Annotated[User, Depends(get_current_user())],
+def get_upload_entry_archive_mainfile(
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     mainfile: Annotated[
         str, Path(description="The mainfile path within the upload's raw files.")
@@ -1817,10 +1956,10 @@ async def get_upload_entry_archive_mainfile(
     response_model_exclude_none=True,
     responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload),
 )
-async def get_upload_entry_archive(
+def get_upload_entry_archive(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     entry_id: Annotated[str, Path(description='The unique entry id.')],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
     """
     For the upload specified by `upload_id`, gets the full archive of a single entry that
@@ -1844,7 +1983,12 @@ async def get_upload_entry_archive(
 async def post_upload(
     request: Request,
     user: Annotated[
-        User, Depends(get_current_user(required=True, allow_upload_token=True))
+        User,
+        Depends(
+            get_current_user(
+                [Scope.UPLOADS_WRITE], allow_anonymous=False, allow_upload_token=True
+            )
+        ),
     ],
     file: Annotated[list[UploadFile] | None, File()] = None,
     local_path: Annotated[
@@ -2055,7 +2199,10 @@ async def post_upload_edit(
     request: Request,
     data: MetadataEditRequest,
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
+    ],
 ):
     """
     Updates the metadata of the specified upload and entries. An optional `query` can be
@@ -2098,11 +2245,14 @@ async def post_upload_edit(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def delete_upload(
+def delete_upload(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to delete.')
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
+    ],
 ):
     """
     Delete an existing upload.
@@ -2146,8 +2296,11 @@ async def delete_upload(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_publish(
-    user: Annotated[User, Depends(get_current_user(required=True))],
+def post_upload_action_publish(
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_PUBLISH], allow_anonymous=False)),
+    ],
     upload_id: Annotated[
         str,
         Path(
@@ -2261,11 +2414,14 @@ async def post_upload_action_publish(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_process(
+def post_upload_action_process(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to process.')
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_PROCESS], allow_anonymous=False)),
+    ],
 ):
     """
     Processes an upload, i.e. parses the files and updates the NOMAD archive. Only admins
@@ -2292,7 +2448,7 @@ async def post_upload_action_process(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_delete_entry_files(
+def post_upload_action_delete_entry_files(
     data: DeleteEntryFilesRequest,
     upload_id: Annotated[
         str,
@@ -2300,7 +2456,10 @@ async def post_upload_action_delete_entry_files(
             description='The unique id of the upload within which to delete entry files.'
         ),
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
+    ],
 ):
     """Deletes the files of the entries specified by the provided query."""
 
@@ -2365,11 +2524,14 @@ async def post_upload_action_delete_entry_files(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_upload_action_lift_embargo(
+def post_upload_action_lift_embargo(
     upload_id: Annotated[
         str, Path(description='The unique id of the upload to lift the embargo for.')
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_PUBLISH], allow_anonymous=False)),
+    ],
 ):
     """Lifts the embargo of an upload."""
     upload = _get_upload_with_write_access(
@@ -2420,8 +2582,11 @@ async def post_upload_action_lift_embargo(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_bundle(
-    user: Annotated[User, Depends(get_current_user())],
+def get_upload_bundle(
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_BUNDLE_READ])),
+    ],
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     include_raw_files: Annotated[
         bool | None,
@@ -2498,7 +2663,14 @@ async def get_upload_bundle(
 async def post_upload_bundle(
     request: Request,
     user: Annotated[
-        User, Depends(get_current_user(required=True, allow_upload_token=True))
+        User,
+        Depends(
+            get_current_user(
+                [Scope.UPLOADS_BUNDLE_WRITE],
+                allow_anonymous=False,
+                allow_upload_token=True,
+            )
+        ),
     ],
     file: Annotated[list[UploadFile] | None, File()] = None,
     local_path: Annotated[
@@ -2693,7 +2865,7 @@ async def post_upload_bundle(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def transfer_upload_bundle(
+def transfer_upload_bundle(
     transfer_options: TransferBundleRequest,
     upload_id: Annotated[
         str,
@@ -2704,7 +2876,10 @@ async def transfer_upload_bundle(
             )
         ),
     ],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_BUNDLE_READ], allow_anonymous=False)),
+    ],
 ):
     """
     Start a transfer of an upload to another NOMAD deployment.
@@ -2812,7 +2987,7 @@ async def _get_files_if_provided(
     no_file_name_info_provided = not file_name
 
     for _, source_file_name in sources:
-        if not files.is_safe_basename(source_file_name):
+        if not is_safe_basename(source_file_name):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail='Bad file name provided.'
             )
@@ -2837,7 +3012,7 @@ async def _get_files_if_provided(
                     upload_paths.append(file_path)
                     upload_folders.append(folder)
     else:
-        tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
+        tmp_dir = files.mkdtemp(tmp_dir_prefix)
         upload_paths = []
         uploaded_bytes = 0
         upload_folders = []
@@ -3168,9 +3343,12 @@ def _check_external_deployment_status(deployment_url: str):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def stop_upload_processing(
+def stop_upload_processing(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_PROCESS], allow_anonymous=False)),
+    ],
 ):
     """
     Stops the processing of the specified upload.
@@ -3185,3 +3363,72 @@ async def stop_upload_processing(
     upload.stop_processing()
 
     return UploadProcDataResponse(upload_id=upload_id, data=upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/action/assign-doi',
+    tags=[APITag.ACTION],
+    summary='Assign a DOI to an upload',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(
+        _datacite_not_enabled,
+        _upload_not_found,
+        _bad_request,
+        _not_authorized_to_upload,
+        _existing_upload_with_findable_state,
+        _upload_already_has_doi,
+        _upload_is_empty,
+        _upload_is_unpublished,
+        _datacite_did_not_resolve,
+    ),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def assign_doi(
+    upload_id: Annotated[str, Path(description='The unique id of the upload.')],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.UPLOADS_ASSIGN_DOI], allow_anonymous=False)),
+    ],
+):
+    """
+    Assign a DOI at DataCite to this upload.
+
+    Conditions:
+
+    - The DataCite service must be enabled on this deployment.
+    - The upload must be published.
+    - The upload must contain at least one entry.
+    - The user must be the main author of the upload.
+    """
+
+    if not config.datacite.enabled:
+        raise _create_exception(*_datacite_not_enabled)
+
+    upload = _get_upload_with_write_access(
+        upload_id,
+        user,
+        include_published=True,
+        only_main_author=True,
+        published_requires_admin=False,
+    )
+
+    if upload.doi is not None:
+        raise _create_exception(*_upload_already_has_doi)
+
+    if upload.total_entries_count == 0:
+        raise _create_exception(*_upload_is_empty)
+
+    if not upload.published:
+        raise _create_exception(*_upload_is_unpublished)
+
+    try:
+        doi_id = create_doi_for_upload(upload)
+        publish_doi(doi_id)
+    except DataCiteException:
+        raise _create_exception(*_datacite_did_not_resolve)
+
+    upload.doi = EmbeddedDOI(id=doi_id)
+    upload.save()
+
+    return {'upload_id': upload.upload_id, 'data': upload}

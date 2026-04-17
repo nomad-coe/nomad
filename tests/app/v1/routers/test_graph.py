@@ -824,3 +824,54 @@ def test_graph_query_archive_functionality(
     assert (
         response.json()['uploads']['test_id']['entries']['test_id']['archive'] == result
     )
+
+
+def test_graph_query_numeric_folder(
+    auth_headers, client, mongo_function, elastic_function
+):
+    client.post('uploads', headers=auth_headers['user1'])
+    response = client.get('uploads', headers=auth_headers['user1']).json()
+    assert len(response['data']) == 1
+    upload = response['data'][0]
+    upload_id = upload['upload_id']
+    numeric_folder_name = '1'
+
+    # create a new empty numeric folder
+    client.post(
+        f'uploads/{upload_id}/raw-create-dir/base/{numeric_folder_name}',
+        headers=auth_headers['user1'],
+    )
+    inner_folders = ['a', 'b', 'c']
+    # Create some inner folders to test the graph query response with numeric folder names
+
+    for folder in inner_folders:
+        client.post(
+            f'uploads/{upload_id}/raw-create-dir/base/{numeric_folder_name}/{folder}',
+            headers=auth_headers['user1'],
+        )
+
+    graph_response = client.post(
+        'graph/query',
+        json={
+            'uploads': {
+                upload_id: {
+                    'files': {
+                        'base': {
+                            numeric_folder_name: {
+                                'm_request': {
+                                    'depth': 1,
+                                    'directive': 'resolved',
+                                    'pagination': {'page': 1, 'page_size': 20},
+                                }
+                            }
+                        },
+                    }
+                }
+            }
+        },
+        headers=auth_headers['user1'],
+    )
+    files_response = graph_response.json()['uploads'][upload_id]['files']['base'][
+        numeric_folder_name
+    ]
+    assert all(folder in files_response for folder in inner_folders)

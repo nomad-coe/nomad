@@ -16,9 +16,13 @@
 # limitations under the License.
 #
 
+from collections.abc import Callable, Mapping
+from typing import Any
+
 import click
 
 from nomad.config import config
+from nomad.config.models.config import WorkerConfig
 
 from .admin import admin
 
@@ -44,47 +48,95 @@ def hub():
 
 
 @run.command(help='Run the action cpu worker.')
-@click.option('--workers', type=int, default=12, help='Number of workers.')
-def action_cpu_worker(workers: int):
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
+def action_cpu_worker(pool_size: int | None):
     import asyncio
 
     from nomad.actions.workers import cpu
 
-    asyncio.run(cpu.run_worker(workers=workers))
+    config_dict = config.temporal.cpu_worker.model_dump()
+    if pool_size is not None:
+        config_dict['pool_size'] = pool_size
+
+    worker_config = WorkerConfig.model_validate(config_dict)
+
+    asyncio.run(cpu.run_worker(worker_config))
 
 
 @run.command(help='Run the action gpu worker.')
-@click.option('--workers', type=int, default=12, help='Number of workers.')
-def action_gpu_worker(workers: int):
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
+def action_gpu_worker(pool_size: int | None):
     import asyncio
 
     from nomad.actions.workers import gpu
 
-    asyncio.run(gpu.run_worker(workers=workers))
+    config_dict = config.temporal.gpu_worker.model_dump()
+    if pool_size is not None:
+        config_dict['pool_size'] = pool_size
+
+    worker_config = WorkerConfig.model_validate(config_dict)
+
+    asyncio.run(gpu.run_worker(worker_config))
 
 
 @run.command(help='Run the action internal worker.')
-@click.option('--workers', type=int, default=1, help='Number of workers.')
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
 @click.option(
     '--max-tasks-per-child',
     type=int,
-    default=100,
+    default=None,
     help='Number of tasks per worker.',
 )
-def action_internal_worker(workers: int, max_tasks_per_child: int):
-    run_action_internal_worker(workers=workers, max_tasks_per_child=max_tasks_per_child)
+@click.option(
+    '--max-concurrent-activities',
+    type=int,
+    default=None,
+    help='Maximum number of concurrent activities for the internal worker.',
+)
+def action_internal_worker(
+    pool_size: int | None,
+    max_tasks_per_child: int | None,
+    max_concurrent_activities: int | None,
+):
+    run_action_internal_worker(
+        pool_size=pool_size,
+        max_tasks_per_child=max_tasks_per_child,
+        max_concurrent_activities=max_concurrent_activities,
+    )
 
 
 @run.command(help='Run the action internal worker.')
-@click.option('--workers', type=int, default=1, help='Number of workers.')
+@click.option(
+    '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
+)
 @click.option(
     '--max-tasks-per-child',
     type=int,
-    default=100,
+    default=None,
     help='Number of tasks per worker.',
 )
-def worker(workers: int, max_tasks_per_child: int):
-    run_action_internal_worker(workers=workers, max_tasks_per_child=max_tasks_per_child)
+@click.option(
+    '--max-concurrent-activities',
+    type=int,
+    default=None,
+    help='Maximum number of concurrent activities for the internal worker.',
+)
+def worker(
+    pool_size: int | None,
+    max_tasks_per_child: int | None,
+    max_concurrent_activities: int | None,
+):
+    run_action_internal_worker(
+        pool_size=pool_size,
+        max_tasks_per_child=max_tasks_per_child,
+        max_concurrent_activities=max_concurrent_activities,
+    )
 
 
 @run.command(help='Run the nomad development app with all apis.')
@@ -107,16 +159,27 @@ def app(with_gui: bool, **kwargs):
     run_app(with_gui=with_gui, **kwargs)
 
 
-def run_action_internal_worker(*, workers: int = 1, max_tasks_per_child: int = 100):
+def run_action_internal_worker(
+    *,
+    pool_size: int | None = None,
+    max_tasks_per_child: int | None = None,
+    max_concurrent_activities: int | None = None,
+):
     import asyncio
 
     from nomad.actions.workers import internal_worker
 
-    asyncio.run(
-        internal_worker.run_worker(
-            workers=workers, max_tasks_per_child=max_tasks_per_child
-        )
-    )
+    config_dict = config.temporal.internal_worker.model_dump()
+    if pool_size is not None:
+        config_dict['pool_size'] = pool_size
+    if max_tasks_per_child is not None:
+        config_dict['max_tasks_per_child'] = max_tasks_per_child
+    if max_concurrent_activities is not None:
+        config_dict['max_concurrent_activities'] = max_concurrent_activities
+
+    worker_config = WorkerConfig.model_validate(config_dict)
+
+    asyncio.run(internal_worker.run_worker(worker_config))
 
 
 def run_app(
@@ -253,31 +316,44 @@ def run_appworker(
     app_host: str | None = None,
     app_port: int | None = None,
     fastapi_workers: int | None = None,
-    temporal_workers: int | None = None,
+    temporal_pool_size: int | None = None,
     dev: bool = False,
 ):
-    from concurrent import futures as concurrent_futures
+    import multiprocessing
+    import sys
+    import time
 
     if dev:
         fastapi_workers = 1
-        temporal_workers = 1
+        temporal_pool_size = 1
 
-    with concurrent_futures.ProcessPoolExecutor(2) as executor:
-        results = []
+    tasks: list[tuple[Callable[..., Any], Mapping[str, Any]]] = [
+        (run_action_internal_worker, {'pool_size': temporal_pool_size}),
+        (run_app, {'workers': fastapi_workers, 'host': app_host, 'port': app_port}),
+    ]
 
-        def _submit(fn, *args, **kwargs):
-            results.append(executor.submit(fn, *args, **kwargs))
+    processes = []
 
-        _submit(run_action_internal_worker, workers=temporal_workers)
-        _submit(run_app, workers=fastapi_workers, host=app_host, port=app_port)
+    for target, kwargs in tasks:
+        p = multiprocessing.Process(target=target, kwargs=kwargs)
+        p.start()
+        processes.append(p)
 
-        try:
-            for future in concurrent_futures.as_completed(results):
-                future.result()
-        except KeyboardInterrupt:
-            for future in results:
-                future.cancel()
-            executor.shutdown(wait=False)
+    try:
+        while True:
+            for p in processes:
+                # Exit if any process died with an error code
+                if not p.is_alive() and p.exitcode != 0:
+                    # Kill the other process
+                    for other_p in processes:
+                        other_p.terminate()
+                    sys.exit(p.exitcode)
+            time.sleep(5)
+
+    except KeyboardInterrupt:
+        for p in processes:
+            p.terminate()
+        sys.exit(0)
 
 
 @run.command(help='Run both app and worker.')
@@ -291,7 +367,11 @@ def run_appworker(
     '--fastapi-workers', type=int, default=None, help='Number of FastAPI workers.'
 )
 @click.option(
-    '--temporal-workers', type=int, default=None, help='Number of temporal workers.'
+    '--temporal-pool-size',
+    '--temporal-workers',
+    type=int,
+    default=None,
+    help='Number of temporal workers.',
 )
 @click.option(
     '--dev', is_flag=True, default=False, help='Use one worker (for dev. env.).'

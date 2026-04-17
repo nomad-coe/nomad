@@ -377,7 +377,7 @@ async def test_republish(
     assert Upload.get(processed.upload_id) is not None
 
     async with temporal_worker():
-        await asyncio.to_thread(lambda: processed.publish_upload())
+        await asyncio.to_thread(processed.publish_upload)
         await asyncio.to_thread(lambda: processed.block_until_complete(interval=0.01))
 
     with processed.entries_metadata() as entries:
@@ -471,14 +471,14 @@ async def test_re_processing(
         assert published.failed_entries_count > 0
 
     assert published.published
-    assert published.upload_files.to_staging_upload_files() is None
+    assert published.upload_files.to_staging() is None
 
     old_upload_time = published.last_update
     first_entry: Entry = published.entries_sublist(0, 1)[0]
     old_entry_time = first_entry.last_processing_time
 
-    with published.upload_files.read_archive(first_entry.entry_id) as archive:
-        archive[first_entry.entry_id]['processing_logs']
+    with published.upload_files.read_archive(first_entry.entry_id) as reader:
+        reader[first_entry.entry_id]['processing_logs']
 
     old_archive_files = list(
         archive_file
@@ -522,7 +522,7 @@ async def test_re_processing(
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     async with temporal_worker():
-        await asyncio.to_thread(lambda: published.process_upload())
+        await asyncio.to_thread(published.process_upload)
         await published.await_workflows()
 
     published.reload()
@@ -537,6 +537,7 @@ async def test_re_processing(
     if with_failure != 'not-matched':
         assert first_entry.nomad_version == 're_process_test_version'
 
+    archive: EntryArchive
     # assert changed archive files
     if with_failure == 'after':
         with published.upload_files.read_archive(
@@ -585,7 +586,7 @@ async def test_re_process_staging(
 
     if publish:
         async with temporal_worker():
-            await asyncio.to_thread(lambda: upload.publish_upload())
+            await asyncio.to_thread(upload.publish_upload)
             try:
                 await upload.await_workflows()
             except Exception:
@@ -595,7 +596,7 @@ async def test_re_process_staging(
             StagingUploadFiles(upload.upload_id, create=True)
 
     async with temporal_worker():
-        await asyncio.to_thread(lambda: upload.process_upload())
+        await asyncio.to_thread(upload.process_upload)
         try:
             await upload.await_workflows()
         except Exception:
@@ -627,15 +628,15 @@ async def test_re_process_match(
         import zipfile
 
         upload_files = UploadFiles.get(upload.upload_id)
-        zip_path = upload_files.raw_zip_file_object().os_path
+        zip_path = upload_files.raw_zip_file_object().os_path  # type: ignore
         with zipfile.ZipFile(zip_path, mode='a') as zf:
             zf.write('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
     else:
-        upload_files = UploadFiles.get(upload.upload_id).to_staging_upload_files()
+        upload_files = UploadFiles.get(upload.upload_id).to_staging()
         upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
 
     async with temporal_worker():
-        await asyncio.to_thread(lambda: upload.process_upload())
+        await asyncio.to_thread(upload.process_upload)
         await upload.await_workflows()
 
     assert upload.total_entries_count == 2
@@ -860,7 +861,7 @@ def test_re_pack(published: Upload):
     upload_files.re_pack(with_embargo=False)
 
     assert upload_files.access == 'public'
-    for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
+    for path_info in upload_files.raw_listdir(recursive=True, files_only=True):
         with upload_files.raw_file(path_info.path) as f:
             f.read()
 
@@ -1055,7 +1056,7 @@ async def test_creating_new_entries_during_processing(temporal_worker, user1):
             outfile,
         )
     async with temporal_worker():
-        await asyncio.to_thread(lambda: upload.process_upload())
+        await asyncio.to_thread(upload.process_upload)
         await upload.await_workflows()
     assert upload.process_status == ProcessStatus.SUCCESS
     assert upload.total_entries_count == 6
@@ -1273,11 +1274,17 @@ async def test_exclude_potcar(user1, temporal_worker, monkeypatch, exclude_potca
             )
         )
 
-    assert upload.upload_files.raw_path_exists('test/vasprun.xml')
-
-    potcar_exists = upload.upload_files.raw_path_exists('test/POTCAR')
-    if exclude_potcar:
-        assert not potcar_exists
-        assert 'Removing POTCAR file from upload.' in upload.warnings
-    else:
-        assert potcar_exists
+    for ext in ['', '.gz', '.xz', '.bz2']:
+        assert upload.upload_files.raw_exists(f'test{ext}/vasprun.xml')
+        assert upload.upload_files.raw_exists(f'test{ext}/POTCAR{ext}.stripped')
+        with upload.upload_files.raw_file(f'test{ext}/POTCAR{ext}.stripped') as f:
+            content = f.read().decode()
+            assert 'Stripped POTCAR file' in content
+            assert 'PAW_PBE' in content
+            assert 'local part' not in content
+        potcar_exists = upload.upload_files.raw_exists(f'test{ext}/POTCAR{ext}')
+        if exclude_potcar:
+            assert not potcar_exists
+            assert 'Removing POTCAR file from upload.' in upload.warnings
+        else:
+            assert potcar_exists

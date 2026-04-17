@@ -38,7 +38,7 @@ const H5Web = ({upload_id, filename, initialPath, sidebarOpen, source}) => {
         url={appBase + '/h5grove/'}
         filepath={filepath}
         getExportURL={(format, dataset, selection) => async () => {
-          const response = await axios.get(appBase + '/h5grove/data/', {
+          const response = await axios.get(appBase + '/h5grove/data', {
             params: {
               file: filepath, upload_id: upload_id, format, path: dataset.path, source: source
             },

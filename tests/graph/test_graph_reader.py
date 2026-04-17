@@ -235,6 +235,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T21:24:22.171000',
                     'description': 'Test Description',
+                    'doi': None,
                     'main_author': user1_dict,
                     'coauthors': [],
                     'reviewers': [],
@@ -293,6 +294,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T21:30:22.806000',
                     'description': 'Test Description',
+                    'doi': None,
                     'main_author': user1_dict,
                     'coauthors': [],
                     'reviewers': [],
@@ -498,6 +500,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T21:31:56.872000',
                     'description': 'Test Description',
+                    'doi': None,
                     'main_author': user1_dict,
                     'coauthors': [],
                     'reviewers': [],
@@ -661,6 +664,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T21:31:56.872000',
                     'description': 'Test Description',
+                    'doi': None,
                     'main_author': user1_dict,
                     'coauthors': [],
                     'reviewers': [],
@@ -772,6 +776,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                                 'upload_name': 'name_published',
                                 'upload_create_time': '2023-03-05T21:31:56.872000',
                                 'description': 'Test Description',
+                                'doi': None,
                                 'main_author': user1_dict,
                                 'coauthors': [],
                                 'reviewers': [],
@@ -901,6 +906,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'upload_name': 'name_published',
             'upload_create_time': '2023-03-05T22:12:08.420000',
             'description': 'Test Description',
+            'doi': None,
             'main_author': user1_dict,
             'coauthors': [],
             'reviewers': [],
@@ -948,6 +954,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'upload_name': 'name_published',
             'upload_create_time': '2023-03-05T22:16:52.435000',
             'description': 'Test Description',
+            'doi': None,
             'main_author': user1_dict,
             'coauthors': [],
             'reviewers': [],
@@ -1042,6 +1049,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'upload_name': 'name_published',
             'upload_create_time': '2023-03-05T22:16:52.435000',
             'description': 'Test Description',
+            'doi': None,
             'main_author': user1_dict,
             'coauthors': [],
             'reviewers': [],
@@ -1085,6 +1093,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'upload_name': 'name_published',
             'upload_create_time': '2023-03-05T22:16:52.435000',
             'description': 'Test Description',
+            'doi': None,
             'main_author': user1_dict,
             'coauthors': [],
             'reviewers': [],
@@ -1116,6 +1125,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T22:16:52.435000',
                 'description': 'Test Description',
+                'doi': None,
                 'main_author': user1_dict,
                 'coauthors': [],
                 'reviewers': [],
@@ -1169,6 +1179,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T22:16:52.435000',
                 'description': 'Test Description',
+                'doi': None,
                 'main_author': user1_dict,
                 'coauthors': [],
                 'reviewers': [],
@@ -1240,6 +1251,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'upload_name': 'name_published',
             'upload_create_time': '2023-03-05T22:16:52.435000',
             'description': 'Test Description',
+            'doi': None,
             'main_author': user1_dict,
             'coauthors': [],
             'reviewers': [],
@@ -1647,6 +1659,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T22:16:52.435000',
                 'description': 'Test Description',
+                'doi': None,
                 'main_author': user1_dict,
                 'coauthors': [],
                 'reviewers': [],
@@ -1710,6 +1723,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T22:16:52.435000',
                 'description': 'Test Description',
+                'doi': None,
                 'coauthors': [],
                 'reviewers': [],
                 'coauthor_groups': [],
@@ -2059,6 +2073,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                         'upload_name': 'name_published',
                         'upload_create_time': '2023-03-05T22:16:52.435000',
                         'description': 'Test Description',
+                        'doi': None,
                         'main_author': user1_dict,
                         'coauthors': [],
                         'reviewers': [],
@@ -2149,6 +2164,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                         'upload_name': 'name_published',
                         'upload_create_time': '2023-03-05T22:16:52.435000',
                         'description': 'Test Description',
+                        'doi': None,
                         'main_author': user1_dict,
                         'coauthors': [],
                         'reviewers': [],
@@ -2672,6 +2688,7 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
                     'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T22:20:46.583000',
                     'description': 'Test Description',
+                    'doi': None,
                     'main_author': user1_dict,
                     'coauthors': [],
                     'reviewers': [],
@@ -2745,6 +2762,7 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
                     'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T22:20:46.583000',
                     'description': 'Test Description',
+                    'doi': None,
                     'main_author': user1_dict,
                     'coauthors': [],
                     'reviewers': [],
@@ -3541,7 +3559,7 @@ data:
 
     yield data
 
-    await asyncio.to_thread(lambda: data.delete())
+    await asyncio.to_thread(data.delete)
 
 
 def test_custom_schema_archive_and_definition(user1, custom_data):
@@ -4263,7 +4281,7 @@ async def example_data_with_figure(
 
     yield data
 
-    await asyncio.to_thread(lambda: data.delete())
+    await asyncio.to_thread(data.delete)
 
 
 @pytest.mark.parametrize(
@@ -4348,3 +4366,225 @@ def test_figure_resolution(user1, example_data_with_figure, query, result):
                 assert_dict(response, result)
 
     __entry_print(query, result=result)
+
+
+def test_mongo_reader_explicit_upload_lookup_skips_container_query(
+    monkeypatch, user1, example_data_with_reference
+):
+    async def _fail_query_uploads(self, config):
+        raise AssertionError('explicit upload lookup should not hit _query_uploads')
+
+    monkeypatch.setattr(MongoReader, '_query_uploads', _fail_query_uploads)
+
+    required = {
+        Token.UPLOADS: {
+            'id_published_with_ref': {
+                'm_request': {
+                    'directive': 'resolved',
+                    'resolve_type': 'upload',
+                },
+            }
+        }
+    }
+
+    with MongoReader(required, user=user1) as reader:
+        response = reader.sync_read()
+
+    assert (
+        response['uploads']['id_published_with_ref']['upload_name'] == 'name_published'
+    )
+
+
+def test_file_system_reader_resolved_directory_uses_batch_lookup(
+    monkeypatch, user1, example_data_with_reference
+):
+    async def _fail_offload(self, upload_id, main_file, required, parent_config):
+        raise AssertionError(
+            'resolved directory listings should not use per-file _offload'
+        )
+
+    monkeypatch.setattr(FileSystemReader, '_offload', _fail_offload)
+
+    required = {
+        'm_request': {
+            'directive': 'resolved',
+        }
+    }
+
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published_with_ref')
+
+    assert response['mainfile_for_id_01']['entry']['entry_id'] == 'id_01'
+    assert response['mainfile_for_id_02']['entry']['entry_id'] == 'id_02'
+
+
+def test_m_def_format_short(user1, custom_data):
+    """Test that m_def_format='short' produces compact 'qualified_name@definition_id' strings."""
+
+    def _read_entry(required):
+        with EntryReader(required, user=user1) as reader:
+            return reader.sync_read('id_example')
+
+    # --- Test 1: custom definition with m_def_format='short' ---
+    # The 'data' section has a custom m_def pointing to a local definition (MySection).
+    # With m_def_format='short', we expect m_def to be a compact string.
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                }
+            },
+        }
+    )
+    archive_data = response['archive']['data']
+    m_def_value = archive_data['m_def']
+    # m_def should be a string, not a dict
+    assert isinstance(m_def_value, str), (
+        f'Expected m_def to be a compact string, got {type(m_def_value)}: {m_def_value}'
+    )
+    # It should contain '@' separator between qualified_name and definition_id
+    assert '@' in m_def_value, (
+        f'Expected m_def to contain @ separator, got: {m_def_value}'
+    )
+    qualified_name, definition_id = m_def_value.split('@', 1)
+    assert 'MySection' in qualified_name, (
+        f'Expected qualified_name to contain MySection, got: {qualified_name}'
+    )
+    assert len(definition_id) > 0, 'Expected non-empty definition_id'
+    # The other quantities should still be present
+    assert archive_data['my_quantity'] == 'test_value'
+
+    # --- Test 2: standard (non-custom) section with m_def_format='short' ---
+    # The 'metadata' section uses a standard definition (EntryMetadata).
+    # With m_def_format='short', each sub-section should get a compact m_def string.
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'metadata': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                }
+            },
+        }
+    )
+    archive_metadata = response['archive']['metadata']
+    m_def_value = archive_metadata['m_def']
+    assert isinstance(m_def_value, str), (
+        f'Expected m_def to be a compact string, got {type(m_def_value)}: {m_def_value}'
+    )
+    assert '@' in m_def_value
+    qualified_name, definition_id = m_def_value.split('@', 1)
+    # EntryMetadata is the section definition for metadata
+    assert 'EntryMetadata' in qualified_name, (
+        f'Expected qualified_name to contain EntryMetadata, got: {qualified_name}'
+    )
+
+    # --- Test 3: default m_def_format (full) should still return dict ---
+    # Without m_def_format or with m_def_format='full',
+    # the m_def should remain a dict (the legacy behavior).
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'include_definition': 'both',
+                    },
+                }
+            },
+        }
+    )
+    archive_data = response['archive']['data']
+    m_def_value = archive_data['m_def']
+    assert isinstance(m_def_value, dict), (
+        f'Expected m_def to be a dict with default format, got {type(m_def_value)}: {m_def_value}'
+    )
+
+    # --- Test 4: m_def_format='short' with multiple named sections ---
+    # Request both 'data' and 'metadata' sections with short m_def format.
+    # Both sections should get compact m_def strings.
+    response = _read_entry(
+        {
+            'm_request': {
+                'directive': 'plain',
+                'm_def_format': 'short',
+            },
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                },
+                'metadata': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                },
+            },
+        }
+    )
+    archive = response['archive']
+    # 'data' section should have compact m_def
+    assert isinstance(archive['data']['m_def'], str)
+    assert '@' in archive['data']['m_def']
+    # 'metadata' section should also have compact m_def
+    assert isinstance(archive['metadata']['m_def'], str)
+    assert '@' in archive['metadata']['m_def']
+
+
+def test_m_def_format_short_with_explicit_m_def(user1, custom_data):
+    """Test that m_def_format='short' works when m_def is also explicitly requested.
+
+    When both m_def_format='short' and an explicit m_def sub-request are present,
+    the short format should take precedence and the request should not fail with
+    "'str' object does not support item assignment".
+    """
+
+    def _read_entry(required):
+        with EntryReader(required, user=user1) as reader:
+            return reader.sync_read('id_example')
+
+    # m_def_format='short' on config, plus explicit m_def sub-request
+    response = _read_entry(
+        {
+            'm_request': {'directive': 'plain'},
+            Token.ARCHIVE: {
+                'data': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                    },
+                    'm_def': {
+                        'm_request': {
+                            'directive': 'plain',
+                        },
+                    },
+                }
+            },
+        }
+    )
+    # Should not have any errors
+    assert 'm_errors' not in response, (
+        f'Unexpected errors in response: {response.get("m_errors")}'
+    )
+    archive_data = response['archive']['data']
+    # m_def should be a compact short string (not a dict), since m_def_format takes precedence
+    m_def_value = archive_data['m_def']
+    assert isinstance(m_def_value, str), (
+        f'Expected m_def to be a compact string, got {type(m_def_value)}: {m_def_value}'
+    )
+    assert '@' in m_def_value
+    assert 'MySection' in m_def_value
+    # Other quantities should still be present
+    assert archive_data['my_quantity'] == 'test_value'

@@ -32,6 +32,7 @@ from nomad.app.v1.models.groups import (
     UserGroupResponse,
 )
 from nomad.app.v1.models.pagination import PaginationResponse
+from nomad.app.v1.routers.auth import get_current_user
 from nomad.app.v1.routers.groups_utils import (
     convert_members_to_info,
     get_user_role,
@@ -41,6 +42,7 @@ from nomad.app.v1.routers.groups_utils import (
     validate_members_info as validate_members_info_util,
 )
 from nomad.app.v1.utils import parameter_dependency_from_model
+from nomad.auth.scopes import Scope
 from nomad.datamodel import User as UserDataModel
 from nomad.mongo.groups import (
     MongoUserGroup,
@@ -49,7 +51,6 @@ from nomad.mongo.groups import (
 )
 
 from ..models import User
-from .auth import get_current_user
 
 router = APIRouter()
 
@@ -60,12 +61,12 @@ class APITag(str, Enum):
 
 user_group_query_parameters = parameter_dependency_from_model(
     'user_group_query_parameters',
-    UserGroupQuery,  # type: ignore
+    UserGroupQuery,
 )
 
 user_group_pagination_parameters = parameter_dependency_from_model(
     'user_group_pagination_parameters',
-    UserGroupPagination,  # type: ignore
+    UserGroupPagination,
 )
 
 
@@ -170,12 +171,13 @@ def check_mutually_exclusive_members_fields(user_group_edit: UserGroupEdit):
     summary='List user groups.',
     response_model=UserGroupResponse,
 )
-async def get_user_groups(
+def get_user_groups(
     request: Request,
     query: Annotated[UserGroupQuery, Depends(user_group_query_parameters)],
     pagination: Annotated[
         UserGroupPagination, Depends(user_group_pagination_parameters)
     ],
+    user: Annotated[User, Depends(get_current_user([Scope.GROUPS_READ]))],
 ):
     """Get data about user groups."""
     db_groups = MongoUserGroup.get_by_query(query)
@@ -197,7 +199,10 @@ async def get_user_groups(
     summary='Get data about user group.',
     response_model=UserGroup,
 )
-async def get_user_group(group_id: str):
+def get_user_group(
+    group_id: str,
+    _user: Annotated[User, Depends(get_current_user([Scope.GROUPS_READ]))],
+):
     """Get data about user group."""
     user_group = get_user_group_or_404(group_id)
 
@@ -211,9 +216,12 @@ async def get_user_group(group_id: str):
     summary='Create user group.',
     response_model=UserGroup,
 )
-async def create_user_group(
+def create_user_group(
     user_group_edit: UserGroupEdit,
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.GROUPS_WRITE], allow_anonymous=False)),
+    ],
 ):
     """Create user group."""
     check_mutually_exclusive_members_fields(user_group_edit)
@@ -235,10 +243,13 @@ async def create_user_group(
     summary='Update user group.',
     response_model=UserGroup,
 )
-async def update_user_group(
+def update_user_group(
     group_id: str,
     user_group_edit: UserGroupEdit,
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.GROUPS_WRITE], allow_anonymous=False)),
+    ],
 ):
     """Update user group."""
     mongo_user_group = get_user_group_or_404(group_id)
@@ -267,8 +278,12 @@ async def update_user_group(
     status_code=status.HTTP_204_NO_CONTENT,
     summary='Delete user group.',
 )
-async def delete_user_group(
-    group_id: str, user: Annotated[User, Depends(get_current_user(required=True))]
+def delete_user_group(
+    group_id: str,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.GROUPS_DELETE], allow_anonymous=False)),
+    ],
 ):
     """Delete user group."""
     mongo_user_group = get_user_group_or_404(group_id)

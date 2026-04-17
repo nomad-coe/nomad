@@ -68,5 +68,5 @@ def upload_tokens(users_dict):
 
 
 @pytest.fixture(scope='session')
-def client():
+def client(monkeysession):
     return TestClient(app, base_url='http://testserver/')

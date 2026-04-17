@@ -84,7 +84,7 @@ class Auth(requests.auth.AuthBase):
         self.from_api = from_api
 
         self.__oidc = KeycloakOpenID(
-            server_url=config.keycloak.server_url,
+            server_url=config.keycloak.server_url + '/',
             realm_name=config.keycloak.realm_name,
             client_id=config.keycloak.client_id,
         )

@@ -45,7 +45,15 @@ describe('parseQuery', function() {
     ['unit specified', 'results.material.topology.cell.a', '1 m', new Quantity(1, 'meter'), undefined],
     ['cannot parse number', 'results.material.topology.cell.a', 'a', undefined, 'Could not parse the number a'],
     ['filter hat accepts multiple values is wrapped in set', 'results.material.material_id', 'abcd', new Set(['abcd']), undefined],
-    ['filter that does not accept multiple values is not wrapped in set', 'visibility', 'public', 'public', undefined]
+    ['filter that does not accept multiple values is not wrapped in set', 'visibility', 'public', 'public', undefined],
+    ['object with gte operator', 'results.material.topology.cell.a', {gte: '1'}, {gte: new Quantity(1, 'angstrom')}, undefined],
+    ['object with lte operator', 'results.material.topology.cell.a', {lte: '5'}, {lte: new Quantity(5, 'angstrom')}, undefined],
+    ['object with gt operator', 'results.material.topology.cell.a', {gt: '2'}, {gt: new Quantity(2, 'angstrom')}, undefined],
+    ['object with lt operator', 'results.material.topology.cell.a', {lt: '3'}, {lt: new Quantity(3, 'angstrom')}, undefined],
+    ['object with gte and lte operators (range)', 'results.material.topology.cell.a', {gte: '1', lte: '5'}, {gte: new Quantity(1, 'angstrom'), lte: new Quantity(5, 'angstrom')}, undefined],
+    ['object with gt and lt operators (exclusive range)', 'results.material.topology.cell.a', {gt: '1', lt: '5'}, {gt: new Quantity(1, 'angstrom'), lt: new Quantity(5, 'angstrom')}, undefined],
+    ['object with gte and lte operators with unit', 'results.material.topology.cell.a', {gte: '1 m', lte: '5 m'}, {gte: new Quantity(1, 'meter'), lte: new Quantity(5, 'meter')}, undefined],
+    ['object with gte operator with invalid number', 'results.material.topology.cell.a', {gte: 'a'}, undefined, 'Could not parse the number a']
   ])('%s', async (name, quantity, input, output, error) => {
     const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: WrapperSearch })
     const { result: resultUseParseQuery } = renderHook(() => resultUseSearchContext.current.useParseQuery(), {})

@@ -138,9 +138,7 @@ c.JupyterHub.bind_url = f'http://:9000/{config.services.api_base_path.strip("/")
 
 # configure authenticator
 nomad_public_keycloak = f'{config.keycloak.public_server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
-nomad_keycloak = (
-    f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
-)
+nomad_keycloak = f'{config.keycloak.server_url}/realms/{config.keycloak.realm_name}'
 c.JupyterHub.authenticator_class = GenericOAuthenticator
 c.GenericOAuthenticator.login_service = 'keycloak'
 c.GenericOAuthenticator.client_id = config.keycloak.client_id

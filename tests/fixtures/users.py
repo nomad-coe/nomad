@@ -178,18 +178,12 @@ _keycloak = keycloak.keycloak
 _user_management = user_management.user_management
 
 
-# use a session fixture in addition to the function fixture, to ensure mocked keycloak
-# before other class, module, etc. scoped function are run
 @pytest.fixture(scope='session', autouse=True)
 def mocked_keycloak_session(monkeysession):
-    monkeysession.setattr('nomad.auth.keycloak.keycloak', KeycloakMock())
-    monkeysession.setattr('nomad.auth.user_management.user_management', KeycloakMock())
-
-
-@pytest.fixture(scope='function', autouse=True)
-def mocked_keycloak(monkeypatch):
-    monkeypatch.setattr('nomad.auth.keycloak.keycloak', KeycloakMock())
-    monkeypatch.setattr('nomad.auth.user_management.user_management', KeycloakMock())
+    mock = KeycloakMock()
+    monkeysession.setattr('nomad.auth.keycloak.keycloak', mock)
+    monkeysession.setattr('nomad.auth.user_management.user_management', mock)
+    monkeysession.setattr('nomad.app.v1.routers.auth.keycloak', mock)
 
 
 @pytest.fixture(scope='function')  # type: ignore[no-redef]

@@ -52,7 +52,9 @@ class StaticFiles(StarletteStaticFiles):
         return super().is_not_modified(response_headers, request_headers)
 
 
-app.mount('/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs')
+app.mount(
+    '/docs', StaticFiles(directory=docs_folder, check_dir=False, html=True), name='docs'
+)
 
 
 class GuiFiles(StaticFiles):

@@ -96,7 +96,7 @@ class RequiredReferencedArchive:
     result_root: dict = None
     ref_result_root: dict = None
     archive_root: ArchiveDict | dict = None
-    visited_paths: set = dataclasses.field(default_factory=lambda: set())
+    visited_paths: set = dataclasses.field(default_factory=set)
     definition: Definition = None
 
     def replace(self, **kwargs):

@@ -194,7 +194,7 @@ class LocalEntryProcessing:
         if self.upload_files.is_empty():  # Only add the files once
             self.upload_files.add_rawfiles(self.local_path)
 
-        for raw_file in self.upload_files.raw_directory_list(recursive=True):
+        for raw_file in self.upload_files.raw_listdir(recursive=True):
             if raw_file.path == f'{self.upload_id}/{self.mainfile}':
                 print('Identified mainfile.')
                 return self

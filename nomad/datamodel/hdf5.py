@@ -121,8 +121,11 @@ class HDF5Reference(NonPrimitive):
         archive quantity with name quantity_name and to its parent group.
         """
         file, path, upload_files = HDF5Reference._get_upload_files(archive, path)
-        mode = 'r+b' if upload_files.raw_path_is_file(file) else 'wb'
-        with h5py.File(upload_files.raw_file(file, mode), 'a') as f:
+        mode = 'r+b' if upload_files.raw_isfile(file) else 'wb'
+        with (
+            upload_files.raw_file(file, mode) as raw_file,
+            h5py.File(raw_file, 'a') as f,
+        ):
             if path in f:
                 del f[path]
             f[path] = getattr(value, 'magnitude', value)
@@ -168,7 +171,7 @@ class HDF5Reference(NonPrimitive):
         filename.h5#/path/to/dataset. upload_id is resolved from archive.
         """
         file, path, upload_files = HDF5Reference._get_upload_files(archive, path)
-        with h5py.File(upload_files.raw_file(file, 'rb')) as f:
+        with upload_files.raw_file(file, 'rb') as raw_file, h5py.File(raw_file) as f:
             return (f[file] if file in f else f)[path][()]
 
     def _normalize_impl(self, value, **kwargs):

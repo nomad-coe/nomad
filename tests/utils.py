@@ -19,6 +19,7 @@
 """Methods to help with testing of nomad@FAIRDI."""
 
 import os.path
+import re
 import urllib.parse
 import zipfile
 from collections.abc import Iterable
@@ -206,3 +207,9 @@ def dict_to_params(d):
 def list_without(lst: Iterable, *items: object) -> list:
     """Return a copy of lst without any of the items."""
     return [x for x in lst if x not in items]
+
+
+def assert_doi_name(doi_name):
+    # Lowercase Crockford alphabet
+    cf4 = r'[0-9abcdefghjkmnpqrstvwxyz]{4}'
+    assert re.fullmatch(rf'10.83696/nomad\.{cf4}-{cf4}', doi_name)

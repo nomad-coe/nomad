@@ -18,13 +18,17 @@
 from enum import Enum
 from typing import Annotated
 
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, Depends, Path, status
 from pydantic import BaseModel, Field
 
 from nomad.app.v1.models import HTTPExceptionModel
+from nomad.app.v1.routers.auth import get_current_user
 from nomad.app.v1.utils import create_responses
+from nomad.auth.scopes import Scope
 from nomad.mongo.package import PackageDefinition
 from nomad.utils import strip
+
+from ..models import User
 
 #
 # FastAPI router for the metainfo API.
@@ -60,7 +64,7 @@ class PackageDefinitionResponse(BaseModel):
 
 
 @router.get(
-    '/{section_definition_id}',
+    '/{definition_id}',
     tags=[APITag.DEFAULT],
     summary='Get the definition of package that contains the target ID based section definition.',
     response_model=PackageDefinitionResponse,
@@ -78,25 +82,26 @@ class PackageDefinitionResponse(BaseModel):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_package_definition(
-    section_definition_id: Annotated[
+def get_package_definition(
+    definition_id: Annotated[
         str,
         Path(
             regex=PackageDefinition.id_pattern,
             description='The section definition id to be used to retrieve package.',
         ),
     ],
+    _user: Annotated[User, Depends(get_current_user([Scope.METAINFO_READ]))],
 ):
     """
     Retrieve the package that contains the target section.
     """
-    mongo_package = PackageDefinition.get_by(section_definition_id)
+    mongo_package = PackageDefinition.get_by(definition_id)
 
     return PackageDefinitionResponse(
         entry_id=mongo_package['entry_id'],
         upload_id=mongo_package['upload_id'],
         snapshot_package_id=mongo_package['snapshot_package_id'],
-        snapshot_section_id=section_definition_id,
+        snapshot_section_id=definition_id,
         snapshot_section_ids=mongo_package['snapshot_section_ids'],
         data=mongo_package['package_definition'],
     )

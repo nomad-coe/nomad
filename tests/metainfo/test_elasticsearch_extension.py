@@ -122,7 +122,7 @@ def test_normalizer(
     """Test that the normalizer specified for different annotations works
     properly in the API queries.
     """
-    perform_quantity_search_test(quantity, 'entries', search_str, response_str, api_v1)
+    perform_quantity_search_test(quantity, search_str, response_str, api_v1)
 
 
 def test_keyword_ignore(example_data_large_keyword):

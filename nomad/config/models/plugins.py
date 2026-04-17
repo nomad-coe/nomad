@@ -467,8 +467,8 @@ class ExampleUploadEntryPoint(EntryPoint):
             self.resolve_resource(cast(UploadResource, resource), upload_path)
 
     def dict_safe(self):
-        return self.dict(
-            include=ExampleUploadEntryPoint.__fields__.keys(), exclude_none=True
+        return self.model_dump(
+            include=ExampleUploadEntryPoint.model_fields.keys(), exclude_none=True
         )
 
     @model_validator(mode='before')
@@ -543,6 +543,14 @@ class APIEntryPoint(EntryPoint):
         for the API should be done within this function as well."""
         pass
 
+    def dict_safe(self):
+        """Used to serialize the non-confidential parts of a plugin model. This
+        function can be overridden in subclasses to expose more information.
+        """
+        return self.model_dump(
+            include=APIEntryPoint.model_fields.keys(), exclude_none=True
+        )
+
 
 class ActionEntryPoint(EntryPoint):
     """Base model for action plugin entry points."""
@@ -602,7 +610,7 @@ class PluginBase(BaseModel):
         )
 
 
-class NorthToolEntryPoint(EntryPoint):
+class NORTHToolEntryPoint(EntryPoint):
     """Base model for NORTH tool plugin entry points."""
 
     entry_point_type: Literal['north_tool'] = Field(
@@ -617,8 +625,12 @@ class NorthToolEntryPoint(EntryPoint):
 
     def dict_safe(self):
         return self.model_dump(
-            include=NorthToolEntryPoint.model_fields.keys(), exclude_none=True
+            include=NORTHToolEntryPoint.model_fields.keys(), exclude_none=True
         )
+
+
+# Backwards compatibility
+NorthToolEntryPoint = NORTHToolEntryPoint
 
 
 EntryPointType = Union[  # noqa
@@ -629,7 +641,7 @@ EntryPointType = Union[  # noqa
     ExampleUploadEntryPoint,
     APIEntryPoint,
     ActionEntryPoint,
-    NorthToolEntryPoint,
+    NORTHToolEntryPoint,
 ]
 
 

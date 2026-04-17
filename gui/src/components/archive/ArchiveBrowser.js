@@ -962,17 +962,41 @@ export function getAllVisibleProperties(sectionDef) {
   const display = sectionDef?.m_annotations?.display?.[0]
   const hide = sectionDef?.m_annotations?.eln?.[0]?.hide || []
   const allProperties = sectionDef._allProperties?.map(property => property.name)
-  const visible = getOptions(properties?.visible, allProperties)
-  const editable = getOptions(properties?.editable, allProperties)
+  const visible = getOptions(display?.visible || properties?.visible, allProperties)
+  const editable = getOptions(display?.editable || properties?.editable, allProperties)
   let filteredProperties = sectionDef._allProperties
   filteredProperties = filteredProperties.filter(property => visible.includes(property.name))
-  filteredProperties = filteredProperties.filter(property => !(hide.includes(property.name) || property?.m_annotations?.display?.[0]?.visible === false))
-  const order = properties?.order || display?.order || []
-  const visibleProperties = filteredProperties.map(property => {
-    if (properties?.editable) {
+  filteredProperties = filteredProperties.filter(property => !hide.includes(property.name))
+  for (const property of sectionDef._allProperties || []) {
+    const propertyVisible = property?.m_annotations?.display?.[0]?.visible
+    if (propertyVisible !== undefined) {
+      if (propertyVisible === true) {
+        if (!filteredProperties.includes(property)) {
+          filteredProperties.push(property)
+        }
+      } else if (filteredProperties.includes(property)) {
+        const index = filteredProperties.indexOf(property)
+        if (index > -1) {
+          filteredProperties.splice(index, 1)
+        }
+      }
+    }
+  }
+  const order = display?.order || properties?.order || []
+  let visibleProperties = sectionDef._allProperties.filter(property => filteredProperties.includes(property))
+  visibleProperties = visibleProperties.map(property => {
+    if (display?.editable || properties?.editable) {
       return {...property, _isEditable: editable.includes(property.name)}
     } else {
-      return {...property, _isEditable: property?.m_annotations?.display?.[0]?.editable !== false}
+      return {...property, _isEditable: true}
+    }
+  })
+  visibleProperties = visibleProperties.map((property) => {
+    const propertyEditable = property?.m_annotations?.display?.[0]?.editable
+    if (propertyEditable !== undefined) {
+      return {...property, _isEditable: propertyEditable}
+    } else {
+      return property
     }
   })
   const reversedOrder = [...order].reverse()

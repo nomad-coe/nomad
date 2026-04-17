@@ -98,6 +98,32 @@ def setup_mongo():
     return mongo_client
 
 
+# The async pymongo client (used by Beanie for actions)
+async_mongo_client = None
+
+
+async def init_async_mongo():
+    """Initialize Motor + Beanie for async MongoDB access to the action_document collection."""
+    global async_mongo_client
+    from beanie import init_beanie
+    from pymongo import AsyncMongoClient
+
+    from nomad.mongo.action import ActionDocument
+
+    kwargs = dict(host=config.mongo.host, port=config.mongo.port)
+    if config.mongo.username and config.mongo.password:
+        kwargs.update(username=config.mongo.username, password=config.mongo.password)
+
+    async_mongo_client = AsyncMongoClient(**kwargs, maxPoolSize=50, minPoolSize=50)
+    # Force connection pool initialization
+    await async_mongo_client.admin.command('ping')
+    await init_beanie(
+        database=async_mongo_client[config.mongo.db_name],
+        document_models=[ActionDocument],
+    )
+    logger.info('setup async mongo connection (Beanie)')
+
+
 def index_builtin_packages():
     from nomad.datamodel import all_metainfo_packages
     from nomad.datamodel.context import populate_builtin_packages
@@ -121,10 +147,12 @@ def check_mongo():
         'action_document',
         'archive',
         'dataset',
+        'd_o_i',  # auto-named from class DOI
         'entry',
         'package_definition',
         'upload',
         'user_group',
+        'personal_access_tokens',
     }
     if not expected_names.issuperset(names):
         logger.warning(

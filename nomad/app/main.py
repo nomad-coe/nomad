@@ -16,10 +16,9 @@
 # limitations under the License.
 #
 import os
-import re
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.exception_handlers import (
     http_exception_handler as default_http_exception_handler,
 )
@@ -27,10 +26,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi_cache import FastAPICache
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
 from temporalio.client import Client
 
 from nomad.actions.client import get_client
+from nomad.auth.scopes import Scope
 from nomad.auth.tokens import check_api_secret
 from nomad.config import config
 from nomad.config.models.plugins import APIEntryPoint
@@ -41,66 +40,6 @@ from .static import GuiFiles
 from .static import app as static_files_app
 from .v1.main import app as v1_app
 from .v1.routers import apps as apps_router
-from .v1.routers.auth import _resolve_user
-
-
-class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
-    def __init__(
-        self,
-        app,
-        whitelist: set[str] | None = None,
-    ) -> None:
-        """
-        Middleware to enforce authentication on protected routes.
-
-        Args:
-            app: The ASGI application.
-            whitelist (Iterable[str], optional): A list of regex strings
-                for URL path patterns that are exempt from authentication.
-        """
-        super().__init__(app)
-        self.whitelist_patterns = [re.compile(pat) for pat in (whitelist or [])]
-
-    async def dispatch(self, request, call_next):
-        # Skip if global auth is off or route is whitelisted
-        router_path = request.url.path.removeprefix(
-            f'{config.services.api_base_path}/api/v1'
-        )
-        if not config.oasis.require_authentication or any(
-            pat.search(router_path) for pat in self.whitelist_patterns
-        ):
-            return await call_next(request)
-
-        # Extract tokens (dependency injection isn’t available now)
-        bearer_token = None
-        if 'Authorization' in request.headers:
-            parts = request.headers['Authorization'].split()
-            if len(parts) == 2 and parts[0].lower() == 'bearer':
-                bearer_token = parts[1]
-
-        try:
-            # Here any token would be allowed
-            _user = _resolve_user(
-                required=True,
-                keycloak_token=bearer_token,
-                request=request,
-                simple_token=bearer_token,
-                upload_token=request.headers.get('Upload-Token'),
-                # Deprecated token via query param (for rejection)
-                upload_token_query_param=request.query_params.get('token'),
-            )
-        except HTTPException as exc:
-            return Response(status_code=exc.status_code, content=exc.detail)
-
-        return await call_next(request)
-
-
-OASIS_AUTH_WHITELIST: dict[str, set[str]] = {
-    'v1_app': {'^/auth', '^/info$', '^/extensions/', '^/openapi.json$'},
-    'optimade_app': {'/extensions', '/info', '^/versions$'},
-    'dcat_app': {'^/extensions/docs', '^/openapi.json$'},
-    'h5grove_app': {'^/docs', '^/redoc$', '^/openapi.json$'},
-}
 
 
 @asynccontextmanager
@@ -127,6 +66,8 @@ async def lifespan(app: FastAPI):
 
     infrastructure.setup()
 
+    await infrastructure.init_async_mongo()
+
     FastAPICache.init(backend=MongoBackend())
 
     # By this point all of the schemas packages from plugins are loaded.
@@ -144,6 +85,9 @@ async def lifespan(app: FastAPI):
         logger.error(f'Failed to connect to temporal', exc_info=e)
         raise
     finally:
+        if infrastructure.async_mongo_client is not None:
+            await infrastructure.async_mongo_client.close()
+            infrastructure.async_mongo_client = None
         if os.path.exists(GuiFiles.gui_artifacts_path):
             os.remove(GuiFiles.gui_artifacts_path)
 
@@ -169,10 +113,6 @@ async def health():
 
 app.mount(f'{app_base}/api/v1', v1_app)
 v1_app.add_middleware(
-    OasisAuthenticationMiddleware,
-    whitelist=OASIS_AUTH_WHITELIST['v1_app'],
-)
-v1_app.add_middleware(
     CORSMiddleware,  # CORS has to be the first to act on request
     allow_origins=['*'],
     allow_credentials=True,
@@ -182,32 +122,74 @@ v1_app.add_middleware(
 )
 
 if config.services.optimade_enabled:
+    from starlette.middleware.base import BaseHTTPMiddleware
+
     from .optimade import optimade_app
 
-    app.mount(f'{app_base}/optimade', optimade_app)
+    class RequireScopesMiddleware(BaseHTTPMiddleware):
+        """
+        Enforces the presence of required backend scopes.
 
-    optimade_app.add_middleware(
-        OasisAuthenticationMiddleware,
-        whitelist=OASIS_AUTH_WHITELIST['optimade_app'],
+        This middleware resolves the current user from a bearer token (Keycloak or
+        simple token) and verifies that the request has all required scopes before
+        delegating to the wrapped application.
+
+        It is primarily intended for protecting externally mounted sub-applications
+        (e.g. OPTIMADE), where FastAPI dependencies are not evaluated.
+        Upload tokens are thus intentionally not supported in this middleware.
+        """
+
+        def __init__(self, app, *, required_scopes: set[str]):
+            super().__init__(app)
+            self.required_scopes = required_scopes
+
+        async def dispatch(self, request: Request, call_next) -> Response:
+            from nomad.app.v1.routers.auth import _resolve_user_with_scopes
+
+            auth = request.headers.get('authorization')
+            bearer_token = None
+            if auth and auth.lower().startswith('bearer '):
+                bearer_token = auth.split(' ', 1)[1]
+
+            try:
+                _resolve_user_with_scopes(
+                    required_scopes=self.required_scopes,
+                    allow_anonymous=True,
+                    request=request,
+                    keycloak_token=bearer_token,
+                    simple_token=bearer_token,
+                )
+
+            except StarletteHTTPException as exc:
+                return JSONResponse(
+                    status_code=exc.status_code,
+                    content={'detail': exc.detail},
+                    headers=getattr(exc, 'headers', None) or {},
+                )
+
+            return await call_next(request)
+
+    optimade_wrapper = FastAPI()
+    optimade_wrapper.add_middleware(
+        RequireScopesMiddleware,
+        required_scopes={Scope.EXTERNAL_OPTIMADE_READ},
     )
+
+    optimade_wrapper.mount('/', optimade_app)
+    app.mount(f'{app_base}/optimade', optimade_wrapper)
+
 
 if config.services.dcat_enabled:
     from .dcat.main import app as dcat_app
 
     app.mount(f'{app_base}/dcat', dcat_app)
-    dcat_app.add_middleware(
-        OasisAuthenticationMiddleware,
-        whitelist=OASIS_AUTH_WHITELIST['dcat_app'],
-    )
+
 
 if config.services.h5grove_enabled:
     from .h5grove_app import app as h5grove_app
 
     app.mount(f'{app_base}/h5grove', h5grove_app)
-    h5grove_app.add_middleware(
-        OasisAuthenticationMiddleware,
-        whitelist=OASIS_AUTH_WHITELIST['h5grove_app'],
-    )
+
 
 # Add API plugins
 for entry_point in config.plugins.entry_points.filtered_values():

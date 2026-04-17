@@ -23,12 +23,22 @@ from typing import Any, cast
 
 import pint
 
-from nomad.metainfo.data_type import Enum
+from nomad.config import config
+from nomad.metainfo.data_type import Enum, m_str, to_json_schema_type
 from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
 
 MEnum = Enum  # type: ignore
+
+UNIT_VALUE_SCHEMA = {
+    '$id': 'https://schema.local/definitions/UnitValue',
+    'properties': {'value': {'type': 'number'}, 'unit': {'type': 'string'}},
+}
+
+JSON_SCHEMA_VERSION: str = 'https://json-schema.org/draft/2020-12/schema'
+
+SCHEMA_ENDPOINT = f'{config.client.url}/v1/schemas'
 
 
 class MQuantity:
@@ -485,3 +495,323 @@ def camel_case_to_snake_case(obj: dict):
                 if isinstance(item, dict):
                     obj[k][i] = camel_case_to_snake_case(item)
     return obj
+
+
+def get_id_name(qualified_name: str) -> str:
+    return str(qualified_name).split(':', maxsplit=1)[0]
+
+
+def get_id(m_def) -> str:
+    name = get_id_name(m_def.qualified_name())
+    definition_id = m_def.definition_id
+    if name == '*':
+        name = get_id_name(str(m_def.m_def))
+    return f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+
+
+def metainfo_to_json_schema(
+    m_def, add_unit_value: bool = False, exclude=None
+) -> dict[str, Any]:
+    """
+    Generate JSON Schema for this Section, referencing each property (BaseSections, Subsections or Quantity) via `$defs`.
+
+    This function converts a metainfo Section definition into a JSON Schema format, allowing for
+    the inclusion of various properties and definitions.
+
+    Args:
+        m_def (Section): The metainfo Section definition to convert to JSON Schema.
+        add_unit_value (bool, optional): If True, include UnitValue definition in the schema for quantities with units. Default is False.
+        exclude (list, optional): A list of qualified names to exclude from the schema. Default is None.
+    Returns:
+        dict: A JSON Schema representation of the metainfo Section definition.
+
+    Notes:
+        - Quantities are added inline to the schema properties. See `quantity_to_json_schema` for details.
+        - SubSections and BaseSections are referenced via `$ref` using their schema ID.
+        - BaseSections are handled via `allOf` to support inheritance.
+        - The function excludes items whose qualified names match entries in the `exclude` list.
+    """
+
+    _defs: dict[str, Any] = {}
+    _top_level: bool = True
+
+    def _child_section_to_json_schema(
+        child_section, add_unit_value=False, exclude=None, repeats=False
+    ) -> dict[str, Any]:
+        schema = {}
+        child_id_name = get_id_name(child_section.qualified_name())
+        if child_id_name in _defs:
+            child_id = _defs[child_id_name]['$id']
+        else:
+            child_schema = _metainfo_to_json_schema(
+                child_section, add_unit_value, exclude, _top_level=False
+            )
+            child_schema.pop('$schema', None)
+            child_id = child_schema['$id']
+            _defs[child_id_name] = child_schema
+
+        # Reference it in properties
+        if repeats:
+            schema = {
+                'type': 'array',
+                'items': {'$ref': child_id},
+            }
+        else:
+            schema['$ref'] = child_id
+
+        if child_section.description is not None:
+            schema['description'] = child_section.description
+
+        return schema
+
+    def _metainfo_to_json_schema(
+        m_def, add_unit_value=False, exclude=None, _top_level=True
+    ) -> dict[str, Any]:
+        if exclude is None:
+            exclude = []
+
+        schema: dict[str, Any] = {
+            '$schema': JSON_SCHEMA_VERSION,
+            'title': m_def.name,
+            'label': getattr(m_def, 'label', None),
+            'description': getattr(m_def, 'description', None),
+            'links': getattr(m_def, 'links', []),
+            'aliases': getattr(m_def, 'aliases', []),
+            # 'categories': getattr(m_def, 'categories', []),
+            'type': 'object',
+        }
+
+        for k, v in list(schema.items()):
+            if v is None or (isinstance(v, list) and not v):
+                schema.pop(k)
+
+        id_name = get_id_name(m_def.qualified_name())
+        name = id_name
+        definition_id = m_def.definition_id
+        if name == '*':
+            name = get_id_name(str(m_def.m_def))
+        schema['$id'] = f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+        _defs[id_name] = schema
+        properties: dict = {}
+        all_of: list = []
+
+        if add_unit_value and _top_level:
+            _defs['UnitValue'] = UNIT_VALUE_SCHEMA
+
+        # Add Quantities inline
+        for quantity in getattr(m_def, 'quantities', []):
+            if get_id_name(quantity.qualified_name()) in exclude:
+                continue
+            quantity_schema = quantity_to_json_schema(quantity, add_unit_value)
+            quantity_schema.pop('$schema', None)
+            quantity_schema.pop('$defs', None)
+            properties[quantity.name] = quantity_schema
+
+        # Handle the case where the section itself is a subsection of another section
+        if (
+            getattr(m_def, 'sub_section', None) is not None
+            and get_id_name(m_def.sub_section.qualified_name()) not in exclude
+        ):
+            child_section = m_def.sub_section
+            schema.update(
+                _child_section_to_json_schema(
+                    child_section,
+                    add_unit_value,
+                    exclude=exclude,
+                    repeats=getattr(m_def, 'repeats', False),
+                )
+            )
+
+        # Add SubSections as references
+        for subsection in getattr(m_def, 'sub_sections', []):
+            if get_id_name(subsection.qualified_name()) in exclude:
+                continue
+            name = subsection.name
+            child_section = subsection.sub_section
+
+            # Recursively get JSON schema
+            properties[name] = _child_section_to_json_schema(
+                child_section,
+                add_unit_value,
+                exclude=exclude,
+                repeats=subsection.repeats,
+            )
+            if subsection.description is not None:
+                properties[name]['description'] = subsection.description
+            properties[name]['$id'] = (
+                f'{SCHEMA_ENDPOINT}/{get_id_name(subsection.qualified_name())}@{subsection.definition_id}'
+            )
+
+        # Add BaseSections as references in allOf
+        for base_section in getattr(m_def, 'base_sections', []):
+            base_id_name = get_id_name(base_section.qualified_name())
+            if base_id_name in exclude:
+                continue
+            name = base_section.name
+
+            if base_id_name in _defs:
+                base_section_id = _defs[base_id_name]['$id']
+            else:
+                # Recursively get JSON schema
+                base_section_schema = _metainfo_to_json_schema(
+                    base_section, add_unit_value, exclude=exclude, _top_level=False
+                )
+                base_section_schema.pop('$schema', None)
+                base_section_id = base_section_schema['$id']
+                _defs[base_id_name] = base_section_schema
+            all_of.append(
+                {
+                    '$comment': f'{name} {":" + base_section.description if base_section.description is not None else ""}',
+                    '$ref': base_section_id,
+                }
+            )
+
+        if all_of:
+            schema['allOf'] = all_of
+
+        if properties:
+            schema['properties'] = properties
+        # Only include $defs at the top level to avoid redundancy in nested schemas
+        if _top_level:
+            _defs.pop(id_name, None)
+            if _defs:
+                schema['$defs'] = _defs
+            return schema
+
+        return schema
+
+    return _metainfo_to_json_schema(m_def, add_unit_value, exclude, _top_level)
+
+
+def quantity_to_json_schema(quantity, add_unit_value: bool = False) -> dict[str, Any]:
+    """
+    Generate a JSON Schema (Draft 2020-12) for this Quantity.
+
+    Args:
+        quantity : The Quantity to convert to JSON Schema.
+        add_unit_value: If True, include a UnitValue definition in the schema for quantities with
+                    units. Default is False.
+    Always-included keywords:
+        `"$schema"`  - The JSONSchema version
+        `"$id"`      - Identifier as a resolvable URL
+
+    Optional extras (added only when present):
+        * `"title"`        - Name of the quantity/section
+        * `"description"`  - Description of the quantity/section
+        * `"unit"`         - Unit of a quantity as string
+        * `"links"`        - List of links for explaining the quantity
+        * `"aliases"`       - List of aliases for the quantity
+        * `"categories"`    - List of categories for the quantity
+
+
+    Type Data Keywords:
+        * `"type"`                   - type of the quantity
+        * Reference quantities are mapped to type strings.
+        * Scalar quantities are mapped to the corresponding JSON type, e.g. `number`.
+        * Arrays: `shape` is walked from left to right, wrapping each dimension
+        in a nested ``{"type": "array", …, "items": {…}}``. Array shape is
+        mapped into `minItems`/`maxItems` as follows:
+            * `n` (int)              - `minItems = maxItems = n`
+            * `"*"`                  - unbounded: no min/max keys
+            * `"a.."`                - `minItems = a`
+            * `"..b"`                - `maxItems = b`
+            * `"a..b"`               - `minItems = a`, `maxItems = b`
+            * any other string       - treated as `"*"`
+        * Optional extras (added only when present):
+            * `"default"`      - Default value of a quantity
+            * `"enum"`         - List of allowed values for an Enum quantity
+            * `"minimum"`      - Minimum value for a quantity (from ELN annotation)
+            * `"maximum"`      - Maximum value for a quantity (from ELN annotation)
+    """
+    from nomad.metainfo.metainfo import Reference
+
+    def shape_to_json_schema(
+        shape: list, base_type: str, value_schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Recursively convert shape and base type to nested JSON Schema arrays."""
+
+        def parse_dim(dim):
+            if isinstance(dim, int):
+                return {'minItems': dim, 'maxItems': dim}
+            if dim == '*':
+                return {}
+            if isinstance(dim, str):
+                if match := re.fullmatch(r'(\d+)?\.\.(\d+|\*)?', dim):
+                    min_, max_ = match.groups()
+                    out = {}
+                    if min_ is not None:
+                        out['minItems'] = int(min_)
+                    if max_ and max_ != '*':
+                        out['maxItems'] = int(max_)
+                    return out
+
+                # Assume `shape` to be name of another `Quantity` in the Section
+                return parse_dim('*')
+
+            raise TypeError(f'Unsupported shape dimension: {dim}')
+
+        def build(dimensions: list) -> dict[str, Any]:
+            if not dimensions:
+                return value_schema.copy()
+            dim_spec = parse_dim(dimensions[0])
+            return {'type': 'array', **dim_spec, 'items': build(dimensions[1:])}
+
+        return build(shape)
+
+    schema: dict[str, Any] = {
+        '$schema': JSON_SCHEMA_VERSION,
+        'title': getattr(quantity, 'title', None),
+        'description': getattr(quantity, 'description', None),
+        'links': getattr(quantity, 'links', []),
+        'aliases': getattr(quantity, 'aliases', []),
+        # 'categories': getattr(quantity, 'categories', []),
+    }
+
+    for k, v in list(schema.items()):
+        if v is None or (isinstance(v, list) and not v):
+            schema.pop(k)
+
+    # Determine base type
+    if isinstance(quantity.type, Reference):
+        base_schema = to_json_schema_type(m_str())
+    else:
+        base_schema = to_json_schema_type(quantity.type)
+    base_type = base_schema['type']
+
+    name = get_id_name(quantity.qualified_name())
+    definition_id = quantity.definition_id
+    if name == '*':
+        name = get_id_name(str(quantity.m_def))
+        # definition_id = quantity.m_def.definition_id
+    schema['$id'] = f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+
+    value_schema: dict[str, Any] = base_schema.copy()
+    if getattr(quantity, 'unit', None):
+        value_schema['unit'] = str(quantity.unit)
+    if getattr(quantity, 'default', None) is not None:
+        value_schema['default'] = quantity.default
+    if isinstance(quantity.type, MEnum):
+        value_schema['enum'] = quantity.type._list
+
+    eln_annotation = quantity.m_get_annotation('eln', None)
+    if eln_annotation and eln_annotation.props:
+        if eln_annotation.props.get('minValue', None) is not None:
+            value_schema['minimum'] = eln_annotation.props.get('minValue', None)
+        if eln_annotation.props.get('maxValue', None) is not None:
+            value_schema['maximum'] = eln_annotation.props.get('maxValue', None)
+
+    if add_unit_value and getattr(quantity, 'unit', None):
+        value_schema = {
+            'properties': {
+                'value': value_schema.copy(),
+                'unit': {'type': 'string', 'enum': [value_schema['unit']]},
+            }
+        }
+        value_schema['allOf'] = [{'$ref': UNIT_VALUE_SCHEMA['$id']}]
+        schema['$defs'] = {'UnitValue': UNIT_VALUE_SCHEMA}
+
+    if quantity.is_scalar:
+        schema.update(value_schema)
+    else:
+        schema.update(shape_to_json_schema(quantity.shape, base_type, value_schema))
+    return schema

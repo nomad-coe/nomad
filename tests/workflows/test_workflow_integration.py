@@ -47,7 +47,7 @@ async def test_process_upload_workflow_integration(
 
     async with temporal_worker() as env:
         await env.client.execute_workflow(
-            'ProcessUploadWorkflow',
+            'UpdateUploadWorkflow',
             input_data,
             id=input_data.workflow_id,
             task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
@@ -98,7 +98,7 @@ async def test_publish_upload_workflow_integration(
 
     async with temporal_worker() as env:
         await env.client.execute_workflow(
-            'ProcessUploadWorkflow',
+            'UpdateUploadWorkflow',
             process_input,
             id=process_input.workflow_id,
             task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
@@ -176,7 +176,7 @@ async def test_publish_with_embargo_and_lift(
 
     async with temporal_worker() as env:
         await env.client.execute_workflow(
-            'ProcessUploadWorkflow',
+            'UpdateUploadWorkflow',
             process_input,
             id=process_input.workflow_id,
             task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,

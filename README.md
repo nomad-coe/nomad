@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/pipeline.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
-[![backend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=python+coverage+report&key_text=backend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
+[![pipeline status](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/pipeline.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/pipelines)
+[![backend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=python+coverage+report&key_text=backend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/jobs/artifacts/develop/file/htmlcov/index.html?job=python+coverage+report)
 [![frontend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=gui+tests&key_text=frontend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.05388/status.svg)](https://doi.org/10.21105/joss.05388)
 

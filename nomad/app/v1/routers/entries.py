@@ -20,10 +20,11 @@ import csv
 import io
 import json
 import os.path
+import tempfile
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated, Any, cast
+from typing import Annotated, Any
 
 import orjson
 import yaml
@@ -46,7 +47,9 @@ from starlette.responses import Response
 
 from nomad import datamodel, files, metainfo, utils
 from nomad import processing as proc
+from nomad.app.v1.routers.auth import get_current_user
 from nomad.archive import ArchiveQueryError, RequiredReader, RequiredValidationError
+from nomad.auth.scopes import Scope
 from nomad.config import config
 from nomad.config.models.config import Reprocess
 from nomad.datamodel import EditableUserMetadata
@@ -95,7 +98,6 @@ from ..utils import (
     create_responses,
     log_query,
 )
-from .auth import get_current_user
 
 router = APIRouter()
 
@@ -356,6 +358,246 @@ class EntryEditResponse(EntryEdit):
     entry_id: str
 
 
+def _default_sub_section_payload(
+    sub_section_def: metainfo.SubSection,
+) -> dict[str, Any]:
+    """Return a minimal dict payload that identifies the sub-section type."""
+    payload: dict[str, Any] = {
+        'm_def': sub_section_def.sub_section.qualified_name(),
+    }
+    if sub_section_def.sub_section.definition_id:
+        payload['m_def_id'] = sub_section_def.sub_section.definition_id
+    return payload
+
+
+def _section_def_from_dict(
+    section_data: dict[str, Any],
+    fallback_def: metainfo.Section,
+) -> metainfo.Section:
+    """Resolve the actual Section definition for a raw dict.
+
+    If the dict carries an ``m_def`` key we try to resolve it via the same
+    ``MSectionReference`` mechanism that ``MSection.from_dict`` uses, so that
+    polymorphic sub-sections (e.g. ELN plug-in types) are handled correctly.
+    Falls back to *fallback_def* when resolution fails or the key is absent.
+    """
+    m_def_name = section_data.get('m_def')
+    if not m_def_name:
+        return fallback_def
+    try:
+        # Reuse the same resolution path as MSection.from_dict so that
+        # fully-qualified Python class names (e.g. "nomad.datamodel.metainfo.eln.ELNSample")
+        # resolve to the real Section definition without needing a DB context.
+        proxy = metainfo.MSectionReference().normalize(
+            m_def_name,
+            section=datamodel.EntryArchive.m_def,
+        )
+        if isinstance(proxy, metainfo.Section):
+            return proxy
+        # SectionProxy — trigger resolution
+        resolved = proxy.m_proxy_resolve()
+        if isinstance(resolved, metainfo.Section):
+            return resolved
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f'Could not resolve m_def "{m_def_name}".',
+        ) from exc
+
+    raise HTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        detail=f'm_def "{m_def_name}" does not resolve to a Section definition.',
+    )
+
+
+def _resolve_archive_change_target_in_dict(
+    archive_data: dict[str, Any],
+    path: str,
+    *,
+    create_missing: bool,
+) -> tuple[dict[str, Any], metainfo.Property, int | None]:
+    """Walk *archive_data* (a raw dict) to the parent container described by *path*.
+
+    Returns a 3-tuple ``(parent_container, definition, item_index)`` where:
+
+    * ``parent_container`` is the dict/list that directly holds the target value.
+    * ``definition`` is the metainfo :class:`Property` for the last path segment.
+    * ``item_index`` is ``None`` for singular properties / sub-sections, or an
+      ``int`` for repeated sub-sections / indexed quantities.
+    """
+    if not path:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail='Archive change path must not be empty.',
+        )
+
+    parts = path.split('/')
+    # Start at the root section definition so we can validate each step.
+    current_section_def: metainfo.Section = datamodel.EntryArchive.m_def
+    current_data: dict[str, Any] = archive_data
+    index = 0
+
+    while index < len(parts) - 1:
+        property_name = parts[index]
+
+        # Allow the actual section type to differ (polymorphism via m_def).
+        current_section_def = _section_def_from_dict(current_data, current_section_def)
+
+        try:
+            definition = current_section_def.all_properties[property_name]
+        except KeyError as exc:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f'Invalid archive change path "{path}". '
+                    f'Property "{property_name}" is not defined in '
+                    f'{current_section_def.qualified_name()}.'
+                ),
+            ) from exc
+
+        if not isinstance(definition, metainfo.SubSection):
+            # The only valid non-subsection mid-path segment is an integer index
+            # into a repeated quantity on the *last* non-terminal hop.
+            if index == len(parts) - 2 and parts[index + 1].isdigit():
+                item_index = int(parts[index + 1])
+                if not create_missing:
+                    existing_items: list[Any] = current_data.get(definition.name, [])
+                    if item_index >= len(existing_items):
+                        raise HTTPException(
+                            status.HTTP_400_BAD_REQUEST,
+                            detail=f'Invalid archive change path "{path}". Index {item_index} out of bounds.',
+                        )
+                return current_data, definition, item_index
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Invalid archive change path "{path}".',
+            )
+
+        if definition.repeats:
+            if index + 1 >= len(parts) or not parts[index + 1].isdigit():
+                if index == len(parts) - 1:
+                    return current_data, definition, None
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=f'Invalid archive change path "{path}".',
+                )
+
+            sub_section_index = int(parts[index + 1])
+            if index + 1 == len(parts) - 1:
+                if not create_missing:
+                    existing_sub_sections: list[Any] = current_data.get(
+                        property_name, []
+                    )
+                    if sub_section_index >= len(existing_sub_sections):
+                        raise HTTPException(
+                            status.HTTP_400_BAD_REQUEST,
+                            detail=f'Invalid archive change path "{path}". Index {sub_section_index} out of bounds.',
+                        )
+                return current_data, definition, sub_section_index
+
+            # Navigate into the repeated sub-section list in the raw dict.
+            sub_list: list = current_data.setdefault(property_name, [])
+            if len(sub_list) <= sub_section_index:
+                if not create_missing:
+                    raise HTTPException(
+                        status.HTTP_400_BAD_REQUEST,
+                        detail=f'Invalid archive change path "{path}".',
+                    )
+                sub_list.extend([None] * (sub_section_index - len(sub_list) + 1))
+            if sub_list[sub_section_index] is None:
+                if not create_missing:
+                    raise HTTPException(
+                        status.HTTP_400_BAD_REQUEST,
+                        detail=f'Invalid archive change path "{path}".',
+                    )
+                sub_list[sub_section_index] = {}
+
+            current_data = sub_list[sub_section_index]
+            current_section_def = definition.sub_section
+            index += 2
+            continue
+
+        # Singular sub-section.
+        next_data: dict | None = current_data.get(property_name)
+        if next_data is None:
+            if not create_missing:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=f'Invalid archive change path "{path}".',
+                )
+            next_data = {}
+            current_data[property_name] = next_data
+
+        current_data = next_data
+        current_section_def = definition.sub_section
+        index += 1
+
+    property_name = parts[-1]
+
+    # Resolve section def one last time for the final hop.
+    current_section_def = _section_def_from_dict(current_data, current_section_def)
+
+    try:
+        definition = current_section_def.all_properties[property_name]
+    except KeyError as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f'Invalid archive change path "{path}". '
+                f'Property "{property_name}" is not defined in '
+                f'{current_section_def.qualified_name()}.'
+            ),
+        ) from exc
+
+    return current_data, definition, None
+
+
+def _apply_archive_change_to_dict(
+    archive_data: dict[str, Any],
+    change: ArchiveChange,
+) -> None:
+    """Apply a single :class:`ArchiveChange` directly to the raw *archive_data* dict.
+
+    ``parent_data`` returned by the resolver is always a section dict.
+    ``item_index`` is set when the target is an element of a repeated sub-section list
+    or an indexed quantity; in that case the list lives at ``parent_data[definition.name]``.
+    """
+    parent_data, definition, item_index = _resolve_archive_change_target_in_dict(
+        archive_data,
+        change.path,
+        create_missing=change.action != ArchiveChangeAction.remove,
+    )
+
+    if change.action == ArchiveChangeAction.remove:
+        if item_index is not None:
+            # Repeated sub-section or indexed quantity — remove the item and
+            # keep lists compact, matching m_remove(..., mode='pop').
+            sub_list: list = parent_data.get(definition.name, [])
+            if item_index < len(sub_list):
+                sub_list.pop(item_index)
+                # Strip any trailing Nones that might have been unmasked from
+                # previously sparse data.
+                while sub_list and sub_list[-1] is None:
+                    sub_list.pop()
+        else:
+            parent_data.pop(definition.name, None)
+        return
+
+    # ---- upsert ----
+    value = change.new_value
+
+    if item_index is not None:
+        sub_list = parent_data.setdefault(definition.name, [])
+        if len(sub_list) <= item_index:
+            sub_list.extend([None] * (item_index - len(sub_list) + 1))
+        sub_list[item_index] = value
+    else:
+        # Singular property or sub-section — write directly.
+        # For singular sub-sections the type is already known from the schema,
+        # so omitting m_def matches the output that m_to_dict would have produced.
+        parent_data[definition.name] = value
+
+
 _bad_owner_response_unauthorized = (
     status.HTTP_401_UNAUTHORIZED,
     {
@@ -523,8 +765,12 @@ def perform_search(*args, **kwargs):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_entries_metadata_query(
-    request: Request, data: Metadata, user: Annotated[User, Depends(get_current_user())]
+def post_entries_metadata_query(
+    data: Metadata,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Executes a *query* and returns a *page* of the results with *required* result data
@@ -564,12 +810,15 @@ async def post_entries_metadata_query(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_entries_metadata(
+def get_entries_metadata(
     request: Request,
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     pagination: Annotated[MetadataPagination, Depends(metadata_pagination_parameters)],
     required: Annotated[MetadataRequired, Depends(metadata_required_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Executes a *query* and returns a *page* of the results with *required* result data.
@@ -670,7 +919,7 @@ def _create_entry_rawdir(entry_metadata: dict[str, Any], uploads: _Uploads):
     mainfile_dir = os.path.dirname(mainfile)
 
     files = []
-    for path_info in upload_files.raw_directory_list(mainfile_dir, files_only=True):
+    for path_info in upload_files.raw_listdir(mainfile_dir, files_only=True):
         files.append(EntryRawDirFile(path=path_info.path, size=path_info.size))
 
     return EntryRawDir(
@@ -819,10 +1068,12 @@ _entries_rawdir_query_docstring = strip(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def post_entries_rawdir_query(
-    request: Request,
+def post_entries_rawdir_query(
     data: EntriesRawDir,
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     return _answer_entries_rawdir_request(
         owner=data.owner if data.owner is not None else Owner.public,
@@ -844,11 +1095,14 @@ async def post_entries_rawdir_query(
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response_unauthorized),
 )
-async def get_entries_rawdir(
+def get_entries_rawdir(
     request: Request,
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     pagination: Annotated[MetadataPagination, Depends(metadata_pagination_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     res = _answer_entries_rawdir_request(
         owner=with_query.owner if with_query.owner is not None else Owner.public,
@@ -889,8 +1143,12 @@ _entries_raw_query_docstring = strip(
     response_class=StreamingResponse,
     responses=create_responses(_raw_response, _bad_owner_response_unauthorized),
 )
-async def post_entries_raw_query(
-    data: EntriesRaw, user: Annotated[User, Depends(get_current_user())]
+def post_entries_raw_query(
+    data: EntriesRaw,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     return _answer_entries_raw_request(
         owner=data.owner if data.owner is not None else Owner.public,
@@ -908,10 +1166,13 @@ async def post_entries_raw_query(
     response_class=StreamingResponse,
     responses=create_responses(_raw_response, _bad_owner_response_unauthorized),
 )
-async def get_entries_raw(
+def get_entries_raw(
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     files: Annotated[Files, Depends(files_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     return _answer_entries_raw_request(
         owner=with_query.owner if with_query.owner is not None else Owner.public,
@@ -928,10 +1189,13 @@ async def get_entries_raw(
     response_class=StreamingResponse,
     responses=create_responses(_bad_owner_response_unauthorized),
 )
-async def export_entries_metadata(
+def export_entries_metadata(
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     required: Annotated[MetadataRequired, Depends(metadata_required_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
     content_type: Annotated[str, Header()] = 'application/json',
     page_size: Annotated[int, QueryParameter(gt=0)] = 10_000,
 ):
@@ -1174,7 +1438,10 @@ _entries_archive_docstring = strip(
 async def post_entries_archive_query(
     request: Request,
     data: EntriesArchive,
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     res = await _answer_entries_archive_request(
         request=request,
@@ -1213,7 +1480,10 @@ async def get_entries_archive_query(
     request: Request,
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     pagination: Annotated[MetadataPagination, Depends(metadata_pagination_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     return await _answer_entries_archive_request(
         request=request,
@@ -1281,7 +1551,7 @@ def _answer_entries_archive_download_request(
                     )
                 )  # pylint: disable=maybe-no-member
 
-                yield StreamedFile(path=path, f=f, size=f.getbuffer().nbytes)
+                yield StreamedFile(path=path, src=f, size=f.getbuffer().nbytes)
             except KeyError as e:
                 logger.error(
                     'missing archive', entry_id=entry_metadata['entry_id'], exc_info=e
@@ -1294,7 +1564,7 @@ def _answer_entries_archive_download_request(
         manifest_content = json.dumps(manifest, indent=2).encode()
         yield StreamedFile(
             path='manifest.json',
-            f=io.BytesIO(manifest_content),
+            src=io.BytesIO(manifest_content),
             size=len(manifest_content),
         )
 
@@ -1333,8 +1603,12 @@ _entries_archive_download_docstring = strip(
         _bad_archive_required_response,
     ),
 )
-async def post_entries_archive_download_query(
-    data: EntriesArchiveDownload, user: Annotated[User, Depends(get_current_user())]
+def post_entries_archive_download_query(
+    data: EntriesArchiveDownload,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     return _answer_entries_archive_download_request(
         owner=data.owner if data.owner is not None else Owner.public,
@@ -1357,10 +1631,13 @@ async def post_entries_archive_download_query(
         _bad_archive_required_response,
     ),
 )
-async def get_entries_archive_download(
+def get_entries_archive_download(
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     files: Annotated[Files, Depends(files_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     return _answer_entries_archive_download_request(
         owner=with_query.owner if with_query.owner is not None else Owner.public,
@@ -1380,13 +1657,16 @@ async def get_entries_archive_download(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_entry_metadata(
+def get_entry_metadata(
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve metadata from.'),
     ],
     required: Annotated[MetadataRequired, Depends(metadata_required_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Retrives the entry metadata for the given id.
@@ -1418,12 +1698,15 @@ async def get_entry_metadata(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_entry_rawdir(
+def get_entry_rawdir(
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve raw data from.'),
     ],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Returns the file metadata for all input and output files (including auxiliary files)
@@ -1456,13 +1739,16 @@ async def get_entry_rawdir(
     response_class=StreamingResponse,
     responses=create_responses(_bad_id_response, _raw_response),
 )
-async def get_entry_raw(
+def get_entry_raw(
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve raw data from.'),
     ],
     files: Annotated[Files, Depends(files_parameters)],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Streams a .zip file with the raw files from the requested entry.
@@ -1495,8 +1781,11 @@ async def get_entry_raw(
         _bad_id_response, _bad_path_response, _raw_file_response
     ),
 )
-async def get_entry_raw_file(
-    user: Annotated[User, Depends(get_current_user())],
+def get_entry_raw_file(
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
     entry_id: Annotated[
         str,
         Path(description='The unique entry id of the entry to retrieve raw data from.'),
@@ -1569,7 +1858,7 @@ async def get_entry_raw_file(
     entry_path = os.path.dirname(mainfile)
     path = os.path.join(entry_path, path)
 
-    if not upload_files.raw_path_exists(path):
+    if not upload_files.raw_exists(path):
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             detail='The requested file does not exist.',
@@ -1650,12 +1939,15 @@ def answer_entry_archive_request(
         _bad_edit_request_unauthorized,
     ),
 )
-async def post_entry_edit(
+def post_entry_edit(
     data: EntryEdit,
     entry_id: Annotated[
         str, Path(description='The unique entry id of the entry to edit.')
     ],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_WRITE])),
+    ],
 ):
     response = perform_search(
         owner=Owner.all_,
@@ -1708,65 +2000,32 @@ async def post_entry_edit(
                 detail='The entry mainfile in not in archive format.',
             )
 
-    def to_key(path_segment: str):
-        try:
-            return int(path_segment)
-        except ValueError:
-            return path_segment
-
-    # TODO this is only covers the most basic case
-    #   - no checks yet, we simply assume that the raw file and the changes
-    #     agree on the schema
-    #   - no handling of concurrent changes yet
+    # Apply changes directly to the raw dict – no full archive deserialisation.
+    # TODO no handling of concurrent changes yet
     for change in data.changes:
-        path = change.path.split('/')
-        section_data = archive_data
-        next_key = to_key(path[0])
-
-        for path_index, path_segment in enumerate(path[:-1]):
-            # Usually all keys are str and indicate either a quantity or
-            # a single sub-section. If the next segment is an integer, we
-            # know that the current segment is a repeated sub-section.
-            next_key = to_key(path[path_index + 1])
-            key = to_key(path_segment)
-            repeated_sub_section = isinstance(next_key, int)
-
-            next_value: list | dict = [] if repeated_sub_section else {}
-
-            if isinstance(section_data, list):
-                if section_data[key] is None:
-                    section_data[key] = next_value
-                section_data = section_data[key]
-            else:
-                section_data = section_data.setdefault(key, next_value)
-
-            # If this is a list, we might need to fill some wholes before we can
-            # update the value.
-            if isinstance(section_data, list):
-                if len(section_data) <= next_key:
-                    cast(list, section_data).extend(
-                        [None] * (next_key - len(section_data) + 1)
-                    )
-
-        if change.action == ArchiveChangeAction.remove:
-            del section_data[next_key]
-        else:
-            section_data[next_key] = change.new_value
-
-    with context.raw_file(mainfile, 'wt') as f:
-        if mainfile.endswith('.json'):
-            json.dump(archive_data, f)
-        else:
-            yaml.dump(archive_data, f, default_flow_style=False, sort_keys=False)
+        _apply_archive_change_to_dict(archive_data, change)
 
     reprocess_settings = Reprocess(
         index_individual_entries=True, reprocess_existing_entries=True
     )
-    upload.put_file_and_process_local(
-        os.path.join(context.raw_path(), mainfile),
-        os.path.dirname(mainfile),
-        reprocess_settings=reprocess_settings,
-    )
+
+    # We write the edit to a temporary file first because put_file_and_process_local
+    # truncates existing files to 0 bytes when the source and target are the same path.
+    with tempfile.TemporaryDirectory(dir=config.fs.tmp) as tmp_dir:
+        tmp_path = os.path.join(tmp_dir, os.path.basename(mainfile))
+        with open(tmp_path, 'w') as f:
+            if mainfile.endswith('.json'):
+                json.dump(archive_data, f)
+            else:
+                yaml.dump(archive_data, f, default_flow_style=False, sort_keys=False)
+
+        main_entry = upload.put_file_and_process_local(
+            tmp_path,
+            os.path.dirname(mainfile),
+            reprocess_settings=reprocess_settings,
+        )
+
+    entry_id = main_entry.entry_id if main_entry else entry_id
 
     return {'entry_id': entry_id, 'changes': data.changes}
 
@@ -1780,14 +2039,17 @@ async def post_entry_edit(
     response_model_exclude_none=True,
     responses=create_responses(_bad_id_response),
 )
-async def get_entry_archive(
+def get_entry_archive(
     entry_id: Annotated[
         str,
         Path(
             description='The unique entry id of the entry to retrieve archive data from.'
         ),
     ],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Returns the full archive for the given `entry_id`.
@@ -1803,14 +2065,17 @@ async def get_entry_archive(
     summary='Get the archive for an entry by its id as plain archive json',
     responses=create_responses(_bad_id_response, _archive_download_response),
 )
-async def get_entry_archive_download(
+def get_entry_archive_download(
     entry_id: Annotated[
         str,
         Path(
             description='The unique entry id of the entry to retrieve archive data from.'
         ),
     ],
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
 ):
     """
     Returns the full archive for the given `entry_id`.
@@ -1837,9 +2102,12 @@ async def get_entry_archive_download(
     response_model_exclude_none=True,
     responses=create_responses(_bad_id_response, _bad_archive_required_response),
 )
-async def post_entry_archive_query(
+def post_entry_archive_query(
     data: EntryArchiveRequest,
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_READ])),
+    ],
     entry_id: Annotated[
         str,
         Path(
@@ -1940,10 +2208,13 @@ _editable_quantities = {
     response_model_exclude_none=True,
     responses=create_responses(_bad_metadata_edit_response),
 )
-async def post_entry_metadata_edit(
+def post_entry_metadata_edit(
     response: Response,
     data: EntryMetadataEdit,
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_WRITE])),
+    ],
 ):
     """
     Performs or validates edit actions on a set of entries that match a given query.
@@ -2139,7 +2410,10 @@ async def post_entry_metadata_edit(
 async def post_entries_edit(
     request: Request,
     data: MetadataEditRequest,
-    user: Annotated[User, Depends(get_current_user(required=True))],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ENTRIES_WRITE], allow_anonymous=False)),
+    ],
 ):
     """
     Updates the metadata of the specified entries.

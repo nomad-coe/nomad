@@ -22,6 +22,8 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import ORJSONResponse
 
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.graph.graph_reader import (
     ConfigError,
     GeneralReader,
@@ -32,7 +34,6 @@ from nomad.graph.graph_reader import (
 from nomad.graph.lazy_wrapper import LazyWrapper
 
 from ..models import User
-from .auth import get_current_user
 from .entries import EntriesArchive
 
 router = APIRouter()
@@ -82,7 +83,8 @@ def relocate_children(request):
     include_in_schema=False,
 )
 async def raw_query(
-    user: Annotated[User, Depends(get_current_user())], query=Body(...)
+    user: Annotated[User, Depends(get_current_user([Scope.GRAPH_READ]))],
+    query=Body(...),
 ):
     relocate_children(query)
     with MongoReader(query, user=user) as reader:
@@ -104,7 +106,7 @@ async def raw_query(
     response_model_exclude_none=True,
 )
 async def basic_query(
-    user: Annotated[User, Depends(get_current_user())],
+    user: Annotated[User, Depends(get_current_user([Scope.GRAPH_READ]))],
     # todo: may need to re-enable validation
     #   as of June 2025, it is not working
     # query: GraphRequest = Body(...),
@@ -131,7 +133,8 @@ async def basic_query(
     include_in_schema=False,
 )
 async def archive_query(
-    data: EntriesArchive, user: Annotated[User, Depends(get_current_user())]
+    data: EntriesArchive,
+    user: Annotated[User, Depends(get_current_user([Scope.GRAPH_READ]))],
 ):
     graph_dict: dict = {Token.SEARCH: {'m_request': {'query': {}}}}
     root_request: dict = graph_dict[Token.SEARCH]['m_request']['query']

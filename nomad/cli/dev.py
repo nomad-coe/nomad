@@ -372,8 +372,7 @@ def get_gui_config() -> str:
         else None,
         'oasis': config.oasis.is_oasis,
         'version': config.meta.beta if config.meta.beta else {},
-        'globalLoginRequired': config.oasis.allowed_users is not None
-        or config.oasis.require_authentication,
+        'globalLoginRequired': config.auth.require_authentication,
         'servicesUploadLimit': config.services.upload_limit,
         'appTokenMaxExpiresIn': config.services.app_token_max_expires_in,
         'uploadMembersGroupSearchEnabled': config.services.upload_members_group_search_enabled,
@@ -588,7 +587,7 @@ def _generate_units_json() -> tuple[Any, Any]:
             aliases[unit_long_name].append(unit_name)
 
     # For each defined dimension, get the available units if there are any.
-    def get_unit_data(unit_name, dimension):
+    def get_unit_data(unit_name, dimension, is_constant=False):
         unit_long_name = ureg.get_name(unit_name)
         unit_abbreviation = ureg.get_symbol(unit_name)
         unit_label = unit_long_name.replace('_', ' ')
@@ -603,6 +602,9 @@ def _generate_units_json() -> tuple[Any, Any]:
 
         if dimension is not None:
             unit_data['dimension'] = dimension.replace('[', '').replace(']', '')
+
+        if is_constant:
+            unit_data['constant'] = True
 
         return unit_data
 
@@ -663,9 +665,7 @@ def _generate_units_json() -> tuple[Any, Any]:
         # Filter out delta units
         if unit_base_name.startswith('delta_'):
             continue
-        # Filter out constants
-        if unit_base_name in constant_names:
-            continue
+        is_constant = unit_base_name in constant_names
         try:
             unit = getattr(ureg, unit_str)
         except UndefinedUnitError:
@@ -675,7 +675,7 @@ def _generate_units_json() -> tuple[Any, Any]:
         if hasattr(unit, 'dimensionality'):
             dimensionality = str(unit.dimensionality)  # type: ignore[attr-defined]
             dimension_name = dimension_def_name_map.get(dimensionality)
-            unit_list.append(get_unit_data(unit_str, dimension_name))
+            unit_list.append(get_unit_data(unit_str, dimension_name, is_constant))
 
     # Add kilogram as SI base unit
     unit_list.append(

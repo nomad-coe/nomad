@@ -37,7 +37,7 @@ import { isEmpty, isArray } from 'lodash'
 import { useSearchContext } from './SearchContext'
 import {useTools} from "../north/NorthPage"
 import DialogActions from "@material-ui/core/DialogActions"
-import {useNorthToolHook} from "../north/NorthTool"
+import {getIconUrl, useNorthToolHook} from "../north/NorthTool"
 import {useKeycloak} from "@react-keycloak/web"
 import {useErrors} from "../errors"
 import {northBase} from "../../config"
@@ -205,7 +205,7 @@ export const NorthURL = React.memo(({ action, data }) => {
               {tool.icon ? (
                 <img
                   style={{ width: "30px", height: "30px", objectFit: "contain" }}
-                  src={`${process.env.PUBLIC_URL}/${tool.icon}`}
+                  src={getIconUrl(tool.icon)}
                   alt="icon"
                 />
               ) : (

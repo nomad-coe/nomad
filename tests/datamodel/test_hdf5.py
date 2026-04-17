@@ -77,6 +77,9 @@ def test_hdf5(test_context, quantity_type, value):
     else:
         assert serialized['data']['quantity'] == value
         filename, path = serialized['data']['quantity'].split('#')
-        with h5py.File(test_context.upload_files.raw_file(filename, 'rb')) as f:
+        with (
+            test_context.upload_files.raw_file(filename, 'rb') as raw_file,
+            h5py.File(raw_file) as f,
+        ):
             quantity = HDF5Reference.read_dataset(archive, value)
             assert (quantity == f[path][()]).all()

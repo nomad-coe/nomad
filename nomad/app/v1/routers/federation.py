@@ -23,12 +23,17 @@ API endpoint to receive telemetry data (in logstash format) from local installat
 import socket
 import zlib
 from enum import Enum
+from typing import Annotated
 
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.routing import APIRouter
 
 from nomad import utils
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.config import config
+
+from ..models import User
 
 logger = utils.get_logger(__name__)
 
@@ -45,7 +50,13 @@ class APITag(str, Enum):
     summary='Receive logs in logstash format from other Nomad installations and store into central logstash '
     'for further analysis.',
 )
-async def logs(request: Request):
+async def logs(
+    request: Request,
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.FEDERATION_WRITE])),
+    ],
+):
     content_encoding = request.headers.get('Content-Encoding')
 
     if content_encoding is not None and content_encoding not in ['gzip']:

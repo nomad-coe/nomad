@@ -21,7 +21,6 @@ import asyncio
 import copy
 import dataclasses
 import functools
-import itertools
 import os
 import re
 from collections.abc import AsyncIterator, Callable, Iterator
@@ -73,6 +72,7 @@ from nomad.graph.model import (
     DefinitionType,
     DirectiveType,
     EntryQuery,
+    MDefFormatType,
     MetainfoPagination,
     MetainfoQuery,
     RequestConfig,
@@ -380,7 +380,7 @@ async def _if_exists(target_root: dict, path_stack: list) -> bool:
 def _convert_ref_to_path(ref: str, upload_id: str | None = None) -> list:
     # test module name
     if '.' in (stripped_ref := ref.strip('.')) or re.compile(r'^\w*(\.\w*)*$').match(
-        ref.split('/section_definitions')[0]
+        ref.split('/section_definitions', maxsplit=1)[0]
     ):
         module_path, _ = split_python_definition(stripped_ref)
         return [Token.METAINFO, '.'.join(module_path[:-1])] + module_path[-1].split('/')
@@ -1099,7 +1099,8 @@ class GeneralReader:
             self.upload_pool[upload_id] = upload.upload_files
 
         try:
-            return self.upload_pool[upload_id].read_archive(entry_id)[entry_id]
+            with self.upload_pool[upload_id].read_archive(entry_id) as reader:
+                return reader[entry_id]
         except KeyError:
             raise ArchiveError(
                 f'Archive {entry_id} does not exist in upload {entry_id}.'
@@ -1782,6 +1783,31 @@ class MongoReader(GeneralReader):
                     current_config,
                 )
 
+            if (
+                key
+                in (
+                    Token.ENTRY,
+                    Token.ENTRIES,
+                    Token.UPLOAD,
+                    Token.UPLOADS,
+                    Token.USER,
+                    Token.USERS,
+                    Token.DATASET,
+                    Token.DATASETS,
+                    Token.GROUP,
+                    Token.GROUPS,
+                )
+                and isinstance(value, dict)
+                and GeneralReader.__CONFIG__ not in value
+                and GeneralReader.__WILDCARD__ not in value
+            ):
+                await self._walk(
+                    node.replace(archive={}, current_path=node.current_path + [key]),
+                    value,
+                    current_config,
+                )
+                continue
+
             if key == Token.SEARCH:
                 await offload_walk(await self._query_es(child_config), None)
                 continue
@@ -2375,10 +2401,12 @@ class FileSystemReader(GeneralReader):
 
         full_path: list = self._root_path + node.current_path
         full_path_str: str = '/'.join(self._to_abs_path(full_path))
-        is_current_path_file: bool = node.archive.raw_path_is_file(full_path_str)
+        is_current_path_file: bool = node.archive.raw_isfile(full_path_str)
 
         if not is_current_path_file:
-            await _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
+            await _populate_result(
+                node.result_root, full_path + ['m_is'], 'Directory', path_like=True
+            )
 
         if Token.ENTRY in required:
             # implicit resolve
@@ -2388,7 +2416,7 @@ class FileSystemReader(GeneralReader):
                 )
             ):
                 await _populate_result(
-                    node.result_root, full_path + [Token.ENTRY], results
+                    node.result_root, full_path + [Token.ENTRY], results, path_like=True
                 )
 
         for key, value in required.items():
@@ -2397,7 +2425,7 @@ class FileSystemReader(GeneralReader):
 
             child_path: list = node.current_path + [key]
 
-            if not node.archive.raw_path_exists(
+            if not node.archive.raw_exists(
                 '/'.join(self._to_abs_path(self._root_path + child_path))
             ):
                 continue
@@ -2424,8 +2452,10 @@ class FileSystemReader(GeneralReader):
         abs_path: list = self._to_abs_path(full_path)
 
         os_path: str = '/'.join(abs_path)
-        if not node.archive.raw_path_is_file(os_path):
-            await _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
+        if not node.archive.raw_isfile(os_path):
+            await _populate_result(
+                node.result_root, full_path + ['m_is'], 'Directory', path_like=True
+            )
 
         ref_path = ['/'.join(self._root_path)]
         if ref_path[0]:
@@ -2442,18 +2472,16 @@ class FileSystemReader(GeneralReader):
             pagination = dict(page=1, page_size=10, order='asc')
         end: int = int(start) + int(pagination.get('page_size', 10))
 
-        folders: list = []
-        files: list = []
-        file: RawPathInfo
-        for file in node.archive.raw_directory_list(
-            os_path, recursive=True, depth=config.depth if config.depth else -1
-        ):
-            if file.is_file:
-                files.append(file)
-            else:
-                folders.append(file)
-
-        pagination['total'] = len(folders) + len(files)
+        page = node.archive.raw_listdir_page(
+            os_path,
+            start=start,
+            end=end,
+            recursive=True,
+            depth=config.depth if config.depth else -1,
+            order=pagination.get('order', 'asc'),
+            group_directories_first=True,
+        )
+        pagination['total'] = page.total
 
         await _populate_result(
             node.result_root,
@@ -2462,35 +2490,28 @@ class FileSystemReader(GeneralReader):
             path_like=True,
         )
 
-        whole_list = itertools.chain(folders, files)
-        if pagination.get('order', 'asc') != 'asc':
-            whole_list = itertools.chain(reversed(files), reversed(folders))
-
-        for index, file in enumerate(whole_list):
-            if index >= end:
-                break
-
-            if index < start:
-                continue
-
+        page_files: list[RawPathInfo] = []
+        for file in page.content:
             if not config.if_include(file.path):
                 continue
 
+            page_files.append(file)
+
+        resolved_entries: dict[str, dict] = {}
+        if config.directive is DirectiveType.resolved:
+            resolved_entries = await self._batch_implicit_resolve(
+                node.upload_id, page_files, omit_keys=omit_keys
+            )
+
+        for file in page_files:
             results = file._asdict()
             results.pop('access', None)
             if results.pop('is_file'):
                 results['m_is'] = 'File'
             else:
                 results = {'m_is': 'Directory'}
-            if omit_keys is None or all(
-                not file.path.endswith(os.path.sep + k) for k in omit_keys
-            ):
-                if config.directive is DirectiveType.resolved and (
-                    resolved := await self._offload(
-                        node.upload_id, file.path, config, config
-                    )
-                ):
-                    results[Token.ENTRY] = resolved
+            if resolved := resolved_entries.get(file.path):
+                results[Token.ENTRY] = resolved
 
             # need to consider the relative path and the absolute path conversion
             file_path: list = [
@@ -2527,6 +2548,32 @@ class FileSystemReader(GeneralReader):
             ) as reader:
                 return await reader.read(entry.entry_id)
         return {}
+
+    async def _batch_implicit_resolve(
+        self, upload_id: str, files: list[RawPathInfo], *, omit_keys=None
+    ) -> dict[str, dict]:
+        """Resolve entry payloads for a file page with one batched mainfile lookup."""
+        mainfiles = [
+            file.path
+            for file in files
+            if file.is_file
+            and (
+                omit_keys is None
+                or all(not file.path.endswith(os.path.sep + k) for k in omit_keys)
+            )
+        ]
+        if not mainfiles:
+            return {}
+
+        def _retrieve():
+            resolved: dict[str, dict] = {}
+            for entry in Entry.objects(  # type: ignore
+                upload_id=upload_id, mainfile__in=mainfiles
+            ).order_by('mainfile', 'mainfile_key', 'entry_id'):
+                resolved.setdefault(entry.mainfile, self._overwrite_entry(entry))
+            return resolved
+
+        return await asyncio.to_thread(_retrieve)
 
 
 def _is_quantity_reference(definition) -> bool:
@@ -2686,6 +2733,9 @@ class ArchiveReader(ArchiveLikeReader):
                 continue
 
             if key == Token.DEF:
+                if current_config.m_def_format is MDefFormatType.short:
+                    # m_def was already written as a compact string by _check_definition
+                    continue
                 if isinstance(node.definition, Quantity):
                     self._log(
                         f'Only support "m_def" token on sections, try defining "m_def" request on the parent.'
@@ -2963,23 +3013,33 @@ class ArchiveReader(ArchiveLikeReader):
 
         custom_def: str | None = await async_get(node.archive, 'm_def', None)
         custom_def_id: str | None = await async_get(node.archive, 'm_def_id', None)
+
+        use_qualified = config.m_def_format is MDefFormatType.short
+
         if custom_def is None and custom_def_id is None:
-            if config.include_definition is DefinitionType.both:
+            if use_qualified or config.include_definition is DefinitionType.both:
                 definition = node.definition
                 if isinstance(definition, SubSection):
                     definition = definition.sub_section.m_resolved()
-                with DefinitionReader(
-                    RequestConfig(directive=DirectiveType.plain),
-                    user=self.user,
-                    init=False,
-                    config=config,
-                    global_root=self.global_root,
-                ) as reader:
+                if use_qualified:
                     await _populate_result(
                         node.result_root,
                         node.current_path + [Token.DEF],
-                        await reader.read(definition),
+                        f'{definition.qualified_name()}@{definition.definition_id}',
                     )
+                else:
+                    with DefinitionReader(
+                        RequestConfig(directive=DirectiveType.plain),
+                        user=self.user,
+                        init=False,
+                        config=config,
+                        global_root=self.global_root,
+                    ) as reader:
+                        await _populate_result(
+                            node.result_root,
+                            node.current_path + [Token.DEF],
+                            await reader.read(definition),
+                        )
             return node
 
         try:
@@ -2990,7 +3050,13 @@ class ArchiveReader(ArchiveLikeReader):
             )
             return node
 
-        if config.include_definition is not DefinitionType.none:
+        if use_qualified:
+            await _populate_result(
+                node.result_root,
+                node.current_path + [Token.DEF],
+                f'{new_def.qualified_name()}@{new_def.definition_id}',
+            )
+        elif config.include_definition is not DefinitionType.none:
             with DefinitionReader(
                 RequestConfig(directive=DirectiveType.plain),
                 user=self.user,

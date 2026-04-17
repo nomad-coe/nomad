@@ -3,98 +3,105 @@ requires = ["setuptools>=77", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = 'nomad-lab'
-description = 'The NOvel MAterials Discovery (NOMAD) Python package'
+name = "nomad-lab"
+description = "The NOvel MAterials Discovery (NOMAD) Python package"
 readme = "README.md"
 authors = [
-    { name = "NOMAD Laboratory", email = 'markus.scheidgen@physik.hu-berlin.de' },
+  { name = "NOMAD Laboratory", email = "markus.scheidgen@physik.hu-berlin.de" },
 ]
-version = '1.4.1'
+version = '1.4.2'
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 
 dependencies = [
-    'ase>=3.25.0',
-    'bitarray>=2.3.5',
-    'cachetools>=4.2.4',
-    'click>=7.1.2',
-    'docstring-parser>=0.12',
-    'elasticsearch-dsl>=7,<8',
-    'h5py>=3.6.0',
-    'httpx>=0.23.3,<0.28',  # breaking change in 0.28 breaks keycloak compatibility
-    'jmespath>=0.10.0',
-    'jsonpath-ng',
-    'json_stream',
-    'kaleido<=0.2.1', # v1.0.0 not compatible with plotly < 6.0.0
-    'lxml>=5.2',
-    'matid>=2.1.3',
-    'msgpack>=1',
-    'msgspec',
-    'numpy>=1.22.4,<2.4.0',  # TODO: fix casting ndim>0 array to scalar
-    'openpyxl',
-    'orjson>=1.0',
-    'pandas>=2',
-    'pint>=0.23',
-    'plotly<6', # version 6.0.0 not fully compatible with our GUI
-    'py-spy', # for on-server profiling
-    'pydantic>=2',
-    'pyinstrument', # for endpoint profiling
-    'pymatgen>=2025.10.7',
-    'python-keycloak>=5.0',
-    'python-magic-bin;sys_platform=="win32"',
-    'python-magic;sys_platform!="win32"',
-    'pyyaml>=6.0',
-    'requests>=2.27.1',
-    'rfc3161ng>=2.1.3',
-    'scipy>=1.7.1',
-    'unidecode',
-    'xarray>=0.20.2',
+  "ase>=3.25.0",
+  "bitarray>=2.3.5",
+  "cachetools>=4.2.4",
+  "click>=7.1.2",
+  "docstring-parser>=0.12",
+  "elasticsearch-dsl>=7,<8",
+  "elasticsearch>=7.17.3", # lower versions have incompatibilies with some numpy versions.
+  "fsspec>=2026.2.0",
+  "h5py>=3.6.0",
+  "httpx>=0.23.3,<0.28", # breaking change in 0.28 breaks keycloak compatibility
+  "jmespath>=0.10.0",
+  "jsonpath-ng",
+  "json_stream",
+  "kaleido<=0.2.1", # v1.0.0 not compatible with plotly < 6.0.0
+  "lxml>=5.2",
+  "matid>=2.1.3",
+  'molid>=0.8.5',
+  "msgpack>=1",
+  "msgspec",
+  "numpy>=1.22.4",
+  "openpyxl",
+  "orjson>=1.0",
+  "pandas>=2",
+  "pathvalidate",
+  "pint>=0.23",
+  "plotly<6", # version 6.0.0 not fully compatible with our GUI
+  "py-spy", # for on-server profiling
+  "pydantic>=2",
+  "pyinstrument", # for endpoint profiling
+  "pymatgen>=2025.10.7",
+  "python-keycloak>=5.0",
+  "python-magic-bin;sys_platform=='win32'",
+  "python-magic;sys_platform!='win32'",
+  "pyyaml>=6.0",
+  "requests>=2.27.1",
+  "rfc3161ng>=2.1.3",
+  "scipy>=1.7.1",
+  "unidecode",
+  "xarray>=0.20.2",
 ]
 
 [project.urls]
 homepage = "https://nomad-lab.eu/"
 documentation = "https://nomad-lab.eu/prod/v1/docs"
-repository = 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR'
+repository = "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
 
 [project.optional-dependencies]
 parsing = []
 infrastructure = [
-    'beautifulsoup4>=4,<=4.12.3', # 4.13 introduced breaking changes
-    'blinker', # mongoengine needs this for signals
-    'dockerspawner',
-    'fastapi>=0.99.0',
-    'starlette>=0.48.0', # see MR !2813, `HTTP_422_UNPROCESSABLE_CONTENT`
-    'fastapi-cache2',
-    'gunicorn',
-    'h5grove[fastapi]',
-    'jupyterhub<5.0.0', # Connection issues with newer versions
-    'mongoengine',
-    'oauthenticator<16.0.0', # Connection issues with newer versions
-    'optimade[mongo]',
-    'pyjwt[crypto]',
-    'python-logstash',
-    'python-multipart',
-    'rdflib==5', # breaking changes in DCT.dataset in later versions
-    'structlog',
-    'tabulate',
-    'temporalio>=1.21.1',
-    'cryptography',
-    'uvicorn[standard]',
-    'validators',
-    'zipstream-ng',
+  "beautifulsoup4>=4,<=4.12.3", # 4.13 introduced breaking changes
+  "blinker", # mongoengine needs this for signals
+  "dockerspawner",
+  "fastapi>=0.99.0",
+  "starlette>=1.0",
+  "fastapi-cache2",
+  "gunicorn",
+  "h5grove[fastapi]>=3", # interface change in 3
+  "jupyterhub<5.0.0", # Connection issues with newer versions
+  "beanie>=2.0.0",
+  "mongoengine",
+  "oauthenticator<16.0.0", # Connection issues with newer versions
+  "optimade[mongo]>=1.2.0,<1.4.0", # `optimade.server.config.CONFIG` removed
+  "pyjwt[crypto]",
+  "python-logstash",
+  "python-multipart",
+  "rdflib==5", # breaking changes in DCT.dataset in later versions
+  "structlog",
+  "tabulate",
+  "temporalio>=1.23.0",
+  "cryptography",
+  "uvicorn[standard]",
+  "validators",
+  "zipstream-ng",
 ]
 dev = [
-    'aiosmtpd>=1',
-    'essential_generators',
-    'mypy>=1.15',
-    'pytest-asyncio',
-    'pytest-cov',
-    'pytest-split',
-    'pytest-timeout',
-    'pytest-xdist',
-    'pytest',
-    'python-gitlab',
-    'ruff',
+  "aiosmtpd>=1",
+  "essential_generators",
+  "mypy>=1.15",
+  "pip-audit",
+  "pytest-asyncio",
+  "pytest-cov",
+  "pytest-socket",
+  "pytest-split",
+  "pytest-timeout",
+  "pytest-xdist",
+  "pytest",
+  "python-gitlab",
+  "ruff",
 ]
 
 
@@ -109,31 +116,31 @@ indent-width = 4
 
 [tool.ruff.lint]
 select = [
-    "E", # pycodestyle
-    "F401", # remove unused import
-    "FAST", # FastAPI
-    "I001", # sort imports
-    "PL", # pylint
-    "UP", # pyupgrade
-    "W", # pycodestyle
+  "E", # pycodestyle
+  "F401", # remove unused import
+  "FAST", # FastAPI
+  "I001", # sort imports
+  "PL", # pylint
+  "UP", # pyupgrade
+  "W", # pycodestyle
 ]
 ignore = [
-    "E402", # Module level import not at top of file
-    "E501", # Line too long ({width} > {limit} characters)
-    "E701", # Multiple statements on one line (colon)
-    "E731", # Do not assign a lambda expression, use a def
-    "PLR0904", # too-many-public-methods
-    "PLR0911", # Too many return statements
-    "PLR0912", # Too many branches
-    "PLR0913", # Too many arguments in function definition
-    "PLR0915", # Too many statements
-    "PLR0917", # too-many-positional-arguments
-    "PLR1714", # consider-using-in
-    "PLR2004", # Magic value used instead of constant
-    "PLR5501", # else-if-used
-    "PLW0603", # Using the global statement
-    "PLW2901", # redefined-loop-name
-    "PLC0415", # import-outside-top-level
+  "E402", # Module level import not at top of file
+  "E501", # Line too long ({width} > {limit} characters)
+  "E701", # Multiple statements on one line (colon)
+  "E731", # Do not assign a lambda expression, use a def
+  "PLR0904", # too-many-public-methods
+  "PLR0911", # Too many return statements
+  "PLR0912", # Too many branches
+  "PLR0913", # Too many arguments in function definition
+  "PLR0915", # Too many statements
+  "PLR0917", # too-many-positional-arguments
+  "PLR1714", # consider-using-in
+  "PLR2004", # Magic value used instead of constant
+  "PLR5501", # else-if-used
+  "PLW0603", # Using the global statement
+  "PLW2901", # redefined-loop-name
+  "PLC0415", # import-outside-top-level
 ]
 fixable = ["ALL"]
 isort.split-on-trailing-comma = false
@@ -141,7 +148,7 @@ isort.split-on-trailing-comma = false
 [tool.ruff.lint.extend-per-file-ignores]
 "__init__.py" = ["F401", "I001"]
 "nomad/app/v1/models/graph/utils.py" = [
-    "UP007",
+  "UP007",
 ] # causes pydantic model building errors
 
 [tool.ruff.format]
@@ -174,17 +181,14 @@ plugins = ["pydantic.mypy"]
 
 [tool.uv]
 extra-index-url = [
-    "https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple",
+  "https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple",
 ]
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::SyntaxWarning",
-]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::SyntaxWarning"]
 markers = [
-    "disable_health_check_patch: By default the health check is patched in the transfer bundle operations. This marker is useful in the transfer bundle context.",
-    "enable_target_deployment_url_validation: By default the target deployment url validation is patched in the transfer bundle operations. This marker is useful in the transfer bundle context."
+  "disable_health_check_patch: By default the health check is patched in the transfer bundle operations. This marker is useful in the transfer bundle context.",
+  "enable_target_deployment_url_validation: By default the target deployment url validation is patched in the transfer bundle operations. This marker is useful in the transfer bundle context.",
 ]

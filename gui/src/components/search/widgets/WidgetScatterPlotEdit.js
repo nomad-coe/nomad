@@ -35,10 +35,11 @@ import { InputTextField } from '../input/InputText'
 import { scalesLimited } from '../../plotting/common'
 import UnitInput from '../../units/UnitInput'
 
-// Predefined in order to not break memoization
+// Allowed dtypes for different axes and marker color. Predefined in order to not break memoization.
 const dtypesNumeric = new Set([DType.Int, DType.Float, DType.Timestamp])
 const dtypesColor = new Set([DType.String, DType.Enum, DType.Float, DType.Int])
-const nPointsOptions = {
+
+const sampleSizeOptions = {
   100: 100,
   1000: 1000,
   10000: 10000
@@ -48,6 +49,7 @@ const dragModeOptions = {
   'pan': 'pan',
   'select': 'select'
 }
+
 /**
  * A dialog that is used to configure a scatter plot widget.
  */
@@ -126,9 +128,34 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
         open={widget.editing}
         visible={widget.visible}
         title="Edit scatter plot widget"
+        description='Displays a scatter plot for two numerical search quantities.'
         onClose={handleClose}
         onAccept={handleEditAccept}
       >
+      <WidgetEditGroup title="Data & display">
+        <WidgetEditOption>
+          <WidgetEditSelect
+            label="Maximum number of entries to load"
+            options={sampleSizeOptions}
+            value={settings.sample_size}
+            onChange={(event) => { handleChange('sample_size', event.target.value) }}
+          />
+        </WidgetEditOption>
+        <WidgetEditOption>
+          <WidgetEditSelect
+            label="Action to perform on mouse drag"
+            options={dragModeOptions}
+            value={settings.drag_mode}
+            onChange={(event) => { handleChange('drag_mode', event.target.value) }}
+          />
+        </WidgetEditOption>
+        <WidgetEditOption>
+          <FormControlLabel
+            control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
+            label={autorangeDescription}
+          />
+        </WidgetEditOption>
+      </WidgetEditGroup>
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
           <InputJMESPath
@@ -269,7 +296,7 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
           />
         </WidgetEditOption>
       </WidgetEditGroup>
-      <WidgetEditGroup title="General">
+      <WidgetEditGroup title="Other">
         <WidgetEditOption>
           <InputTextField
             label="Title"
@@ -288,28 +315,6 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
             onChange={(event) => handleChange('description', event.target.value)}
           />
         </WidgetEditOption>
-        <WidgetEditOption>
-          <WidgetEditSelect
-            label="Action to perform on mouse drag"
-            options={dragModeOptions}
-            value={settings.drag_mode}
-            onChange={(event) => { handleChange('drag_mode', event.target.value) }}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <WidgetEditSelect
-            label="Maximum number of entries to load"
-            options={nPointsOptions}
-            value={settings.size}
-            onChange={(event) => { handleChange('size', event.target.value) }}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
-            label={autorangeDescription}
-          />
-        </WidgetEditOption>
       </WidgetEditGroup>
     </WidgetEditDialog>
 })
@@ -322,6 +327,6 @@ export const schemaWidgetScatterPlot = schemaWidget.shape({
   x: schemaAxis.required('Search quantity for the x axis is required.'),
   y: schemaAxis.required('Search quantity for the y axis is required.'),
   markers: schemaMarkers,
-  size: number().integer().required('Size is required.'),
+  sample_size: number().integer().required('Sample size is required.'),
   autorange: bool()
 })

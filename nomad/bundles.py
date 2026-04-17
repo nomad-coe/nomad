@@ -33,6 +33,7 @@ from nomad.files import (
     UploadFiles,
     ZipFileSource,
     bundle_info_filename,
+    create_zipstream,
     json_to_streamed_file,
     zipfile,
 )
@@ -115,7 +116,7 @@ class BundleExporter:
 
         # Export
         if self.export_as_stream:
-            return file_source.to_zipstream()
+            return create_zipstream(file_source.to_streamed_files())
         else:
             # Create parent dir if it does not exist
             parent_dir = os.path.dirname(os.path.abspath(self.export_path))
@@ -241,8 +242,7 @@ class BundleImporter:
             assert zipfile.is_zipfile(bundle_path), (
                 '`path` must define a folder or a zipfile.'
             )
-            zip_file = zipfile.ZipFile(bundle_path, 'r')
-            self.bundle = ZipFileSource(zip_file)
+            self.bundle = ZipFileSource(bundle_path)
 
     def create_upload_skeleton(self) -> Upload:
         """

@@ -904,9 +904,9 @@ class EntryMetadata(MSection):
         shape=['0..*'],
         description='All writers (main author, upload coauthors)',
         derived=lambda entry: (
-            [entry.main_author] if entry.main_author is not None else []
-        )
-        + entry.coauthors,
+            ([entry.main_author] if entry.main_author is not None else [])
+            + entry.coauthors
+        ),
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -923,10 +923,10 @@ class EntryMetadata(MSection):
         shape=['0..*'],
         description='All viewers (main author, upload coauthors, and reviewers)',
         derived=lambda entry: (
-            [entry.main_author] if entry.main_author is not None else []
-        )
-        + entry.coauthors
-        + entry.reviewers,
+            ([entry.main_author] if entry.main_author is not None else [])
+            + entry.coauthors
+            + entry.reviewers
+        ),
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 

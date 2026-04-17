@@ -11,13 +11,16 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
 default:
   tags:
     - cloud # Necessary to select the right CI runner
+  interruptible: true
 
 variables:
   DOCKER_TAG: ${CI_COMMIT_REF_SLUG}
   DOCKER_HOST: tcp://docker-dind:2375
   DOCKER_TLS_CERTDIR: ""
-  UV_VERSION: 0.9
-  PYTHON_VERSION: 3.13
+  PYTHON_VERSION: '3.13'
+  UV_VERSION: '0.11'
+  UV_OS_LABEL: trixie # Debian 13 "trixie"
+  UV_IMAGE: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$UV_OS_LABEL
 
 workflow:
   rules:
@@ -27,6 +30,8 @@ workflow:
     - if: $CI_COMMIT_TAG
       variables:
         DOCKER_TAG: ${CI_COMMIT_REF_NAME}
+  auto_cancel:
+    on_new_commit: interruptible
 
 stages:
   - build
@@ -35,6 +40,7 @@ stages:
   - release
 
 # JOBS
+
 update changelog:
   stage: build
   when: manual
@@ -114,7 +120,7 @@ python package clean up:
 
 check python dependencies:
   stage: test
-  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-bookworm
+  image: $UV_IMAGE
   script:
     - scripts/check_python_dependencies.sh
   rules:
@@ -161,7 +167,18 @@ python tests:
   parallel: 4
   extends: .base_test
   script:
-    - python -m pytest -n=3 --dist=loadscope --cov=nomad --cov-report term --cov-config=.coveragerc -sv tests --splits $CI_NODE_TOTAL --group=$CI_NODE_INDEX --splitting-algorithm least_duration
+    - >
+      python -m pytest -sv -n=3
+      --dist=loadscope
+      --disable-socket
+      --allow-hosts=localhost,elastic,mongo
+      --cov=nomad
+      --cov-report term
+      --cov-config=.coveragerc
+      --splits $CI_NODE_TOTAL
+      --group=$CI_NODE_INDEX
+      --splitting-algorithm least_duration
+      tests
   after_script:
     - cp .coverage .coverage_${CI_NODE_INDEX}
   artifacts:
@@ -181,9 +198,12 @@ python coverage report:
     - coverage combine .coverage_*
     - coverage report
     - coverage xml
+    - coverage html
   coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
   artifacts:
     when: always
+    paths:
+      - htmlcov/
     reports:
       coverage_report:
         coverage_format: cobertura
@@ -285,9 +305,25 @@ build python package:
       - archive.json
       - example.out
 
+audit python:
+  stage: test
+  image: $UV_IMAGE
+  variables:
+    UV_LINK_MODE: copy
+  before_script:
+    - uv venv
+    - uv pip install ".[dev,infrastructure]" -c requirements-dev.txt
+    - uv pip install pip-audit
+  script:
+    - EXIT=0
+    - uv audit || EXIT=1
+    - uv run pip-audit --skip-editable || EXIT=$((EXIT+2))
+    - exit $EXIT
+  allow_failure: true
+
 python package install tests:
   stage: test
-  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-bookworm
+  image: $UV_IMAGE
   needs: ["build python package"]
   variables:
     UV_LINK_MODE: copy
@@ -297,7 +333,7 @@ python package install tests:
       for PYTHON_VERSION in 3.10 3.11 3.12 3.13; do
         echo "Running for Python $PYTHON_VERSION"
 
-        uv venv -p $PYTHON_VERSION
+        uv venv --clear -p $PYTHON_VERSION
 
         uv pip install dist/nomad_*.whl
 
@@ -313,15 +349,14 @@ python package install tests:
 
 release python package:
   stage: release
-  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-bookworm
+  image: $UV_IMAGE
   variables:
     GIT_STRATEGY: none
   script: uv publish -u gitlab-ci-token -p ${CI_JOB_TOKEN} --publish-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/*
   rules:
     - if: $CI_COMMIT_BRANCH == "develop" && $NIGHTLY
-    - if: $CI_COMMIT_TAG
-      <<: *manual-allow_failure
-    - <<: [*manual-allow_failure]
+    - <<: *manual-allow_failure
+  interruptible: false
 
 release pypi package:
   stage: release
@@ -333,6 +368,7 @@ release pypi package:
   rules:
     - if: $CI_COMMIT_TAG
       <<: *manual-allow_failure
+  interruptible: false
 
 push to github:
   stage: release
@@ -341,3 +377,4 @@ push to github:
     - git push "https://${CI_GITHUB_ACCESS_TOKEN}@github.com/FAIRmat-NFDI/nomad.git" ${CI_COMMIT_REF_NAME}
   rules:
     - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG
+  interruptible: false

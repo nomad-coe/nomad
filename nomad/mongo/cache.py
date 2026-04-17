@@ -82,7 +82,7 @@ class MongoBackend(Backend):
             except MongoCache.DoesNotExist:
                 return 0, None
 
-        return await asyncio.to_thread(lambda: _get_cached())
+        return await asyncio.to_thread(_get_cached)
 
     async def get(self, key: str) -> bytes | None:
         """Get cached value"""
@@ -102,7 +102,7 @@ class MongoBackend(Backend):
                 expire_time=current + ttl,
             )
 
-        await asyncio.to_thread(lambda: _set_cached())
+        await asyncio.to_thread(_set_cached)
 
     async def clear(self, namespace: str | None = None, key: str | None = None) -> int:
         """Clear cache entries"""
@@ -123,4 +123,4 @@ class MongoBackend(Backend):
                 deleted = MongoCache.objects(key__startswith=prefix).delete()
                 return deleted
 
-        return await asyncio.to_thread(lambda: _clear_cached()) or 0
+        return await asyncio.to_thread(_clear_cached) or 0

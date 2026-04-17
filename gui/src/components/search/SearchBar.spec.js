@@ -42,7 +42,9 @@ describe('searchbar queries', function() {
     ['range, gt-gt', '0 > results.material.n_elements > 1', 'range'],
     ['range, gte-gt', '0 >= results.material.n_elements > 1', 'range'],
     ['range, gt-gte', '0 > results.material.n_elements >= 1', 'range'],
-    ['range, gte-gte', '0 >= results.material.n_elements >= 1', 'range']
+    ['range, gte-gte', '0 >= results.material.n_elements >= 1', 'range'],
+    ['quantity with unit, no query unit', '0 >= results.properties.electronic.band_structure_electronic.band_gap.value >= 1', 'range'],
+    ['quantity with unit, with query unit', '0 eV >= results.properties.electronic.band_structure_electronic.band_gap.value >= 1 eV', 'range']
   ])('%s', async (name, input, type) => {
     render(
       <SearchContext

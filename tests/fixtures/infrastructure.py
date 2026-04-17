@@ -6,10 +6,13 @@ from collections.abc import AsyncGenerator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import TypeAlias
+from unittest.mock import MagicMock
 
 import elasticsearch
 import elasticsearch.exceptions
 import pytest
+import pytest_asyncio
+from pymongo import AsyncMongoClient
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 from xdist.scheduler.loadscope import LoadScopeScheduling
@@ -180,6 +183,33 @@ def mongo_infra(monkeysession, mongo_db_name):
     # disconnecting and connecting again results in an empty database with mongomock
     monkeysession.setattr('mongoengine.disconnect', lambda *args, **kwargs: None)
     return infrastructure.setup_mongo()
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_mongo_infra(mongo_infra, mongo_db_name):
+    """Initialize AsyncMongoClient for async MongoDB access in tests."""
+    async_mongo_client = AsyncMongoClient(
+        host=config.mongo.host, port=config.mongo.port
+    )
+    yield async_mongo_client
+    await async_mongo_client.close()
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_mongo_function(async_mongo_infra, mongo_db_name):
+    """Initializes mongo db and beanie for the current function scope.
+
+    Depends on async_mongo_infra to provide the async mongo client.
+    """
+    from beanie import init_beanie
+
+    from nomad.mongo.action import ActionDocument
+
+    await init_beanie(
+        database=async_mongo_infra[mongo_db_name],
+        document_models=[ActionDocument],
+    )
+    yield async_mongo_infra
 
 
 def clear_mongo(mongo_infra, mongo_db_name):
@@ -358,3 +388,34 @@ def temporal_worker(
                     yield env
 
     return worker_context
+
+
+class DataciteMock:
+    """Helper class to en/disable datacite, mock responses for doi requests."""
+
+    def __init__(self, monkeypatch):
+        self._monkeypatch = monkeypatch
+
+    def set_enabled(self, enabled: bool):
+        self._monkeypatch.setattr(config.datacite, 'enabled', enabled)
+
+    def set_requests(self, status_code: int, response_ok: bool, text: str):
+        def request(*args, **kwargs):
+            mock_response = MagicMock()
+            mock_response.status_code = status_code
+            mock_response.ok = response_ok
+            mock_response.text = text
+            return mock_response
+
+        self._monkeypatch.setattr(f'nomad.datacite.client.requests.request', request)
+
+
+@pytest.fixture(scope='function')
+def datacite_mock(monkeypatch):
+    """Enables datacite, mocks success on all requests in doi module."""
+
+    datacite_mock = DataciteMock(monkeypatch)
+    datacite_mock.set_enabled(True)
+    # external response is always ok; fail cases should not request datacite at all
+    datacite_mock.set_requests(200, True, 'Success')
+    return datacite_mock

@@ -377,6 +377,161 @@ test.each([
     ['value3', 'value2'],
     ['value1'],
     [true, false]
+  ],
+  [
+    'section visible included',
+    {
+      visible: {
+        include: ['value3', 'value2']
+      }
+    },
+    undefined,
+    ['value2', 'value3'],
+    ['value1'],
+    [true, true]
+  ],
+  [
+    'section visible excluded',
+    {
+      visible: {
+        exclude: ['value2']
+      }
+    },
+    undefined,
+    ['value1', 'value3'],
+    ['value2'],
+    [true, true]
+  ],
+  [
+    'section visible included and excluded',
+    {
+      visible: {
+        include: ['value1', 'value3'],
+        exclude: ['value1']
+      }
+    },
+    undefined,
+    ['value3'],
+    ['value1', 'value2'],
+    [true]
+  ],
+  [
+    'section editable excluded',
+    {
+      editable: {
+        exclude: ['value2']
+      }
+    },
+    undefined,
+    ['value1', 'value2', 'value3'],
+    [],
+    [true, false, true]
+  ],
+  [
+    'section editable included',
+    {
+      editable: {
+        include: ['value2']
+      }
+    },
+    undefined,
+    ['value1', 'value2', 'value3'],
+    [],
+    [false, true, false]
+  ],
+  [
+    'section editable included and excluded',
+    {
+      editable: {
+        include: ['value1', 'value3'],
+        exclude: ['value1']
+      }
+    },
+    undefined,
+    ['value1', 'value2', 'value3'],
+    [],
+    [false, false, true]
+  ],
+  [
+    'section ordered and editable',
+    {
+      editable: {
+        exclude: ['value1', 'value3']
+      },
+      order: ['value3', 'value1']
+    },
+    undefined,
+    ['value3', 'value1', 'value2'],
+    [],
+    [false, false, true]
+  ],
+  [
+    'section ordered and editable and visible',
+    {
+      editable: {
+        exclude: ['value1', 'value3']
+      },
+      visible: {
+        exclude: ['value2']
+      },
+      order: ['value3', 'value1']
+    },
+    undefined,
+    ['value3', 'value1'],
+    ['value2'],
+    [false, false]
+  ],
+  [
+    'section and quantity with visible',
+    {
+      visible: {
+        exclude: ['value2']
+      }
+    },
+    [
+      {visible: false},
+      {visible: true},
+      undefined
+    ],
+    ['value2', 'value3'],
+    ['value1'],
+    [true, true]
+  ],
+  [
+    'section and quantity with editable',
+    {
+      editable: {
+        exclude: ['value2']
+      }
+    },
+    [
+      {editable: false},
+      {editable: true},
+      undefined
+    ],
+    ['value1', 'value2', 'value3'],
+    [],
+    [false, true, true]
+  ],
+  [
+    'section and quantity with order, editable and visible',
+    {
+      editable: {
+        exclude: ['value1', 'value3']
+      },
+      visible: {
+        exclude: ['value2']
+      },
+      order: ['value3', 'value1']
+    },
+    [
+      {editable: true, visible: false},
+      {visible: true},
+      {editable: false}
+    ],
+    ['value3', 'value2'],
+    ['value1'],
+    [false, true]
   ]
 ])('test display annotation: %s', async (name, sectionDisplay, quantityDisplay, orderExpected, hiddenExpected, editableExpected) => {
   const metainfo = await createMetainfo(mockPackage(undefined, sectionDisplay, quantityDisplay))

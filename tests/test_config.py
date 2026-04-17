@@ -30,8 +30,15 @@ from nomad.utils import flatten_dict
 from .utils import assert_log
 
 
+def assert_dict_str_str(dct: dict):
+    for k, v in dct.items():
+        assert isinstance(k, str), f'key {k} is not a string'
+        assert isinstance(v, str), f'value {v} is not a string'
+
+
 def load_test_config(conf_yaml, conf_env, mockopen=None, monkeypatch=None):
     if conf_env:
+        assert_dict_str_str(conf_env)
         monkeypatch.setattr('os.environ', conf_env)
     config_file = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')
     if conf_yaml:
@@ -181,44 +188,20 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
     'conf_yaml, conf_env, conf_expected',
     [
         pytest.param(
-            {
-                # TODO: the NORTH part is only needed to reset the tool
-                'north': {'tools': {'include': []}},
-                'plugins': {
-                    'options': {
-                        'dosnormalizer:dos_normalizer_entry_point': {
-                            'name': 'yaml',
-                        }
-                    }
-                },
-            },
-            {'plugins': {'include': ['dosnormalizer:dos_normalizer_entry_point']}},
-            {
-                'plugins': {
-                    'entry_points': {
-                        'include': ['dosnormalizer:dos_normalizer_entry_point'],
-                        'options': {
-                            'dosnormalizer:dos_normalizer_entry_point': {
-                                'name': 'yaml',
-                                'plugin_package': 'dosnormalizer',
-                                'description': 'Normalizer for the DOS data.',
-                                'entry_point_type': 'normalizer',
-                            }
-                        },
-                    }
-                }
-            },
+            {'services': {'api_host': 'example.com', 'api_port': 1234}},
+            {'services': {'api_port': '4321', 'https': 'true'}},
+            {'services': {'api_host': 'example.com', 'api_port': 4321, 'https': True}},
             id='dictionary: merges',
         ),
         pytest.param(
-            {'north': {'tools': {'include': []}}, 'plugins': {'include': ['a']}},
-            {'plugins': {'include': ['b']}},
-            {'plugins': {'entry_points': {'include': ['b']}}},
+            {'oasis': {'allowed_users': ['a@x.yz', 'b@x.yz']}},
+            {'oasis': {'allowed_users': '["c@x.yz", "d@x.yz"]'}},
+            {'oasis': {'allowed_users': ['c@x.yz', 'd@x.yz']}},
             id='list: overrides',
         ),
         pytest.param(
             {'services': {'api_timeout': 100}},
-            {'services': {'api_timeout': 200}},
+            {'services': {'api_timeout': '200'}},
             {'services': {'api_timeout': 200}},
             id='scalar: overrides',
         ),
@@ -552,43 +535,64 @@ def test_id_url_safe(
 
 
 @pytest.mark.parametrize(
-    'options, collides',
+    'entry_points, collides',
     [
         pytest.param(
             {
-                'pkg.mod:Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'schema_package',
-                },
-                'pkg-mod_Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'schema_package',
-                },
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                }
             },
             True,
             id='same custom id_url_safe and entry point type',
         ),
         pytest.param(
             {
-                'pkg.mod:Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'parser',
-                },
-                'pkg-mod_Class': {
-                    'id_url_safe': 'A',
-                    'entry_point_type': 'schema_package',
-                },
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'parser',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                }
             },
             False,
             id='same custom id_url_safe, different entry point types',
         ),
+        pytest.param(
+            {
+                'exclude': ['pkg.mod:Class'],
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                },
+            },
+            False,
+            id='no clash if inactive',
+        ),
     ],
 )
-def test_id_url_safe_collision(options, collides, mockopen, monkeypatch):
+def test_id_url_safe_collision(entry_points, collides, mockopen, monkeypatch):
     """Tests that URL-safe identifier collisions are detected."""
     config_dict = {
         'plugins': {
-            'options': options,
+            'entry_points': entry_points,
         }
     }
 
@@ -600,3 +604,243 @@ def test_id_url_safe_collision(options, collides, mockopen, monkeypatch):
             config.load_plugins()
     else:
         config.load_plugins()
+
+
+@pytest.mark.parametrize(
+    'conf_yaml, conf_expected',
+    [
+        pytest.param(
+            {'keycloak': {'server_url': 'http://example.com/auth'}},
+            {'keycloak': {'server_url': 'http://example.com/auth'}},
+            id='keycloak-no-slash',
+        ),
+        pytest.param(
+            {'keycloak': {'server_url': 'http://example.com/auth/'}},
+            {'keycloak': {'server_url': 'http://example.com/auth'}},
+            id='keycloak-with-slash',
+        ),
+    ],
+)
+def test_normalized_url(conf_yaml, conf_expected, mockopen, monkeypatch):
+    config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
+    assert_config(config, conf_expected)
+
+
+# Tests for `Auth`
+
+
+@pytest.mark.parametrize(
+    ('conf_yaml', 'conf_expected'),
+    [
+        pytest.param(
+            {'auth': {'authorized_users': None}},
+            {'auth': {'authorized_users': None}},
+            id='none',
+        ),
+        pytest.param(
+            {'auth': {'authorized_users': []}},
+            {'auth': {'authorized_users': []}},
+            id='empty',
+        ),
+        pytest.param(
+            {'auth': {'authorized_users': ['alice', 'bob@example.com']}},
+            {'auth': {'authorized_users': ['alice', 'bob@example.com']}},
+            id='already-normalized',
+        ),
+        pytest.param(
+            {
+                'auth': {
+                    'authorized_users': [' Alice ', 'BOB@example.com ', '  CHARLIE  ']
+                }
+            },
+            {'auth': {'authorized_users': ['alice', 'bob@example.com', 'charlie']}},
+            id='strip-and-lower',
+        ),
+        pytest.param(
+            {'auth': {'authorized_users': ['Alice', 'alice ', ' ALICE']}},
+            {'auth': {'authorized_users': ['alice']}},
+            id='deduplicated-after-normalization',
+        ),
+    ],
+)
+def test_authorized_users(conf_yaml, conf_expected, mockopen, monkeypatch):
+    config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
+    assert_config(config, conf_expected)
+
+
+@pytest.mark.parametrize(
+    'conf_env, conf_expected',
+    [
+        pytest.param(
+            {'NOMAD_OASIS_ALLOWED_USERS': '["a@x.yz", "b@x.yz"]'},
+            {'oasis': {'allowed_users': ['a@x.yz', 'b@x.yz']}},
+            id='import-list',
+        ),
+        pytest.param(
+            {
+                'NOMAD_SERVICES_HTTPS': 'true',
+                'NOMAD_SERVICES_HTTPS_UPLOAD': 'True',
+                'NOMAD_SERVICES_FORCE_RAW_FILE_DECODING': 'on',
+                'NOMAD_SERVICES_OPTIMADE_ENABLED': 'false',
+                'NOMAD_SERVICES_DCAT_ENABLED': 'off',
+                'NOMAD_SERVICES_H5GROVE_ENABLED': '0',
+            },
+            {
+                'services': {
+                    'https': True,
+                    'https_upload': True,
+                    'force_raw_file_decoding': True,
+                    'optimade_enabled': False,
+                    'dcat_enabled': False,
+                    'h5grove_enabled': False,
+                }
+            },
+            id='boolean-versions',
+        ),
+    ],
+)
+def test_json_values(conf_env, conf_expected, monkeypatch):
+    config = load_test_config({}, conf_env, monkeypatch=monkeypatch)
+    assert_config(config, conf_expected)
+
+
+@pytest.mark.parametrize(
+    'conf_yaml, conf_expected',
+    [
+        # In previous version, `allowed_users` would imply `require_authentication`
+        pytest.param(
+            {'oasis': {'allowed_users': ['alice']}},
+            {
+                'auth': {
+                    'authorized_users': ['alice'],
+                    'require_authentication': True,
+                }
+            },
+            id='deprecated-allowed-users-implies-authentication',
+        ),
+        # Ensure deprecated `require_authentication` still works with and without `allowed_users`
+        pytest.param(
+            {'oasis': {'allowed_users': ['alice'], 'require_authentication': True}},
+            {
+                'auth': {
+                    'authorized_users': ['alice'],
+                    'require_authentication': True,
+                }
+            },
+            id='deprecated-allowed-users-implies-authentication-overwrite-true',
+        ),
+        pytest.param(
+            {'oasis': {'allowed_users': ['alice'], 'require_authentication': False}},
+            {
+                'auth': {
+                    'authorized_users': ['alice'],
+                    'require_authentication': False,
+                }
+            },
+            id='deprecated-allowed-users-implies-authentication-overwrite-false',
+        ),
+        pytest.param(
+            {'oasis': {'require_authentication': True}},
+            {'auth': {'require_authentication': True}},
+            id='deprecated-require-authentication-true',
+        ),
+        pytest.param(
+            {'oasis': {'require_authentication': False}},
+            {'auth': {'require_authentication': False}},
+            id='deprecated-require-authentication-false',
+        ),
+        # Ensure implied `require_authentication` could be explicitly overwritten
+        pytest.param(
+            {
+                'oasis': {'allowed_users': ['alice']},
+                'auth': {'require_authentication': False},
+            },
+            {
+                'auth': {
+                    'authorized_users': ['alice'],
+                    'require_authentication': False,
+                }
+            },
+            id='explicit-auth-require-authentication-false',
+        ),
+        pytest.param(
+            {
+                'oasis': {'allowed_users': ['alice']},
+                'auth': {'require_authentication': True},
+            },
+            {
+                'auth': {
+                    'authorized_users': ['alice'],
+                    'require_authentication': True,
+                }
+            },
+            id='explicit-auth-require-authentication-true',
+        ),
+    ],
+)
+def test_oasis_allowed_users_backwards_compatibility(
+    conf_yaml, conf_expected, mockopen, monkeypatch
+):
+    config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
+    assert_config(config, conf_expected)
+
+
+@pytest.mark.parametrize(
+    'conf_yaml, error',
+    [
+        pytest.param(
+            {
+                'oasis': {'require_authentication': True},
+                'auth': {'require_authentication': False},
+            },
+            'You cannot use new and deprecated `require_authentication` together',
+            id='require-authentication',
+        ),
+        pytest.param(
+            {
+                'oasis': {'allowed_users': ['alice']},
+                'auth': {'authorized_users': ['alice']},
+            },
+            'You cannot use new and deprecated user whitelist together',
+            id='user-whitelist',
+        ),
+    ],
+)
+def test_oasis_auth_backwards_compatibility_conflicts(
+    conf_yaml, error, mockopen, monkeypatch
+):
+    with pytest.raises(ValidationError, match=re.escape(error)):
+        load_test_config(conf_yaml, None, mockopen, monkeypatch)
+
+
+@pytest.mark.parametrize(
+    'conf_yaml, expected_warnings',
+    [
+        pytest.param(
+            {'oasis': {'require_authentication': True}},
+            ['Use auth.require_authentication instead of oasis.require_authentication'],
+            id='deprecated-require-authentication-warning',
+        ),
+        pytest.param(
+            {'oasis': {'allowed_users': ['alice']}},
+            [
+                'Use auth.authorized_users instead of oasis.allowed_users',
+                'Use auth.require_authentication=True if you want to require authentication',
+            ],
+            id='deprecated-allowed-users-warnings',
+        ),
+    ],
+)
+def test_oasis_auth_backwards_compatibility_warnings(
+    conf_yaml, expected_warnings, mockopen, monkeypatch
+):
+    messages = []
+    monkeypatch.setattr(
+        'nomad.config.models.config.logger.warning',
+        messages.append,
+    )
+
+    load_test_config(conf_yaml, None, mockopen, monkeypatch)
+
+    for expected_warning in expected_warnings:
+        assert expected_warning in messages

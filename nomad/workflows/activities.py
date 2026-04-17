@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +17,9 @@ from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Entry, Upload
 from nomad.search import delete_upload
 from nomad.workflows.shared_objects import (
+    CleanupEntriesBatchActivityInput,
+    CleanupEntriesResult,
+    CleanupEntryBatchFromFileInput,
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
     EntriesToBeProcessedResult,
@@ -28,13 +33,15 @@ from nomad.workflows.shared_objects import (
     UploadProcessingWorkflowInput,
     UploadWorkflowIdInput,
 )
-from nomad.workflows.utils import generate_batches
+from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, generate_batches
 
 parser_min_level = min([parser.level for parser in parsers])
 # If the heartbeat timeout is 10 mins, this would send a heartbeat every 60 seconds.
 HEARTBEAT_FREQUENCY = (
     config.temporal.processing_timeouts.internal_processing_heartbeat_timeout / 10
 )
+MAX_IN_MEMORY_ENTRIES = 1000
+CLEANUP_FAST_PATH_ENTRY_THRESHOLD = 100
 
 
 @activity.defn
@@ -68,26 +75,58 @@ def delete_upload_record_activity(input: DeleteUploadWorkflowInput):
         upload.delete()
 
 
+def _process_single_entry(input: ProcessEntryActivityInput):
+    """Process one entry and map permanent processing failures to non-retryable errors."""
+    entry = Entry.get(input.entry_id)
+    try:
+        entry.errors = []
+        entry._process_entry_local()
+        entry.on_success()
+        entry.process_status = ProcessStatus.SUCCESS
+        entry.complete_time = datetime.now(timezone.utc)
+        entry.save()
+    except Exception as e:
+        entry.fail(*[e])
+        entry.save()
+        if isinstance(e, ProcessFailure):
+            # ProcessFailure represents permanent failures (data validation, business logic errors)
+            # that cannot be resolved through retries.
+            raise ApplicationError(str(e), non_retryable=True) from e
+        raise e
+    activity.heartbeat()
+
+
 @activity.defn
 def process_entry_activity(input: ProcessEntryActivityInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
-        entry = Entry.get(input.entry_id)
-        try:
-            entry.errors = []
-            entry._process_entry_local()
-            entry.on_success()
-            entry.process_status = ProcessStatus.SUCCESS
-            entry.complete_time = datetime.now(timezone.utc)
-            entry.save()
-        except Exception as e:
-            entry.fail(*[e])
-            entry.save()
-            if isinstance(e, ProcessFailure):
-                # ProcessFailure represents permanent failures (data validation, business logic errors)
-                # that cannot be resolved through retries.
-                raise ApplicationError(str(e), non_retryable=True) from e
-            else:
-                raise e
+        _process_single_entry(input)
+
+
+@activity.defn
+def process_entry_batch_activity(inputs: list[ProcessEntryActivityInput]):
+    """
+    Process a batch of entries in one Temporal activity invocation.
+
+    Non-retryable entry failures (`ProcessFailure`) are isolated to the affected
+    entry and do not abort the batch. Retryable failures are raised only after
+    all entries in the batch have been attempted.
+    """
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        retryable_error: Exception | None = None
+        for entry_input in inputs:
+            try:
+                _process_single_entry(entry_input)
+            except ApplicationError as e:
+                if getattr(e, 'non_retryable', False):
+                    continue
+                if retryable_error is None:
+                    retryable_error = e
+            except Exception as e:
+                if retryable_error is None:
+                    retryable_error = e
+
+        if retryable_error is not None:
+            raise retryable_error
 
 
 @activity.defn
@@ -129,10 +168,6 @@ def match_all_activity(input: UploadProcessingWorkflowInput):
             path_filter=input.path_filter,
             updated_files=input.updated_files.get_files(),
         )
-        upload.reset_entry_processing_status(
-            path_filter=input.path_filter,
-            updated_files=input.updated_files.get_files(),
-        )
 
 
 @activity.defn
@@ -159,7 +194,7 @@ def next_level_entries(
         # When dealing with multiple large batches, storing all entries in workflow state
         # would exceed Temporal's serialization limits. Instead, we persist batches to disk
         # and process them sequentially via file references.
-        if len(entry_batches) <= 1:
+        if len(next_entries) < MAX_IN_MEMORY_ENTRIES:
             entries_list = [
                 ProcessEntryActivityInput(
                     upload_id=input.upload_id,
@@ -174,9 +209,14 @@ def next_level_entries(
                 upload_id=input.upload_id,
             )
 
-        # If many batches, save all entries to json files
+        # Persist entry IDs as one file per batch to avoid large workflow payloads
+        # without introducing repeated scans through a shared file.
         batch_dir = os.path.join(input.workflow_tmp_dir, f'level_{input.min_level}')
         os.makedirs(batch_dir, exist_ok=True)
+        entry_batches = generate_batches(
+            next_entries,
+            max_desired_batch_size=MAX_IN_MEMORY_ENTRIES,
+        )
 
         for batch_idx, batch in enumerate(entry_batches):
             batch_file = os.path.join(batch_dir, f'entry_batch_{batch_idx}.json')
@@ -195,9 +235,8 @@ def next_level_entries(
 def get_entry_batch_from_file(
     input: EntryBatchFromFileInput,
 ) -> list[ProcessEntryActivityInput]:
-    """Load entries from a specific batch"""
+    """Load entries from a specific batch file."""
     batch_file = Path(input.batch_dir_path) / f'entry_batch_{input.batch_id}.json'
-
     if not batch_file.exists():
         return []
 
@@ -235,16 +274,85 @@ def remove_workflow_id_activity(input: UploadWorkflowIdInput):
 
 
 @activity.defn
-def cleanup_activity(input: UploadProcessingWorkflowInput):
+def prepare_cleanup_activity(
+    input: UploadProcessingWorkflowInput,
+) -> CleanupEntriesResult | None:
+    """Prepare cleanup work and finish small uploads inline."""
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
         upload = Upload.get(input.upload_id)
-        upload.cleanup()
+        entry_ids = [
+            str(entry.entry_id)
+            for entry in Entry.objects(upload_id=input.upload_id)  # type: ignore
+        ]
+        # Small uploads are cheaper to finish here than to route through batch orchestration.
+        if len(entry_ids) < CLEANUP_FAST_PATH_ENTRY_THRESHOLD:
+            upload.cleanup()
+            return None
+
+        # Larger uploads continue in the workflow via in-memory ids or batch files.
+        upload.cleanup_prepare()
+        if len(entry_ids) <= MAX_IN_MEMORY_ENTRIES:
+            return CleanupEntriesResult(
+                upload_id=input.upload_id,
+                entry_ids=entry_ids,
+            )
+
+        batch_dir = os.path.join(input.workflow_tmp_dir, 'cleanup_batches')
+        os.makedirs(batch_dir, exist_ok=True)
+        entry_batches = generate_batches(
+            entry_ids,
+            max_desired_batch_size=CLEANUP_ENTRY_BATCH_SIZE,
+        )
+
+        for batch_idx, batch in enumerate(entry_batches):
+            batch_file = os.path.join(batch_dir, f'cleanup_batch_{batch_idx}.json')
+            with open(batch_file, 'w') as f:
+                json.dump(batch, f)
+
+        return CleanupEntriesResult(
+            upload_id=input.upload_id,
+            directory=str(batch_dir),
+            total_batches=len(entry_batches),
+        )
+
+
+@activity.defn
+def get_cleanup_entry_batch_from_file(
+    input: CleanupEntryBatchFromFileInput,
+) -> list[str]:
+    batch_file = Path(input.batch_dir_path) / f'cleanup_batch_{input.batch_id}.json'
+    if not batch_file.exists():
+        return []
+
+    with open(batch_file) as f:
+        return json.load(f)
+
+
+@activity.defn
+def cleanup_entries_batch_activity(input: CleanupEntriesBatchActivityInput):
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        attempt = activity.info().attempt
+        if attempt > 1:
+            time.sleep(random.uniform(0, min(5.0, float(attempt))))
+        upload = Upload.get(input.upload_id)
+        upload.cleanup_entries_batch(input.entry_ids, refresh=input.refresh)
+
+
+@activity.defn
+def finalize_cleanup_activity(input: UploadProcessingWorkflowInput):
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        upload = Upload.get(input.upload_id)
+        upload.cleanup_finalize()
 
 
 @activity.defn
 def process_upload_success(input: UploadWorkflowIdInput):
     upload = Upload.get(input.upload_id)
-    upload.process_status = ProcessStatus.SUCCESS
+    # When the processing is not triggered it means that the workflow
+    # only modified the upload files. In that case we want to set the status to READY so that the user can trigger the processing manually.
+    upload.process_status = (
+        ProcessStatus.SUCCESS if input.trigger_processing else ProcessStatus.READY
+    )
     upload.set_last_status_message('Process completed successfully')
 
 
@@ -313,6 +421,10 @@ def publish_externally_activity(input: PublishExternallyWorkflowInput):
 @activity.defn
 def handle_heartbeat_failure_activity(input: ProcessEntryActivityInput):
     entry = Entry.get(input.entry_id)
+    # A later retryable failure in the same batch can trigger heartbeat recovery
+    # after this entry has already been persisted as successful.
+    if entry.process_status == ProcessStatus.SUCCESS:
+        return
     entry.fail(
         *[
             'Process entry failed due to a heartbeat timeout. '

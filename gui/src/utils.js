@@ -644,10 +644,13 @@ export function serializeMetainfo(quantity, value, units) {
  * @param {string} dtype The datatype
  * @param {string} dimension Optional dimension for the filter. Used to
  *   determine default unit when a dimensionless value is given.
+ * @param {string} storageUnit Optional storage unit for the filter. Used as
+ *   fallback when no unit is given and the unit system does not provide a
+ *   mapping for the dimension.
  *
  * @return {func} Function for deserializing values with the given datatype.
  */
-export function getDeserializer(dtype, dimension) {
+export function getDeserializer(dtype, dimension, storageUnit) {
   if (numericTypes.has(dtype)) {
     return (value, units) => {
       if (isNil(value)) {
@@ -660,10 +663,10 @@ export function getDeserializer(dtype, dimension) {
           throw Error(`Could not parse the number ${split[0]}`)
         }
         return split.length === 1
-          ? new Quantity(value, units?.[dimension]?.definition || 'dimensionless')
+          ? new Quantity(value, units?.[dimension]?.definition || storageUnit || 'dimensionless')
           : new Quantity(value, split[1])
       } if (isNumber(value)) {
-        return new Quantity(value, units?.[dimension]?.definition || 'dimensionless')
+        return new Quantity(value, units?.[dimension]?.definition || storageUnit || 'dimensionless')
       }
       return value
     }

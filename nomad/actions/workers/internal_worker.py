@@ -4,19 +4,26 @@ import signal
 import sys
 from concurrent.futures.process import ProcessPoolExecutor
 from datetime import timedelta
+from typing import Any
 
-from temporalio.worker import SharedStateManager, Worker
+from temporalio.worker import (
+    ResourceBasedSlotConfig,
+    SharedStateManager,
+    Worker,
+    WorkerTuner,
+)
 
 from nomad.actions import TaskQueue
 from nomad.actions.activities.utils import get_all_activities
 from nomad.actions.client import get_client
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
+from nomad.config.models.config import WorkerConfig
 from nomad.infrastructure import setup
 from nomad.utils.structlogging import get_logger
 
 
-async def run_worker(workers: int, max_tasks_per_child: int = 100):
+async def run_worker(worker_config: WorkerConfig):
     logger = get_logger(__name__)
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
@@ -26,32 +33,58 @@ async def run_worker(workers: int, max_tasks_per_child: int = 100):
         logger.info('Received SIGTERM. Preparing for graceful shutdown')
         stop_event.set()
 
-    loop.add_signal_handler(signal.SIGTERM, _signal_handler)
-    loop.add_signal_handler(signal.SIGINT, _signal_handler)
+    if sys.platform == 'win32':
+        signal.signal(signal.SIGTERM, lambda s, f: _signal_handler())
+        signal.signal(signal.SIGINT, lambda s, f: _signal_handler())
+    else:
+        loop.add_signal_handler(signal.SIGTERM, _signal_handler)
+        loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
     client = await get_client()
-    executor_kwargs = {'max_workers': workers, 'initializer': setup}
+    executor_kwargs = {'max_workers': worker_config.pool_size, 'initializer': setup}
     if sys.version_info >= (3, 11):
-        executor_kwargs['max_tasks_per_child'] = max_tasks_per_child
+        executor_kwargs['max_tasks_per_child'] = worker_config.max_tasks_per_child
 
     # NOTE: internal processing is not thread safe, avoid using ThreadPoolExecutor with more than 1 worker.
     # mypy: has issues with **kwargs in this context
     with ProcessPoolExecutor(**executor_kwargs) as executor:  # type: ignore
-        worker = Worker(
-            client=client,
-            task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            workflows=get_all_workflows(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
-            activities=get_all_activities(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
-            activity_executor=executor,
-            shared_state_manager=SharedStateManager.create_from_multiprocessing(
+        worker_kwargs: dict[str, Any] = {
+            'client': client,
+            'task_queue': TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            'workflows': get_all_workflows(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
+            'activities': get_all_activities(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
+            'activity_executor': executor,
+            'shared_state_manager': SharedStateManager.create_from_multiprocessing(
                 multiprocessing.Manager()
             ),
-            graceful_shutdown_timeout=timedelta(
+            'graceful_shutdown_timeout': timedelta(
                 seconds=config.temporal.graceful_shutdown_timeout
             ),
-            # Limit the number of concurrent activities to avoid overloading the worker
-            max_concurrent_activities=workers,
-        )
+        }
+
+        if worker_config.max_concurrent_activities:
+            worker_kwargs['max_concurrent_activities'] = (
+                worker_config.max_concurrent_activities
+            )
+        else:
+            minimum_activity_slots = (
+                worker_config.min_activity_slots
+                if worker_config.min_activity_slots is not None
+                else worker_config.pool_size
+            )
+            worker_kwargs['tuner'] = WorkerTuner.create_resource_based(
+                target_memory_usage=worker_config.target_memory_usage,
+                target_cpu_usage=worker_config.target_cpu_usage,
+                activity_config=ResourceBasedSlotConfig(
+                    minimum_slots=minimum_activity_slots,
+                    maximum_slots=worker_config.max_activity_slots,
+                    ramp_throttle=timedelta(
+                        milliseconds=worker_config.activity_ramp_throttle
+                    ),
+                ),
+            )
+
+        worker = Worker(**worker_kwargs)
 
         # Run the worker until SIGTERM
         logger.info('Starting internal processing worker.')
@@ -64,11 +97,3 @@ async def run_worker(workers: int, max_tasks_per_child: int = 100):
             await worker_task
         except asyncio.CancelledError:
             logger.info('Worker shut down cleanly.')
-
-
-def main():
-    asyncio.run(run_worker(1))
-
-
-if __name__ == '__main__':
-    main()

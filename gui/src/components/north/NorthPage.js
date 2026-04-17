@@ -34,7 +34,7 @@ import { withLoginRequired } from '../api'
 import Markdown from '../Markdown'
 import DefaultIcon from '@material-ui/icons/Assessment'
 import Icon from '@material-ui/core/Icon'
-import NorthTool, { NorthToolButtons, useNorthTool } from './NorthTool'
+import NorthTool, { getIconUrl, NorthToolButtons, useNorthTool } from './NorthTool'
 import { ui, northTools as _tools } from '../../config'
 
 export const help = `
@@ -78,7 +78,7 @@ const NorthToolAccordion = React.memo(function NorthToolAccordion({...props}) {
               <Icon>
                 <img
                   className={classes.iconImg}
-                  src={`${process.env.PUBLIC_URL}/${icon}`}
+                  src={getIconUrl(icon)}
                   alt="icon"
                 />
               </Icon>
@@ -152,7 +152,7 @@ NorthToolAccordion.propTypes = {}
  */
 const NorthPage = React.memo(() => {
   const tools = useTools()
-  const [expanded, setExpanded] = useState('jupyter')
+  const [expanded, setExpanded] = useState('')
 
   const handleChange = useCallback(tool => {
     setExpanded(value => value === tool.name ? null : tool.name)
@@ -187,7 +187,9 @@ const NorthPage = React.memo(() => {
             name: tools[key].id_url_safe,
             title: tools[key].north_tool.display_name ?? key,
             ...tools[key].north_tool
-          })).map((tool, index) => (
+          }))
+          .sort((a, b) => a.title.localeCompare(b.title))
+          .map((tool, index) => (
             <NorthTool key={index} tool={tool}>
               <NorthToolAccordion
                 expanded={tool.name === expanded}

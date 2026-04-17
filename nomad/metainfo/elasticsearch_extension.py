@@ -158,7 +158,9 @@ sub-sections as if they were direct sub-sections.
 
 import json
 import math
+import random
 import re
+import time
 from collections import defaultdict
 from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, Any, Optional, cast
@@ -493,7 +495,7 @@ class DocumentType:
                         annotation=annotation, prefix=prefix
                     )
                     self.nested_sections.append(search_quantity)
-                    self.nested_object_keys.sort(key=lambda item: len(item))
+                    self.nested_object_keys.sort(key=len)
 
         self.mapping = dict(properties=mappings)
 
@@ -1266,7 +1268,7 @@ def create_indices(
     material_type.nested_object_keys += [
         'entries'
     ] + material_entry_type.nested_object_keys
-    material_type.nested_object_keys.sort(key=lambda item: len(item))
+    material_type.nested_object_keys.sort(key=len)
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
@@ -1358,6 +1360,10 @@ def index_entries(entries: list, refresh: bool = False) -> dict[str, str]:
     MAX_PAYLOAD_SIZE = config.elastic.max_payload_size
     rv = {}
 
+    def _is_retryable_bulk_error(exc: Exception) -> bool:
+        status_code = getattr(exc, 'status_code', None)
+        return status_code in {429, 503}
+
     def perform_bulk(batch):
         nonlocal rv
         timer_kwargs: dict[str, Any] = {'n_actions': len(batch)}
@@ -1371,12 +1377,41 @@ def index_entries(entries: list, refresh: bool = False) -> dict[str, str]:
             lnr_event='failed to bulk index entries',
             **timer_kwargs,
         ):
-            indexing_result = entry_index.bulk(
-                body=batch,
-                refresh=refresh,
-                timeout=f'{config.elastic.bulk_timeout}s',
-                request_timeout=config.elastic.bulk_timeout,
-            )
+            indexing_result = None
+            for attempt in range(1, config.elastic.bulk_retry_attempts + 1):
+                try:
+                    indexing_result = entry_index.bulk(
+                        body=batch,
+                        refresh=refresh,
+                        timeout=f'{config.elastic.bulk_timeout}s',
+                        request_timeout=config.elastic.bulk_timeout,
+                    )
+                    break
+                except TransportError as e:
+                    if (
+                        not _is_retryable_bulk_error(e)
+                        or attempt >= config.elastic.bulk_retry_attempts
+                    ):
+                        raise
+
+                    backoff = min(
+                        config.elastic.bulk_retry_max_backoff,
+                        config.elastic.bulk_retry_initial_backoff
+                        * (2 ** (attempt - 1)),
+                    )
+                    sleep_time = backoff + random.uniform(
+                        0, config.elastic.bulk_retry_jitter
+                    )
+                    logger.warning(
+                        'retrying rejected elasticsearch bulk request',
+                        attempt=attempt,
+                        max_attempts=config.elastic.bulk_retry_attempts,
+                        status_code=getattr(e, 'status_code', None),
+                        sleep_time=sleep_time,
+                    )
+                    time.sleep(sleep_time)
+
+            assert indexing_result is not None
             if indexing_result.get('errors'):
                 for item in indexing_result.get('items', []):
                     status = item.get('index', {}).get('status')

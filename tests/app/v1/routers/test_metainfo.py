@@ -39,7 +39,7 @@ from tests.processing.test_data import run_processing
                 'name': 'test.Package',
                 'section_definitions': [{'name': 'MySection'}],
             },
-            id='python',
+            id='metainfo-section-id-endpoint',
         )
     ],
 )

@@ -345,6 +345,26 @@ def _query_uploads(
     if uploads is not None:
         final_query &= Q(upload_id__in=list(uploads))
 
+    if unindexed:
+        # Select uploads that currently have no indexed entries in ES.
+        candidate_uploads = proc.Upload.objects(final_query)  # type: ignore
+        unindexed_upload_ids: list[str] = []
+        for upload in candidate_uploads:
+            if upload.total_entries_count == 0:
+                unindexed_upload_ids.append(upload.upload_id)
+                continue
+
+            results = search.search(
+                owner='admin',
+                query={'upload_id': upload.upload_id},
+                pagination=models.MetadataPagination(page_size=0),
+                user_id=config.services.admin_user_id,
+            )
+            if results.pagination.total == 0:
+                unindexed_upload_ids.append(upload.upload_id)
+
+        final_query &= Q(upload_id__in=unindexed_upload_ids)
+
     return final_query, proc.Upload.objects(final_query)  # type: ignore
 
 
@@ -413,9 +433,11 @@ def export(ctx, uploads, required, output: str):
             total_count += 1
             try:
                 if upload_files is not None:  # Added check
-                    archive = upload_files.read_archive(entry_id)
-                    archive_data = required_reader.read(archive, entry_id, upload_id)
-                    write(entry_id, archive_data)
+                    with upload_files.read_archive(entry_id) as archive:
+                        archive_data = required_reader.read(
+                            archive, entry_id, upload_id
+                        )
+                        write(entry_id, archive_data)
             except ArchiveQueryError as e:
                 logger.error('could not read archive', exc_info=e, entry_id=entry_id)
             except KeyError as e:
@@ -981,7 +1003,7 @@ def integrity(
         upload_files = upload.upload_files
 
         return any(
-            not upload_files.raw_path_exists(file)
+            not upload_files.raw_exists(file)
             for entry in search_results.data
             for file in entry['files']
         )
@@ -1000,9 +1022,7 @@ def integrity(
             upload_files = PublicUploadFiles(upload.upload_id)
 
             return _check_file_exist(
-                PublicUploadFiles._create_msg_file_object(  # noqa
-                    upload_files, upload_files.access, True
-                ).os_path
+                upload_files.msg_fp(upload_files.access, True).os_path
             )
 
         upload_files = StagingUploadFiles(upload.upload_id)  # type: ignore
@@ -1086,11 +1106,7 @@ def integrity(
         if upload.published:
             upload_files = PublicUploadFiles(upload.upload_id)
 
-            return _check_magic(
-                PublicUploadFiles._create_msg_file_object(  # noqa
-                    upload_files, upload_files.access, True
-                ).os_path
-            )
+            return _check_magic(upload_files.msg_fp(upload_files.access, True).os_path)
 
         upload_files = StagingUploadFiles(upload.upload_id)  # type: ignore
 
@@ -1122,11 +1138,7 @@ def integrity(
         if upload.published:
             upload_files = PublicUploadFiles(upload.upload_id)
 
-            return _check_suffix(
-                PublicUploadFiles._create_msg_file_object(  # noqa
-                    upload_files, upload_files.access, True
-                ).os_path
-            )
+            return _check_suffix(upload_files.msg_fp(upload_files.access, True).os_path)
 
         upload_files = StagingUploadFiles(upload.upload_id)  # type: ignore
 
@@ -1390,9 +1402,7 @@ def import_bundle(ctx, input_path, multi, settings, embargo_length, ignore_error
                 print(f'Skipping, does not look like a bundle: {bundle_path}')
     finally:
         print('-' * 80 + '\nSummary:\n' + '-' * 80)
-        print(
-            f'Number of bundles successfully {"sent to worker" if use_celery else "imported"}: {count - count_failed}'
-        )
+        print(f'Number of bundles successfully imported: {count - count_failed}')
         if count_failed:
             print(f'FAILED to import: {count_failed}')
             if not ignore_errors:

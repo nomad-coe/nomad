@@ -29,7 +29,7 @@ from nomad.utils.exampledata import ExampleData
 
 
 @pytest.fixture(scope='session')
-def api():
+def api(monkeysession):
     return TestClient(app, base_url='http://testserver/')
 
 

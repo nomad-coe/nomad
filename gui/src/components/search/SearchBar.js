@@ -179,10 +179,7 @@ const SearchBar = React.memo(({
     usePushSearchSuggestion,
     useRemoveSearchSuggestion,
     useSetPagination,
-    searchSyntaxes,
-    useResetFilters,
-    useRefresh,
-    useApiData
+    searchSyntaxes
   } = useSearchContext()
 
   const includedFormats = Object

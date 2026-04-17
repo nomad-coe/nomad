@@ -22,20 +22,25 @@ API endpoint that deliver backend configuration details.
 
 import re
 from enum import Enum
-from typing import Final
+from typing import Annotated, Final
 
+from fastapi import Depends
 from fastapi.routing import APIRouter
 from fastapi_cache.decorator import cache
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
 from nomad import normalizing
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.config import config
-from nomad.config.models.plugins import EntryPoint, PluginPackage
+from nomad.config.models.plugins import PluginPackage
 from nomad.parsing import parsers
 from nomad.parsing.parsers import code_metadata
 from nomad.search import get_statistics
 from nomad.utils import strip
+
+from ..models import User
 
 INFO_CACHE_TTL: Final[int] = 1 * 24 * 60 * 60  # 1 day in seconds
 
@@ -92,7 +97,7 @@ class InfoModel(BaseModel):
     metainfo_packages: list[str]
     codes: list[CodeInfoModel]
     normalizers: list[str]
-    plugin_entry_points: list[EntryPoint] | None = Field(
+    plugin_entry_points: list[dict] | None = Field(
         None,
         description='List of plugin entry points that are activated in this deployment.',
     )
@@ -130,7 +135,12 @@ class InfoModel(BaseModel):
     response_model=InfoModel,
 )
 @cache(expire=INFO_CACHE_TTL)
-async def get_info():
+async def get_info(
+    _user: Annotated[
+        User,
+        Depends(get_current_user([Scope.INFO_READ])),
+    ],
+):
     """Return information about the nomad backend and its configuration."""
 
     parser_names = sorted(

@@ -111,7 +111,7 @@ class Quantity:
     def __init__(
         self,
         quantity: str | mQuantity,
-        re_pattern: str | ParsePattern,
+        re_pattern: str | list | ParsePattern,
         **kwargs,
     ):
         self.name: str
@@ -657,7 +657,7 @@ class TextParser(FileParser):
                             )
                             if unit_index:
                                 self._units[n_q] = values.pop(unit_index - 1).decode()
-                            blocks[n_re[0]] = b''.join(values).decode()
+                            blocks[n_re[0]] = b' '.join(values).decode()
 
                         if not self.allow_overlap:
                             break
@@ -683,11 +683,9 @@ class TextParser(FileParser):
                             quantity.name, data if quantity.repeats else data[0]
                         )
                 else:
-                    data = [
-                        ' '.join(block)
-                        for block in self._blocks[n_q]
-                        if None not in block
-                    ]
+                    blocks = self._blocks.pop(n_q)
+                    self._blocks.insert(n_q, None)
+                    data = [' '.join(block) for block in blocks if None not in block]
                     if data:
                         data = [quantity.to_data(d) for d in data]
                         unit = (

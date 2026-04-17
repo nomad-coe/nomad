@@ -519,9 +519,11 @@ class Structure(MSection):
     n_sites = Quantity(
         type=int,
         default=0,
-        derived=lambda a: len(a.cartesian_site_positions)
-        if a.cartesian_site_positions is not None
-        else 0,
+        derived=lambda a: (
+            len(a.cartesian_site_positions)
+            if a.cartesian_site_positions is not None
+            else 0
+        ),
         description="""
         An integer specifying the length of the cartesian_site_positions property.
         """,
@@ -4645,7 +4647,7 @@ class Properties(MSection):
     available_properties = Quantity(
         type=str,
         default=[],
-        derived=lambda a: available_properties(a),
+        derived=available_properties,
         shape=['0..*'],
         description='Subset of the property names that are present in this entry.',
         a_elasticsearch=Elasticsearch(material_entry_type),

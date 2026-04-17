@@ -740,19 +740,6 @@ class ArchiveReader(ArchiveItem):
         return self._full_cache
 
 
-def combine_archive(path: str, n_entries: int, data: Iterable[tuple]):
-    with ArchiveWriter(path, n_entries, toc_depth=config.archive.toc_depth) as writer:
-        for uuid, reader in data:
-            if not reader:
-                writer.add(uuid, {})
-            elif isinstance(reader, ArchiveReader):
-                toc, data = reader.get_raw(uuid)
-                writer.add_raw(uuid, toc, data)
-            else:
-                # rare case, old reader new writer, toc is not compatible, has to repack
-                writer.add(uuid, to_json(reader[uuid]))
-
-
 def write_archive(
     path_or_file: str | BytesIO,
     n_entries: int,

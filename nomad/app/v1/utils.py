@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import gzip
 import inspect
@@ -25,7 +26,7 @@ import os
 import urllib
 from collections.abc import Iterator
 from types import FunctionType
-from typing import Any
+from typing import IO, Any
 
 from fastapi import HTTPException, Query, status  # noqa: F401
 from pydantic import BaseModel, ValidationError  # noqa: F401
@@ -34,7 +35,7 @@ from nomad.files import StreamedFile, UploadFiles, create_zipstream
 
 
 def parameter_dependency_from_model(
-    name: str, model_cls: BaseModel, exclude: list[str] = []
+    name: str, model_cls: type[BaseModel], exclude: list[str] = []
 ) -> FunctionType:
     """
     Takes a pydantic model class as input and creates a dependency with corresponding
@@ -144,20 +145,20 @@ async def create_download_stream_zipped(
 
                 all_filtered = True
                 files_found = False
-                if not upload_files.raw_path_exists(download_item.raw_path):
+                if not upload_files.raw_exists(download_item.raw_path):
                     pass
-                elif upload_files.raw_path_is_file(download_item.raw_path):
+                elif upload_files.raw_isfile(download_item.raw_path):
                     # File
                     if download_item.zip_path not in streamed_paths:
                         streamed_paths.add(download_item.zip_path)
                         yield StreamedFile(
                             path=download_item.zip_path,
-                            f=upload_files.raw_file(download_item.raw_path, 'rb'),
+                            src=upload_files.raw_file(download_item.raw_path, 'rb'),
                             size=upload_files.raw_file_size(download_item.raw_path),
                         )
                 else:
                     # Directory
-                    for path_info in upload_files.raw_directory_list(
+                    for path_info in upload_files.raw_listdir(
                         download_item.raw_path, recursive, files_only=True
                     ):
                         files_found = True
@@ -173,7 +174,7 @@ async def create_download_stream_zipped(
                                 streamed_paths.add(zip_path)
                                 yield StreamedFile(
                                     path=zip_path,
-                                    f=upload_files.raw_file(path_info.path, 'rb'),
+                                    src=upload_files.raw_file(path_info.path, 'rb'),
                                     size=path_info.size,
                                 )
 
@@ -185,7 +186,7 @@ async def create_download_stream_zipped(
                 manifest_content = json.dumps(manifest).encode()
                 yield StreamedFile(
                     path='manifest.json',
-                    f=io.BytesIO(manifest_content),
+                    src=io.BytesIO(manifest_content),
                     size=len(manifest_content),
                 )
 
@@ -215,31 +216,30 @@ async def create_download_stream_raw_file(
             file will be read.
         decompress: decompresses if the file is compressed (and of a supported type).
     """
-    raw_file: Any = upload_files.raw_file(path, 'rb')
-    if decompress:
-        if path.endswith('.gz'):
-            raw_file = gzip.GzipFile(filename=path[:3], mode='rb', fileobj=raw_file)
+    with upload_files, upload_files.raw_file(path, 'rb') as raw_file:
+        target_file: IO | io.IOBase = raw_file
+        if decompress:
+            if path.endswith('.gz'):
+                target_file = gzip.GzipFile(
+                    filename=path[:3], mode='rb', fileobj=raw_file
+                )
+            elif path.endswith('.xz'):
+                target_file = lzma.open(filename=raw_file, mode='rb')
 
-        if path.endswith('.xz'):
-            raw_file = lzma.open(filename=raw_file, mode='rb')
+        assert offset >= 0, 'Invalid offset provided'
+        assert length > 0 or length == -1, (
+            'Invalid length provided. Should be > 0 or equal to -1.'
+        )
+        if offset > 0:
+            target_file.seek(offset)
 
-    assert offset >= 0, 'Invalid offset provided'
-    assert length > 0 or length == -1, (
-        'Invalid length provided. Should be > 0 or equal to -1.'
-    )
-    if offset > 0:
-        raw_file.seek(offset)
-
-    if length > 0:
-        # Read up to a certain number of bytes
-        yield raw_file.read(length)
-    else:
-        # Read until the end of the file.
-        while content := raw_file.read(1024 * 1024):
-            yield content
-
-    raw_file.close()
-    upload_files.close()
+        if length > 0:
+            # Read up to a certain number of bytes
+            yield target_file.read(length)
+        else:
+            # Read until the end of the file.
+            while content := target_file.read(1024 * 1024):
+                yield content
 
 
 async def create_stream_from_string(content: str):

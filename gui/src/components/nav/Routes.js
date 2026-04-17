@@ -37,7 +37,7 @@ import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
 import DatasetsPage, { help as datasetsHelp } from '../dataset/DatasetsPage'
-import ResolveDOI from '../dataset/ResolveDOI'
+import ResolveDOI from '../ResolveDOI'
 import { DatatableExamples } from '../datatable/DatatableExamples'
 import {EditQuantityExamples} from '../editQuantity/EditQuantityExamples'
 import UploadPage from '../uploads/UploadPage'
@@ -159,6 +159,10 @@ const uploadRoutes = [
           },
           ...entryRoutes
         ]
+      },
+      {
+        path: 'doi',
+        component: ResolveDOI
       }
     ]
   }

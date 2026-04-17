@@ -18,11 +18,13 @@
 
 import traceback
 
-from fastapi import FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from nomad import utils
+from nomad.app.v1.routers.auth import get_current_user
+from nomad.auth.scopes import Scope
 from nomad.config import config
 
 from .common import root_path
@@ -40,6 +42,7 @@ app = FastAPI(
     title='DCAT API',
     version=f'v1, NOMAD {config.meta.version}',
     description="NOMAD's API for serving dcat resources",
+    dependencies=[Depends(get_current_user([Scope.EXTERNAL_DCAT_READ]))],
 )
 
 app.add_middleware(
