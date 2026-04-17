@@ -9,7 +9,7 @@ readme = "README.md"
 authors = [
   { name = "NOMAD Laboratory", email = "markus.scheidgen@physik.hu-berlin.de" },
 ]
-version = '1.4.2'
+dynamic = ["version"]
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 
