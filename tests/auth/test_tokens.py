@@ -269,23 +269,6 @@ def test_create_rejects_token_invalid_scope(mongo_function):
         )
 
 
-def test_create_rejects_token_invalid_scope(mongo_function):
-    """
-    Verifies that requesting invalid scope immediately throws a ValueError.
-    """
-    with pytest.raises(ValueError, match='Invalid scope'):
-        create_pat(
-            user_id='user_123',
-            expires_in_days=30,
-            metadata=PATMetadata(
-                name='Invalid Scope Token',
-                scopes=[
-                    'invalid',
-                ],
-            ),
-        )
-
-
 # Test `rotate`
 
 
