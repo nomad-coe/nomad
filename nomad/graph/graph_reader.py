@@ -94,7 +94,8 @@ from nomad.metainfo.data_type import Any as AnyType
 from nomad.metainfo.util import MSubSectionList, split_python_definition
 from nomad.mongo.groups import MongoUserGroup, get_mongo_user_group
 from nomad.mongo.package import PackageDefinition
-from nomad.processing import Entry, ProcessStatus, Upload
+from nomad.mongo.search import MongoQueryError, create_mongo_query
+from nomad.processing import Entry, Upload
 
 logger = utils.get_logger(__name__)
 
@@ -1427,30 +1428,13 @@ class MongoReader(GeneralReader):
 
         assert isinstance(config.query, UploadProcDataQuery)
 
-        mongo_query = Q()
-
-        if config.query.upload_id:
-            mongo_query &= Q(upload_id__in=config.query.upload_id)
-
-        if config.query.upload_name:
-            mongo_query &= Q(upload_name__in=config.query.upload_name)
-
-        if config.query.process_status is not None:
-            mongo_query &= Q(process_status=config.query.process_status)
-        elif config.query.is_processing is True:
-            mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
-        elif config.query.is_processing is False:
-            mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
-
-        if config.query.is_published is True:
-            mongo_query &= Q(publish_time__ne=None)
-        elif config.query.is_published is False:
-            mongo_query &= Q(publish_time=None)
-
-        if config.query.is_owned is True:
-            mongo_query &= Q(main_author=self.auth_user_id)
-        elif config.query.is_owned is False:
-            mongo_query &= Q(main_author__ne=self.auth_user_id)
+        try:
+            mongo_query = create_mongo_query(
+                config.query,
+                auth_user_id=self.auth_user_id,
+            )
+        except MongoQueryError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
         return config.query.model_dump(exclude_unset=True), self.uploads.filter(
             mongo_query

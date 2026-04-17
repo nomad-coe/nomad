@@ -59,6 +59,7 @@ from nomad.datacite.service import create_doi_for_upload, publish_doi
 from nomad.files import PublicUploadFiles, StagingUploadFiles
 from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup
+from nomad.mongo.search import MongoQueryError, create_mongo_query
 from nomad.processing import (
     Entry,
     MetadataEditRequestHandler,
@@ -366,7 +367,20 @@ class UploadProcDataQuery(BaseModel):
     )
     upload_name: list[str] | None = Field(
         None,
-        description='Search for uploads matching the given upload_name. Multiple values can be specified.',
+        description=strip(
+            """
+            Search for uploads by upload_name.
+
+            Implicit exact form:
+            - `upload_name=value`
+
+            Explicit form:
+            - `upload_name={"value":"name","type":"exact"}`
+            - `upload_name={"value":"term","type":"fuzzy"}`
+
+            Multiple values can be specified.
+            """
+        ),
     )
     is_processing: bool | None = Field(
         None,
@@ -871,7 +885,7 @@ def get_command_examples(
     tags=[APITag.METADATA],
     summary='List uploads of authenticated user.',
     response_model=UploadProcDataQueryResponse,
-    responses=create_responses(_not_authorized, _bad_pagination),
+    responses=create_responses(_not_authorized, _bad_pagination, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
@@ -900,27 +914,15 @@ def get_uploads(
     Retrieves metadata about all uploads that match the given query criteria.
     """
     # Build query
-    mongo_query = Q()
-    mongo_query &= get_role_query(roles, user, include_all=include_all)
-
-    if query.upload_id:
-        mongo_query &= Q(upload_id__in=query.upload_id)
-
-    if query.doi:
-        mongo_query &= Q(doi__in=query.doi)
-
-    if query.upload_name:
-        mongo_query &= Q(upload_name__in=query.upload_name)
-
-    if query.is_processing is True:
-        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
-    elif query.is_processing is False:
-        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
-
-    if query.is_published is True:
-        mongo_query &= Q(publish_time__ne=None)
-    elif query.is_published is False:
-        mongo_query &= Q(publish_time=None)
+    role_query = get_role_query(roles, user, include_all=include_all)
+    try:
+        mongo_query = create_mongo_query(
+            query,
+            base_query=role_query,
+            auth_user_id=str(user.user_id),
+        )
+    except MongoQueryError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Create response
     start = pagination.get_simple_index()
