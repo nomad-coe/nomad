@@ -1,6 +1,6 @@
 ## 1.4.2 (2026-04-17)
 
-### Fixed (7 changes)
+### Fixed (6 changes)
 
 - [Fixed issue in parsing non-scalar config values from environment variables.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/d76801bcd5dc95afd4197b4ae3b344898fb6a84d) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2994))
 - [Fixed issue in resolving schemas with version tags.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6e12284f6ec67bfce7e4b5d714c3dd2a50e7c7a2) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2992))
