@@ -2,13 +2,12 @@
 
 ### Fixed (7 changes)
 
-- [Fixed issue in parsing non-scalar config values from environment variables.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/d76801bcd5dc95afd4197b4ae3b344898fb6a84d)
-- [Fixed issue in resolving schemas using the API.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6e12284f6ec67bfce7e4b5d714c3dd2a50e7c7a2)
-- [Fixed issue with HDF5 file preview not working due to URL redirects.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/54e9c127418a8b80661b5b44e64e35500b9aaf1e)
-- [Fixed issue with the JSONSchema export of self-referencing schemas.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f09a508270f76f59cb66be28bd577ea95f83b2a4)
+- [Fixed issue in parsing non-scalar config values from environment variables.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/d76801bcd5dc95afd4197b4ae3b344898fb6a84d) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2994))
+- [Fixed issue in resolving schemas with version tags.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6e12284f6ec67bfce7e4b5d714c3dd2a50e7c7a2) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2992))
+- [Fixed issue with HDF5 file preview not working due to URL redirects.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/54e9c127418a8b80661b5b44e64e35500b9aaf1e) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2991))
+- [Fixed issue with the JSONSchema export of self-referencing schemas.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f09a508270f76f59cb66be28bd577ea95f83b2a4) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2988))
 - [Fixed `upload ls --unindexed` command.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/4f449d5452ce95eb5d658bba271239a2621dd954) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2967))
 - [Fixed issue with not being able to use units with constants in the UI.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1e41b358423d7a0ef2d79198269b0b186affd39e) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2963))
-- [Minor fix](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/65e3e9ddaa61bbfe49cc16e1a8bc4e22764bb197) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2857))
 
 ### Removed (2 changes)
 
@@ -19,16 +18,16 @@
 
 - [Added new unit for electric field gradient.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/3672d5cd3f81ba178f056698713bf223dd3e1afe) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2965))
 - [Added query capabilities for personal access tokens.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/14a72eea9176cffd4b9357a758bdf66652b01f23) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2916))
-- [Allow actions to request user input for human-in-the-loop interactions](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/28a45cfef4cb5ac1f85feb4dc970719b3ff78626) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2893))
+- [Allow actions to request user input for human-in-the-loop interactions.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/28a45cfef4cb5ac1f85feb4dc970719b3ff78626) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2893))
 - [Added possibility to create DOIs for uploads through the API.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/bad82b09c01043502d5111fe00f1603541ad0ff2) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2886))
 - [Added new widget type for box plots, added initial support for percentiles aggregation.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/de919a9b032c06c18125100be6b1d128f08966dd) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2951))
 - [Add pagination to get actions endpoint](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/69ca2b28a21b3eb97932921fce8d9c8f5e3bd640) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2948))
 - [Resolve "Compressed POTCAR files not stripped"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/e9fcb879afbbecb07cdf61469b777eff473fecad) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2915))
-- [Added a new `fs.actions` file location for storing action logs and artifacts,...](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/8b2c90b5a0f51d75bb35c13084bc42595b6d7cb2) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2892))
+- [Added a new `fs.actions` file location for storing action logs and artifacts.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/8b2c90b5a0f51d75bb35c13084bc42595b6d7cb2) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2892))
 - [Added priority levels to data processing workflows.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/324ac587bcef4f2031d3dbefc858dae1b4cd2a34) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2913))
-- [Added implementation for personal access tokens](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f008cc90c41c8f49b4b60027898917f457396541) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2875))
+- [Added implementation for personal access tokens.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f008cc90c41c8f49b4b60027898917f457396541) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2875))
 - [Added new `schemas` API endpoint that also supports JSONSchema format.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1904401038b926b9b26f9e97cd191adf1edad4f5) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2499))
-- [Add temporal worker tuner](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/23a67f3597153555c604b2c1d411f33fe103c339) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2874))
+- [Add temporal worker tuner.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/23a67f3597153555c604b2c1d411f33fe103c339) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2874))
 - [Added option to API endpoints to avoid triggering processing of data upon upload content change.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/c2a433217a9254d1510b926beacff7d3ada95f2a) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2861))
 - [Added improved authorization/authentication options in the NOMAD configuration.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/a7c7aaeb81a799d56780e5d2a658d36dd76a9d4e) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2854))
 
@@ -36,7 +35,7 @@
 
 - [Optimized the file matching and cleanup activities during data processing.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/b2eec052a9c599ae3f78a0f481e2e3937f0ea3cd) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2953))
 - [Action documents migrate to async mongo + beanie](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/fad62fcd3bf98f70402e4b595cca54081bc0352b) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2905))
-- [Improved processing throughput for uploads with large amounts of small entries...](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7874efdf1998db4430e6170a0fd752d3116cc600) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2920))
+- [Improved processing throughput for uploads with large amounts of small entries.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7874efdf1998db4430e6170a0fd752d3116cc600) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2920))
 - [Updated h5grove to version >=3.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/4ac348c835f85b6f93116c016042e80ed22a72cd) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2895))
 - [Changed the temporal entry batch processing logic to better utilize CPU.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/2c0c77702e2e748a86b8840fa90d973cbd2b24e7) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2872))
 - [Increased the processing throughput by simplifying the workflow structure.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1883bf67cec2a114a6762e9bde26d41428909a7c) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2867))
