@@ -23,6 +23,7 @@ is run once for each *api* and *worker* process. Individual functions for partia
 exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 """
 
+import asyncio
 import os
 import shutil
 import smtplib
@@ -100,21 +101,26 @@ def setup_mongo():
 
 # The async pymongo client (used by Beanie for actions)
 async_mongo_client = None
+async_mongo_loop: asyncio.AbstractEventLoop | None = None
 
 
 async def init_async_mongo():
     """Initialize Motor + Beanie for async MongoDB access to the action_document collection."""
-    global async_mongo_client
+    global async_mongo_client, async_mongo_loop
     from beanie import init_beanie
     from pymongo import AsyncMongoClient
 
     from nomad.mongo.action import ActionDocument
+
+    if async_mongo_client is not None:
+        return async_mongo_client
 
     kwargs = dict(host=config.mongo.host, port=config.mongo.port)
     if config.mongo.username and config.mongo.password:
         kwargs.update(username=config.mongo.username, password=config.mongo.password)
 
     async_mongo_client = AsyncMongoClient(**kwargs, maxPoolSize=50, minPoolSize=50)
+    async_mongo_loop = asyncio.get_running_loop()
     # Force connection pool initialization
     await async_mongo_client.admin.command('ping')
     await init_beanie(
@@ -122,6 +128,7 @@ async def init_async_mongo():
         document_models=[ActionDocument],
     )
     logger.info('setup async mongo connection (Beanie)')
+    return async_mongo_client
 
 
 def index_builtin_packages():

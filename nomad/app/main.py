@@ -111,6 +111,7 @@ async def lifespan(app: FastAPI):
         if infrastructure.async_mongo_client is not None:
             await infrastructure.async_mongo_client.close()
             infrastructure.async_mongo_client = None
+            infrastructure.async_mongo_loop = None
         if os.path.exists(GuiFiles.gui_artifacts_path):
             os.remove(GuiFiles.gui_artifacts_path)
 
