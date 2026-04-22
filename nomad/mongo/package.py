@@ -95,8 +95,8 @@ class PackageDefinition(Document):
         Get the package definition that contains the given section definition ID.
         """
         for field in ('snapshot_section_ids', 'snapshot_package_id'):
-            if (packages := cls.objects(**{field: snapshot_id})).count() > 0:
-                result = packages.first().to_mongo().to_dict()
+            if package := cls.objects(**{field: snapshot_id}).first():
+                result = package.to_mongo().to_dict()
                 result['snapshot_package_id'] = result.pop('_id')
                 return result
 
