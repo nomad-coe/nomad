@@ -10,9 +10,6 @@ from fastapi_cache.decorator import cache
 from pydantic import BaseModel
 
 from nomad.actions.manager import (
-    ActionModel,
-    ActionPage,
-    ActionSchemaInfo,
     action_log_file_path,
     get_action_result_async,
     get_action_status_async,
@@ -24,6 +21,7 @@ from nomad.actions.manager import (
     submit_signal_input,
     validate_action_arg,
 )
+from nomad.actions.models import ActionRecord, ActionRecordPage, ActionSchemaInfo
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
@@ -328,7 +326,7 @@ _not_authorized = (
     '/{action_instance_id}',
     tags=[APITag.DEFAULT],
     summary='Get a specific action of the authenticated user.',
-    response_model=ActionModel,
+    response_model=ActionRecord,
     responses=create_responses(_not_authorized),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
@@ -521,7 +519,7 @@ async def action_logs(
         'Pass the returned ``next_cursor`` value as the ``cursor`` query parameter to '
         'fetch the next page.'
     ),
-    response_model=ActionPage,
+    response_model=ActionRecordPage,
     responses=create_responses(_not_authorized),
     response_model_exclude_unset=True,
     response_model_exclude_none=False,
@@ -567,7 +565,7 @@ async def actions(
         upload_id: Optional upload ID to filter actions by.
 
     Returns:
-        An ActionPage with items, optional next_cursor, and total count.
+        An ActionRecordPage with items, optional next_cursor, and total count.
     """
     try:
         result = await list_user_actions(
