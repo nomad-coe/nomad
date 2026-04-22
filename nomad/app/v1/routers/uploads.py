@@ -930,8 +930,20 @@ def get_uploads(
 
     # Fetch data from DB
     mongodb_query = pagination.order_result(Upload.objects.filter(mongo_query))  # type: ignore
+    uploads = list(mongodb_query[start:end])
+    upload_ids = [upload.upload_id for upload in uploads]
 
-    data = [upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
+    # Batch fetch entry counts
+    counts = {
+        item['_id']: item['count']
+        for item in Entry.objects(upload_id__in=upload_ids).aggregate(
+            [{'$group': {'_id': '$upload_id', 'count': {'$sum': 1}}}]
+        )
+    }
+
+    data = [upload_to_pydantic(upload, include_total_count=False) for upload in uploads]
+    for pydantic_upload in data:
+        pydantic_upload.entries = counts.get(pydantic_upload.upload_id, 0)
 
     pagination_response = PaginationResponse(
         total=mongodb_query.count(), **pagination.dict()
