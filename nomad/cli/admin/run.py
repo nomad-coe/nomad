@@ -263,6 +263,11 @@ def run_app(
                 self.cfg.set('timeout', config.services.api_timeout)
                 self.cfg.set('worker_class', 'uvicorn.workers.UvicornWorker')
                 self.cfg.set('bind', f'{host}:{port}')
+                # Trust X-Forwarded-* from any upstream. The app is expected
+                # to run behind a reverse proxy / ingress that terminates TLS;
+                # without this, scope['scheme'] stays 'http' and absolute URLs
+                # (e.g. the slash-redirect target) are emitted as http://.
+                self.cfg.set('forwarded_allow_ips', '*')
                 for key, value in kwargs.items():
                     if key in self.cfg.settings and value is not None:
                         self.cfg.set(key, value)
@@ -280,6 +285,8 @@ def run_app(
             log_level='info',
             host=host,
             port=port,
+            proxy_headers=True,
+            forwarded_allow_ips='*',
             **{k: v for k, v in kwargs.items() if v is not None},
         )
 
