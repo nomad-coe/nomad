@@ -1047,25 +1047,45 @@ class GeneralReader:
 
         return plain_dict
 
-    async def retrieve_entry(self, entry_id: str) -> str | dict:
-        def _search():
-            return perform_search(
-                owner='all',
-                query={'entry_id': entry_id},
-                user_id=self.auth_user_id or None,
+    def _retrieve_entry_if_visible(self, entry_id: str) -> Entry | None:
+        entry = Entry.objects(entry_id=entry_id).first()  # type: ignore
+        if entry is None:
+            return None
+
+        # Build a mongo query equivalent to search owner='all' visibility.
+        # owner='all' semantics:
+        # - visible if published
+        # - or visible to viewers (user viewers and viewer groups)
+        user_id = self.auth_user_id
+        group_ids = MongoUserGroup.get_ids_by_user_id(user_id)
+
+        query = (
+            Q(publish_time__ne=None)
+            | Q(coauthor_groups__in=group_ids)
+            | Q(reviewer_groups__in=group_ids)
+        )
+        if user_id is not None:
+            query |= (
+                Q(main_author=user_id) | Q(coauthors=user_id) | Q(reviewers=user_id)
             )
 
-        if (await asyncio.to_thread(_search)).pagination.total == 0:
+        upload_visible = Upload.objects(Q(upload_id=entry.upload_id) & query).first()  # type: ignore
+        if upload_visible is None:
+            return None
+
+        return entry
+
+    async def retrieve_entry(self, entry_id: str) -> str | dict:
+        if (
+            entry := await asyncio.to_thread(self._retrieve_entry_if_visible, entry_id)
+        ) is None:
             self._log(
                 f'The value {entry_id} is not a valid entry id or not visible to current user.',
                 error_type=QueryError.NOACCESS,
             )
             return entry_id
 
-        def _retrieve():
-            return Entry.objects(entry_id=entry_id).first()  # type: ignore
-
-        return self._overwrite_entry(await asyncio.to_thread(_retrieve))
+        return self._overwrite_entry(entry)
 
     async def retrieve_dataset(self, dataset_id: str) -> str | dict:
         def _retrieve():
@@ -2143,8 +2163,11 @@ class EntryReader(MongoReader):
 
 class ElasticSearchReader(EntryReader):
     async def retrieve_entry(self, entry_id: str) -> str | dict:
-        search_response = perform_search(
-            owner='all', query={'entry_id': entry_id}, user_id=self.auth_user_id or None
+        search_response = await asyncio.to_thread(
+            perform_search,
+            owner='all',
+            query={'entry_id': entry_id},
+            user_id=self.auth_user_id or None,
         )
 
         if search_response.pagination.total == 0:

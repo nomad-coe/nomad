@@ -4417,6 +4417,50 @@ def test_file_system_reader_resolved_directory_uses_batch_lookup(
     assert response['mainfile_for_id_02']['entry']['entry_id'] == 'id_02'
 
 
+def test_entry_reader_retrieve_entry_does_not_call_perform_search(
+    monkeypatch, user1, example_data_with_reference
+):
+    def _fail_search(*args, **kwargs):
+        raise AssertionError('retrieve_entry should not call perform_search')
+
+    monkeypatch.setattr('nomad.graph.graph_reader.perform_search', _fail_search)
+
+    with EntryReader({'m_request': {'directive': 'plain'}}, user=user1) as reader:
+        response = reader.sync_read('id_03')
+
+    assert response['entry_id'] == 'id_03'
+
+
+def test_entry_reader_retrieve_entry_group_visibility(
+    uploads_graph_access_via_group, user2, user3
+):
+    required = {'m_request': {'directive': 'plain'}}
+
+    with EntryReader(required, user=user2) as reader:
+        response = reader.sync_read('id_CGg2_1')
+    assert response['entry_id'] == 'id_CGg2_1'
+
+    with EntryReader(required, user=user2) as reader:
+        response = reader.sync_read('id_RGg2_1')
+    assert response['entry_id'] == 'id_RGg2_1'
+
+    with EntryReader(required, user=user3) as reader:
+        response = reader.sync_read('id_CGg2_1')
+    assert response['m_errors'][0]['error_type'] == 'NOACCESS'
+
+
+def test_entry_reader_retrieve_entry_anonymous_all_group_visibility(uploads_get_groups):
+    required = {'m_request': {'directive': 'plain'}}
+
+    with EntryReader(required, user=None) as reader:
+        visible = reader.sync_read('id_RGall_1')
+    assert visible['entry_id'] == 'id_RGall_1'
+
+    with EntryReader(required, user=None) as reader:
+        hidden = reader.sync_read('id_CGg2_1')
+    assert hidden['m_errors'][0]['error_type'] == 'NOACCESS'
+
+
 def test_m_def_format_short(user1, custom_data):
     """Test that m_def_format='short' produces compact 'qualified_name@definition_id' strings."""
 
