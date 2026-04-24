@@ -46,7 +46,7 @@ def check_archive_version(file_or_path: str | BytesIO) -> int:
 
 
 def write_archive(path_or_file: str | BytesIO, data: dict) -> None:
-    dump(path_or_file, data)
+    dump(path_or_file, data, backend='rust')
 
 
 def combine_archive(path: str, data: Iterable[tuple]):
@@ -63,7 +63,7 @@ def combine_archive(path: str, data: Iterable[tuple]):
                 ) as reader:
                     yield FileInfo(None, uuid, obj=to_json(reader[uuid]))
 
-    combine(path, _kernel())
+    combine(path, _kernel(), backend='rust')
 
 
 def read_archive(file_or_path: str | BytesIO, **kwargs):
