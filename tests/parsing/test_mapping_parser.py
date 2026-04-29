@@ -269,6 +269,77 @@ class TestPath:
         value = path.get_data(target)
         assert_equal(value, result)
 
+    def test_set_data_nested_update_mode_overrides_parent(self):
+        path = Path(path='items')
+        target = {
+            'items': [
+                {
+                    'entries': [
+                        {
+                            'kind': 'existing',
+                            'value': 1,
+                        }
+                    ]
+                }
+            ]
+        }
+        data = [
+            {
+                '.entries': [
+                    {
+                        '.kind': 'incoming',
+                        '.label': 'x',
+                    }
+                ]
+            }
+        ]
+
+        path.set_data(
+            data,
+            target,
+            update_mode={
+                '__update_mode': 'merge',
+                '.entries': {'__update_mode': 'append'},
+            },
+        )
+
+        item_data = target['items'][0]
+        entries = item_data.get('entries', item_data.get('.entries', []))
+        assert len(entries) == 2
+        assert any('label' in section or '.label' in section for section in entries)
+        assert any('value' in section or '.value' in section for section in entries)
+        assert {
+            section.get('kind', section.get('.kind'))
+            for section in entries
+            if 'kind' in section or '.kind' in section
+        } == {
+            'existing',
+            'incoming',
+        }
+
+    def test_set_data_merge_last_scalar_list(self):
+        path = Path(path='a.b')
+        target = {'a': {'b': [10, 20]}}
+
+        path.set_data([1, 2, 3, 4, 5], target, update_mode='merge@last')
+
+        assert target['a']['b'] == [1, 2, 3, 10, 20]
+
+    def test_set_data_merge_last_scalar_list_current_longer(self):
+        path = Path(path='a.b')
+        target = {'a': {'b': [10, 20, 30, 40, 50]}}
+
+        path.set_data([1, 2], target, update_mode='merge@last')
+
+        assert target['a']['b'] == [10, 20, 30, 40, 50]
+
+    def test_set_data_merge_invalid_index_raises(self):
+        path = Path(path='a.b')
+        target = {'a': {'b': [10, 20]}}
+
+        with pytest.raises(ValueError, match='merge index must be an integer'):
+            path.set_data([1, 2, 3], target, update_mode='merge@foo')
+
 
 class TestMapper:
     @pytest.mark.parametrize(
@@ -529,6 +600,33 @@ class TestMapper:
 
 
 class TestMappingParser:
+    def test_set_data_nested_update_mode_per_key(self, monkeypatch):
+        parser = ExampleParser(data={})
+        update_modes: list[tuple[str, str | None]] = []
+
+        def fake_set_data(self, data, target, **kwargs):
+            update_modes.append((self.path, kwargs.get('update_mode')))
+            return data
+
+        monkeypatch.setattr(Path, 'set_data', fake_set_data)
+        parser.set_data(
+            {'a': {'b': 1, 'c': 2}},
+            {},
+            update_mode={
+                '__update_mode': 'merge',
+                'a': {
+                    '__update_mode': 'merge',
+                    '.b': {'__update_mode': 'replace'},
+                    '.c': {'__update_mode': 'append'},
+                },
+            },
+        )
+
+        mode_map = {path: mode for path, mode in update_modes}
+        assert mode_map['a']['__update_mode'] == 'merge'
+        assert mode_map['b']['__update_mode'] == 'replace'
+        assert mode_map['c']['__update_mode'] == 'append'
+
     def test_convert_xml_to_archive(self, xml_parser, archive_parser):
         archive_parser.annotation_key = 'xml'
         archive_parser.data_object = ExampleSection(b=[BSection(v=np.eye(2))])

@@ -260,6 +260,32 @@ class JmespathOptions(jmespath.visitor.Options):
 LOGGER = get_logger(__name__)
 
 
+def _normalize_update_mode_spec(update_mode: Any) -> dict[str, Any]:
+    """Normalize update_mode into a nested spec dictionary."""
+    if isinstance(update_mode, dict):
+        return update_mode
+    return {'__update_mode': update_mode}
+
+
+def _get_update_mode(update_mode_spec: Any, key: str | None = None) -> Any:
+    """Return update mode or child update mode spec for a key.
+
+    If key is None, return the current level mode string (or None).
+    If key is provided, return a child mode spec dict, inheriting the parent
+    mode when no explicit key-specific entry is found.
+    """
+    spec = _normalize_update_mode_spec(update_mode_spec)
+    if key is None:
+        return spec.get('__update_mode')
+
+    normalized_key = key.lstrip('.')
+    child_spec = spec.get(normalized_key, spec.get(f'.{normalized_key}'))
+    if child_spec is not None:
+        return _normalize_update_mode_spec(child_spec)
+
+    return _normalize_update_mode_spec(spec.get('__update_mode'))
+
+
 class TreeInterpreter(jmespath.visitor.TreeInterpreter):
     """Extended jmespath interpreter supporting path creation and data modification.
 
@@ -866,12 +892,47 @@ class Path(BaseModel, validate_assignment=True):
         update_mode. The target dictionary is modified in-place.
 
         Update modes:
-            - 'replace' (default): Completely replace existing data
-            - 'append': Keep existing data if present, otherwise use new data
-            - 'merge' (dicts): Recursively merge keys from source into target
-            - 'merge@start' (lists): Align source[0] with target[0], insert non-overlapping
-            - 'merge@last' (lists): Align source[-1] with target[-1], extends backward
-            - 'merge@N' (lists): Align source[N] with target[0] (negative N supported)
+            String modes (global behavior):
+                - 'replace': Completely replace existing data at this path
+                - 'append': Keep existing data if present, otherwise use new data
+                - 'merge' (default): Recursively merge dictionaries, align list elements
+                - 'merge@start' (lists): Align source[0] with target[0]
+                - 'merge@last' (lists): Align source[-1] with target[-1]
+                - 'merge@N' (lists): Align source[N] with target[0] (negative N supported)
+                - 'merge@end' (lists): Alias for 'merge@last'
+
+            Nested dictionary mode (per-key control):
+                The framework automatically builds nested update_mode specifications from
+                mapper hierarchies via `build_update_mode_tree()`. This allows per-subsection
+                control during multi-pass parsing.
+
+                Internal structure (automatically constructed)::
+
+                    {
+                        '__update_mode': 'merge',     # Mode for this level
+                        'key_name': {                 # Per-key override
+                            '__update_mode': 'append',
+                            'nested_key': {'__update_mode': 'replace'}
+                        }
+                    }
+
+                The `__update_mode` key sets the mode for the current level. Child keys
+                inherit parent mode unless explicitly overridden.
+
+                Use case: Multi-pass parsing with polymorphic subsections
+
+                Users specify string update_mode on individual annotations. The framework
+                automatically constructs the nested tree:
+
+                >>> # Schema annotations (user-defined)
+                >>> add_mapping_annotation(Simulation.model_method, 'key1', '.@', update_mode='merge')
+                >>> add_mapping_annotation(KMesh.m_def, 'key1', '.kmesh', update_mode='append')
+                >>> add_mapping_annotation(KDensity.m_def, 'key1', '.kdensity', update_mode='append')
+                >>>
+                >>> # Framework automatically constructs nested tree and applies during convert()
+                >>> source1.convert(target)  # First pass: KMesh instance appended
+                >>> source2.convert(target)  # Second pass: KDensity instance appended
+                >>> # Result: Both KMesh and KDensity instances preserved in list
 
         List merge behavior:
             For 'merge@last': start = len(source) - len(target), so if source=[1,2,3,4,5]
@@ -884,77 +945,114 @@ class Path(BaseModel, validate_assignment=True):
         Args:
             data: New data to set at the path.
             target: Dictionary to modify (modified in-place).
-            **kwargs: Options including update_mode, passed to parser.set_data.
+            **kwargs: Options including update_mode (str | dict), passed to parser.set_data.
 
         Returns:
             Any: The data at the path location after setting and merging.
 
-        Example:
+        Examples:
+            >>> # Basic merge modes
             >>> path = Path(path='a.b')
             >>> target = {'a': {'b': [10, 20]}}
             >>> path.set_data([1, 2, 3, 4, 5], target, update_mode='merge@last')
-            >>> # Merges: source[3]->target[0], source[4]->target[1]
-            >>> # Inserts: source[0,1,2] at positions 0,1,2
             >>> target  # {'a': {'b': [1, 2, 3, 10, 20]}}
+
+            >>> # Nested mode (typically passed by framework, not users)
+            >>> # This example shows internal mechanics only
+            >>> target = {
+            ...     'items': [{
+            ...         'entries': [{'kind': 'existing', 'value': 1}]
+            ...     }]
+            ... }
+            >>> nested_spec = {
+            ...     '__update_mode': 'merge',
+            ...     '.entries': {'__update_mode': 'append'}
+            ... }
+            >>> path.set_data(
+            ...     [{'entries': [{'kind': 'new', 'label': 'x'}]}],
+            ...     target,
+            ...     update_mode=nested_spec
+            ... )
+            >>> # Result: entries list now has both 'existing' and 'new' entries
         """
         cur_data = self.get_data(target, **kwargs)
-        update_mode = kwargs.get('update_mode')
+        update_mode = _normalize_update_mode_spec(kwargs.get('update_mode'))
         path = self.relative_path
 
-        def update(source: Any, target: Any):
-            # Type mismatch: keep target if append mode, otherwise use source
-            if not isinstance(source, type(target)):
+        def update(current: Any, incoming: Any, update_mode_spec: Any):
+            mode = _get_update_mode(update_mode_spec)
+            # Type mismatch: keep incoming if append mode, otherwise use current
+            if not isinstance(current, type(incoming)):
                 return (
-                    target if update_mode == 'append' and target is not None else source
+                    incoming if mode == 'append' and incoming is not None else current
                 )
 
             # Dictionary merge: recursively merge all keys
-            if isinstance(source, dict):
-                if update_mode != 'replace':
-                    for key in list(source.keys()):
+            if isinstance(current, dict):
+                if mode != 'replace':
+                    for key in list(current.keys()):
+                        child_mode = _get_update_mode(update_mode_spec, key)
                         # Recursively update each key (prefix with '.' for relative path)
-                        target[f'.{key}'] = update(
-                            source.get(key), target.get(f'.{key}')
+                        incoming[f'.{key}'] = update(
+                            current.get(key), incoming.get(f'.{key}'), child_mode
                         )
-                return target
+                return incoming
 
             # List merge: complex alignment logic based on merge_at position
-            if isinstance(source, list):
-                merge = re.match(r'merge(?:@(.+))*', update_mode or '')
+            if isinstance(current, list):
+                merge = re.match(r'merge(?:@(.+))*', mode or '')
                 if merge:
                     merge_at = merge.groups()[0]
-                    # Calculate starting index in source for alignment
+                    # Calculate starting index in incoming for alignment.
                     if not merge_at or merge_at == 'start':
-                        start = 0  # Align source[0] with target[0]
-                    elif merge_at == 'last':
-                        start = len(source) - len(
-                            target
-                        )  # Align source[-1] with target[-1]
+                        start = 0  # Align current[0] with target[0]
+                    elif merge_at in ('last', 'end'):
+                        start = len(incoming) - len(
+                            current
+                        )  # Align current[-1] with target[-1]
                     else:
-                        start = int(merge_at)  # Align source[N] with target[0]
+                        if not re.fullmatch(r'-?\d+', merge_at):
+                            raise ValueError(
+                                f'Invalid merge mode "{mode}": merge index must be an integer, '
+                                'or one of "start" or "last".'
+                            )
+                        start = int(merge_at)  # Align current[N] with target[0]
+
+                    # If current starts before incoming index 0, preserve that left segment
+                    # by prepending it, then continue merging at the shifted index.
+                    current_to_merge = current
                     if start < 0:
-                        start += len(source)  # Handle negative indices
-                    for n, d in enumerate(source):
+                        left_overhang = min(-start, len(current_to_merge))
+                        if left_overhang:
+                            incoming[:0] = current_to_merge[:left_overhang]
+                            current_to_merge = current_to_merge[left_overhang:]
+                            start = left_overhang
+
+                    for n, d in enumerate(current_to_merge):
+                        target_index = start + n
                         # If within merge window, recursively merge with target element
-                        if n >= start and n < start + len(target):
-                            update(d, target[n - start])
+                        if 0 <= target_index < len(incoming):
+                            incoming[target_index] = update(
+                                d, incoming[target_index], update_mode_spec
+                            )
                         else:
-                            # Outside merge window, insert source element at its index
-                            target.insert(n, d)
-                elif update_mode == 'append':
-                    # Append mode: prepend all source elements
-                    for n, d in enumerate(source):
-                        target.insert(n, update(d, {}))
-                return target
+                            # Outside merge window, insert existing element at aligned index
+                            insert_at = max(0, min(target_index, len(incoming)))
+                            incoming.insert(insert_at, d)
+                elif mode == 'append':
+                    # Append mode: prepend all current elements
+                    for n, d in enumerate(current):
+                        incoming.insert(n, update(d, {}, update_mode_spec))
+                return incoming
 
-            # Scalar values: keep target if append mode, otherwise use source
-            return target if update_mode == 'append' and target is not None else source
+            # Scalar values: keep incoming if append mode, otherwise use current
+            return incoming if mode == 'append' and incoming is not None else current
 
-        res = self.parser.set_data(path, target, data, **kwargs)
+        new_data = self.parser.set_data(path, target, data, **kwargs)
 
-        update(cur_data, res)
+        update(cur_data, new_data, update_mode)
 
-        return res
+        return new_data
 
 
 Path.model_rebuild()
@@ -989,12 +1087,12 @@ class Data(BaseModel, validate_assignment=True):
         Used by: :class:`BaseMapper` for source/target specification
     """
 
-    path: Path = Field(None, description="""Path to the data.""")
-    transformer: 'Transformer' = Field(
+    path: Path | None = Field(None, description="""Path to the data.""")
+    transformer: 'Transformer | None' = Field(
         None, description="""Transformer to extract data."""
     )
-    parent: Path = Field(None, description="""Parent path.""")
-    path_parser: PathParser = Field(
+    parent: Path | None = Field(None, description="""Parent path.""")
+    path_parser: PathParser | None = Field(
         None, description="""Parser used to search and set data."""
     )
 
@@ -1108,6 +1206,9 @@ class BaseMapper(BaseModel):
     cache: bool | None = Field(None, description="""Store the result of the mapper.""")
     all_paths: list[str] = Field(
         [], description="""List of all unindexed abs. paths."""
+    )
+    update_mode: str = Field(
+        'merge', description="""Mode to update target with source."""
     )
 
     def get_data(self, source_data: Any, parser: 'MappingParser', **kwargs) -> Any:
@@ -1262,7 +1363,7 @@ class BaseMapper(BaseModel):
         else:
             LOGGER.error('Unknown mapper type.')
 
-        for key in ['indices', 'remove', 'cache']:
+        for key in ['indices', 'remove', 'cache', 'update_mode']:
             if dct.get(key) is not None:
                 setattr(obj, key, dct.get(key))
         if paths.get('source'):
@@ -1895,20 +1996,110 @@ class MappingParser(ABC):
         Takes transformed mapper output (nested dicts with path keys like '.a.b') and
         sets each path into the target dictionary using Path.set_data().
 
+        Update mode behavior:
+            If `update_mode` kwarg is not provided, this method constructs a nested
+            update_mode specification by traversing the mapper hierarchy via
+            `build_update_mode_tree()`. This allows each mapper to specify its own
+            `update_mode` via the annotation, enabling fine-grained control during
+            multi-pass parsing of polymorphic subsections.
+
+            If `update_mode` kwarg IS provided, it overrides the mapper hierarchy.
+
         Args:
             data: Dictionary with path keys, list of dicts, or direct value.
             target: Target dictionary to modify in-place.
-            **kwargs: Options including update_mode and remove.
+            **kwargs: Options including:
+                - update_mode (str | dict | None): Override default merge behavior
+                - remove (bool): Remove data from source after setting
+                - mapper (BaseMapper): Used to build update_mode tree if update_mode=None
+
+        Examples:
+            >>> # Auto mode from mapper annotations
+            >>> parser.set_data(
+            ...     {'.energy': 1.5, '.forces': [[0, 0, 1]]},
+            ...     target,
+            ...     mapper=my_mapper  # Uses my_mapper.update_mode
+            ... )
+            >>>
+            >>> # Override with global mode
+            >>> parser.set_data(
+            ...     {'.numerical_settings': [...]},
+            ...     target,
+            ...     update_mode='append'  # All keys use append
+            ... )
+            >>>
+            >>> # Override with nested mode
+            >>> parser.set_data(
+            ...     {'.numerical_settings': [...]},
+            ...     target,
+            ...     update_mode={
+            ...         '__update_mode': 'merge',
+            ...         '.numerical_settings': {'__update_mode': 'append'}
+            ...     }
+            ... )
         """
+
+        def build_update_mode_tree(mapper: 'BaseMapper') -> dict[str, Any]:
+            """Recursively build nested update_mode specification from mapper hierarchy.
+
+            Called automatically by the framework when `update_mode` kwarg is None in
+            `convert()`. Traverses the mapper tree, extracting each mapper's `update_mode`
+            field and building a nested dictionary keyed by target path. This allows each
+            subsection to specify its own merge behavior during multi-pass parsing.
+
+            Users specify string update_mode on individual annotations; this function
+            constructs the nested tree for internal use.
+
+            Args:
+                mapper: Root mapper to traverse
+
+            Returns:
+                Nested dict with '__update_mode' at each level and child specs by path
+
+            Example output (automatically constructed from annotations):
+                {
+                    '__update_mode': 'merge',
+                    'numerical_settings': {
+                        '__update_mode': 'append',
+                        '.kmesh': {'__update_mode': 'merge'}
+                    }
+                }
+            """
+            # Set this mapper's mode at current level
+            spec: dict[str, Any] = {'__update_mode': mapper.update_mode}
+            # Recursively add child mappers' modes
+            if isinstance(mapper, Mapper):
+                for sub_mapper in mapper.mappers:
+                    # Key by target path so _get_update_mode can find child specs
+                    spec[sub_mapper.target.path.path] = build_update_mode_tree(
+                        sub_mapper
+                    )
+            return spec
+
         if isinstance(data, dict):
+            update_mode_all = cast(
+                str | dict[str, Any] | None, kwargs.get('update_mode')
+            )
+            if update_mode_all is None:
+                mapper = cast(BaseMapper | None, kwargs.get('mapper'))
+                update_mode = (
+                    build_update_mode_tree(mapper)
+                    if mapper is not None
+                    else _normalize_update_mode_spec('merge')
+                )
+            else:
+                update_mode = _normalize_update_mode_spec(update_mode_all)
+
             for key in list(data.keys()):
                 path = Path(path=key)
+                update_mode_n = _get_update_mode(update_mode, key)
+                data_to_add = data.pop(key) if kwargs.get('remove') else data[key]
                 new_data = path.set_data(
-                    data.pop(key) if kwargs.get('remove') else data[key],
+                    data_to_add,
                     data if path.is_relative_path() else target,
-                    update_mode=kwargs.get('update_mode', 'merge'),
+                    update_mode=update_mode_n,
                 )
-                self.set_data(new_data, target, remove=True)
+                self.set_data(new_data, target, remove=True, update_mode=update_mode_n)
 
         elif isinstance(data, list):
             for val in data:
@@ -1936,7 +2127,7 @@ class MappingParser(ABC):
         self,
         target: 'MappingParser',
         mapper: 'BaseMapper | None' = None,
-        update_mode: str = 'merge',
+        update_mode: str | None = None,
         remove: bool = False,
         debug: bool = False,
     ) -> None:
@@ -1975,7 +2166,7 @@ class MappingParser(ABC):
         if mapper.source:
             source_data = mapper.source.get_data(self.data, self)
         result = mapper.get_data(source_data, self, remove=remove, debug=debug)
-        target.set_data(result, target.data, update_mode=update_mode)
+        target.set_data(result, target.data, update_mode=update_mode, mapper=mapper)
         target.from_dict(target.data)
 
     def close(self):
@@ -2014,7 +2205,7 @@ class MetainfoBaseMapper(BaseMapper):
 
         if isinstance(parent, Transformer):
             transformer = MetainfoTransformer()
-            for key in parent.model_fields.keys():
+            for key in type(parent).model_fields.keys():
                 val = getattr(parent, key)
                 if val is not None:
                     setattr(transformer, key, val)
@@ -2025,7 +2216,7 @@ class MetainfoBaseMapper(BaseMapper):
         elif isinstance(parent, Mapper):
             mdct = dct.get('mapper')
             mapper = MetainfoMapper()
-            for key in parent.model_fields.keys():
+            for key in type(parent).model_fields.keys():
                 val = getattr(parent, key)
                 if val is not None:
                     setattr(mapper, key, val)
@@ -2301,7 +2492,9 @@ class MetainfoParser(MappingParser):
                 return mapper
 
             # Phase 2: Build section-level mapper from annotation
-            fill_mapper(mapper, annotation, ['remove', 'cache', 'path_parser'])
+            fill_mapper(
+                mapper, annotation, ['remove', 'cache', 'path_parser', 'update_mode']
+            )
             mapper['source'] = annotation.mapper
 
             # Phase 3: Collect quantity mappers (leaf values)
