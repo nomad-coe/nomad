@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -25,9 +25,9 @@ import {
 } from '@material-ui/core'
 import AssessmentIcon from '@material-ui/icons/Assessment'
 import Icon from '@material-ui/core/Icon'
-import {useApi} from '../api.js'
+import { useApi } from '../api.js'
 import { useErrors } from '../errors'
-import { northBase } from '../../config'
+import { northBase, enableNewHubApi } from '../../config'
 
 const northToolContext = React.createContext()
 
@@ -63,37 +63,76 @@ export function useNorthToolHook(tool, uploadId, path) {
   const { raiseError } = useErrors()
 
   const getToolStatus = useCallback(() => {
-    return api
-      .get(`north/${name}?upload_id=${uploadId}`)
-      .then(response => ({state: response.data.state, uploadid_is_mounted: response.upload_id_is_mounted}))
-      .catch(error => {
-        raiseError(error)
-        return { state: "error", uploadid_is_mounted: null }
-      })
+    if (enableNewHubApi) {
+      const extractMountState = response => {
+        const uploadIds = response.uploads_ids
+        if (uploadIds && typeof uploadIds === 'object') {
+          return uploadId in uploadIds
+        }
+        return false
+      }
+      return api
+        .get(`north/servers/${name}`)
+        .then(response => ({ state: response.state, uploadid_is_mounted: extractMountState(response) }))
+        .catch(error => {
+          raiseError(error)
+          return { state: "error", uploadid_is_mounted: null }
+        })
+    } else {
+      return api
+        .get(`north/${name}?upload_id=${uploadId}`)
+        .then(response => ({ state: response.data.state, uploadid_is_mounted: response.upload_id_is_mounted }))
+        .catch(error => {
+          raiseError(error)
+          return { state: "error", uploadid_is_mounted: null }
+        })
+    }
   }, [api, raiseError, name, uploadId])
 
   const launch = useCallback(() => {
-    return api.post(`north/${name}?upload_id=${uploadId}`)
-      .then(response => {
-        let toolUrl = `${northBase}/user/${response.username}/${response.tool}`
-
-        if (with_path && response.upload_mount_dir && path) {
-          if (path_prefix) {
-            toolUrl = `${toolUrl}/${path_prefix}`
+    if (enableNewHubApi) {
+      return api.post(`north/servers/${name}`)
+        .then(() => {
+          let toolUrl = `${northBase}/user-redirect/${name}`
+          if (with_path && uploadId && path) {
+            const params = new URLSearchParams()
+            params.append('upload_id', uploadId)
+            params.append('path', path)
+            toolUrl = `${toolUrl}?${params.toString()}`
           }
-          toolUrl = `${toolUrl}/${response.upload_mount_dir}/${path}`
-        }
+          return { toolUrl, state: "running", uploadid_is_mounted: null }
+        })
+        .catch(error => {
+          raiseError(error)
+          return { toolUrl: null, state: "stopped", uploadid_is_mounted: null }
+        })
+    } else {
+      return api.post(`north/${name}?upload_id=${uploadId}`)
+        .then(response => {
+          let toolUrl = `${northBase}/user/${response.username}/${response.tool}`
 
-        return { toolUrl, state: response.data.state, uploadid_is_mounted: response.upload_id_is_mounted }
-      })
-      .catch(error => {
-        raiseError(error)
-        return { toolUrl: null, state: "stopped", uploadid_is_mounted: null }
-      })
+          if (with_path && response.upload_mount_dir && path) {
+            if (path_prefix) {
+              toolUrl = `${toolUrl}/${path_prefix}`
+            }
+            toolUrl = `${toolUrl}/${response.upload_mount_dir}/${path}`
+          }
+
+          return { toolUrl, state: response.data.state, uploadid_is_mounted: response.upload_id_is_mounted }
+        })
+        .catch(error => {
+          raiseError(error)
+          return { toolUrl: null, state: "stopped", uploadid_is_mounted: null }
+        })
+    }
   }, [api, raiseError, name, uploadId, path, path_prefix, with_path])
 
   const stop = useCallback(() => {
-    return api.delete(`north/${name}`)
+    const url = enableNewHubApi
+      ? `north/servers/${name}`
+      : `north/${name}?upload_id=${uploadId}`
+
+    return api.delete(url)
       .then(() => "stopped")
       .catch(error => {
         raiseError(error)
@@ -105,7 +144,7 @@ export function useNorthToolHook(tool, uploadId, path) {
 }
 
 export const NorthToolButtons = React.memo(function NorthToolButton() {
-  const {name, launch, stop, state} = useNorthTool()
+  const { name, launch, stop, state } = useNorthTool()
   return (
     <Box display="flex" flexDirection="row">
       <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'starting' || !state}>
@@ -142,14 +181,14 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}) {
+const NorthTool = React.memo(function NorthTool({ tool, uploadId, path, children }) {
   const styles = useStyles()
   const [toolState, setToolState] = useState("stopped")
   const { launch, stop, getToolStatus } = useNorthToolHook(tool, uploadId, path)
 
   useEffect(() => {
     async function fetchStatus() {
-      const {state: status} = await getToolStatus()
+      const { state: status } = await getToolStatus()
       setToolState(status)
     }
     fetchStatus()
@@ -192,7 +231,7 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
               <img className={styles.imageIcon} src={getIconUrl(tool.icon)} alt="icon"/>
             </Icon>
           ) : (
-            <AssessmentIcon classes={{root: styles.iconRoot}}/>
+            <AssessmentIcon classes={{ root: styles.iconRoot }} />
           )}
           <Box flexGrow={1}>
             <Typography>

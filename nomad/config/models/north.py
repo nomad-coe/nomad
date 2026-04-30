@@ -135,6 +135,12 @@ class NORTH(ConfigBaseModel):
         whether you run a jupyter hub or not.
     """,
     )
+    enable_new_hub_api: bool = Field(
+        False,
+        description="""
+        Feature flag to enable a new NORTH API
+        """,
+    )
     hub_connect_ip: str | None = Field(
         None,
         description="""

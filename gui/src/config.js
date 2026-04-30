@@ -94,6 +94,7 @@ export const description = window.nomadEnv.description
 export const appBase = urlAbs(window.nomadEnv.appBase.replace(/\/$/, ''))
 export const apiBase = `${appBase}/api`
 export const northBase = urlAbs(window.nomadEnv.northBase)
+export const enableNewHubApi = window.nomadEnv.enableNewHubApi || false
 export const guiBase = process.env.PUBLIC_URL
 export const ui = normalizeConfig(window.nomadEnv.ui)
 export const entry_points = window.nomadEnv?.plugins?.entry_points
