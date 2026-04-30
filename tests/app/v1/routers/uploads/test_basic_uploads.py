@@ -2708,7 +2708,6 @@ async def test_put_upload_raw_path_trigger_processing_option(
 
 @pytest.fixture
 def create_upload(elastic_function, raw_files_function, mongo_function, user1):
-
     default_upload = dict(
         upload_id='upload_id',
     )

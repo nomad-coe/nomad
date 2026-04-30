@@ -1994,7 +1994,9 @@ class MappingParser(ABC):
         """Recursively set dictionary data into target, creating paths as needed.
 
         Takes transformed mapper output (nested dicts with path keys like '.a.b') and
-        sets each path into the target dictionary using Path.set_data().
+        sets each path into the target dictionary using Path.set_data(). Leading dots
+        are stripped from keys when writing to target (e.g., '.energy' becomes 'energy'),
+        so target dictionaries have keys matching metainfo attribute names.
 
         Update mode behavior:
             If `update_mode` kwarg is not provided, this method constructs a nested
@@ -2329,6 +2331,16 @@ class MetainfoParser(MappingParser):
         return {}
 
     def from_dict(self, dct: dict[str, Any], root: MSection | None = None) -> None:
+        """Deserialize dictionary into metainfo section instances.
+
+        Note: At this stage, leading dots have already been stripped from keys.
+        While mappers use relative paths with dots ('.energy', '.@'), set_data()
+        removes them before calling from_dict(). Keys are attribute names only.
+
+        Args:
+            dct: Dictionary with attribute names as keys (no leading dots).
+            root: Section instance to populate. Defaults to self.data_object.
+        """
         # if self.data_object is not None:
         #     self.data_object = self.data_object.m_from_dict(dct)
         # return
@@ -2348,15 +2360,23 @@ class MetainfoParser(MappingParser):
             section = getattr(root.m_def.section_cls, key)
             if isinstance(section, SubSection):
                 val_list = [val] if isinstance(val, dict) else val
-                m_def = val_list[-1].get('m_def')
-                section_def = section.sub_section
-                if m_def is not None and m_def != section.qualified_name():
-                    for isection in section.sub_section.all_inheriting_sections:
-                        if isection.qualified_name() == m_def:
-                            section_def = isection
-                            break
+
+                # Track indices of empty sub-sections to remove after iteration
+                empty_indices = []
 
                 for n, val_n in enumerate(val_list):
+                    # Resolve type PER ITEM (for heterogeneous lists)
+                    item_m_def = val_n.get('m_def')
+                    section_def = section.sub_section
+                    if (
+                        item_m_def is not None
+                        and item_m_def != section.qualified_name()
+                    ):
+                        for isection in section.sub_section.all_inheriting_sections:
+                            if isection.qualified_name() == item_m_def:
+                                section_def = isection
+                                break
+
                     quantities = section_def.all_quantities
                     try:
                         sub_section = root.m_get_sub_section(section, n)
@@ -2375,12 +2395,17 @@ class MetainfoParser(MappingParser):
                             sub_section.m_root().m_context = root.m_context
                         root.m_add_sub_section(section, sub_section)
                     self.from_dict(val_n, sub_section)
+                    # Check if sub-section is empty
                     if not [
                         v
                         for v in sub_section.values()
                         if (isinstance(v, list | np.ndarray) and len(v)) or v
                     ]:
-                        root.m_remove_sub_section(section, index=n)
+                        empty_indices.append(n)
+
+                # Remove empty sub-sections in reverse order to avoid index shifts
+                for n in reversed(empty_indices):
+                    root.m_remove_sub_section(section, index=n)
                 continue
 
             if key == 'm_def':

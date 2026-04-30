@@ -691,3 +691,53 @@ class TestMappingParser:
         assert archive.b[0].v2 == '5.3.2'
         assert archive.b[2].v3 == -7.14173545
         text_parser.close()
+
+    def test_from_dict_polymorphic_subsections(self):
+        """Test that from_dict resolves types per-item for polymorphic subsections."""
+        from nomad.metainfo import MSection, Quantity, SubSection
+
+        # Define base section and two concrete types
+        class BaseItem(MSection):
+            name = Quantity(type=str)
+
+        class ItemTypeA(BaseItem):
+            property_a = Quantity(type=str)
+
+        class ItemTypeB(BaseItem):
+            property_b = Quantity(type=str)
+
+        class Container(MSection):
+            items = SubSection(sub_section=BaseItem, repeats=True)
+
+        # Create parser with Container
+        parser = MetainfoParser()
+        parser.data_object = Container()
+
+        # Get qualified names from the section definitions
+        type_a_qname = ItemTypeA.m_def.qualified_name()
+        type_b_qname = ItemTypeB.m_def.qualified_name()
+
+        # Test dict with heterogeneous list: both type A and type B items
+        data = {
+            'items': [
+                {
+                    'm_def': type_a_qname,
+                    'name': 'first',
+                    'property_a': 'value_a',
+                },
+                {'m_def': type_b_qname, 'name': 'second', 'property_b': 'value_b'},
+            ]
+        }
+
+        # Call from_dict
+        parser.from_dict(data)
+
+        # Verify both items were created with correct types
+        assert len(parser.data_object.items) == 2
+        assert isinstance(parser.data_object.items[0], ItemTypeA)
+        assert parser.data_object.items[0].name == 'first'
+        assert parser.data_object.items[0].property_a == 'value_a'
+
+        assert isinstance(parser.data_object.items[1], ItemTypeB)
+        assert parser.data_object.items[1].name == 'second'
+        assert parser.data_object.items[1].property_b == 'value_b'
