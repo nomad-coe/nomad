@@ -34,6 +34,7 @@ from nomad.auth.tokens import (
     create_pat,
     get_pat,
     list_pat,
+    prune_pat,
     revoke_pat,
     rotate_pat,
 )
@@ -1010,6 +1011,229 @@ def test_revoke_already_revoked(mongo_function, monkeypatch):
     assert result.pat.updated_at == first_updated_at
     assert result.pat.revoked_at == first_revoked_at
     assert result.pat.expired_at == first_expired_at
+
+
+# Test `prune_pat`
+
+
+@pytest.mark.parametrize('dry_run', [True, False])
+@pytest.mark.parametrize(
+    'cutoff_selector, expired, revoked, expected_expired_matched, expected_revoked_matched, expected_matched, expects_user_filter',
+    [
+        # Cutoff set via `inactive_for`
+        pytest.param(
+            'inactive_for',
+            True,
+            False,
+            3,
+            0,
+            3,
+            False,
+            id='inactive-for-expired-only',
+        ),
+        pytest.param(
+            'inactive_for',
+            False,
+            True,
+            0,
+            2,
+            2,
+            False,
+            id='inactive-for-revoked-only',
+        ),
+        pytest.param(
+            'inactive_for',
+            True,
+            True,
+            3,
+            2,
+            4,
+            False,
+            id='inactive-for-expired-and-revoked',
+        ),
+        # Cutoff set via `inactive_before`
+        pytest.param(
+            'inactive_before',
+            True,
+            False,
+            2,
+            0,
+            2,
+            True,
+            id='inactive-before-expired-only',
+        ),
+        pytest.param(
+            'inactive_before',
+            False,
+            True,
+            0,
+            2,
+            2,
+            True,
+            id='inactive-before-revoked-only',
+        ),
+        pytest.param(
+            'inactive_before',
+            True,
+            True,
+            2,
+            2,
+            3,
+            True,
+            id='inactive-before-expired-and-revoked',
+        ),
+    ],
+)
+def test_prune_pat_filters(
+    mongo_function,
+    dry_run,
+    cutoff_selector,
+    expired,
+    revoked,
+    expected_expired_matched,
+    expected_revoked_matched,
+    expected_matched,
+    expects_user_filter,
+):
+    current_time = now()
+    user_id = f'u_prune_{cutoff_selector}'
+    cutoff = (
+        current_time - datetime.timedelta(days=7)
+        if cutoff_selector == 'inactive_for'
+        else current_time - datetime.timedelta(days=20)
+    )
+
+    # Setup test PATs
+    old_expired = create_test_pat(
+        user_id=user_id,
+        name='old expired',
+        expired_at=cutoff - datetime.timedelta(days=1),
+    ).pat
+    recent_expired = create_test_pat(
+        user_id=user_id,
+        name='recent expired',
+        expired_at=cutoff + datetime.timedelta(days=1),
+    ).pat
+
+    old_revoked = create_test_pat(
+        user_id=user_id,
+        name='old revoked',
+        revoked=True,
+        revoked_at=cutoff - datetime.timedelta(days=1),
+        expired_at=current_time + datetime.timedelta(days=2),
+    ).pat
+    recent_revoked = create_test_pat(
+        user_id=user_id,
+        name='recent revoked',
+        revoked=True,
+        revoked_at=cutoff + datetime.timedelta(days=1),
+        expired_at=current_time + datetime.timedelta(days=10),
+    ).pat
+
+    old_expired_and_revoked = create_test_pat(
+        user_id=user_id,
+        name='old expired+revoked',
+        revoked=True,
+        revoked_at=cutoff - datetime.timedelta(days=1),
+        expired_at=cutoff - datetime.timedelta(days=1),
+    ).pat
+    active_pat = create_test_pat(user_id=user_id, name='active pat').pat
+    other_user = create_test_pat(
+        user_id='u_prune_date_other',
+        name='other user expired',
+        expired_at=cutoff - datetime.timedelta(days=1),
+    ).pat
+
+    # Run `prune` and check result
+    result = prune_pat(
+        dry_run=dry_run,
+        inactive_for=datetime.timedelta(days=7)
+        if cutoff_selector == 'inactive_for'
+        else None,
+        inactive_before=cutoff if cutoff_selector == 'inactive_before' else None,
+        expired=expired,
+        revoked=revoked,
+        user_id=user_id if expects_user_filter else None,
+    )
+
+    # Check summary counters
+    assert result.expired_matched == expected_expired_matched
+    assert result.revoked_matched == expected_revoked_matched
+    assert result.matched == expected_matched
+    assert result.deleted == (0 if dry_run else expected_matched)
+
+    # Old expired/revoked/both tokens
+    old_expired_selected = expired
+    old_revoked_selected = revoked
+    old_expired_and_revoked_selected = expired or revoked
+
+    assert (PAT.objects(id=old_expired.id).first() is not None) is (
+        dry_run or not old_expired_selected
+    )
+    assert (PAT.objects(id=old_revoked.id).first() is not None) is (
+        dry_run or not old_revoked_selected
+    )
+    assert (PAT.objects(id=recent_expired.id).first() is not None) is True
+    assert (PAT.objects(id=recent_revoked.id).first() is not None) is True
+    assert (PAT.objects(id=old_expired_and_revoked.id).first() is not None) is (
+        dry_run or not old_expired_and_revoked_selected
+    )
+    assert (PAT.objects(id=active_pat.id).first() is not None) is True
+
+    # Another-user's token
+    other_user_selected = (not expects_user_filter) and expired
+    assert (PAT.objects(id=other_user.id).first() is not None) is (
+        dry_run or not other_user_selected
+    )
+
+
+@pytest.mark.parametrize(
+    'inactive_for, inactive_before, expired, revoked, error',
+    [
+        pytest.param(
+            datetime.timedelta(days=90),
+            now(),
+            True,
+            True,
+            'inactive_before and inactive_for',
+            id='both-cutoffs-provided-conflict',
+        ),
+        pytest.param(
+            None,
+            None,
+            True,
+            True,
+            'Either inactive_before or inactive_for',
+            id='missing-both-cutoff',
+        ),
+        pytest.param(
+            datetime.timedelta(days=-1),
+            None,
+            True,
+            True,
+            'inactive_for must be non-negative',
+            id='negative-inactive-for',
+        ),
+        pytest.param(
+            datetime.timedelta(days=7),
+            None,
+            False,
+            False,
+            'At least one of',
+            id='empty-expired-revoked-selection',
+        ),
+    ],
+)
+def test_prune_pat_rejects_invalid_selection(
+    mongo_function, inactive_for, inactive_before, expired, revoked, error
+):
+    with pytest.raises(ValueError, match=error):
+        prune_pat(
+            inactive_before=inactive_before,
+            inactive_for=inactive_for,
+            expired=expired,
+            revoked=revoked,
+        )
 
 
 # Test `authenticate`
