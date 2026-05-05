@@ -2785,3 +2785,42 @@ def test_assign_doi_upload(
     assert_upload(response)
     doi_name = response['data']['doi']['id']
     assert_doi_name(doi_name)
+
+
+def test_assign_doi_upload_datacite_error(
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    create_upload,
+):
+    datacite_mock.set_requests(401, False, 'Bad credentials.')
+    data = create_upload(upload={'publish_time': now()})
+
+    headers = auth_headers['user1']
+    response = client.post(f'uploads/upload_id/action/assign-doi', headers=headers)
+
+    assert_response(response, 500)
+    msg = response.json()['detail']
+    assert 'An error occurred while creating the DOI draft at DataCite.' in msg
+    upload = Upload.get('upload_id')
+    assert upload.doi is None
+
+
+def test_assign_doi_upload_mongo_error(
+    mock_mongo_fail_save,
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    create_upload,
+):
+    data = create_upload(upload={'publish_time': now()})
+    mock_mongo_fail_save(Upload)
+
+    headers = auth_headers['user1']
+    response = client.post(f'uploads/upload_id/action/assign-doi', headers=headers)
+
+    assert_response(response, 500)
+    msg = response.json()['detail']
+    assert 'An error occurred while saving the upload doi to the database.' in msg
+    upload = Upload.get('upload_id')
+    assert upload.doi is None

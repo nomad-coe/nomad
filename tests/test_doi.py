@@ -27,6 +27,7 @@ from tests.utils import assert_doi_name
 
 def test_create(mongo_function, user1, no_warn):
     doi = DOI.create()
+    doi.save()
 
     assert DOI.objects(doi=doi.doi).first() is not None
     assert_doi_name(doi.doi)
@@ -39,6 +40,7 @@ def test_create(mongo_function, user1, no_warn):
     assert doi.metadata_xml is None
 
     doi2 = DOI.create()
+    doi2.save()
     assert doi.doi != doi2.doi
 
 
@@ -70,6 +72,7 @@ def test_datacite_requests(
 ):
     datacite_mock.set_requests(status_code, response_ok, text)
     doi = DOI.create()
+    doi.save()
 
     if response_ok:
         doi.create_draft('the_title', 2026, user1)

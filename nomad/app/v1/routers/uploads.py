@@ -40,6 +40,7 @@ from fastapi import (
 from fastapi import Query as FastApiQuery
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, StreamingResponse
+from mongoengine.errors import MongoEngineException
 from mongoengine.queryset.visitor import Q
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
@@ -770,18 +771,6 @@ _existing_upload_with_findable_state = (
     },
 )
 
-_datacite_did_not_resolve = (
-    status.HTTP_500_INTERNAL_SERVER_ERROR,
-    {
-        'model': HTTPExceptionModel,
-        'description': strip(
-            """
-        Datacite server couldn't resolve the request. Please try again later.
-    """
-        ),
-    },
-)
-
 _upload_already_has_doi = (
     status.HTTP_400_BAD_REQUEST,
     {
@@ -825,6 +814,42 @@ _datacite_not_enabled = (
     {
         'model': HTTPExceptionModel,
         'description': 'The DataCite DOI service is not enabled on this deployment.',
+    },
+)
+
+_datacite_draft_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while creating the DOI draft at DataCite. Please contact the administrator.
+    """
+        ),
+    },
+)
+
+_db_set_upload_doi_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while saving the upload doi to the database. Please contact the administrator.
+    """
+        ),
+    },
+)
+
+_datacite_publish_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while publishing the DOI at DataCite. Please contact the administrator.
+    """
+        ),
     },
 )
 
@@ -3393,7 +3418,9 @@ def stop_upload_processing(
         _upload_already_has_doi,
         _upload_is_empty,
         _upload_is_unpublished,
-        _datacite_did_not_resolve,
+        _datacite_draft_failed,
+        _db_set_upload_doi_failed,
+        _datacite_publish_failed,
     ),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
@@ -3438,11 +3465,18 @@ async def assign_doi(
 
     try:
         doi_id = create_doi_for_upload(upload)
+    except DataCiteException:
+        raise _create_exception(*_datacite_draft_failed)
+
+    try:
+        upload.doi = EmbeddedDOI(id=doi_id)
+        upload.save()
+    except MongoEngineException:
+        raise _create_exception(*_db_set_upload_doi_failed)
+
+    try:
         publish_doi(doi_id)
     except DataCiteException:
-        raise _create_exception(*_datacite_did_not_resolve)
-
-    upload.doi = EmbeddedDOI(id=doi_id)
-    upload.save()
+        raise _create_exception(*_datacite_publish_failed)
 
     return {'upload_id': upload.upload_id, 'data': upload}
