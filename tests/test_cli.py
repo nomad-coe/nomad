@@ -835,6 +835,7 @@ class TestClient:
             [
                 'client',
                 'local',
+                '--',
                 published_wo_user_metadata.successful_entries[0].entry_id,
             ],
             catch_exceptions=True,
