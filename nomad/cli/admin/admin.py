@@ -133,6 +133,110 @@ def lift_embargo(dry, parallel):
                 )
 
 
+@admin.group(help='Personal access token (PAT) management.')
+def pats():
+    pass
+
+
+@pats.command(
+    name='prune',
+    help='Prune expired/revoked personal access tokens (PAT).',
+)
+@click.option(
+    '--inactive-for',
+    type=str,
+    default=None,
+    show_default=False,
+    help='Prune PATs inactive for this duration, e.g. 12h, 7d, 1month. Exactly one of --inactive-for or --inactive-before must be provided.',
+)
+@click.option(
+    '--inactive-before',
+    type=click.DateTime(),
+    default=None,
+    help='Absolute inactivity cutoff timestamp (ISO-8601), e.g. 2026-01-01T09:00:00. Exactly one of --inactive-for or --inactive-before must be provided. Timezone-aware values are supported; if timezone is omitted, UTC is assumed.',
+)
+@click.option(
+    '--expired',
+    is_flag=True,
+    help='Select expired PATs for pruning. At least one of --expired or --revoked is required.',
+)
+@click.option(
+    '--revoked',
+    is_flag=True,
+    help='Select revoked PATs for pruning. At least one of --expired or --revoked is required.',
+)
+@click.option(
+    '--dry-run',
+    '--dry',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Show matched PATs without deleting them.',
+)
+@click.option(
+    '--user-id',
+    type=str,
+    default=None,
+    help='Restrict pruning to a single user.',
+)
+def prune_pats(
+    dry_run,
+    inactive_for,
+    inactive_before,
+    expired,
+    revoked,
+    user_id,
+):
+    import datetime
+    import warnings
+
+    from nomad import infrastructure
+    from nomad.auth.tokens import prune_pat
+    from nomad.common import parse_timedelta
+
+    infrastructure.setup_mongo()
+
+    parsed_inactive_for = None
+    if inactive_for is not None:
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter('always', UserWarning)
+                parsed_inactive_for = parse_timedelta(inactive_for)
+            for warning in caught:
+                click.echo(f'Warning: {warning.message}', err=True)
+        except ValueError as e:
+            raise click.ClickException(str(e)) from e
+
+    try:
+        result = prune_pat(
+            dry_run=dry_run,
+            inactive_for=parsed_inactive_for,
+            inactive_before=inactive_before,
+            expired=expired,
+            revoked=revoked,
+            user_id=user_id,
+        )
+    except ValueError as e:
+        raise click.ClickException(str(e)) from e
+
+    cutoff_utc = result.cutoff
+    if cutoff_utc.tzinfo is None:
+        cutoff_utc = cutoff_utc.replace(tzinfo=datetime.timezone.utc)
+    cutoff_local = cutoff_utc.astimezone()
+
+    click.echo('PAT prune summary')
+    click.echo(f'  cutoff_local: {cutoff_local.isoformat(timespec="seconds")}')
+    click.echo(
+        f'  cutoff_utc: {cutoff_utc.astimezone(datetime.timezone.utc).isoformat(timespec="seconds")}'
+    )
+    click.echo(f'  user_id: {result.user_id or "all"}')
+    click.echo(f'  expired_matched: {result.expired_matched}')
+    click.echo(f'  revoked_matched: {result.revoked_matched}')
+    click.echo(f'  total_matched: {result.matched}')
+    click.echo(f'  deleted: {result.deleted}')
+    click.echo(f'  dry_run: {result.dry_run}')
+
+
 @admin.group(help='Generate scripts and commands for nomad operation.')
 def ops():
     pass

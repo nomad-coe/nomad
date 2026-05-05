@@ -23,10 +23,12 @@ source code without circular imports.
 
 import importlib.util
 import os
+import re
 import shutil
 import tarfile
+import warnings
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from tempfile import TemporaryDirectory
 from typing import Literal
 
@@ -255,3 +257,82 @@ def is_safe_relative_path(path: str) -> bool:
 # Return current UTC time (can be mocked for tests)
 def now():
     return datetime.now(timezone.utc)
+
+
+def parse_timedelta(value: str, *, default_unit: str = 'd') -> timedelta:
+    """
+    Parse a duration string into `datetime.timedelta`.
+
+    Examples:
+      - "12h"
+      - "7 d" (with space between number and unit)
+      - "1month"
+      - "1y"
+
+    If no unit is given, `default_unit` is used with a warning.
+    """
+    raw = value.strip().lower()
+    if not raw:
+        raise ValueError('Duration value must not be empty.')
+
+    match = re.fullmatch(r'([-+]?[0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]+)?', raw)
+    if not match:
+        raise ValueError(
+            f'Invalid duration "{value}". Expected formats like "12h", "7d", or "1month".'
+        )
+
+    amount = float(match.group(1))
+    unit = match.group(2)
+    if unit is None:
+        warnings.warn(
+            f'No unit specified in duration "{value}", assuming "{default_unit}".',
+            UserWarning,
+            stacklevel=2,
+        )
+        unit = default_unit
+
+    unit_aliases: dict[str, str] = {
+        's': 'seconds',
+        'sec': 'seconds',
+        'secs': 'seconds',
+        'second': 'seconds',
+        'seconds': 'seconds',
+        'm': 'minutes',
+        'min': 'minutes',
+        'mins': 'minutes',
+        'minute': 'minutes',
+        'minutes': 'minutes',
+        'h': 'hours',
+        'hr': 'hours',
+        'hrs': 'hours',
+        'hour': 'hours',
+        'hours': 'hours',
+        'd': 'days',
+        'day': 'days',
+        'days': 'days',
+        'w': 'weeks',
+        'week': 'weeks',
+        'weeks': 'weeks',
+        'month': 'months',
+        'months': 'months',
+        'y': 'years',
+        'year': 'years',
+        'years': 'years',
+    }
+
+    canonical: str | None = unit_aliases.get(unit)
+    if canonical is None:
+        raise ValueError(
+            f'Unsupported duration unit "{unit}". Supported units include s, m, h, d, w, month, y.'
+        )
+
+    if amount < 0:
+        raise ValueError('Duration must be non-negative.')
+
+    if canonical == 'months':  # timedelta doesn't directly support months/years
+        return timedelta(days=amount * 30)
+    if canonical == 'years':
+        return timedelta(days=amount * 365)
+
+    kwargs = {canonical: amount}
+    return timedelta(**kwargs)
