@@ -132,7 +132,7 @@ pendulum==3.2.0           # via fastapi-cache2, -r requirements.txt
 pillow==12.2.0            # via matplotlib, -r requirements.txt
 pint==0.24.4 ; python_full_version < '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 pint==0.25.3 ; python_full_version >= '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
-pip==26.0.1               # via pip-api
+pip==26.1.1               # via pip-api, nomad-lab (pyproject.toml)
 pip-api==0.0.34           # via pip-audit
 pip-audit==2.10.0         # via nomad-lab (pyproject.toml)
 pip-requirements-parser==32.0.1  # via pip-audit

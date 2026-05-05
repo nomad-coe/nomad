@@ -92,6 +92,7 @@ dev = [
   "essential_generators",
   "mypy>=1.15",
   "pip-audit",
+  "pip>=26.1", # (required by pip-audit) CVE-2026-3219 in lower versions
   "pytest-asyncio",
   "pytest-cov",
   "pytest-socket",
