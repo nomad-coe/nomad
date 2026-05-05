@@ -192,7 +192,7 @@ structlog==25.5.0         # via nomad-lab, -c requirements-dev.txt
 symfc==1.5.4              # via phonopy
 sympy==1.14.0             # via pymatgen, -c requirements-dev.txt
 tabulate==0.10.0          # via nomad-lab, pymatgen, -c requirements-dev.txt
-temporalio==1.26.0        # via nomad-lab, -c requirements-dev.txt
+temporalio==1.27.0        # via nomad-lab, -c requirements-dev.txt
 tenacity==9.1.4           # via plotly, -c requirements-dev.txt
 threadpoolctl==3.6.0      # via mdanalysis, scikit-learn, -c requirements-dev.txt
 tifffile==2025.5.10 ; python_full_version < '3.11'  # via h5grove, -c requirements-dev.txt

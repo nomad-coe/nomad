@@ -201,7 +201,7 @@ starlette==1.0.0          # via fastapi, -r requirements.txt, nomad-lab (pyproje
 structlog==25.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 sympy==1.14.0             # via pymatgen, -r requirements.txt
 tabulate==0.10.0          # via pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
-temporalio==1.26.0        # via -r requirements.txt, nomad-lab (pyproject.toml)
+temporalio==1.27.0        # via -r requirements.txt, nomad-lab (pyproject.toml)
 tenacity==9.1.4           # via plotly, -r requirements.txt
 threadpoolctl==3.6.0      # via scikit-learn, -r requirements.txt
 tifffile==2025.5.10 ; python_full_version < '3.11'  # via h5grove, -r requirements.txt
