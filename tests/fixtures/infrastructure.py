@@ -12,6 +12,7 @@ import elasticsearch
 import elasticsearch.exceptions
 import pytest
 import pytest_asyncio
+from mongoengine import OperationError
 from pymongo import AsyncMongoClient
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
@@ -419,3 +420,14 @@ def datacite_mock(monkeypatch):
     # external response is always ok; fail cases should not request datacite at all
     datacite_mock.set_requests(200, True, 'Success')
     return datacite_mock
+
+
+@pytest.fixture(scope='function')
+def mock_mongo_fail_save(monkeypatch):
+    def failing_save(*args, **kwargs):
+        raise OperationError('Enforced mongo error')
+
+    def setup_mock(target):
+        monkeypatch.setattr(target, 'save', failing_save, raising=True)
+
+    return setup_mock

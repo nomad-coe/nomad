@@ -54,18 +54,29 @@ class DOI(Document):
     metadata_xml = StringField()  # unnecessary
 
     @staticmethod
-    def create() -> 'DOI':
-        """Creates a unique DOI with the NOMAD DOI prefix for a dataset or upload."""
+    def create(id: str | None = None) -> 'DOI':
+        """
+        Creates a unique DOI with the NOMAD DOI prefix for a dataset or upload.
+
+        This method does not save the document to allow discarding it instead.
+        """
+        if id is None:
+            id = generate_unique_doi_name()
+
         doi = DOI()
         doi.create_time = datetime.datetime.now(datetime.timezone.utc)
-        doi.doi = generate_unique_doi_name()
+        doi.doi = id
         doi.state = 'created'
         doi.url = generate_target_url(doi.doi, 'dataset')
-        doi.save()
 
         return doi
 
     def create_draft(self, title: str, publicationYear: int, user: User):
+        """Registers DOI in DataCite. Only allowed for created DOIs."""
+        assert self.state == 'created', (
+            'can only create draft for dois with state created'
+        )
+
         attributes = create_attributes_from_args(title, publicationYear, user)
         attributes.doi = self.doi
         attributes.url = self.url
@@ -75,9 +86,13 @@ class DOI(Document):
         self.save()
 
     def delete(self, *args, **kwargs):
-        """Deletes the DOI. Only allowed for drafts."""
-        assert self.state == 'draft', 'can only delete drafts'
-        delete_doi(self.doi)
+        """Deletes the DOI. Only allowed for created or draft."""
+        assert self.state in ['created', 'draft'], (
+            'can only delete dois with state created or draft'
+        )
+
+        if self.state == 'draft':
+            delete_doi(self.doi)
 
         super().delete(*args, **kwargs)
 
