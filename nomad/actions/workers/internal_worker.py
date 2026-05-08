@@ -19,8 +19,15 @@ from nomad.actions.client import get_client
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
-from nomad.infrastructure import setup
 from nomad.utils.structlogging import get_logger
+
+from .utils import worker_process_initializer
+
+
+def _internal_worker_process_warmup():
+    # Internal activities run in ProcessPoolExecutor children; pre-warm parser imports
+    # in each child so the first workflow task does not absorb that cold-start latency.
+    return
 
 
 async def run_worker(worker_config: WorkerConfig):
@@ -41,13 +48,25 @@ async def run_worker(worker_config: WorkerConfig):
         loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
     client = await get_client()
-    executor_kwargs = {'max_workers': worker_config.pool_size, 'initializer': setup}
+    executor_kwargs = {
+        'max_workers': worker_config.pool_size,
+        'initializer': worker_process_initializer,
+    }
     if sys.version_info >= (3, 11):
         executor_kwargs['max_tasks_per_child'] = worker_config.max_tasks_per_child
 
     # NOTE: internal processing is not thread safe, avoid using ThreadPoolExecutor with more than 1 worker.
     # mypy: has issues with **kwargs in this context
     with ProcessPoolExecutor(**executor_kwargs) as executor:  # type: ignore
+        # ProcessPoolExecutor starts children lazily. Pre-start all children here so
+        # the first queued workflow does not pay startup/initializer latency.
+        warmup_futures = [
+            executor.submit(_internal_worker_process_warmup)
+            for _ in range(worker_config.pool_size)
+        ]
+        for future in warmup_futures:
+            future.result()
+
         worker_kwargs: dict[str, Any] = {
             'client': client,
             'task_queue': TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
