@@ -18,8 +18,10 @@ from nomad.actions.client import get_client
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
-from nomad.infrastructure import init_async_mongo, setup
+from nomad.infrastructure import init_async_mongo
 from nomad.utils.structlogging import get_logger
+
+from .utils import worker_process_initializer
 
 
 async def run_worker(worker_config: WorkerConfig):
@@ -43,6 +45,10 @@ async def run_worker(worker_config: WorkerConfig):
     root_logger = logging.getLogger()
     if not any(isinstance(h, WorkflowRoutingHandler) for h in root_logger.handlers):
         root_logger.addHandler(WorkflowRoutingHandler())
+
+    # Pre-warm parser imports so first workflow execution does not pay import cost.
+    worker_process_initializer()
+    await init_async_mongo()
 
     client = await get_client()
     with ThreadPoolExecutor(max_workers=worker_config.pool_size) as executor:
@@ -81,8 +87,6 @@ async def run_worker(worker_config: WorkerConfig):
             )
 
         worker = Worker(**worker_kwargs)
-        setup()
-        await init_async_mongo()
         # Run the worker until SIGTERM
         logger.info('Starting GPU worker.')
         worker_task = asyncio.create_task(worker.run())
