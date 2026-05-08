@@ -2592,6 +2592,20 @@ async def _get_list_of_started_workflows(temporal_env):
     return matching_workflows
 
 
+async def _get_activities_in_workflow(temporal_env, workflow_name: str) -> list[str]:
+    """Returns the list of activity names that were scheduled in a given workflow."""
+    activities = []
+    async for execution in temporal_env.client.list_workflows():
+        if execution.raw_info.type.name == workflow_name:
+            handle = temporal_env.client.get_workflow_handle(execution.id)
+            async for event in handle.fetch_history_events():
+                if event.HasField('activity_task_scheduled_event_attributes'):
+                    activities.append(
+                        event.activity_task_scheduled_event_attributes.activity_type.name
+                    )
+    return activities
+
+
 async def _assert_trigger_reprocessing_behavior(
     env,
     client: TestClient,
@@ -2600,18 +2614,26 @@ async def _assert_trigger_reprocessing_behavior(
     trigger_processing: None | bool,
 ):
     """
-    Waits for possible processing and asserts that the correct workflows are started based on the trigger_processing flag.
+    Waits for possible processing and asserts that the correct workflows are started
+    based on the trigger_processing flag. Also checks that match_all_activity was
+    triggered inside UpdateUploadWorkflow.
     """
     if trigger_processing is True or (trigger_processing is None):
         await asyncio.to_thread(lambda: assert_processing(client, upload_id, user))
-        matching_workflows = await _get_list_of_started_workflows(env)
-        assert 'UpdateUploadWorkflow' in matching_workflows
-        assert 'ProcessUploadWorkflow' in matching_workflows
     else:
-        await asyncio.to_thread(lambda: block_until_completed(client, upload_id, user))
-        matching_workflows = await _get_list_of_started_workflows(env)
-        assert 'UpdateUploadWorkflow' in matching_workflows
-        assert 'ProcessUploadWorkflow' not in matching_workflows
+        response_data = await asyncio.to_thread(
+            lambda: block_until_completed(client, upload_id, user)
+        )
+        assert response_data['process_status'] == ProcessStatus.READY
+        assert not response_data['process_running']
+
+    matching_workflows = await _get_list_of_started_workflows(env)
+    assert 'UpdateUploadWorkflow' in matching_workflows
+    activities = await _get_activities_in_workflow(env, 'UpdateUploadWorkflow')
+    if trigger_processing is True or (trigger_processing is None):
+        assert 'match_all_activity' in activities
+    else:
+        assert 'match_all_activity' not in activities
 
 
 @pytest.mark.parametrize(
