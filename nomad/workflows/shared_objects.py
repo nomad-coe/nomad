@@ -18,7 +18,7 @@
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass
@@ -198,3 +198,27 @@ class PublishExternallyWorkflowInput:
     embargo_length: int | None = None
     target_deployment_url: str | None = None
     auth_token: str | None = None
+
+
+@dataclass
+class FinalizeUploadProcessingSuccessInput:
+    result: Literal['success']
+    upload_id: str
+    workflow_id: str
+    workflow_tmp_dir: str | None = None
+    trigger_processing: bool = True
+
+
+@dataclass
+class FinalizeUploadProcessingFailureInput:
+    result: Literal['failure']
+    upload_id: str
+    workflow_id: str
+    workflow_tmp_dir: str | None = None
+    failure_message: str | None = None
+    error_details: str | None = None
+
+
+FinalizeUploadProcessingInput = (
+    FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+)

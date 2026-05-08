@@ -61,13 +61,13 @@ with workflow.unsafe.imports_passed_through():
     from nomad.config import config
     from nomad.workflows.activities import (
         cleanup_entries_batch_activity,
-        cleanup_workflow_tmp_dir_activity,
         delete_upload_entries_activity,
         delete_upload_files_activity,
         delete_upload_record_activity,
         delete_upload_search_activity,
         edit_upload_metadata_activity,
         finalize_cleanup_activity,
+        finalize_upload_processing_activity,
         get_cleanup_entry_batch_from_file,
         get_entry_batch_from_file,
         handle_heartbeat_failure_activity,
@@ -78,11 +78,8 @@ with workflow.unsafe.imports_passed_through():
         prepare_cleanup_activity,
         process_entry_activity,
         process_entry_batch_activity,
-        process_upload_failure_activity,
-        process_upload_success,
         publish_externally_activity,
         publish_upload_activity,
-        remove_workflow_id_activity,
         setup_example_upload_activity,
         setup_upload_for_workflow_process,
         update_files_activity,
@@ -95,6 +92,8 @@ with workflow.unsafe.imports_passed_through():
         EditUploadMetadataWorkflowInput,
         EntriesToBeProcessedResult,
         EntryBatchFromFileInput,
+        FinalizeUploadProcessingFailureInput,
+        FinalizeUploadProcessingSuccessInput,
         ImportBundleWorkflowInput,
         ProcessEntryActivityInput,
         ProcessExampleUploadWorkflowInput,
@@ -447,81 +446,83 @@ class BatchCleanupEntriesWorkflow:
 
 
 @workflow.defn
-class ProcessUploadWorkflow:
+class UpdateUploadWorkflow:
     """
-    Specialized workflow to process an upload through multiple steps:
-    1. Match all files to parsers
-    2. Parse entries level by level
-    3. Cleanup temporary data
+    Workflow to update an upload's files and optionally reprocess them.
+    1. Update files
+    2. (Optional) Reprocess updated files inline
+    3. Mark upload as successful or failed
+    By default, reprocessing is triggered unless specified otherwise.
     """
 
-    @workflow.run
-    async def run(self, input: UploadProcessingWorkflowInput):
-        retry_policy = RetryPolicy(
-            maximum_attempts=2,
-        )
-        heartbeat_timeout = timedelta(
-            seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
-        )
-        workflow_info = workflow.info()
+    async def process_upload(
+        self,
+        parse_all_input: UploadProcessingWorkflowInput,
+        heartbeat_timeout: timedelta,
+        parent_workflow_id: str,
+    ):
+        process_retry_policy = RetryPolicy(maximum_attempts=2)
+
         # Step 2: Match all, pass updated_files as set
         await workflow.execute_activity(
             match_all_activity,
-            input,
+            parse_all_input,
             schedule_to_close_timeout=timedelta(
                 seconds=config.temporal.processing_timeouts.match_all_timeout
             ),
             heartbeat_timeout=heartbeat_timeout,
-            retry_policy=retry_policy,
-            priority=PROCESS_UPLOAD_PRIORITY,
+            retry_policy=process_retry_policy,
+            priority=UPDATE_UPLOAD_PRIORITY,
         )
 
-        # Step 3: Parse next level
-        while True:  # Outer loop: Continue until no more parser levels to process
+        # Step 3: Parse next level(s)
+        # Outer loop: continue until no more parser levels to process.
+        while True:
             next_level_entries_result = await workflow.execute_activity(
                 next_level_entries,
-                input,
+                parse_all_input,
                 schedule_to_close_timeout=timedelta(
                     seconds=config.temporal.processing_timeouts.next_level_entries_timeout
                 ),
                 heartbeat_timeout=heartbeat_timeout,
-                retry_policy=retry_policy,
-                priority=PROCESS_UPLOAD_PRIORITY,
+                retry_policy=process_retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
 
-            # If None returned: no entries exist for this parser level at all
+            # If None returned: no entries exist for this parser level at all,
             # then we're done with all parser levels.
             if not next_level_entries_result:
                 break
 
-            # Delegate all batch processing complexity to BatchProcessEntriesWorkflow
+            # Delegate all batch processing complexity to BatchProcessEntriesWorkflow.
             await workflow.execute_child_workflow(
                 BatchProcessEntriesWorkflow.run,
                 next_level_entries_result,
-                id=f'{workflow_info.workflow_id}-{input.min_level}-batch-processor',
+                id=f'{parent_workflow_id}-{parse_all_input.min_level}-batch-processor',
                 parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
-                retry_policy=retry_policy,
-                priority=PROCESS_UPLOAD_PRIORITY,
+                retry_policy=process_retry_policy,
+                priority=UPDATE_UPLOAD_PRIORITY,
             )
 
             next_parser_level = (
-                next_level_entries_result.next_parser_level or input.min_level
+                next_level_entries_result.next_parser_level or parse_all_input.min_level
             )
-            input.min_level = next_parser_level + 1
+            parse_all_input.min_level = next_parser_level + 1
 
         # Step 4: Cleanup
         cleanup_entries_result: (
             CleanupEntriesResult | None
         ) = await workflow.execute_activity(
             prepare_cleanup_activity,
-            input,
+            parse_all_input,
             schedule_to_close_timeout=timedelta(
                 seconds=config.temporal.processing_timeouts.cleanup_timeout
             ),
             heartbeat_timeout=heartbeat_timeout,
-            retry_policy=retry_policy,
-            priority=PROCESS_UPLOAD_PRIORITY,
+            retry_policy=process_retry_policy,
+            priority=UPDATE_UPLOAD_PRIORITY,
         )
+
         # An empty result means prepare_cleanup_activity already completed the fast path.
         if cleanup_entries_result is None:
             return
@@ -529,33 +530,22 @@ class ProcessUploadWorkflow:
         await workflow.execute_child_workflow(
             BatchCleanupEntriesWorkflow.run,
             cleanup_entries_result,
-            id=f'{workflow_info.workflow_id}-cleanup-batch-processor',
+            id=f'{parent_workflow_id}-cleanup-batch-processor',
             parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
             retry_policy=RetryPolicy(maximum_attempts=1),
-            priority=PROCESS_UPLOAD_PRIORITY,
+            priority=UPDATE_UPLOAD_PRIORITY,
         )
 
         await workflow.execute_activity(
             finalize_cleanup_activity,
-            input,
+            parse_all_input,
             schedule_to_close_timeout=timedelta(
                 seconds=config.temporal.processing_timeouts.cleanup_timeout
             ),
             heartbeat_timeout=heartbeat_timeout,
-            retry_policy=retry_policy,
-            priority=PROCESS_UPLOAD_PRIORITY,
+            retry_policy=process_retry_policy,
+            priority=UPDATE_UPLOAD_PRIORITY,
         )
-
-
-@workflow.defn
-class UpdateUploadWorkflow:
-    """
-    Workflow to update an upload's files and optionally reprocess them.
-    1. Update files
-    2. (Optional) Reprocess updated files through ProcessUploadWorkflow
-    3. Mark upload as successful or failed
-    By default, reprocessing is triggered unless specified otherwise.
-    """
 
     @workflow.run
     async def run(self, input: UploadProcessingWorkflowInput):
@@ -574,6 +564,16 @@ class UpdateUploadWorkflow:
             workflow_id=workflow_info.workflow_id,
             process_name='_process_upload',
             trigger_processing=input.trigger_processing,
+        )
+        # Default to failure so finalize always removes workflow_id and cleans temp dir.
+        finalize_input: (
+            FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+        ) = FinalizeUploadProcessingFailureInput(
+            result='failure',
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            workflow_tmp_dir=input.workflow_tmp_dir,
+            failure_message='Process upload failed',
         )
         try:
             # Step 0: Add workflow id to upload
@@ -612,61 +612,37 @@ class UpdateUploadWorkflow:
                     workflow_id=input.workflow_id,
                     workflow_tmp_dir=input.workflow_tmp_dir,
                 )
-                # Here we excecute steps:
-                # 2: Match all, pass updated_files
-                # 3: Parse next level(s)
-                # 4: Cleanup
-                await workflow.execute_child_workflow(
-                    ProcessUploadWorkflow.run,
-                    parse_all_input,
-                    id=f'{workflow_info.workflow_id}-reprocess-{input.upload_id}',
-                    parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
-                    # Disable retries for the child workflow; it handles its own activity failures.
-                    retry_policy=RetryPolicy(maximum_attempts=1),
-                    priority=UPDATE_UPLOAD_PRIORITY,
+                await self.process_upload(
+                    parse_all_input=parse_all_input,
+                    heartbeat_timeout=heartbeat_timeout,
+                    parent_workflow_id=workflow_info.workflow_id,
                 )
 
-            # Step 5: Mark as successful if the processing was triggered, otherwise will mark as READY
-            await workflow.execute_activity(
-                process_upload_success,
-                upload_workflow_input,
-                schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.process_upload_success_timeout
-                ),
-                retry_policy=retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
+            finalize_input = FinalizeUploadProcessingSuccessInput(
+                result='success',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                workflow_tmp_dir=input.workflow_tmp_dir,
+                trigger_processing=input.trigger_processing,
             )
 
         except Exception as e:
-            # Set upload to failure status
-            upload_workflow_input.failure_message = 'Process upload failed'
-            upload_workflow_input.error_details = _extract_error_details(e)
-
-            await workflow.execute_activity(
-                process_upload_failure_activity,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                workflow_tmp_dir=input.workflow_tmp_dir,
+                failure_message='Process upload failed',
+                error_details=_extract_error_details(e),
             )
             raise e
 
         finally:
-            # Always remove workflow id, even if processing failed
             await workflow.execute_activity(
-                remove_workflow_id_activity,
-                upload_workflow_input,
+                finalize_upload_processing_activity,
+                finalize_input,
                 schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.remove_workflow_id_timeout
-                ),
-                retry_policy=retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
-            )
-            await workflow.execute_activity(
-                cleanup_workflow_tmp_dir_activity,
-                input.workflow_tmp_dir,
-                schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.cleanup_workflow_tmp_dir_timeout
+                    seconds=config.temporal.processing_timeouts.process_upload_timeout
                 ),
                 retry_policy=retry_policy,
                 priority=UPDATE_UPLOAD_PRIORITY,
@@ -730,6 +706,15 @@ class EditUploadMetadataWorkflow:
             workflow_id=workflow_info.workflow_id,
             process_name='_edit_upload_metadata',
         )
+        # Default to failure so finalize always removes workflow_id.
+        finalize_input: (
+            FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+        ) = FinalizeUploadProcessingFailureInput(
+            result='failure',
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            failure_message='Edit metadata failed',
+        )
 
         try:
             # Add workflow id to upload
@@ -751,36 +736,25 @@ class EditUploadMetadataWorkflow:
                 priority=EDIT_UPLOAD_METADATA_PRIORITY,
             )
 
-            # Mark as successful
-            await workflow.execute_activity(
-                process_upload_success,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=EDIT_UPLOAD_METADATA_PRIORITY,
+            finalize_input = FinalizeUploadProcessingSuccessInput(
+                result='success',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
             )
         except Exception as e:
-            # Set upload to failure status
-            upload_workflow_input.failure_message = 'Edit metadata failed'
-            if isinstance(e, ActivityError):
-                upload_workflow_input.error_details = str(e.cause)
-            else:
-                upload_workflow_input.error_details = str(e)
-
-            await workflow.execute_activity(
-                process_upload_failure_activity,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=EDIT_UPLOAD_METADATA_PRIORITY,
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                failure_message='Edit metadata failed',
+                error_details=_extract_error_details(e),
             )
             raise e
 
         finally:
-            # Always remove workflow id, even if processing failed
             await workflow.execute_activity(
-                remove_workflow_id_activity,
-                upload_workflow_input,
+                finalize_upload_processing_activity,
+                finalize_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
                 priority=EDIT_UPLOAD_METADATA_PRIORITY,
@@ -806,6 +780,15 @@ class ImportBundleWorkflow:
             workflow_id=workflow_info.workflow_id,
             process_name='_import_bundle',
         )
+        # Default to failure so finalize always removes workflow_id.
+        finalize_input: (
+            FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+        ) = FinalizeUploadProcessingFailureInput(
+            result='failure',
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            failure_message='Import bundle failed',
+        )
 
         try:
             # Add workflow id to upload
@@ -827,36 +810,25 @@ class ImportBundleWorkflow:
                 priority=IMPORT_BUNDLE_PRIORITY,
             )
 
-            # Mark as successful
-            await workflow.execute_activity(
-                process_upload_success,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=IMPORT_BUNDLE_PRIORITY,
+            finalize_input = FinalizeUploadProcessingSuccessInput(
+                result='success',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
             )
         except Exception as e:
-            # Set upload to failure status
-            upload_workflow_input.failure_message = 'Import bundle failed'
-            if isinstance(e, ActivityError):
-                upload_workflow_input.error_details = str(e.cause)
-            else:
-                upload_workflow_input.error_details = str(e)
-
-            await workflow.execute_activity(
-                process_upload_failure_activity,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=IMPORT_BUNDLE_PRIORITY,
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                failure_message='Import bundle failed',
+                error_details=_extract_error_details(e),
             )
             raise e
 
         finally:
-            # Always remove workflow id, even if processing failed
             await workflow.execute_activity(
-                remove_workflow_id_activity,
-                upload_workflow_input,
+                finalize_upload_processing_activity,
+                finalize_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
                 priority=IMPORT_BUNDLE_PRIORITY,
@@ -882,6 +854,15 @@ class PublishUploadWorkflow:
             workflow_id=workflow_info.workflow_id,
             process_name='_publish_upload',
         )
+        # Default to failure so finalize always removes workflow_id.
+        finalize_input: (
+            FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+        ) = FinalizeUploadProcessingFailureInput(
+            result='failure',
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            failure_message='Publish upload failed',
+        )
 
         try:
             # Add workflow id to upload
@@ -903,37 +884,26 @@ class PublishUploadWorkflow:
                 priority=PUBLISH_UPLOAD_PRIORITY,
             )
 
-            # Mark as successful
-            await workflow.execute_activity(
-                process_upload_success,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=PUBLISH_UPLOAD_PRIORITY,
+            finalize_input = FinalizeUploadProcessingSuccessInput(
+                result='success',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
             )
 
         except Exception as e:
-            # Set upload to failure status
-            upload_workflow_input.failure_message = 'Publish upload failed'
-            if isinstance(e, ActivityError):
-                upload_workflow_input.error_details = str(e.cause)
-            else:
-                upload_workflow_input.error_details = str(e)
-
-            await workflow.execute_activity(
-                process_upload_failure_activity,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=PUBLISH_UPLOAD_PRIORITY,
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                failure_message='Publish upload failed',
+                error_details=_extract_error_details(e),
             )
             raise e
 
         finally:
-            # Always remove workflow id, even if processing failed
             await workflow.execute_activity(
-                remove_workflow_id_activity,
-                upload_workflow_input,
+                finalize_upload_processing_activity,
+                finalize_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
                 priority=PUBLISH_UPLOAD_PRIORITY,
@@ -959,6 +929,15 @@ class PublishExternallyWorkflow:
             workflow_id=workflow_info.workflow_id,
             process_name='_publish_externally',
         )
+        # Default to failure so finalize always removes workflow_id.
+        finalize_input: (
+            FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+        ) = FinalizeUploadProcessingFailureInput(
+            result='failure',
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            failure_message='Publish externally failed',
+        )
 
         try:
             # Add workflow id to upload
@@ -980,37 +959,26 @@ class PublishExternallyWorkflow:
                 priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
 
-            # Mark as successful
-            await workflow.execute_activity(
-                process_upload_success,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=PUBLISH_EXTERNALLY_PRIORITY,
+            finalize_input = FinalizeUploadProcessingSuccessInput(
+                result='success',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
             )
 
         except Exception as e:
-            # Set upload to failure status
-            upload_workflow_input.failure_message = 'Publish externally failed'
-            if isinstance(e, ActivityError):
-                upload_workflow_input.error_details = str(e.cause)
-            else:
-                upload_workflow_input.error_details = str(e)
-
-            await workflow.execute_activity(
-                process_upload_failure_activity,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=PUBLISH_EXTERNALLY_PRIORITY,
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                failure_message='Publish externally failed',
+                error_details=_extract_error_details(e),
             )
             raise e
 
         finally:
-            # Always remove workflow id, even if processing failed
             await workflow.execute_activity(
-                remove_workflow_id_activity,
-                upload_workflow_input,
+                finalize_upload_processing_activity,
+                finalize_input,
                 schedule_to_close_timeout=timeout,
                 retry_policy=retry_policy,
                 priority=PUBLISH_EXTERNALLY_PRIORITY,

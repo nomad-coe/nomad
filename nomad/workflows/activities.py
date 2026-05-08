@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import shutil
 import time
 import uuid
 from datetime import datetime, timezone
@@ -24,6 +25,7 @@ from nomad.workflows.shared_objects import (
     EditUploadMetadataWorkflowInput,
     EntriesToBeProcessedResult,
     EntryBatchFromFileInput,
+    FinalizeUploadProcessingInput,
     ImportBundleWorkflowInput,
     ProcessEntryActivityInput,
     ProcessExampleUploadWorkflowInput,
@@ -266,14 +268,6 @@ def setup_upload_for_workflow_process(input: UploadWorkflowIdInput):
 
 
 @activity.defn
-def remove_workflow_id_activity(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    if input.workflow_id in upload.workflow_ids:  # type: ignore
-        upload.workflow_ids.remove(input.workflow_id)  # type: ignore
-    upload.save()
-
-
-@activity.defn
 def prepare_cleanup_activity(
     input: UploadProcessingWorkflowInput,
 ) -> CleanupEntriesResult | None:
@@ -346,29 +340,6 @@ def finalize_cleanup_activity(input: UploadProcessingWorkflowInput):
 
 
 @activity.defn
-def process_upload_success(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    # When the processing is not triggered it means that the workflow
-    # only modified the upload files. In that case we want to set the status to READY so that the user can trigger the processing manually.
-    upload.process_status = (
-        ProcessStatus.SUCCESS if input.trigger_processing else ProcessStatus.READY
-    )
-    upload.set_last_status_message('Process completed successfully')
-
-
-@activity.defn
-def process_upload_failure_activity(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    upload.last_status_message = (
-        input.failure_message if input.failure_message else 'Process upload failed'
-    )
-    errors = [input.error_details] if input.error_details else []
-    upload.workflow_ids = []  # Clear workflow IDs on failure
-    upload.fail(*errors)
-    upload.save()
-
-
-@activity.defn
 def setup_example_upload_activity(input: ProcessExampleUploadWorkflowInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
         upload = Upload.get(input.upload_id)
@@ -399,12 +370,27 @@ def publish_upload_activity(input: PublishUploadWorkflowInput):
 
 
 @activity.defn
-def cleanup_workflow_tmp_dir_activity(dir_path: str):
-    """Delete the temporary directory."""
-    if os.path.exists(dir_path):
-        import shutil
+def finalize_upload_processing_activity(input: FinalizeUploadProcessingInput):
+    upload = Upload.get(input.upload_id)
+    if input.result == 'success':
+        # When processing is not triggered, set READY so processing can be started manually.
+        upload.process_status = (
+            ProcessStatus.SUCCESS if input.trigger_processing else ProcessStatus.READY
+        )
+        upload.set_last_status_message('Process completed successfully')
+    else:
+        upload.last_status_message = (
+            input.failure_message if input.failure_message else 'Process upload failed'
+        )
+        errors = [input.error_details] if input.error_details else []
+        upload.fail(*errors)
 
-        shutil.rmtree(dir_path, ignore_errors=True)
+    if input.workflow_id in upload.workflow_ids:  # type: ignore
+        upload.workflow_ids.remove(input.workflow_id)  # type: ignore
+    upload.save()
+
+    if input.workflow_tmp_dir and os.path.exists(input.workflow_tmp_dir):
+        shutil.rmtree(input.workflow_tmp_dir, ignore_errors=True)
 
 
 @activity.defn
