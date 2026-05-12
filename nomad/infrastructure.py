@@ -62,6 +62,9 @@ def setup():
     Will create client instances for the databases and has to be called before they
     can be used.
     """
+    from nomad.tracing import setup_tracing
+
+    setup_tracing()
     setup_files()
     setup_mongo()
     # index_builtin_packages()

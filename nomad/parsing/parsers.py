@@ -30,6 +30,7 @@ from nomad.config import config
 from nomad.config.models.plugins import ParserEntryPoint
 from nomad.datamodel import EntryArchive, EntryMetadata, results
 from nomad.datamodel.context import ClientContext, ServerLocalContext
+from nomad.tracing import traced
 
 from .artificial import EmptyParser
 from .parser import (
@@ -50,6 +51,7 @@ _compressions: dict[bytes, tuple[str, Callable]] = {
 encoding_magic = magic.Magic(mime_encoding=True)
 
 
+@traced
 def match_parser(
     mainfile_path: str, strict=True, parser_name: str | None = None
 ) -> tuple[Parser, list[str]]:

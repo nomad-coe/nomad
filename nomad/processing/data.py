@@ -113,6 +113,7 @@ from nomad.processing.base import (
     process_local,
 )
 from nomad.search import update_metadata as es_update_metadata
+from nomad.tracing import trace_span, traced
 from nomad.utils.pydantic import CustomErrorWrapper
 from nomad.utils.structlogging import ISO8601_UTC_FORMAT
 from nomad.workflows.shared_objects import (
@@ -1554,6 +1555,7 @@ class Entry(Proc):
     def parent(self) -> 'Upload':
         return self.upload
 
+    @traced(span_name='Entry.parsing')
     def parsing(self):
         """The process step that encapsulates all parsing related actions."""
         self.set_last_status_message('Parsing mainfile')
@@ -1584,12 +1586,14 @@ class Entry(Proc):
                     kwargs = dict(child_archives=child_archives)
                 else:
                     kwargs = {}
-                parser.parse(
-                    self.mainfile_file.os_path,
-                    self._parser_results,
-                    logger=logger,
-                    **kwargs,
-                )
+
+                with trace_span(f'parser: {parser.name}'):
+                    parser.parse(
+                        self.mainfile_file.os_path,
+                        self._parser_results,
+                        logger=logger,
+                        **kwargs,
+                    )
 
             except Exception as e:
                 raise ProcessFailure(
@@ -1605,6 +1609,7 @@ class Entry(Proc):
                     **context,
                 )
 
+    @traced(span_name='Entry.normalizing')
     def normalizing(self):
         """The process step that encapsulates all normalizing related actions."""
         self.set_last_status_message('Normalizing')
@@ -1631,7 +1636,8 @@ class Entry(Proc):
                 logger, 'normalizer executed', input_size=self.mainfile_file.size
             ):
                 try:
-                    normalizer(self._parser_results).normalize(logger=logger)
+                    with trace_span(f'normalizer: {normalizer_name}'):
+                        normalizer(self._parser_results).normalize(logger=logger)
                     logger.info('normalizer completed successfully', **context)
                 except Exception as e:
                     raise ProcessFailure(
@@ -1653,6 +1659,7 @@ class Entry(Proc):
                 **context,
             )
 
+    @traced(span_name='Entry.archiving')
     def archiving(self):
         """The process step that encapsulates all archival related actions."""
         self._temporal_heartbeat()

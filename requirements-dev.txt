@@ -13,6 +13,7 @@ annotated-types==0.7.0    # via pydantic, -r requirements.txt
 anyio==4.13.0             # via httpx, starlette, watchfiles, -r requirements.txt
 appdirs==1.4.4            # via molid, -r requirements.txt
 ase==3.28.0               # via matid, molid, -r requirements.txt, nomad-lab (pyproject.toml)
+asgiref==3.11.1           # via opentelemetry-instrumentation-asgi, -r requirements.txt
 async-generator==1.10     # via jupyterhub, -r requirements.txt
 async-timeout==5.0.1 ; python_full_version < '3.11'  # via aiohttp, -r requirements.txt
 atpublic==7.0.0           # via aiosmtpd
@@ -62,7 +63,9 @@ flexparser==0.4           # via pint, -r requirements.txt
 fonttools==4.62.1         # via matplotlib, -r requirements.txt
 frozenlist==1.8.0         # via aiohttp, aiosignal, -r requirements.txt
 fsspec==2026.3.0          # via s3fs, universal-pathlib, -r requirements.txt, nomad-lab (pyproject.toml)
+googleapis-common-protos==1.74.0  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, -r requirements.txt
 greenlet==3.4.0 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'  # via sqlalchemy, -r requirements.txt
+grpcio==1.80.0            # via opentelemetry-exporter-otlp-proto-grpc, -r requirements.txt
 gunicorn==25.3.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 h11==0.16.0               # via httpcore, uvicorn, -r requirements.txt
 h5grove==4.0.0            # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -71,6 +74,7 @@ httpcore==1.0.9           # via httpx, -r requirements.txt
 httptools==0.7.1          # via uvicorn, -r requirements.txt
 httpx==0.27.2             # via python-keycloak, -r requirements.txt, nomad-lab (pyproject.toml)
 idna==3.13                # via anyio, email-validator, httpx, requests, yarl, -r requirements.txt
+importlib-metadata==8.7.1  # via opentelemetry-api, -r requirements.txt
 iniconfig==2.3.0          # via pytest
 isodate==0.7.2            # via rdflib, -r requirements.txt
 jinja2==3.1.6             # via jupyterhub, -r requirements.txt
@@ -114,13 +118,27 @@ networkx==3.6.1 ; python_full_version >= '3.11'  # via matid, pymatgen, -r requi
 nexus-rpc==1.4.0          # via temporalio, -r requirements.txt
 numpy==2.2.6 ; python_full_version < '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
 numpy==2.4.4 ; python_full_version >= '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
-oauthenticator==17.4.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
+oauthenticator==17.4.0    # via --override (workspace), -r requirements.txt, nomad-lab (pyproject.toml)
 oauthlib==3.3.1           # via jupyterhub, -r requirements.txt
 openpyxl==3.1.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-api==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, opentelemetry-semantic-conventions, -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-exporter-otlp==1.41.1  # via -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-exporter-otlp-proto-common==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, -r requirements.txt
+opentelemetry-exporter-otlp-proto-grpc==1.41.1  # via opentelemetry-exporter-otlp, -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-exporter-otlp-proto-http==1.41.1  # via opentelemetry-exporter-otlp, -r requirements.txt
+opentelemetry-instrumentation==0.62b1  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, -r requirements.txt
+opentelemetry-instrumentation-asgi==0.62b1  # via opentelemetry-instrumentation-fastapi, -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-instrumentation-elasticsearch==0.62b1  # via -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-instrumentation-fastapi==0.62b1  # via -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-instrumentation-pymongo==0.62b1  # via -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-proto==1.41.1  # via opentelemetry-exporter-otlp-proto-common, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, -r requirements.txt
+opentelemetry-sdk==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, -r requirements.txt, nomad-lab (pyproject.toml)
+opentelemetry-semantic-conventions==0.62b1  # via opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, -r requirements.txt
+opentelemetry-util-http==0.62b1  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-fastapi, -r requirements.txt
 optimade==1.3.1           # via -r requirements.txt, nomad-lab (pyproject.toml)
 orjson==3.11.8            # via h5grove, pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
 packageurl-python==0.17.6  # via cyclonedx-python-lib
-packaging==26.1           # via deprecation, gunicorn, jupyterhub, matplotlib, mongomock, pip-audit, pip-requirements-parser, plotly, pytest, xarray, -r requirements.txt
+packaging==26.1           # via deprecation, gunicorn, jupyterhub, matplotlib, mongomock, opentelemetry-instrumentation, pip-audit, pip-requirements-parser, plotly, pytest, xarray, -r requirements.txt
 palettable==3.3.3         # via pymatgen, -r requirements.txt
 pamela==1.2.0 ; sys_platform != 'win32'  # via jupyterhub, -r requirements.txt
 pandas==2.3.3 ; python_full_version < '3.11'  # via pymatgen, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -141,7 +159,7 @@ plotly==5.24.1            # via pymatgen, -r requirements.txt, nomad-lab (pyproj
 pluggy==1.6.0             # via pytest, pytest-cov
 prometheus-client==0.25.0  # via jupyterhub, -r requirements.txt
 propcache==0.4.1          # via aiohttp, yarl, -r requirements.txt
-protobuf==6.33.6          # via temporalio, -r requirements.txt
+protobuf==6.33.6          # via googleapis-common-protos, opentelemetry-proto, temporalio, -r requirements.txt
 psutil==7.2.2             # via jupyterhub, molid, -r requirements.txt
 py-serializable==2.1.0    # via cyclonedx-python-lib
 py-spy==0.4.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -178,7 +196,7 @@ pywin32==311 ; sys_platform == 'win32'  # via docker, -r requirements.txt
 pyyaml==6.0.3             # via uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
 rdflib==5.0.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 referencing==0.37.0       # via jsonschema, jsonschema-specifications, -r requirements.txt
-requests==2.33.1          # via cachecontrol, docker, jupyterhub, molid, oauthenticator, optimade, pip-audit, pymatgen, python-gitlab, python-keycloak, requests-toolbelt, rfc3161ng, -r requirements.txt, nomad-lab (pyproject.toml)
+requests==2.33.1          # via cachecontrol, docker, jupyterhub, molid, oauthenticator, opentelemetry-exporter-otlp-proto-http, optimade, pip-audit, pymatgen, python-gitlab, python-keycloak, requests-toolbelt, rfc3161ng, -r requirements.txt, nomad-lab (pyproject.toml)
 requests-toolbelt==1.0.0  # via python-gitlab, python-keycloak, -r requirements.txt
 rfc3161ng==2.1.3          # via -r requirements.txt, nomad-lab (pyproject.toml)
 rich==15.0.0              # via pip-audit
@@ -213,7 +231,7 @@ tornado==6.5.5            # via jupyterhub, oauthenticator, -r requirements.txt
 tqdm==4.67.3              # via molid, pymatgen, -r requirements.txt
 traitlets==5.14.3         # via jupyter-telemetry, jupyterhub, oauthenticator, -r requirements.txt
 types-protobuf==6.32.1.20260221  # via temporalio, -r requirements.txt
-typing-extensions==4.15.0  # via aiobotocore, aiosignal, alembic, anyio, beanie, cryptography, cyclonedx-python-lib, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, h5grove, jwcrypto, multidict, mypy, nexus-rpc, pint, pydantic, pydantic-core, pyjwt, pytest-asyncio, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -r requirements.txt
+typing-extensions==4.15.0  # via aiobotocore, aiosignal, alembic, anyio, asgiref, beanie, cryptography, cyclonedx-python-lib, exceptiongroup, fastapi, fastapi-cache2, flexcache, flexparser, grpcio, h5grove, jwcrypto, multidict, mypy, nexus-rpc, opentelemetry-api, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-sdk, opentelemetry-semantic-conventions, pint, pydantic, pydantic-core, pyjwt, pytest-asyncio, referencing, spglib, sqlalchemy, starlette, structlog, temporalio, typing-inspection, uvicorn, -r requirements.txt
 typing-inspection==0.4.2  # via fastapi, pydantic, pydantic-settings, -r requirements.txt
 tzdata==2026.1            # via pandas, pendulum, -r requirements.txt
 uncertainties==3.2.3      # via pymatgen, -r requirements.txt
@@ -225,8 +243,9 @@ uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'c
 validators==0.35.0        # via -r requirements.txt, nomad-lab (pyproject.toml)
 watchfiles==1.1.1         # via uvicorn, -r requirements.txt
 websockets==16.0          # via uvicorn, -r requirements.txt
-wrapt==2.1.2              # via aiobotocore, -r requirements.txt
+wrapt==2.1.2              # via aiobotocore, opentelemetry-instrumentation, opentelemetry-instrumentation-elasticsearch, -r requirements.txt
 xarray==2025.6.1 ; python_full_version < '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 xarray==2026.4.0 ; python_full_version >= '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 yarl==1.23.0              # via aiohttp, -r requirements.txt
+zipp==3.23.1              # via importlib-metadata, -r requirements.txt
 zipstream-ng==1.9.0       # via -r requirements.txt, nomad-lab (pyproject.toml)
