@@ -177,6 +177,7 @@ class Transformer:
 
             referenced_rule = referenced_rules[rule_name]
             rule = rule.override_fields(referenced_rule)
+            rule.use_rule = referenced_rule.use_rule
 
             rule = self.resolve_reference(rule, all_rules, visited)
 

@@ -1094,7 +1094,8 @@ class Rule(BaseModel):
         """
         overridden_rule = self.copy()
         # Update non-empty fields from the referenced rule, excluding 'use_rule' to prevent circular references
-        for field_name, field_value in referenced_rule.model_dump().items():
+        for field_name in type(referenced_rule).model_fields:
+            field_value = getattr(referenced_rule, field_name)
             if field_value and field_name != 'use_rule':
                 setattr(overridden_rule, field_name, field_value)
         return overridden_rule
