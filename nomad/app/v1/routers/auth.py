@@ -163,14 +163,26 @@ def _resolve_user_with_scopes(
     else:
         # Validate user against Keycloak
         try:
-            if datamodel.User.get(user.user_id) is None:
-                raise ValueError('User not found in database')
+            existing_user = datamodel.User.get(user.user_id)
         except Exception as e:
-            logger.error('API usage by unknown user.', exc_info=e)
+            logger.error(
+                'Failed to lookup authenticated user in Keycloak.',
+                exc_info=e,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Failed to verify authenticated user',
+            ) from e
+
+        if existing_user is None:
+            logger.warning(
+                'API usage by unknown user.',
+                extra={'user_id': user.user_id},
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='You are logged in with an unknown user',
-            ) from e
+            )
 
         # Check user whitelist (via `authorized_users`)
         if (
