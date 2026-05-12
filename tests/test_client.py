@@ -28,7 +28,7 @@ from nomad.client.api import APIError, Auth
 from nomad.client.archive import ArchiveQuery
 from nomad.datamodel import EntryArchive, User
 from nomad.datamodel.metainfo import SCHEMA_IMPORT_ERROR, runschema
-from nomad.datamodel.metainfo.annotations import Rule, Rules
+from nomad.datamodel.metainfo.annotations import Condition, RegexCondition, Rule, Rules
 from nomad.metainfo import MSection, SubSection
 from nomad.utils.json_transformer import Transformer
 from tests.processing import test_data as test_processing
@@ -359,3 +359,125 @@ def test_transform_with_default_value():
     assert result == expected_default_without_a_b, (
         'Failed default_test_transformation_without_a_and_b'
     )
+
+
+def test_transform_with_use_rule_reference():
+    """
+    A rule with only `use_rule` should inherit source and target from the
+    referenced rule and apply the transformation.
+    """
+    library = Rules(rules={'copy_name': Rule(source='person.name', target='out.name')})
+    main = Rules(
+        rules={'ref_name': Rule(target='placeholder', use_rule='#lib.copy_name')}
+    )
+    transformer = load_transformer({'main': main, 'lib': library})
+
+    result = transformer.transform({'person': {'name': 'Ada'}}, 'main', {})
+    assert result == {'out': {'name': 'Ada'}}
+
+
+def test_transform_use_rule_referenced_fields_win():
+    """
+    `override_fields` lets the referenced rule's non-empty fields overwrite
+    the caller's, so the referenced source/target should be used.
+    """
+    library = Rules(rules={'real': Rule(source='b_src', target='b_out')})
+    main = Rules(
+        rules={'shadowed': Rule(source='a_src', target='a_out', use_rule='#lib.real')}
+    )
+    transformer = load_transformer({'main': main, 'lib': library})
+
+    result = transformer.transform({'a_src': 'A', 'b_src': 'B'}, 'main', {})
+    assert result == {'b_out': 'B'}
+
+
+def test_transform_use_rule_propagates_default_value():
+    """
+    When the referenced rule supplies a default_value and the source path is
+    absent, the default is written to the target.
+    """
+    library = Rules(
+        rules={
+            'with_default': Rule(
+                source='missing.path', target='out.value', default_value=42
+            )
+        }
+    )
+    main = Rules(rules={'use_default': Rule(target='x', use_rule='#lib.with_default')})
+    transformer = load_transformer({'main': main, 'lib': library})
+
+    assert transformer.transform({}, 'main', {}) == {'out': {'value': 42}}
+
+
+def test_transform_use_rule_propagates_conditions():
+    """
+    Conditions defined on the referenced rule must be evaluated and gate
+    whether the value is written.
+    """
+    library = Rules(
+        rules={
+            'gated': Rule(
+                source='payload.value',
+                target='out.value',
+                conditions=[
+                    Condition(
+                        regex_condition=RegexCondition(
+                            regex_path='payload.kind', regex_pattern=r'^ok$'
+                        )
+                    )
+                ],
+            )
+        }
+    )
+    main = Rules(rules={'ref': Rule(target='x', use_rule='#lib.gated')})
+    transformer = load_transformer({'main': main, 'lib': library})
+
+    met = transformer.transform({'payload': {'kind': 'ok', 'value': 7}}, 'main', {})
+    assert met == {'out': {'value': 7}}
+
+    not_met = transformer.transform(
+        {'payload': {'kind': 'nope', 'value': 7}}, 'main', {}
+    )
+    assert not_met == {}
+
+
+def test_transform_use_rule_chained_reference():
+    """A -> B -> C should resolve through both hops."""
+    leaf = Rules(rules={'c': Rule(source='deep.val', target='final.val')})
+    mid = Rules(rules={'b': Rule(target='_', use_rule='#leaf.c')})
+    top = Rules(rules={'a': Rule(target='_', use_rule='#mid.b')})
+    transformer = load_transformer({'top': top, 'mid': mid, 'leaf': leaf})
+
+    result = transformer.transform({'deep': {'val': 'hi'}}, 'top', {})
+    assert result == {'final': {'val': 'hi'}}
+
+
+def test_transform_use_rule_circular_reference_raises():
+    a = Rules(rules={'a': Rule(target='ta', use_rule='#b.b')})
+    b = Rules(rules={'b': Rule(target='tb', use_rule='#a.a')})
+    transformer = load_transformer({'a': a, 'b': b})
+
+    with pytest.raises(ValueError, match='Circular reference'):
+        transformer.transform({}, 'a', {})
+
+
+def test_transform_use_rule_invalid_format_raises():
+    main = Rules(rules={'r': Rule(target='t', use_rule='#no_dot_here')})
+    transformer = load_transformer({'main': main})
+    with pytest.raises(ValueError, match='Invalid use_rule format'):
+        transformer.transform({}, 'main', {})
+
+
+def test_transform_use_rule_unknown_mapping_raises():
+    main = Rules(rules={'r': Rule(target='t', use_rule='#missing.x')})
+    transformer = load_transformer({'main': main})
+    with pytest.raises(ValueError, match="Mapping name 'missing' not found"):
+        transformer.transform({}, 'main', {})
+
+
+def test_transform_use_rule_unknown_rule_name_raises():
+    lib = Rules(rules={'real': Rule(source='s', target='t')})
+    main = Rules(rules={'r': Rule(target='t', use_rule='#lib.missing')})
+    transformer = load_transformer({'main': main, 'lib': lib})
+    with pytest.raises(ValueError, match="Rule name 'missing' not found"):
+        transformer.transform({}, 'main', {})
