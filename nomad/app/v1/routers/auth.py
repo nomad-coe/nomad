@@ -381,12 +381,30 @@ class PATCreationResponse(BaseModel):
     raw_token: str
 
 
+_pat_bad_request_response = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'Bad request. Invalid personal access token request.',
+    },
+)
+
+_pat_not_found_response = (
+    status.HTTP_404_NOT_FOUND,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'Not found. Token does not exist or is not owned by the user.',
+    },
+)
+
+
 @router.post(
     '/pats',
     response_model=PATCreationResponse,
     status_code=status.HTTP_201_CREATED,
     summary='Create a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_bad_request_response),
 )
 def create_pat_endpoint(
     request: PATCreateRequest,
@@ -425,6 +443,7 @@ def create_pat_endpoint(
     response_model=PATCreationResponse,
     summary='Rotate a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_bad_request_response, _pat_not_found_response),
 )
 def rotate_pat_endpoint(
     pat_id: str,
@@ -531,6 +550,7 @@ def list_pat_endpoint(
     response_model=PATResponse,
     summary='Retrieve metadata for a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_bad_request_response, _pat_not_found_response),
 )
 def get_pat_endpoint(
     pat_id: str,
@@ -563,6 +583,7 @@ def get_pat_endpoint(
     status_code=status.HTTP_204_NO_CONTENT,
     summary='Revoke a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_not_found_response),
 )
 def revoke_pat_endpoint(
     pat_id: str,
