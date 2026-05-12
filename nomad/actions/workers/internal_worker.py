@@ -2,7 +2,6 @@ import asyncio
 import multiprocessing
 import signal
 import sys
-from concurrent.futures.process import ProcessPoolExecutor
 from datetime import timedelta
 from typing import Any
 
@@ -19,6 +18,7 @@ from nomad.actions.client import get_client
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
+from nomad.tracing import TracingProcessPoolExecutor
 from nomad.utils.structlogging import get_logger
 
 from .utils import worker_process_initializer
@@ -57,7 +57,7 @@ async def run_worker(worker_config: WorkerConfig):
 
     # NOTE: internal processing is not thread safe, avoid using ThreadPoolExecutor with more than 1 worker.
     # mypy: has issues with **kwargs in this context
-    with ProcessPoolExecutor(**executor_kwargs) as executor:  # type: ignore
+    with TracingProcessPoolExecutor(**executor_kwargs) as executor:  # type: ignore
         # ProcessPoolExecutor starts children lazily. Pre-start all children here so
         # the first queued workflow does not pay startup/initializer latency.
         warmup_futures = [

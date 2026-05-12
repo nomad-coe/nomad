@@ -118,6 +118,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+from nomad.tracing import setup_tracing
+
+setup_tracing(app)
+
 app_base = config.services.api_base_path
 
 
