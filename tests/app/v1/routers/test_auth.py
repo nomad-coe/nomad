@@ -326,11 +326,38 @@ def test_get_current_user_unknown_user(allowed_user, monkeypatch):
         'nomad.app.v1.routers.auth.get_user_from_keycloak_token',
         lambda _token: AuthResult(allowed_user, set()),
     )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.datamodel.User.get',
+        lambda *args, **kwargs: None,
+    )
 
     dep = get_current_user(required_scopes=[])
     with pytest.raises(HTTPException, match='logged in with an unknown user') as exc:
         dep(keycloak_token='abc')
     assert exc.value.status_code == 403
+
+
+def test_get_current_user_keycloak_lookup_failure(allowed_user, monkeypatch):
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.get_user_from_keycloak_token',
+        lambda _token: AuthResult(allowed_user, set()),
+    )
+
+    def _raise(*args, **kwargs):
+        raise RuntimeError('keycloak unavailable')
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.auth.datamodel.User.get',
+        _raise,
+    )
+
+    dep = get_current_user(required_scopes=[])
+    with pytest.raises(
+        HTTPException, match='Failed to verify authenticated user'
+    ) as exc:
+        dep(keycloak_token='abc')
+
+    assert exc.value.status_code == 500
 
 
 @pytest.mark.parametrize('tester', [None, 'tester'])
