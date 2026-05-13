@@ -800,6 +800,61 @@ class TestM1:
         test_section.list[0] = '2'
         assert test_section.derived == '21'
 
+    def test_from_dict_tracks_single_bulk_change_and_invalidates_cached_derived(self):
+        class Child(MSection):
+            value = Quantity(type=str)
+
+        class Parent(MSection):
+            left = Quantity(type=str, default='')
+            right = Quantity(type=str, default='')
+            child = SubSection(sub_section=Child)
+
+            @derived(cached=True)
+            def joined(self):
+                return f'{self.left}:{self.right}'
+
+            def on_set(self, quantity_def, value):
+                if quantity_def == Parent.left:
+                    assert self.joined == f'{value}:'
+
+        section = Parent.m_from_dict(
+            {'left': 'A', 'right': 'B', 'child': {'value': 'C'}}
+        )
+
+        assert section.m_mod_count == 1
+        assert section.child.m_mod_count == 1
+        assert section.__dict__['_cached_joined'] == [0, 'A:']
+        assert section.joined == 'A:B'
+        assert section.__dict__['_cached_joined'] == [1, 'A:B']
+
+        section.child.value = 'D'
+        assert section.m_mod_count == 2
+        assert section.child.m_mod_count == 2
+
+    def test_from_dict_tracks_external_tree_changes_during_event_handlers(self):
+        class RemoteTree(MSection):
+            value = Quantity(type=str, default='initial')
+
+            @derived(cached=True)
+            def cached_value(self):
+                return self.value
+
+        remote_tree = RemoteTree()
+        assert remote_tree.cached_value == 'initial'
+
+        class LocalTree(MSection):
+            trigger = Quantity(type=str)
+
+            def on_set(self, quantity_def, value):
+                if quantity_def == LocalTree.trigger:
+                    remote_tree.value = value
+
+        LocalTree.m_from_dict({'trigger': 'updated'})
+
+        assert remote_tree.value == 'updated'
+        assert remote_tree.m_mod_count == 1
+        assert remote_tree.cached_value == 'updated'
+
     def test_derived_deserialize(self):
         class TestSection(MSection):
             value = Quantity(type=str, derived=lambda _: 'test_value')
