@@ -11,27 +11,28 @@ from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Upload
 from nomad.workflows.activities import (
     get_cleanup_entry_batch_from_file,
-    get_entry_batch_from_file,
     handle_heartbeat_failure_activity,
-    next_level_entries,
     prepare_cleanup_activity,
+    prepare_next_level_entry_batches,
     process_entry_batch_activity,
+    process_entry_batch_from_file_activity,
 )
 from nomad.workflows.shared_objects import (
     CleanupEntriesResult,
     CleanupEntryBatchFromFileInput,
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
-    EntriesToBeProcessedResult,
-    EntryBatchFromFileInput,
     ImportBundleWorkflowInput,
     ProcessEntryActivityInput,
+    ProcessEntryBatchFromFileInput,
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    UploadProcessingPhase,
     UploadProcessingWorkflowInput,
 )
-from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE
+from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, ENTRY_BATCH_FILE_SIZE
+from nomad.workflows.workflows import UpdateUploadWorkflow
 
 # Test Constants
 TEST_UPLOAD_ID = 'test-upload-123'
@@ -103,6 +104,18 @@ class TestFixtures:
     @staticmethod
     def publish_externally_input():
         return PublishExternallyWorkflowInput(upload_id=TEST_UPLOAD_ID)
+
+
+class TestUploadProcessingWorkflowInput:
+    def test_phase_accepts_serialized_string_value(self):
+        input_data = UploadProcessingWorkflowInput(
+            upload_id=TEST_UPLOAD_ID,
+            workflow_id=str(uuid.uuid4()),
+            workflow_tmp_dir=tempfile.mkdtemp(),
+            phase='process',
+        )
+
+        assert input_data.phase == UploadProcessingPhase.PROCESS
 
 
 @pytest.fixture
@@ -407,46 +420,52 @@ class TestProcessEntryActivities:
         entry.fail.assert_not_called()
         entry.save.assert_not_called()
 
-    def test_get_entry_batch_from_file_loads_specific_batch_file(self, tmp_path):
+    def test_process_entry_batch_from_file_loads_across_chunks(
+        self, mock_data_layer, monkeypatch, tmp_path
+    ):
         batch_dir = tmp_path
-        (batch_dir / 'entry_batch_1.json').write_text(
-            '["entry-4", "entry-5", "entry-6", "entry-7"]'
+        (batch_dir / 'entry_chunk_0.json').write_text(
+            '["entry-0", "entry-1", "entry-2"]'
         )
+        (batch_dir / 'entry_chunk_1.json').write_text(
+            '["entry-3", "entry-4", "entry-5"]'
+        )
+        processed_entry_ids = []
 
-        batch = get_entry_batch_from_file(
-            EntryBatchFromFileInput(
+        def mock_get_entry(entry_id):
+            entry = MagicMock()
+            entry._process_entry_local.side_effect = lambda: processed_entry_ids.append(
+                entry_id
+            )
+            return entry
+
+        mock_data_layer['entry_class'].get.side_effect = mock_get_entry
+        monkeypatch.setattr('nomad.workflows.activities.activity.heartbeat', Mock())
+
+        process_entry_batch_from_file_activity(
+            ProcessEntryBatchFromFileInput(
                 upload_id=TEST_UPLOAD_ID,
                 batch_dir_path=str(batch_dir),
-                batch_id=1,
+                chunk_id=0,
+                offset=2,
+                limit=3,
             )
         )
 
-        assert [entry.entry_id for entry in batch] == [
-            'entry-4',
-            'entry-5',
-            'entry-6',
-            'entry-7',
-        ]
+        assert processed_entry_ids == ['entry-2', 'entry-3', 'entry-4']
 
 
-class TestNextLevelEntriesActivity:
-    def test_small_entry_sets_stay_in_memory(
-        self,
-        mock_data_layer,
-    ):
-        """Small batches stay in workflow state."""
-        mock_data_layer['upload_instance'].next_level_entries.return_value = [
-            Mock(entry_id=f'entry-{idx}') for idx in range(999)
-        ]
+class TestPrepareNextLevelEntryBatchesActivity:
+    def test_returns_none_without_entries(self, mock_data_layer):
+        mock_data_layer['upload_instance'].next_level_entries.return_value = []
 
-        result = next_level_entries(TestFixtures.upload_processing_input())
+        result = prepare_next_level_entry_batches(
+            TestFixtures.upload_processing_input()
+        )
 
-        assert result is not None
-        assert result.directory is None
-        assert result.entries is not None
-        assert len(result.entries) == 999
+        assert result is None
 
-    def test_large_entry_sets_use_fixed_size_batch_files(
+    def test_prepared_entry_batches_use_fixed_size_chunks(
         self,
         mock_data_layer,
         monkeypatch,
@@ -456,18 +475,19 @@ class TestNextLevelEntriesActivity:
         )
         mock_data_layer['config'].temporal.entry_activity_batch_size = 2
         mock_data_layer['upload_instance'].next_level_entries.return_value = [
-            Mock(entry_id=f'entry-{idx}') for idx in range(2500)
+            Mock(entry_id=f'entry-{idx}') for idx in range(ENTRY_BATCH_FILE_SIZE + 1)
         ]
 
-        result = next_level_entries(TestFixtures.upload_processing_input())
+        result = prepare_next_level_entry_batches(
+            TestFixtures.upload_processing_input()
+        )
 
         assert result is not None
-        assert result.entries is None
         assert result.directory is not None
-        assert result.total_batches == 3
-        assert (Path(result.directory) / 'entry_batch_0.json').exists()
-        assert (Path(result.directory) / 'entry_batch_1.json').exists()
-        assert (Path(result.directory) / 'entry_batch_2.json').exists()
+        assert result.total_batches == 501
+        assert result.entry_activity_batch_size == 2
+        assert (Path(result.directory) / 'entry_chunk_0.json').exists()
+        assert (Path(result.directory) / 'entry_chunk_1.json').exists()
 
 
 class TestCleanupActivities:
@@ -535,136 +555,6 @@ class TestUploadCleanupHelpers:
         entry_objects.return_value.update.assert_called_once_with(
             set__process_status=ProcessStatus.READY
         )
-
-
-class TestBatchProcessEntriesWorkflow:
-    """Tests for BatchProcessEntriesWorkflow."""
-
-    @pytest.mark.asyncio
-    async def test_small_batch_direct_processing(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test processing small batch (<=1000 entries) directly."""
-        entries = [TestFixtures.process_entry_input() for _ in range(5)]
-
-        # Create EntriesToBeProcessedResult with entries in memory
-        entries_result = EntriesToBeProcessedResult(
-            entries=entries,
-            upload_id=TEST_UPLOAD_ID,
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-small',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Verify entries were processed
-        assert mock_data_layer['entry_class'].get.call_count == 5  # 5 entries
-
-    @pytest.mark.asyncio
-    async def test_large_batch_sequential_processing(
-        self,
-        mock_data_layer,
-        monkeypatch,
-        temporal_worker,
-    ):
-        """Test processing large batch (>1000 entries) with sequential sub-batching."""
-        # Create 1500 entries to trigger batch splitting
-        entries = [TestFixtures.process_entry_input() for _ in range(1500)]
-
-        entries_result = EntriesToBeProcessedResult(
-            entries=entries,
-            upload_id=TEST_UPLOAD_ID,
-        )
-
-        # Mock generate_batches to split into manageable chunks
-        def mock_generate_batches(items, max_desired_batch_size=1000, max_batches=10):
-            return [
-                items[i : i + max_desired_batch_size]
-                for i in range(0, len(items), max_desired_batch_size)
-            ]
-
-        monkeypatch.setattr(
-            'nomad.workflows.workflows.generate_batches', mock_generate_batches
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-large',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Verify entries were processed (should be processed in sub-batches)
-        # The exact count depends on recursive calls, but should be significant
-        assert mock_data_layer['entry_class'].get.call_count > 0
-
-    @pytest.mark.asyncio
-    async def test_file_based_batch_processing(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test processing entries stored in files (large dataset scenario)."""
-
-        # Create result object pointing to file-based storage
-        entries_result = EntriesToBeProcessedResult(
-            upload_id=TEST_UPLOAD_ID,
-            directory='/tmp/batch_files',
-            total_batches=3,
-        )
-
-        # Mock get_entry_batch_from_file activity to return entries
-        def mock_get_entry_batch_from_file(input_data):
-            return [TestFixtures.process_entry_input() for _ in range(5)]
-
-        # We need to mock this at the activity level since it's called within the workflow
-        mock_data_layer['get_entry_batch_from_file'] = Mock(
-            side_effect=mock_get_entry_batch_from_file
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-file-based',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Verify that entries were processed for each batch file
-        # The exact count depends on how the mocking works in the temporal environment
-        assert mock_data_layer['entry_class'].get.call_count >= 0
-
-    @pytest.mark.asyncio
-    async def test_empty_entries_result(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test handling of empty entries result."""
-
-        entries_result = EntriesToBeProcessedResult(
-            upload_id=TEST_UPLOAD_ID,
-            entries=None,
-            directory=None,
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-empty',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Should complete without processing any entries
-        assert mock_data_layer['entry_class'].get.call_count == 0
 
 
 class TestBatchCleanupEntriesWorkflow:
@@ -1125,6 +1015,42 @@ class TestWorkflowCommonPatterns:
                 ).assert_called_once()
 
 
+class TestUpdateUploadWorkflowCursor:
+    def test_file_batch_input_uses_fixed_file_chunk_size(self):
+        workflow = UpdateUploadWorkflow()
+        input_data = TestFixtures.upload_processing_input()
+
+        activity_input = workflow._process_entry_batch_from_file_input(
+            parse_all_input=input_data,
+            batch_dir='/tmp/entry-batches',
+            batch_id=501,
+            entry_activity_batch_size=2,
+        )
+
+        assert activity_input.upload_id == TEST_UPLOAD_ID
+        assert activity_input.batch_dir_path == '/tmp/entry-batches'
+        assert activity_input.chunk_id == 1
+        assert activity_input.offset == 2
+        assert activity_input.limit == 2
+
+    def test_advance_to_next_parser_level_clears_completed_cursor(self):
+        workflow = UpdateUploadWorkflow()
+        input_data = TestFixtures.upload_processing_input()
+        input_data.min_level = 4
+        input_data.current_batch_dir = '/tmp/entry-batches'
+        input_data.current_batch_index = 3
+        input_data.total_batches = 3
+        input_data.next_parser_level = 6
+
+        workflow._advance_to_next_parser_level(input_data)
+
+        assert input_data.min_level == 7
+        assert input_data.current_batch_dir is None
+        assert input_data.current_batch_index == 0
+        assert input_data.total_batches == 0
+        assert input_data.next_parser_level is None
+
+
 class TestWorkflowErrorHandling:
     """Tests for workflow error handling scenarios."""
 
@@ -1302,15 +1228,15 @@ class TestWorkflowErrorHandling:
             'upload_instance'
         ].next_level_entries.side_effect = mock_next_level_entries_side_effect
 
-        # Mock process_entry_activity to fail for one specific entry
-        def mock_process_entry_side_effect(input_data):
-            if input_data.entry_id == 'test-entry-2':
-                raise Exception('Simulated entry processing failure')
-            return 'success'
-
-        mock_data_layer[
-            'entry_instance'
-        ]._process_entry_local.side_effect = mock_process_entry_side_effect
+        successful_entry = MagicMock()
+        failing_entry = MagicMock()
+        failing_entry._process_entry_local.side_effect = Exception(
+            'Simulated entry processing failure'
+        )
+        mock_data_layer['entry_class'].get.side_effect = {
+            'test-entry-1': successful_entry,
+            'test-entry-2': failing_entry,
+        }.get
 
         # Mock parser_min_level
         monkeypatch.setattr('nomad.workflows.activities.parser_min_level', 0)
@@ -1331,9 +1257,10 @@ class TestWorkflowErrorHandling:
             'Process completed successfully'
         )
 
-        # Verify that entry processing was attempted for both entries
-        # 4 calls accounts for the number of retries
-        assert mock_data_layer['entry_class'].get.call_count == 4
+        # Verify that entry processing was attempted for both entries.
+        assert mock_data_layer['entry_class'].get.call_count >= 2
+        successful_entry._process_entry_local.assert_called()
+        failing_entry._process_entry_local.assert_called()
 
         # Verify that the upload workflow completed successfully
         # (The upload should not be marked as failed due to individual entry failures)
