@@ -2408,6 +2408,7 @@ class Upload(Proc):
         }
         entry_ids_to_delete = set(old_entries_dict.keys())
         main_entry: Entry = None
+        processing_failed = False
         if parser:
             metadata_handler = MetadataEditRequestHandler(
                 self.get_logger(),
@@ -2456,6 +2457,7 @@ class Upload(Proc):
             try:
                 main_entry.process_entry_local()
             except Exception:
+                processing_failed = True
                 pass  # The framework will have set entry to failed status, which is enough.
 
         # Delete existing unmatched entries
@@ -2463,6 +2465,12 @@ class Upload(Proc):
             for entry_id in entry_ids_to_delete:
                 search.delete_entry(entry_id=entry_id, update_materials=False)
                 old_entries_dict[entry_id].delete()
+
+        if processing_failed:
+            self.set_last_status_message('Process failed')
+        else:
+            self.set_last_status_message('Process completed successfully')
+
         return main_entry
 
     async def _stop_processing_workflows(self):

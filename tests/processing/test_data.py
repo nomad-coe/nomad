@@ -24,6 +24,8 @@ import shutil
 import uuid
 import zipfile
 from collections.abc import Generator
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 import yaml
@@ -129,6 +131,111 @@ def test_send_mail(mails, monkeypatch):
 
     for message in mails.messages:
         assert re.search(r'test message', message.data.decode('utf-8')) is not None
+
+
+def test_put_file_and_process_local_sets_success_message_on_success(
+    tmp_path, monkeypatch
+):
+    raw_file = tmp_path / 'mainfile.txt'
+    raw_file.write_text('content')
+
+    status_messages: list[str] = []
+    main_entry = MagicMock()
+    main_entry.process_entry_local = MagicMock()
+    main_entry.save = MagicMock()
+
+    upload = SimpleNamespace(
+        published=False,
+        upload_id='upload-id',
+        main_author_user=MagicMock(),
+        reprocess_settings=None,
+        set_last_status_message=status_messages.append,
+        get_logger=MagicMock,
+        staging_upload_files=SimpleNamespace(
+            raw_exists=lambda _path: False,
+            add_rawfiles=lambda _path, _target_dir: None,
+            raw_file_object=lambda _path: SimpleNamespace(os_path=str(raw_file)),
+        ),
+    )
+
+    monkeypatch.setattr(
+        'nomad.processing.data.match_parser',
+        lambda _path: (SimpleNamespace(name='dummy-parser'), None),
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.MetadataEditRequestHandler',
+        lambda *args, **kwargs: SimpleNamespace(
+            get_entry_mongo_metadata=lambda _upload, _entry: {}
+        ),
+    )
+    monkeypatch.setattr('nomad.processing.data.Entry.objects', lambda **kwargs: [])
+    monkeypatch.setattr(
+        'nomad.processing.data.Entry.create', lambda **kwargs: main_entry
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.utils.generate_entry_id',
+        lambda _upload_id, _path, _key: 'entry-id',
+    )
+
+    result = Upload.put_file_and_process_local(upload, str(raw_file), '')
+
+    assert result is main_entry
+    assert status_messages[-1] == 'Process completed successfully'
+    main_entry.process_entry_local.assert_called_once()
+
+
+def test_put_file_and_process_local_does_not_set_success_message_on_failure(
+    tmp_path, monkeypatch
+):
+    raw_file = tmp_path / 'mainfile.txt'
+    raw_file.write_text('content')
+
+    status_messages: list[str] = []
+    main_entry = MagicMock()
+    main_entry.process_entry_local = MagicMock(
+        side_effect=Exception('processing failed')
+    )
+    main_entry.save = MagicMock()
+
+    upload = SimpleNamespace(
+        published=False,
+        upload_id='upload-id',
+        main_author_user=MagicMock(),
+        reprocess_settings=None,
+        set_last_status_message=status_messages.append,
+        get_logger=MagicMock,
+        staging_upload_files=SimpleNamespace(
+            raw_exists=lambda _path: False,
+            add_rawfiles=lambda _path, _target_dir: None,
+            raw_file_object=lambda _path: SimpleNamespace(os_path=str(raw_file)),
+        ),
+    )
+
+    monkeypatch.setattr(
+        'nomad.processing.data.match_parser',
+        lambda _path: (SimpleNamespace(name='dummy-parser'), None),
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.MetadataEditRequestHandler',
+        lambda *args, **kwargs: SimpleNamespace(
+            get_entry_mongo_metadata=lambda _upload, _entry: {}
+        ),
+    )
+    monkeypatch.setattr('nomad.processing.data.Entry.objects', lambda **kwargs: [])
+    monkeypatch.setattr(
+        'nomad.processing.data.Entry.create', lambda **kwargs: main_entry
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.utils.generate_entry_id',
+        lambda _upload_id, _path, _key: 'entry-id',
+    )
+
+    result = Upload.put_file_and_process_local(upload, str(raw_file), '')
+
+    assert result is main_entry
+    assert status_messages[-1] == 'Process failed'
+    assert 'Process completed successfully' not in status_messages
+    main_entry.process_entry_local.assert_called_once()
 
 
 @pytest.fixture(scope='function', autouse=True)
