@@ -26,6 +26,8 @@ import sys
 import warnings
 from collections.abc import Callable as TypingCallable
 from collections.abc import Iterable
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import copy, deepcopy
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
@@ -92,6 +94,19 @@ MSectionBound = TypeVar('MSectionBound', bound='MSection')
 
 _UNSET_ = '__UNSET__'
 _HASH_OBJ = type['hashlib._Hash']  # type: ignore
+_suspended_change_tracking_sections: ContextVar[tuple[MSection, ...]] = ContextVar(
+    '_suspended_change_tracking_sections', default=()
+)
+
+
+@contextmanager
+def _without_change_tracking(section: MSection):
+    suspended_sections = _suspended_change_tracking_sections.get()
+    token = _suspended_change_tracking_sections.set((*suspended_sections, section))
+    try:
+        yield
+    finally:
+        _suspended_change_tracking_sections.reset(token)
 
 
 # Metainfo errors
@@ -704,7 +719,14 @@ def constraint(warning):
 
 
 def _track_changes(section: MSection | None):
+    suspended_sections = _suspended_change_tracking_sections.get()
+
     while section is not None:
+        if any(
+            section is suspended_section for suspended_section in suspended_sections
+        ):
+            return
+
         section.m_mod_count += 1
         section = section.m_parent
 
@@ -2226,7 +2248,13 @@ class MSection(metaclass=MObjectMeta):
 
         section = cls(**kwargs)
         section.m_parent = m_parent
-        section.m_update_from_dict(dct, treat_none_as_nan=treat_none_as_nan)
+
+        with _without_change_tracking(section):
+            section.m_update_from_dict(dct, treat_none_as_nan=treat_none_as_nan)
+
+        # Advance the version once after bulk hydration so any cached values
+        # potentially touched during load are considered stale afterwards.
+        section.m_mod_count += 1
 
         return section
 
