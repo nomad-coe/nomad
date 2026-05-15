@@ -18,6 +18,7 @@
 
 import json
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Any, Literal
 
 
@@ -81,19 +82,25 @@ class NextLevelEntryResult:
 
 @dataclass
 class UpdatedFilesResult:
-    files: set[str] | None = None
+    files: list[str] | None = None
     file_path: str | None = None
 
     def get_files(self) -> set[str] | None:
         """Get the files, loading from file if necessary"""
         if self.files is not None:
-            return self.files
+            return set(self.files)
 
         if self.file_path is not None:
             with open(self.file_path) as f:
                 return set(json.load(f))
 
         return None
+
+
+class UploadProcessingPhase(StrEnum):
+    SETUP = 'setup'
+    MATCH = 'match'
+    PROCESS = 'process'
 
 
 @dataclass
@@ -109,23 +116,32 @@ class UploadProcessingWorkflowInput:
     publish_directly_after_processing: bool = False
     updated_files: UpdatedFilesResult = field(default_factory=UpdatedFilesResult)
     min_level: int = 0
+    phase: UploadProcessingPhase = UploadProcessingPhase.SETUP
+    current_batch_dir: str | None = None
+    current_batch_index: int = 0
+    total_batches: int = 0
+    entry_activity_batch_size: int = 1
+    next_parser_level: int | None = None
+
+    def __post_init__(self):
+        self.phase = UploadProcessingPhase(self.phase)
 
 
 @dataclass
-class EntryBatchFromFileInput:
+class ProcessEntryBatchFromFileInput:
     upload_id: str
     batch_dir_path: str
-    batch_id: int
+    chunk_id: int
+    offset: int
+    limit: int
 
 
 @dataclass
 class EntriesToBeProcessedResult:
     upload_id: str
-    entries: list[ProcessEntryActivityInput] | None = None
     directory: str | None = None
-    current_sub_batch_index: int = 0
-    current_batch_id: int = 0
     total_batches: int = 0
+    entry_activity_batch_size: int = 1
     next_parser_level: int | None = None
 
 

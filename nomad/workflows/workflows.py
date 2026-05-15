@@ -69,15 +69,15 @@ with workflow.unsafe.imports_passed_through():
         finalize_cleanup_activity,
         finalize_upload_processing_activity,
         get_cleanup_entry_batch_from_file,
-        get_entry_batch_from_file,
+        handle_batch_heartbeat_failure_activity,
         handle_heartbeat_failure_activity,
         import_bundle_activity,
         match_all_activity,
-        next_level_entries,
         parser_min_level,
         prepare_cleanup_activity,
+        prepare_next_level_entry_batches,
         process_entry_activity,
-        process_entry_batch_activity,
+        process_entry_batch_from_file_activity,
         publish_externally_activity,
         publish_upload_activity,
         setup_example_upload_activity,
@@ -90,19 +90,24 @@ with workflow.unsafe.imports_passed_through():
         CleanupEntryBatchFromFileInput,
         DeleteUploadWorkflowInput,
         EditUploadMetadataWorkflowInput,
-        EntriesToBeProcessedResult,
-        EntryBatchFromFileInput,
         FinalizeUploadProcessingFailureInput,
         FinalizeUploadProcessingSuccessInput,
         ImportBundleWorkflowInput,
         ProcessEntryActivityInput,
+        ProcessEntryBatchFromFileInput,
         ProcessExampleUploadWorkflowInput,
         PublishExternallyWorkflowInput,
         PublishUploadWorkflowInput,
+        UploadProcessingPhase,
         UploadProcessingWorkflowInput,
         UploadWorkflowIdInput,
     )
-    from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, generate_batches
+    from nomad.workflows.utils import (
+        CLEANUP_ENTRY_BATCH_SIZE,
+        ENTRY_ACTIVITY_BATCHES_PER_WORKFLOW_RUN,
+        ENTRY_BATCH_FILE_SIZE,
+        generate_batches,
+    )
 
 
 @workflow.defn
@@ -185,175 +190,6 @@ class ProcessEntryWorkflow:
             raise e
 
         return result
-
-
-@workflow.defn
-class BatchProcessEntriesWorkflow:
-    """
-    Handles processing of entry batches.
-
-    Architecture:
-    - Uses continue-as-new to process batches sequentially, preventing history buildup
-    - Within each batch, processes entries in configurable micro-batches
-    - Handles both file-based storage (large datasets) and in-memory storage (small datasets)
-
-    Note: Workflow-level splitting keeps in-memory batches bounded to 1000 entries.
-    """
-
-    @workflow.run
-    async def run(self, next_level_entries_result: EntriesToBeProcessedResult):
-        retry_policy = RetryPolicy(
-            maximum_attempts=2,
-        )
-        max_entries_per_batch_workflow = 1000
-        # Handle file-based entry storage (used for very large uploads).
-        # Entries are persisted as per-batch files and loaded on demand.
-        if entry_batch_directory := next_level_entries_result.directory:
-            file_semaphore = asyncio.Semaphore(
-                config.temporal.entry_workflow_batch_concurrency
-            )  # Max concurrent batches
-
-            async def process_file_batch(batch_id):
-                async with file_semaphore:
-                    entries_to_be_processed = await workflow.execute_activity(
-                        get_entry_batch_from_file,
-                        EntryBatchFromFileInput(
-                            upload_id=next_level_entries_result.upload_id,
-                            batch_dir_path=entry_batch_directory,
-                            batch_id=batch_id,
-                        ),
-                        schedule_to_close_timeout=timedelta(
-                            seconds=config.temporal.processing_timeouts.next_level_entries_timeout
-                        ),
-                        retry_policy=retry_policy,
-                        priority=BATCH_PROCESS_ENTRIES_PRIORITY,
-                    )
-                    # Recursively process this batch (which may further subdivide if
-                    # it exceeds the entry limit for a single workflow run).
-                    await workflow.execute_child_workflow(
-                        BatchProcessEntriesWorkflow.run,
-                        EntriesToBeProcessedResult(
-                            entries=entries_to_be_processed,
-                            upload_id=next_level_entries_result.upload_id,
-                        ),
-                        id=f'{workflow.info().workflow_id}-file-batch-{batch_id}',
-                        parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
-                        retry_policy=retry_policy,
-                        priority=BATCH_PROCESS_ENTRIES_PRIORITY,
-                    )
-
-            # Each sub-batch is bounded by the per-workflow entry limit.
-            await asyncio.gather(
-                *[
-                    process_file_batch(batch_id)
-                    for batch_id in range(next_level_entries_result.total_batches)
-                ]
-            )
-        # Handle in-memory entry processing (from small uploads or loaded file batches)
-        elif entries_to_be_processed := next_level_entries_result.entries:
-            # Two-tier processing strategy based on batch size:
-            # 1. Large batches: Split into smaller batches and process sequentially
-            # 2. Small batches: Process entries directly as micro-batched activities
-            if len(entries_to_be_processed) > max_entries_per_batch_workflow:
-                entry_batches = list(
-                    generate_batches(
-                        entries_to_be_processed,
-                        max_desired_batch_size=max_entries_per_batch_workflow,
-                    )
-                )
-                current_sub_batch_index = (
-                    next_level_entries_result.current_sub_batch_index
-                )
-
-                # Process current sub-batch
-                current_batch = entry_batches[current_sub_batch_index]
-                await self._process_entries_batch(current_batch, retry_policy)
-
-                # Continue to next sub-batch using continue-as-new if more remain
-                next_sub_batch_index = current_sub_batch_index + 1
-                if next_sub_batch_index < len(entry_batches):
-                    workflow.continue_as_new(
-                        EntriesToBeProcessedResult(
-                            entries=entries_to_be_processed,  # Keep original list for batching
-                            upload_id=next_level_entries_result.upload_id,
-                            current_sub_batch_index=next_sub_batch_index,
-                        )
-                    )
-            else:
-                # Process entries directly as activities when within one workflow run.
-                await self._process_entries_batch(entries_to_be_processed, retry_policy)
-
-    async def _process_entries_batch(
-        self, entries: list[ProcessEntryActivityInput], retry_policy: RetryPolicy
-    ):
-        """
-        Process a batch of entries concurrently as activities.
-
-        Args:
-            entries: List of entry inputs to process.
-            retry_policy: Retry policy for activity execution
-        """
-        entry_activity_batch_size = max(1, config.temporal.entry_activity_batch_size)
-        micro_batches = generate_batches(
-            entries, max_desired_batch_size=entry_activity_batch_size
-        )
-        batch_activity_concurrency = max(
-            1, config.temporal.entry_concurrency_target // entry_activity_batch_size
-        )
-        tasks = []
-        self.entry_batch_semaphore = asyncio.Semaphore(batch_activity_concurrency)
-
-        for entry_batch in micro_batches:
-            task = self._process_single_entry_batch(entry_batch, retry_policy)
-            tasks.append(task)
-
-        # Use return_exceptions=True to allow individual activities to fail
-        # without stopping the entire batch or failing the parent workflow
-        await asyncio.gather(*tasks, return_exceptions=True)
-
-    async def _process_single_entry_batch(
-        self, inputs: list[ProcessEntryActivityInput], retry_policy: RetryPolicy
-    ):
-        """
-        Process a micro-batch of entries with error handling for heartbeat timeouts.
-
-        Args:
-            inputs: Entry inputs to process in a single activity
-            retry_policy: Retry policy for activity execution
-
-        Returns:
-            Result from the process_entry_batch_activity
-        """
-        timeout_seconds = (
-            config.temporal.processing_timeouts.process_entry_timeout * len(inputs)
-        )
-        try:
-            async with self.entry_batch_semaphore:
-                result = await workflow.execute_activity(
-                    process_entry_batch_activity,
-                    inputs,
-                    schedule_to_close_timeout=timedelta(seconds=timeout_seconds),
-                    heartbeat_timeout=timedelta(
-                        seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
-                    ),
-                    retry_policy=retry_policy,
-                    priority=BATCH_PROCESS_ENTRY_PRIORITY,
-                )
-                return result
-
-        except ActivityError as e:
-            # Handle heartbeat timeout failures with a dedicated recovery activity
-            if 'heartbeat timeout' in str(e.cause):
-                for input in inputs:
-                    await workflow.execute_activity(
-                        handle_heartbeat_failure_activity,
-                        input,
-                        schedule_to_close_timeout=timedelta(
-                            seconds=config.temporal.processing_timeouts.process_entry_timeout
-                        ),
-                        priority=BATCH_PROCESS_ENTRIES_PRIORITY,
-                    )
-            raise e
 
 
 @workflow.defn
@@ -460,54 +296,57 @@ class UpdateUploadWorkflow:
         parse_all_input: UploadProcessingWorkflowInput,
         heartbeat_timeout: timedelta,
         parent_workflow_id: str,
-    ):
+    ) -> bool:
+        """Process entries and cleanup, returning True when continue-as-new is needed.
+
+        The input carries two kinds of resume state: a coarse phase for setup/match
+        checkpoints and a fine-grained batch cursor for entry processing. Keeping the
+        cursor in the workflow input lets a continued run resume without re-running
+        already completed file updates, matching, or entry batches.
+        """
         process_retry_policy = RetryPolicy(maximum_attempts=2)
 
-        # Step 2: Match all, pass updated_files as set
-        await workflow.execute_activity(
-            match_all_activity,
-            parse_all_input,
-            schedule_to_close_timeout=timedelta(
-                seconds=config.temporal.processing_timeouts.match_all_timeout
-            ),
-            heartbeat_timeout=heartbeat_timeout,
-            retry_policy=process_retry_policy,
-            priority=UPDATE_UPLOAD_PRIORITY,
-        )
-
-        # Step 3: Parse next level(s)
-        # Outer loop: continue until no more parser levels to process.
-        while True:
-            next_level_entries_result = await workflow.execute_activity(
-                next_level_entries,
+        if parse_all_input.phase == UploadProcessingPhase.MATCH:
+            # Step 2: Match all, pass updated_files as set. This must only run once;
+            # continue-as-new resumes from the current phase/cursor below.
+            await workflow.execute_activity(
+                match_all_activity,
                 parse_all_input,
                 schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.next_level_entries_timeout
+                    seconds=config.temporal.processing_timeouts.match_all_timeout
                 ),
                 heartbeat_timeout=heartbeat_timeout,
                 retry_policy=process_retry_policy,
                 priority=UPDATE_UPLOAD_PRIORITY,
             )
+            parse_all_input.phase = UploadProcessingPhase.PROCESS
 
-            # If None returned: no entries exist for this parser level at all,
-            # then we're done with all parser levels.
-            if not next_level_entries_result:
+        # Step 3: Parse next level(s)
+        # Outer loop: continue until no more parser levels to process.
+        while True:
+            if parse_all_input.phase != UploadProcessingPhase.PROCESS:
                 break
 
-            # Delegate all batch processing complexity to BatchProcessEntriesWorkflow.
-            await workflow.execute_child_workflow(
-                BatchProcessEntriesWorkflow.run,
-                next_level_entries_result,
-                id=f'{parent_workflow_id}-{parse_all_input.min_level}-batch-processor',
-                parent_close_policy=workflow.ParentClosePolicy.TERMINATE,
-                retry_policy=process_retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
-            )
+            if parse_all_input.current_batch_dir is None:
+                has_entries_to_process = await self._prepare_entry_level(
+                    parse_all_input,
+                    heartbeat_timeout,
+                    process_retry_policy,
+                )
+                if not has_entries_to_process:
+                    break
 
-            next_parser_level = (
-                next_level_entries_result.next_parser_level or parse_all_input.min_level
+            should_continue_as_new = await self._process_entry_batch_window(
+                parse_all_input=parse_all_input,
+                retry_policy=process_retry_policy,
             )
-            parse_all_input.min_level = next_parser_level + 1
+            if should_continue_as_new:
+                return True
+
+            self._advance_to_next_parser_level(parse_all_input)
+
+            if workflow.info().is_continue_as_new_suggested():
+                return True
 
         # Step 4: Cleanup
         cleanup_entries_result: (
@@ -525,7 +364,7 @@ class UpdateUploadWorkflow:
 
         # An empty result means prepare_cleanup_activity already completed the fast path.
         if cleanup_entries_result is None:
-            return
+            return False
 
         await workflow.execute_child_workflow(
             BatchCleanupEntriesWorkflow.run,
@@ -546,6 +385,150 @@ class UpdateUploadWorkflow:
             retry_policy=process_retry_policy,
             priority=UPDATE_UPLOAD_PRIORITY,
         )
+        return False
+
+    async def _prepare_entry_level(
+        self,
+        parse_all_input: UploadProcessingWorkflowInput,
+        heartbeat_timeout: timedelta,
+        retry_policy: RetryPolicy,
+    ) -> bool:
+        """Prepare file-backed entry batches for the current parser level.
+
+        Returns False when there are no more entries to process. Otherwise, it stores
+        the batch directory and sizing information on the workflow input so the next
+        processing window can resume from the same partitioning after continue-as-new.
+        """
+        next_level_entries_result = await workflow.execute_activity(
+            prepare_next_level_entry_batches,
+            parse_all_input,
+            schedule_to_close_timeout=timedelta(
+                seconds=config.temporal.processing_timeouts.next_level_entries_timeout
+            ),
+            heartbeat_timeout=heartbeat_timeout,
+            retry_policy=retry_policy,
+            priority=UPDATE_UPLOAD_PRIORITY,
+        )
+
+        if not next_level_entries_result:
+            return False
+
+        parse_all_input.current_batch_dir = next_level_entries_result.directory
+        parse_all_input.current_batch_index = 0
+        parse_all_input.total_batches = next_level_entries_result.total_batches
+        parse_all_input.entry_activity_batch_size = (
+            next_level_entries_result.entry_activity_batch_size
+        )
+        parse_all_input.next_parser_level = next_level_entries_result.next_parser_level
+        return True
+
+    def _advance_to_next_parser_level(
+        self, parse_all_input: UploadProcessingWorkflowInput
+    ):
+        """Clear the completed level cursor and move to the next parser level."""
+        next_parser_level = (
+            parse_all_input.next_parser_level or parse_all_input.min_level
+        )
+        parse_all_input.min_level = next_parser_level + 1
+        parse_all_input.current_batch_dir = None
+        parse_all_input.current_batch_index = 0
+        parse_all_input.total_batches = 0
+        parse_all_input.next_parser_level = None
+
+    def _process_entry_batch_from_file_input(
+        self,
+        parse_all_input: UploadProcessingWorkflowInput,
+        batch_dir: str,
+        batch_id: int,
+        entry_activity_batch_size: int,
+    ) -> ProcessEntryBatchFromFileInput:
+        """Build the file/chunk cursor for one activity-sized entry batch."""
+        start_entry_index = batch_id * entry_activity_batch_size
+        return ProcessEntryBatchFromFileInput(
+            upload_id=parse_all_input.upload_id,
+            batch_dir_path=batch_dir,
+            chunk_id=start_entry_index // ENTRY_BATCH_FILE_SIZE,
+            offset=start_entry_index % ENTRY_BATCH_FILE_SIZE,
+            limit=entry_activity_batch_size,
+        )
+
+    async def _process_entry_batch_window(
+        self,
+        parse_all_input: UploadProcessingWorkflowInput,
+        retry_policy: RetryPolicy,
+    ) -> bool:
+        """Process a bounded window of entry batches from the prepared files.
+
+        Activity failures are handled after Temporal has exhausted the supplied retry
+        policy. Failed entries record their own processing errors, but they should not
+        prevent unrelated entries, cleanup, or upload finalization from running. The
+        cursor advances only after the window has completed, and the return value tells
+        the caller whether another continue-as-new is needed for the remaining batches.
+        """
+        batch_dir = parse_all_input.current_batch_dir
+        if (
+            not batch_dir
+            or parse_all_input.current_batch_index >= parse_all_input.total_batches
+        ):
+            return False
+
+        entry_activity_batch_size = max(1, parse_all_input.entry_activity_batch_size)
+        batch_activity_concurrency = max(
+            1,
+            (
+                config.temporal.entry_concurrency_target
+                * config.temporal.entry_workflow_batch_concurrency
+            )
+            // entry_activity_batch_size,
+        )
+        start_batch_index = parse_all_input.current_batch_index
+        end_batch_index = min(
+            start_batch_index + ENTRY_ACTIVITY_BATCHES_PER_WORKFLOW_RUN,
+            parse_all_input.total_batches,
+        )
+        batch_activity_semaphore = asyncio.Semaphore(batch_activity_concurrency)
+
+        async def process_file_batch(batch_id: int):
+            activity_input = self._process_entry_batch_from_file_input(
+                parse_all_input,
+                batch_dir,
+                batch_id,
+                entry_activity_batch_size,
+            )
+            timeout_seconds = (
+                config.temporal.processing_timeouts.process_entry_timeout
+                * entry_activity_batch_size
+            )
+            try:
+                async with batch_activity_semaphore:
+                    await workflow.execute_activity(
+                        process_entry_batch_from_file_activity,
+                        activity_input,
+                        schedule_to_close_timeout=timedelta(seconds=timeout_seconds),
+                        heartbeat_timeout=timedelta(
+                            seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
+                        ),
+                        retry_policy=retry_policy,
+                        priority=BATCH_PROCESS_ENTRY_PRIORITY,
+                    )
+            except ActivityError as e:
+                if 'heartbeat timeout' in str(e.cause):
+                    await workflow.execute_activity(
+                        handle_batch_heartbeat_failure_activity,
+                        activity_input,
+                        schedule_to_close_timeout=timedelta(seconds=timeout_seconds),
+                        priority=BATCH_PROCESS_ENTRIES_PRIORITY,
+                    )
+                return e
+
+        await asyncio.gather(
+            *[
+                process_file_batch(batch_id)
+                for batch_id in range(start_batch_index, end_batch_index)
+            ]
+        )
+        parse_all_input.current_batch_index = end_batch_index
+        return end_batch_index < parse_all_input.total_batches
 
     @workflow.run
     async def run(self, input: UploadProcessingWorkflowInput):
@@ -575,48 +558,45 @@ class UpdateUploadWorkflow:
             workflow_tmp_dir=input.workflow_tmp_dir,
             failure_message='Process upload failed',
         )
+        skip_finalize = False
         try:
-            # Step 0: Add workflow id to upload
-            await workflow.execute_activity(
-                setup_upload_for_workflow_process,
-                upload_workflow_input,
-                schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.setup_upload_timeout
-                ),
-                retry_policy=retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
-            )
+            if input.phase == UploadProcessingPhase.SETUP:
+                # Step 0: Add workflow id to upload
+                await workflow.execute_activity(
+                    setup_upload_for_workflow_process,
+                    upload_workflow_input,
+                    schedule_to_close_timeout=timedelta(
+                        seconds=config.temporal.processing_timeouts.setup_upload_timeout
+                    ),
+                    retry_policy=retry_policy,
+                    priority=UPDATE_UPLOAD_PRIORITY,
+                )
 
-            # Step 1: Update files
-            updated_files = await workflow.execute_activity(
-                update_files_activity,
-                input,
-                schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.update_files_timeout
-                ),
-                heartbeat_timeout=heartbeat_timeout,
-                retry_policy=retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
-            )
+                # Step 1: Update files
+                updated_files = await workflow.execute_activity(
+                    update_files_activity,
+                    input,
+                    schedule_to_close_timeout=timedelta(
+                        seconds=config.temporal.processing_timeouts.update_files_timeout
+                    ),
+                    heartbeat_timeout=heartbeat_timeout,
+                    retry_policy=retry_policy,
+                    priority=UPDATE_UPLOAD_PRIORITY,
+                )
+
+                input.updated_files = updated_files
+                input.min_level = parser_min_level
+                input.phase = UploadProcessingPhase.MATCH
 
             if input.trigger_processing:
-                parse_all_input = UploadProcessingWorkflowInput(
-                    upload_id=input.upload_id,
-                    file_operations=input.file_operations,
-                    reprocess_settings=input.reprocess_settings,
-                    path_filter=input.path_filter,
-                    only_updated_files=input.only_updated_files,
-                    publish_directly_after_processing=input.publish_directly_after_processing,
-                    updated_files=updated_files,
-                    min_level=parser_min_level,
-                    workflow_id=input.workflow_id,
-                    workflow_tmp_dir=input.workflow_tmp_dir,
-                )
-                await self.process_upload(
-                    parse_all_input=parse_all_input,
+                should_continue_as_new = await self.process_upload(
+                    parse_all_input=input,
                     heartbeat_timeout=heartbeat_timeout,
                     parent_workflow_id=workflow_info.workflow_id,
                 )
+                if should_continue_as_new:
+                    skip_finalize = True
+                    workflow.continue_as_new(input)
 
             finalize_input = FinalizeUploadProcessingSuccessInput(
                 result='success',
@@ -626,6 +606,8 @@ class UpdateUploadWorkflow:
                 trigger_processing=input.trigger_processing,
             )
 
+        except workflow.ContinueAsNewError:
+            raise
         except Exception as e:
             finalize_input = FinalizeUploadProcessingFailureInput(
                 result='failure',
@@ -638,15 +620,16 @@ class UpdateUploadWorkflow:
             raise e
 
         finally:
-            await workflow.execute_activity(
-                finalize_upload_processing_activity,
-                finalize_input,
-                schedule_to_close_timeout=timedelta(
-                    seconds=config.temporal.processing_timeouts.process_upload_timeout
-                ),
-                retry_policy=retry_policy,
-                priority=UPDATE_UPLOAD_PRIORITY,
-            )
+            if not skip_finalize:
+                await workflow.execute_activity(
+                    finalize_upload_processing_activity,
+                    finalize_input,
+                    schedule_to_close_timeout=timedelta(
+                        seconds=config.temporal.processing_timeouts.process_upload_timeout
+                    ),
+                    retry_policy=retry_policy,
+                    priority=UPDATE_UPLOAD_PRIORITY,
+                )
 
 
 @workflow.defn
