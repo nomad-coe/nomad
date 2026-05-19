@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi_cache.decorator import cache
 from pydantic import BaseModel
 
+from nomad.actions.action import get_actions
 from nomad.actions.manager import (
     action_log_file_path,
     get_action_result_async,
@@ -25,6 +26,7 @@ from nomad.actions.models import ActionRecord, ActionRecordPage, ActionSchemaInf
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
+from nomad.mongo.groups import MongoUserGroup
 from nomad.utils import strip
 
 from ..models import HTTPExceptionModel
@@ -112,6 +114,26 @@ async def action_start(
     Returns:
         The ID of the started action instance.
     """
+    action_entry_point = get_actions().get(action_id)
+    if not action_entry_point:
+        raise HTTPException(status_code=404, detail='Action not found.')
+
+    if action_entry_point.users or action_entry_point.groups:
+        is_authorized = False
+        if action_entry_point.users and user.user_id in action_entry_point.users:
+            is_authorized = True
+        if not is_authorized and action_entry_point.groups:
+            user_groups = await asyncio.to_thread(
+                lambda: MongoUserGroup.get_ids_by_user_id(user.user_id)
+            )
+            if any(group in action_entry_point.groups for group in user_groups):
+                is_authorized = True
+
+        if not is_authorized:
+            raise HTTPException(
+                status_code=403, detail='User is not authorized to execute this action.'
+            )
+
     start_data.data['user_id'] = user.user_id
     try:
         input_data = validate_action_arg(action_id, start_data.data)

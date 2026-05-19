@@ -41,6 +41,13 @@ async def saved_action_document(mongo_function, async_mongo_function, user1):
 async def test_action_start(
     client: AsyncClient, auth_headers, async_mongo_function, monkeypatch
 ):
+    mock_action = MagicMock()
+    mock_action.users = None
+    mock_action.groups = None
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_actions',
+        lambda: {'my-action': mock_action},
+    )
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.validate_action_arg', lambda action_id, data: data
     )
@@ -61,6 +68,68 @@ async def test_action_start(
 
     assert response.status_code == 200
     assert response.json() == {'action_instance_id': 'workflow-123'}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'allowed_users, allowed_groups, expected_status',
+    [
+        (['00000000-0000-0000-0000-000000000001'], None, 200),
+        (['00000000-0000-0000-0000-000000000002'], None, 403),
+        (None, ['group1'], 200),
+        (None, ['group2'], 403),
+        (['00000000-0000-0000-0000-000000000001'], ['group2'], 200),
+        (['00000000-0000-0000-0000-000000000002'], ['group1'], 200),
+        (['00000000-0000-0000-0000-000000000002'], ['group2'], 403),
+    ],
+)
+async def test_action_start_authorization(
+    client: AsyncClient,
+    auth_headers,
+    async_mongo_function,
+    monkeypatch,
+    user1,
+    allowed_users,
+    allowed_groups,
+    expected_status,
+):
+    mock_action = MagicMock()
+    mock_action.users = allowed_users
+    mock_action.groups = allowed_groups
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_actions',
+        lambda: {'protected-action': mock_action},
+    )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.validate_action_arg',
+        lambda action_id, data: data,
+    )
+
+    async def mock_start_action(action_id, data):
+        return 'workflow-123'
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.start_action_async',
+        mock_start_action,
+    )
+    monkeypatch.setattr(
+        'nomad.mongo.groups.MongoUserGroup.get_ids_by_user_id',
+        lambda user_id: ['group1'] if user_id == user1.user_id else [],
+    )
+
+    response = await client.post(
+        '/actions/protected-action/start',
+        json={'data': {}},
+        headers=auth_headers['user1'],
+    )
+
+    assert response.status_code == expected_status
+    if expected_status == 403:
+        assert (
+            response.json()['detail']
+            == 'User is not authorized to execute this action.'
+        )
 
 
 @pytest.mark.asyncio

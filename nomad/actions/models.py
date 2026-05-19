@@ -51,6 +51,8 @@ class ActionSchemaInfo(BaseModel):
     plugin_package: str | None = None
     description: str | None = None
     task_queue: str | None = None
+    groups: list[str] | None = None
+    users: list[str] | None = None
     signals: list[dict[str, Any]] | None = None
 
 
