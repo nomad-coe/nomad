@@ -277,6 +277,8 @@ def get_all_action_schemas() -> list[ActionSchemaInfo]:
                 json_schema=_get_param_schema(workflow_cls.run),
                 description=action.description,
                 task_queue=action.task_queue,
+                groups=action.groups,
+                users=action.users,
                 name=action.name,
                 plugin_package=action.plugin_package,
                 signals=signals,

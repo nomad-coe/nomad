@@ -563,6 +563,14 @@ class ActionEntryPoint(EntryPoint):
     task_queue: str = Field(
         default=TaskQueue.CPU, description='Determines the task queue for this action'
     )
+    groups: list[str] | None = Field(
+        None,
+        description='List of groups that are allowed to start/execute the given action.',
+    )
+    users: list[str] | None = Field(
+        None,
+        description='List of user IDs that are allowed to start/execute the given action.',
+    )
 
     @model_validator(mode='before')
     @classmethod
@@ -574,6 +582,11 @@ class ActionEntryPoint(EntryPoint):
     def load(self) -> 'Action':
         """Used to load an action instance. You should override this method in your subclass."""
         pass
+
+    def dict_safe(self):
+        return self.model_dump(
+            include=ActionEntryPoint.model_fields.keys(), exclude_none=True
+        )
 
 
 class PluginBase(BaseModel):

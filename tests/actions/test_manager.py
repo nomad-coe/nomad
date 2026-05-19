@@ -60,6 +60,8 @@ def mock_action_entry_point():
     mock_entry_point.name = 'My Action'
     mock_entry_point.description = 'My action description'
     mock_entry_point.task_queue = 'my-task-queue'
+    mock_entry_point.groups = None
+    mock_entry_point.users = None
     mock_entry_point.plugin_package = 'my-plugin'
 
     return mock_entry_point
@@ -145,6 +147,8 @@ def test_get_all_action_schemas_temporal_signal(monkeypatch):
     mock_entry_point.name = 'Temporal Action'
     mock_entry_point.description = 'Temporal action description'
     mock_entry_point.task_queue = 'temporal-task-queue'
+    mock_entry_point.groups = None
+    mock_entry_point.users = None
     mock_entry_point.plugin_package = 'temporal-plugin'
 
     monkeypatch.setattr(
@@ -174,6 +178,8 @@ def test_get_all_action_schemas_uses_python_method_name_for_signal(monkeypatch):
     mock_entry_point.name = 'Temporal Action'
     mock_entry_point.description = 'Temporal action description'
     mock_entry_point.task_queue = 'temporal-task-queue'
+    mock_entry_point.groups = None
+    mock_entry_point.users = None
     mock_entry_point.plugin_package = 'temporal-plugin'
 
     monkeypatch.setattr(
