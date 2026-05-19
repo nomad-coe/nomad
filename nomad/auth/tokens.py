@@ -617,7 +617,9 @@ def get_user_from_upload_token(upload_token: str | None) -> AuthResult | None:
             raise ValueError('Invalid HMAC signature')
 
         user_id = str(uuid.UUID(bytes=payload_bytes))
-        user = cast(datamodel.User, user_management.user_management.get_user(user_id))
+        user = cast(
+            datamodel.User, user_management.user_management.get_user(user_id=user_id)
+        )
         return AuthResult(user, _resolve_scopes(['uploads:*']))
 
     except Exception:

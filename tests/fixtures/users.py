@@ -129,7 +129,7 @@ class KeycloakMock:
             user_id=user.user_id,
         )
 
-    def get_user(self, user_id=None, username=None, email=None):
+    def get_user(self, *, user_id=None, username=None, email=None):
         if user_id is not None:
             return User(**self.users[user_id])
 
