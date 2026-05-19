@@ -691,6 +691,7 @@ class MetadataEditRequestHandler:
             elif definition.name == 'reviewer_groups':
                 assert_user_group_exists(value)
             return None if value == '' else value
+
         elif definition.type == metainfo.Datetime or isinstance(
             definition.type, Datetime
         ):
@@ -699,12 +700,14 @@ class MetadataEditRequestHandler:
                     value
                 )  # Throws exception if badly formatted timestamp
             return None if value == '' else value
+
         elif isinstance(definition.type, metainfo.MEnum):
             assert isinstance(value, str), 'Expected a string value'
             if value == '':
                 return None
             assert value in definition.type, f'Bad enum value {value}'
             return value
+
         elif isinstance(definition.type, metainfo.Reference):
             assert isinstance(value, str), 'Expected a string value'
             reference_type = definition.type.target_section_def.section_cls
@@ -714,6 +717,7 @@ class MetadataEditRequestHandler:
                 else:
                     # New user reference encountered, try to fetch it
                     user_id = None
+                    # TODO: should be explicit about identifier type
                     for key in ('user_id', 'username', 'email'):
                         try:
                             if (user := datamodel.User.get(**{key: value})) is None:
@@ -725,6 +729,7 @@ class MetadataEditRequestHandler:
                     self.encountered_users[value] = user_id
                 assert user_id is not None, f'User reference not found: `{value}`'
                 return user_id
+
             elif reference_type == datamodel.Dataset:
                 dataset = self._get_dataset(value)
                 assert dataset is not None, f'Dataset reference not found: `{value}`'
@@ -735,6 +740,7 @@ class MetadataEditRequestHandler:
                     f'Dataset `{value}` has a doi, can only add entries to it'
                 )
                 return dataset.dataset_id
+
         else:
             assert False, 'Unhandled value type'  # Should not happen
 
@@ -1877,7 +1883,7 @@ class Upload(Proc):
 
     @property
     def main_author_user(self) -> datamodel.User:
-        return datamodel.User.get(self.main_author)
+        return datamodel.User.get(user_id=self.main_author)
 
     @property
     def published(self) -> bool:

@@ -124,7 +124,7 @@ def _resolve_user_with_scopes(
         pat = authenticate_pat(personal_access_token)
 
         if pat is not None:
-            user = datamodel.User.get(pat.user_id)
+            user = datamodel.User.get(user_id=pat.user_id)
             if user:
                 auth_result = AuthResult(user=user, scopes=pat.scopes)
             else:
@@ -163,7 +163,7 @@ def _resolve_user_with_scopes(
     else:
         # Validate user against Keycloak
         try:
-            existing_user = datamodel.User.get(user.user_id)
+            existing_user = datamodel.User.get(user_id=user.user_id)
         except Exception as e:
             logger.error(
                 'Failed to lookup authenticated user in Keycloak.',

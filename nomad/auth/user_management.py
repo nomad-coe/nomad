@@ -54,6 +54,7 @@ class UserManagement(ABC):
     @abstractmethod
     def get_user(
         self,
+        *,
         user_id: str | None = None,
         username: str | None = None,
         email: str | None = None,
@@ -97,6 +98,7 @@ class OasisUserManagement(UserManagement):
 
     def get_user(
         self,
+        *,
         user_id: str | None = None,
         username: str | None = None,
         email: str | None = None,
@@ -287,6 +289,7 @@ class KeycloakUserManagement(UserManagement):
 
     def get_user(
         self,
+        *,
         user_id: str | None = None,
         username: str | None = None,
         email: str | None = None,
