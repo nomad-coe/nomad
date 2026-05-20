@@ -1182,6 +1182,9 @@ quantity = Quantity(type=str, description='Quantity for test.')
 unit_quantity = Quantity(
     type=float, unit='m', description='Quantity with unit for test.'
 )
+array_unit_quantity = Quantity(
+    type=float, unit='m', shape=['*', '*', '*'], description='Array quantity for test.'
+)
 
 
 class QuantityOnly(MSection):
@@ -1200,6 +1203,10 @@ class SectionWithBoth(MSection):
     quantity = Quantity(type=str, description='Quantity for test.')
     subsection_repeat = SubSection(sub_section=Simulation.m_def, repeats=True)
     subsection_norepeat = SubSection(sub_section=Simulation.m_def, repeats=False)
+
+
+class SpecialSimulation(Simulation):
+    m_def = Section(description='Special simulation with inheritance.')
 
 
 class SectionWithInheritance(SectionWithBoth):
@@ -1455,7 +1462,7 @@ class TestToJsonSchema:
                 quantity,
                 {
                     '$schema': 'https://json-schema.org/draft/2020-12/schema',
-                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{quantity.definition_id}',
+                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{quantity.definition_id}?unit_value=true',
                     'description': 'Quantity for test.',
                     'type': 'string',
                 },
@@ -1465,7 +1472,7 @@ class TestToJsonSchema:
                 unit_quantity,
                 {
                     '$schema': 'https://json-schema.org/draft/2020-12/schema',
-                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{unit_quantity.definition_id}',
+                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{unit_quantity.definition_id}?unit_value=true',
                     'description': 'Quantity with unit for test.',
                     'properties': {
                         'value': {'type': 'number', 'unit': 'meter'},
@@ -1483,6 +1490,42 @@ class TestToJsonSchema:
                     },
                 },
                 id='quantity-with-unit',
+            ),
+            pytest.param(
+                array_unit_quantity,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    '$id': f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{array_unit_quantity.definition_id}?unit_value=true',
+                    'description': 'Array quantity for test.',
+                    'type': 'array',
+                    'items': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'array',
+                            'items': {
+                                'properties': {
+                                    'value': {'type': 'number', 'unit': 'meter'},
+                                    'unit': {'type': 'string', 'enum': ['meter']},
+                                },
+                                'allOf': [
+                                    {
+                                        '$ref': 'https://schema.local/definitions/UnitValue'
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                    '$defs': {
+                        'UnitValue': {
+                            '$id': 'https://schema.local/definitions/UnitValue',
+                            'properties': {
+                                'value': {'type': 'number'},
+                                'unit': {'type': 'string'},
+                            },
+                        }
+                    },
+                },
+                id='3d-array-quantity-with-unit',
             ),
         ],
     )
@@ -1634,7 +1677,7 @@ class TestToJsonSchema:
                     '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}',
                     'allOf': [
                         {
-                            '$comment': 'SectionWithBoth :Test MSection with both Quantity and SubSection.',
+                            'description': 'SectionWithBoth : Test MSection with both Quantity and SubSection.',
                             '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
                         }
                     ],
@@ -1739,7 +1782,7 @@ class TestToJsonSchema:
                     '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}',
                     'allOf': [
                         {
-                            '$comment': 'SectionWithBoth :Test MSection with both Quantity and SubSection.',
+                            'description': 'SectionWithBoth : Test MSection with both Quantity and SubSection.',
                             '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
                         }
                     ],
@@ -1768,6 +1811,298 @@ class TestToJsonSchema:
         jsonschema.Draft202012Validator.check_schema(schema)
 
         json.dumps(schema)
+        assert schema == expected
+
+    @pytest.mark.parametrize(
+        'section, add_section_subtypes, add_property_subtypes, expected',
+        [
+            pytest.param(
+                SectionWithBoth,
+                True,
+                True,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    'title': 'SectionWithBoth',
+                    'description': 'Test MSection with both Quantity and SubSection.',
+                    'type': 'object',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?section_subtypes=true&property_subtypes=true',
+                    'anyOf': [
+                        {
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}?property_subtypes=true',
+                            'description': 'SectionWithInheritance : Test MSection with inheritance.',
+                        },
+                        {
+                            'description': 'SectionWithBoth : Test MSection with both Quantity and SubSection.',
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?property_subtypes=true',
+                        },
+                    ],
+                    '$defs': {
+                        'tests.metainfo.test_metainfo.SectionWithBoth': {
+                            '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                            'title': 'SectionWithBoth',
+                            'description': 'Test MSection with both Quantity and SubSection.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?property_subtypes=true',
+                            'properties': {
+                                'quantity': {
+                                    'description': 'Quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}?property_subtypes=true',
+                                    'type': 'string',
+                                },
+                                'subsection_repeat': {
+                                    'type': 'array',
+                                    'items': {
+                                        'anyOf': [
+                                            {
+                                                '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SpecialSimulation@{SpecialSimulation.m_def.definition_id}?property_subtypes=true',
+                                                'description': 'SpecialSimulation : Special simulation with inheritance.',
+                                            },
+                                            {
+                                                '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                                                'description': 'Simulation : Definition for test.',
+                                            },
+                                        ]
+                                    },
+                                    'description': 'Definition for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_repeat@{SectionWithBoth.subsection_repeat.definition_id}?property_subtypes=true',
+                                },
+                                'subsection_norepeat': {
+                                    'anyOf': [
+                                        {
+                                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SpecialSimulation@{SpecialSimulation.m_def.definition_id}?property_subtypes=true',
+                                            'description': 'SpecialSimulation : Special simulation with inheritance.',
+                                        },
+                                        {
+                                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                                            'description': 'Simulation : Definition for test.',
+                                        },
+                                    ],
+                                    'description': 'Definition for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@{SectionWithBoth.subsection_norepeat.definition_id}?property_subtypes=true',
+                                },
+                            },
+                        },
+                        'tests.metainfo.test_metainfo.Simulation': {
+                            'title': 'Simulation',
+                            'description': 'Definition for test.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                            'properties': {
+                                'program_name': {
+                                    'description': 'Quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}?property_subtypes=true',
+                                    'type': 'string',
+                                }
+                            },
+                        },
+                        'tests.metainfo.test_metainfo.SpecialSimulation': {
+                            'title': 'SpecialSimulation',
+                            'description': 'Special simulation with inheritance.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SpecialSimulation@{SpecialSimulation.m_def.definition_id}?property_subtypes=true',
+                            'allOf': [
+                                {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                                    'description': 'Simulation : Definition for test.',
+                                }
+                            ],
+                        },
+                        'tests.metainfo.test_metainfo.SectionWithInheritance': {
+                            'title': 'SectionWithInheritance',
+                            'description': 'Test MSection with inheritance.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}?property_subtypes=true',
+                            'allOf': [
+                                {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?property_subtypes=true',
+                                    'description': 'SectionWithBoth : Test MSection with both Quantity and SubSection.',
+                                }
+                            ],
+                            'properties': {
+                                'quantity': {
+                                    'description': 'Overridden quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance.quantity@{SectionWithInheritance.quantity.definition_id}?property_subtypes=true',
+                                    'type': 'number',
+                                }
+                            },
+                        },
+                    },
+                },
+                id='both-subtypes',
+            ),
+            pytest.param(
+                SectionWithBoth,
+                True,
+                False,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    'title': 'SectionWithBoth',
+                    'description': 'Test MSection with both Quantity and SubSection.',
+                    'type': 'object',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?section_subtypes=true',
+                    'anyOf': [
+                        {
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}',
+                            'description': 'SectionWithInheritance : Test MSection with inheritance.',
+                        },
+                        {
+                            'description': 'SectionWithBoth : Test MSection with both Quantity and SubSection.',
+                            '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                        },
+                    ],
+                    '$defs': {
+                        'tests.metainfo.test_metainfo.SectionWithBoth': {
+                            '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                            'title': 'SectionWithBoth',
+                            'description': 'Test MSection with both Quantity and SubSection.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                            'properties': {
+                                'quantity': {
+                                    'description': 'Quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}',
+                                    'type': 'string',
+                                },
+                                'subsection_repeat': {
+                                    'type': 'array',
+                                    'items': {
+                                        '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
+                                    },
+                                    'description': 'Definition for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_repeat@{SectionWithBoth.subsection_repeat.definition_id}',
+                                },
+                                'subsection_norepeat': {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
+                                    'description': 'Definition for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@{SectionWithBoth.subsection_norepeat.definition_id}',
+                                },
+                            },
+                        },
+                        'tests.metainfo.test_metainfo.Simulation': {
+                            'title': 'Simulation',
+                            'description': 'Definition for test.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}',
+                            'properties': {
+                                'program_name': {
+                                    'description': 'Quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}',
+                                    'type': 'string',
+                                }
+                            },
+                        },
+                        'tests.metainfo.test_metainfo.SectionWithInheritance': {
+                            'title': 'SectionWithInheritance',
+                            'description': 'Test MSection with inheritance.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance@{SectionWithInheritance.m_def.definition_id}',
+                            'allOf': [
+                                {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+                                    'description': 'SectionWithBoth : Test MSection with both Quantity and SubSection.',
+                                }
+                            ],
+                            'properties': {
+                                'quantity': {
+                                    'description': 'Overridden quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithInheritance.quantity@{SectionWithInheritance.quantity.definition_id}',
+                                    'type': 'number',
+                                }
+                            },
+                        },
+                    },
+                },
+                id='section-subtypes',
+            ),
+            pytest.param(
+                SectionWithBoth,
+                False,
+                True,
+                {
+                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                    'title': 'SectionWithBoth',
+                    'description': 'Test MSection with both Quantity and SubSection.',
+                    'type': 'object',
+                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?property_subtypes=true',
+                    'properties': {
+                        'quantity': {
+                            'description': 'Quantity for test.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}?property_subtypes=true',
+                            'type': 'string',
+                        },
+                        'subsection_repeat': {
+                            'type': 'array',
+                            'items': {
+                                'anyOf': [
+                                    {
+                                        '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SpecialSimulation@{SpecialSimulation.m_def.definition_id}?property_subtypes=true',
+                                        'description': 'SpecialSimulation : Special simulation with inheritance.',
+                                    },
+                                    {
+                                        '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                                        'description': 'Simulation : Definition for test.',
+                                    },
+                                ]
+                            },
+                            'description': 'Definition for test.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_repeat@{SectionWithBoth.subsection_repeat.definition_id}?property_subtypes=true',
+                        },
+                        'subsection_norepeat': {
+                            'anyOf': [
+                                {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SpecialSimulation@{SpecialSimulation.m_def.definition_id}?property_subtypes=true',
+                                    'description': 'SpecialSimulation : Special simulation with inheritance.',
+                                },
+                                {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                                    'description': 'Simulation : Definition for test.',
+                                },
+                            ],
+                            'description': 'Definition for test.',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@{SectionWithBoth.subsection_norepeat.definition_id}?property_subtypes=true',
+                        },
+                    },
+                    '$defs': {
+                        'tests.metainfo.test_metainfo.Simulation': {
+                            'title': 'Simulation',
+                            'description': 'Definition for test.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                            'properties': {
+                                'program_name': {
+                                    'description': 'Quantity for test.',
+                                    '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}?property_subtypes=true',
+                                    'type': 'string',
+                                }
+                            },
+                        },
+                        'tests.metainfo.test_metainfo.SpecialSimulation': {
+                            'title': 'SpecialSimulation',
+                            'description': 'Special simulation with inheritance.',
+                            'type': 'object',
+                            '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SpecialSimulation@{SpecialSimulation.m_def.definition_id}?property_subtypes=true',
+                            'allOf': [
+                                {
+                                    '$ref': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation@{Simulation.m_def.definition_id}?property_subtypes=true',
+                                    'description': 'Simulation : Definition for test.',
+                                }
+                            ],
+                        },
+                    },
+                },
+                id='property-subtypes',
+            ),
+        ],
+    )
+    def test_definition_add_subtypes(
+        self, section, add_section_subtypes, add_property_subtypes, expected
+    ):
+        schema = section.m_def.m_to_json_schema(
+            add_section_subtypes=add_section_subtypes,
+            add_property_subtypes=add_property_subtypes,
+        )
+        jsonschema.Draft202012Validator.check_schema(schema)
+
         assert schema == expected
 
 

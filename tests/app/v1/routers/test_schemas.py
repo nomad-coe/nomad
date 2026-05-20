@@ -19,7 +19,7 @@ import jsonschema
 import pytest
 
 from nomad.metainfo.util import SCHEMA_ENDPOINT
-from tests.metainfo.test_metainfo import SectionWithBoth, Simulation
+from tests.metainfo.test_metainfo import SectionWithBoth, Simulation, unit_quantity
 
 from .common import assert_response
 
@@ -27,23 +27,60 @@ from .common import assert_response
 @pytest.mark.parametrize(
     'identifier, expected_status',
     [
-        pytest.param(
-            f'tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
-            200,
-            id='with-correct-tag',
-        ),
-        pytest.param(
-            'tests.metainfo.test_metainfo.SectionWithBoth', 200, id='without-tag'
-        ),
-        pytest.param(
-            f'tests.metainfo.test_metainfo.SectionWithBoth@nonexistent',
-            404,
-            id='with-incorrect-tag',
-        ),
         pytest.param('nonexistent', 404, id='non-existent-module'),
         pytest.param('non.existent', 404, id='non-existent-class'),
         pytest.param(
             'nomad.metainfo.data_type.Datatype', 400, id='valid-class-no-m_def'
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+            200,
+            id='section-with-correct-tag',
+        ),
+        pytest.param(
+            'tests.metainfo.test_metainfo.SectionWithBoth',
+            200,
+            id='section-without-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth@nonexistent',
+            404,
+            id='section-with-incorrect-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.nonexistent',
+            404,
+            id='non-existent-property',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.quantity',
+            200,
+            id='property-quantity-without-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}',
+            200,
+            id='property-quantity-with-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.quantity@nonexistent',
+            404,
+            id='property-quantity-with-wrong-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat',
+            200,
+            id='property-subsection-without-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@{SectionWithBoth.subsection_norepeat.definition_id}',
+            200,
+            id='property-subsection-with-tag',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth.subsection_norepeat@nonexistent',
+            404,
+            id='property-subsection-with-wrong-tag',
         ),
     ],
 )
@@ -108,3 +145,40 @@ def test_json_schema_by_m_def(client):
             },
         }
     }
+
+
+@pytest.mark.parametrize(
+    'identifier, option, expected',
+    [
+        pytest.param(
+            f'tests.metainfo.test_metainfo.unit_quantity',
+            'unit_value',
+            f'{SCHEMA_ENDPOINT}/nomad.metainfo.metainfo.Quantity@{unit_quantity.definition_id}?unit_value=true',
+            id='unit_value',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+            'property_subtypes',
+            f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?property_subtypes=true',
+            id='property_subtypes',
+        ),
+        pytest.param(
+            f'tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}',
+            'section_subtypes',
+            f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth@{SectionWithBoth.m_def.definition_id}?section_subtypes=true',
+            id='section_subtypes',
+        ),
+    ],
+)
+def test_json_schema_options(client, identifier, option, expected):
+    """Test options for schema output."""
+    response = client.get(f'schemas/{identifier}?{option}=true')
+
+    assert_response(response, 200)
+
+    schema = response.json()
+    jsonschema.Draft202012Validator.check_schema(schema)
+
+    assert response.headers['content-type'] == 'application/schema+json'
+
+    assert schema['$id'] == expected

@@ -2908,13 +2908,23 @@ class Definition(MSection):
 
         return streamable_dict(nested())
 
-    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
+    def m_to_json_schema(
+        self,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+    ) -> dict[str, Any]:
         """
         Generate JSON Schema for this Section, referencing each
         property (Quantity or SubSection) via `$defs`.
         """
         return metainfo_to_json_schema(
-            m_def=self, add_unit_value=add_unit_value, exclude=exclude
+            m_def=self,
+            add_unit_value=add_unit_value,
+            add_section_subtypes=add_section_subtypes,
+            add_property_subtypes=add_property_subtypes,
+            exclude=exclude,
         )
 
     def _hash_seed(self) -> str:
@@ -3403,11 +3413,21 @@ class Quantity(Property):
             + ('T' if self.virtual else 'F')
         )
 
-    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
+    def m_to_json_schema(
+        self,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+    ) -> dict[str, Any]:
         """
         Generate a JSON Schema (Draft 2020-12) for this Quantity.
         """
-        return quantity_to_json_schema(self, add_unit_value=add_unit_value)
+        return quantity_to_json_schema(
+            self,
+            add_unit_value=add_unit_value,
+            add_property_subtypes=add_property_subtypes,
+        )
 
 
 class DirectQuantity(Quantity):
