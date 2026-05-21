@@ -103,6 +103,12 @@ def pytest_addoption(parser):
         'Does not consider dynamically loaded fixtures (e.g. `request.getfixturevalue`).'
     )
     parser.addoption('--fixture-filters', nargs='+', help=help)
+    parser.addoption(
+        '--s3-storage',
+        action='store_true',
+        default=False,
+        help='Enable S3-backed storage for tests',
+    )
 
 
 def filter_tests_by_fixtures(items, config):

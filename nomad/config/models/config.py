@@ -20,8 +20,12 @@ import os
 import warnings
 from enum import Enum
 from importlib.metadata import entry_points, version
+from typing import Literal
 from urllib.parse import quote
 
+from fsspec import AbstractFileSystem, filesystem
+from fsspec.implementations.local import LocalFileSystem
+from msglc.config import config as msglc_config
 from msglc.config import configure
 from pydantic import (
     BaseModel,
@@ -532,6 +536,139 @@ class Oasis(ConfigBaseModel):
     )
 
 
+class NOMADFileSystem(ConfigBaseModel):
+    protocol: Literal['s3'] | None = Field(
+        None,
+        description="""
+Protocol name of file system.
+If assigned, files will be stored in the designated file system instead of the default local one.
+The `fsspec` library will be used internally via `fsspec.filesystem(self.protocol, **self.extra)`.
+Thus, `protocol` should be the protocol supported by `fsspec`, for example, `s3`.
+
+Please note this is mainly designed to support Amazon S3 storage, but other remote file systems supported by `fsspec` should work as well.
+""",
+    )
+    extra: dict = Field(
+        default_factory=dict,
+        description="""
+Extra parameters that will be passed to `fsspec.filesystem`.
+Different protocols require different configuration parameters.
+See [documentation](https://filesystem-spec.readthedocs.io/en/latest/index.html) for more details.
+
+For `s3`, the actual implementation is provided by `s3fs`.
+See the corresponding [documentation](https://s3fs.readthedocs.io/en/latest/api.html#s3fs.core.S3FileSystem) for available parameters.
+
+For local development, spin up a `seaweedfs` container using the following command.
+
+```bash
+docker run -p 8333:8333 chrislusf/seaweedfs
+```
+
+The S3 storage created via the above command accepts anonymous access.
+The corresponding configuration will look like this:
+
+```yaml
+fs:
+  public_fs:
+    protocol: s3
+    extra:
+      anon: true
+      endpoint_url: http://localhost:8333
+```
+
+For different S3 compatible object storage services, being either provided by cloud storage providers or self-hosted, configurations may vary.
+Please consult the service provider for the specific configuration.
+It is always possible to validate the connection by creating `s3fs.S3FileSystem` objects separately.
+For example, for a default minimum local `seaweedfs` service, the following should not throw any exceptions.
+
+```python
+from s3fs import S3FileSystem
+
+S3FileSystem(anon=True, endpoint_url="http://localhost:8333").mkdirs("example_bucket_name", exist_ok=True)
+```
+""",
+    )
+    bucket: str = Field(
+        'public',
+        description='Bucket name for remote files.',
+    )
+    simplify_path: bool = Field(
+        False,
+        description="""
+The S3 storage does not have a traditional file path structure.
+It only involves different buckets with different file IDs (which may include slashes such that they resemble file paths, but do not necessarily have to).
+
+If enabled, the starting prefixes `self.staging` and `self.public` of file paths will be removed.
+This is to make S3 storage tidier and avoid unnecessary nesting, making browsing S3 easier.
+
+For instance, if the default local public storage path is `.volumes/fs/public`, a file that would normally be stored locally at
+
+```text
+.volumes/fs/public/ex/examples_template_985dc9d7/raw-public.plain.zip
+```
+
+would be stored remotely as follows.
+
+With `simplify_path=False`:
+
+```text
+public/.volumes/fs/public/ex/examples_template_985dc9d7/raw-public.plain.zip
+```
+
+With `simplify_path=True`:
+
+```text
+public/ex/examples_template_985dc9d7/raw-public.plain.zip
+```
+""",
+    )
+
+    @model_validator(mode='after')
+    @classmethod
+    def __validate(cls, values):
+        if values.protocol == 's3':
+            assert values.bucket is not None, (
+                'A valid bucket name for remote S3 storage is required.'
+            )
+        elif values.protocol is not None:
+            raise ValueError('Only support S3 for the moment.')
+
+        return values
+
+    @property
+    def target_fs(self):
+        if self.protocol is None:
+            return LocalFileSystem()
+
+        remote_fs = filesystem(self.protocol, **self.extra)
+        try:
+            remote_fs.makedirs(self.bucket, exist_ok=True)
+        except Exception as e:
+            raise RuntimeError(
+                'Cannot establish valid connection to the target file system.'
+            ) from e
+
+        if self.protocol == 's3':
+            if msglc_config.read_buffer_size < 5 * 2**20:
+                configure(read_buffer_size=5 * 2**20)
+            if msglc_config.write_buffer_size < 5 * 2**20:
+                configure(write_buffer_size=5 * 2**20)
+
+        return remote_fs
+
+    def real_destination(self, area: str, path: str) -> tuple[AbstractFileSystem, str]:
+        """
+        The `path` could be either relative or absolute.
+        """
+        if not isinstance(self.target_fs, LocalFileSystem):
+            segment = path.split(area, 1)[-1]
+            if not self.simplify_path:
+                segment = f'{area}{segment}'
+            path = f'{self.bucket}/{segment.removeprefix("/")}'
+
+        return self.target_fs, path
+
+
 class FS(ConfigBaseModel):
     tmp: str = Field(
         '.volumes/fs/tmp',
@@ -606,6 +743,15 @@ class FS(ConfigBaseModel):
     external_working_directory: str | None = Field(
         None,
         description='Optional external working directory overriding working_directory for derived paths.',
+    )
+    public_fs: NOMADFileSystem = Field(
+        default_factory=NOMADFileSystem,
+        description="""Advanced file system for public storage, with which one can use storage schemes other than local FS.
+For example, one can use S3 to store public files.
+
+WARNING: The current implementation is intended only for new installations using different configurations.
+Modifying the storage configuration of an existing installation would make previously stored data incompatible,
+and no migration path is currently provided.""",
     )
 
     @model_validator(mode='after')
@@ -1631,7 +1777,8 @@ class Config(ConfigBaseModel):
     )
     fs: FS = Field(
         default_factory=FS,
-        description='Filesystem paths and storage layout used by NOMAD.',
+        description="""Filesystem paths and storage layout used by NOMAD.
+WARNING: Modifying the storage configuration of an existing installation would make previously stored data incompatible.""",
     )
     elastic: Elastic = Field(
         default_factory=Elastic,

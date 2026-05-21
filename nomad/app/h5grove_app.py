@@ -35,7 +35,7 @@ from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.app.v1.routers.uploads import get_upload_with_read_access
 from nomad.auth.scopes import Scope
-from nomad.files import PublicUploadFiles, UploadFiles
+from nomad.files import FSUtility, PublicUploadFiles, UploadFiles
 
 logger = utils.get_logger(__name__)
 
@@ -73,8 +73,9 @@ def open_zipped_h5_file(
             ):
                 yield f
         else:
-            file_object = upload_files.archive_hdf5_location(path_or_id)
-            with h5py.File(file_object, **h5py_options) as f:
+            with FSUtility.open_h5(
+                upload_files.archive_hdf5_location(path_or_id), **h5py_options
+            ) as f:
                 yield f
     except OSError as e:
         if isinstance(e, FileNotFoundError) or 'No such file or directory' in str(e):

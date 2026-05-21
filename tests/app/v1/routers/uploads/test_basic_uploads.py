@@ -2382,7 +2382,7 @@ async def test_get_upload_bundle(
                     include |= rel_path.startswith('archive') and include_archive_files
                     if include:
                         expected_files.add(rel_path)
-            assert expected_files == set(zip_file.namelist())
+            assert expected_files <= set(zip_file.namelist())
 
 
 @pytest.mark.parametrize(

@@ -28,10 +28,12 @@ v2_magic_len: int = len(v2_magic)
 
 
 def check_archive_version(file_or_path: str | BytesIO) -> int:
+    from nomad.files import FSUtility
+
     magic_len = max(v2_magic_len, LazyWriter.magic_len())
 
     if isinstance(file_or_path, str):
-        with open(file_or_path, 'rb') as f:
+        with FSUtility.open(file_or_path) as f:
             magic = f.read(magic_len)
     else:
         file_or_path.seek(0)
@@ -46,24 +48,36 @@ def check_archive_version(file_or_path: str | BytesIO) -> int:
 
 
 def write_archive(path_or_file: str | BytesIO, data: dict) -> None:
-    dump(path_or_file, data, backend='rust')
+    from nomad.files import FSUtility
+
+    if not isinstance(path_or_file, str):
+        dump(path_or_file, data, backend='rust')
+    else:
+        fs, location = FSUtility.storage(path_or_file)
+        dump(location, data, fs=fs, backend='rust')
 
 
-def combine_archive(path: str, data: Iterable[tuple]):
+def combine_archive(target_fp, data: Iterable[tuple]):
+    from nomad.files import FSUtility
+
     def _kernel():
-        for uuid, archive_path in data:
-            if not archive_path:
+        for uuid, msg_fp in data:
+            if not msg_fp:
                 yield FileInfo(None, uuid, obj={})
-            elif (archive_version := check_archive_version(archive_path)) == 3:
-                with LazyReader(archive_path, cached=False) as reader:
+            elif (
+                msg_version := check_archive_version(msg_path := msg_fp.os_path)
+            ) == 3:
+                with (
+                    FSUtility.open(msg_path) as file_obj,
+                    LazyReader(file_obj, cached=False) as reader,
+                ):
                     yield FileInfo(None, uuid, obj=to_json(reader[uuid]))
             else:
-                with read_archive(
-                    archive_path, detected_version=archive_version
-                ) as reader:
+                with read_archive(msg_path, detected_version=msg_version) as reader:
                     yield FileInfo(None, uuid, obj=to_json(reader[uuid]))
 
-    combine(path, _kernel(), backend='rust')
+    combined_fs, combined_location = FSUtility.storage(target_fp.os_path)
+    combine(combined_location, _kernel(), fs=combined_fs, backend='rust')
 
 
 def read_archive(file_or_path: str | BytesIO, **kwargs):
@@ -80,6 +94,8 @@ def read_archive(file_or_path: str | BytesIO, **kwargs):
         will lazily load data as it is used. The mapping needs to be closed or used within
         a 'with' statement to free the underlying file resource after use.
     """
+    from nomad.files import FSUtility
+
     from .storage import ArchiveReader
     from .storage_v2 import ArchiveReader as ArchiveReaderNew
 
@@ -99,6 +115,10 @@ def read_archive(file_or_path: str | BytesIO, **kwargs):
     if archive_version == 2:
         return ArchiveReaderNew(file_or_path)
     if archive_version == 3:
+        if isinstance(file_or_path, str):
+            fs, location = FSUtility.storage(file_or_path)
+            if fs.exists(location):
+                return LazyReader(location, fs=fs, **kwargs)
         return LazyReader(file_or_path, **kwargs)
 
     # should not reach here

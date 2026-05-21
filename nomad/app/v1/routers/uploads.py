@@ -20,6 +20,7 @@ import os
 import shutil
 import tarfile
 import zipfile
+from asyncio import sleep
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Annotated, Any, cast
@@ -57,7 +58,7 @@ from nomad.config.models.config import Reprocess
 from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.datacite import DataCiteException
 from nomad.datacite.service import create_doi_for_upload, publish_doi
-from nomad.files import PublicUploadFiles, StagingUploadFiles
+from nomad.files import FSUtility, PublicUploadFiles, StagingUploadFiles
 from nomad.models.common import UTCDateTime
 from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup
@@ -1255,7 +1256,7 @@ def get_upload_rawdir_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-def get_upload_raw(
+async def get_upload_raw(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
@@ -1282,9 +1283,16 @@ def get_upload_raw(
             ),
         )
 
-    # Find the .zip file and start streaming it
-    raw_zip_file_path = upload_files.raw_zip_file_object().os_path
-    return FileResponse(raw_zip_file_path, media_type='application/zip')
+    if FSUtility.is_local(file_path := upload_files.raw_zip_file_object().os_path):
+        return FileResponse(file_path, media_type='application/zip')
+
+    async def file_stream():
+        with FSUtility.open(file_path) as file_obj:
+            while chunk := file_obj.read(2**20):
+                yield chunk
+                await sleep(0)
+
+    return StreamingResponse(file_stream(), media_type='application/zip')
 
 
 @router.get(

@@ -33,6 +33,7 @@ from nomad.archive import to_json
 from nomad.config import config
 from nomad.files import (
     DirectoryObject,
+    FSUtility,
     PathObject,
     PublicUploadFiles,
     StagingUploadFiles,
@@ -301,7 +302,7 @@ class UploadFilesContract(UploadFilesFixtures):
 
     def test_archive_hdf5_file(self, test_upload: UploadWithFiles):
         _, _, upload_files = test_upload
-        with open(upload_files.archive_hdf5_location(example_entry_id), 'rb') as f:
+        with FSUtility.open(upload_files.archive_hdf5_location(example_entry_id)) as f:
             assert len(f.read()) > 0
 
 
@@ -320,7 +321,6 @@ def create_staging_upload(
             First entry is at top level, following entries will be put under 1/, 2/, etc.
             All entries with capital `P`/`R` will be put in the same directory under multi/.
     """
-    import h5py
 
     upload_files = StagingUploadFiles(upload_id, create=True)
     entries = []
@@ -344,7 +344,9 @@ def create_staging_upload(
 
         upload_files.add_rawfiles(entry_file)
         upload_files.write_archive(entry.entry_id, example_archive_contents)
-        with h5py.File(upload_files.archive_hdf5_location(entry.entry_id), 'a') as f:
+        with FSUtility.open_h5(
+            upload_files.archive_hdf5_location(entry.entry_id), 'w'
+        ) as f:
             f.create_dataset('value', data=1.0)
 
         entries.append(entry)
@@ -623,7 +625,7 @@ class TestPublicUploadFiles(UploadFilesContract):
         ],
     )
     def test_archive_version_suffix(
-        self, monkeypatch, test_upload_id, suffixes, suffix
+        self, monkeypatch, test_upload_id, suffixes, suffix, mongo_function, request
     ):
         monkeypatch.setattr('nomad.config.fs.archive_version_suffix', suffixes)
         _, entries, upload_files = create_staging_upload(
@@ -634,12 +636,14 @@ class TestPublicUploadFiles(UploadFilesContract):
 
         public_upload_files = PublicUploadFiles(test_upload_id)
 
-        assert os.path.exists(
-            public_upload_files.join_file('raw-public.plain.zip').os_path
-        )
-        assert os.path.exists(
-            public_upload_files.join_file(f'archive-public{suffix}.msg.msg').os_path
-        )
+        assert public_upload_files.raw_zip_file_object().exists()
+        if (
+            not request.config.getoption('--s3-storage')
+            and not config.fs.public_fs.protocol
+        ):
+            assert public_upload_files.join_file(
+                f'archive-public{suffix}.msg.msg'
+            ).exists()
 
         assert_upload_files(test_upload_id, entries, PublicUploadFiles)
 
@@ -807,9 +811,10 @@ def append_raw_files(upload_id: str, path_source: str, path_in_upload: str):
     """
     upload_files = UploadFiles.get(upload_id)
     if isinstance(upload_files, PublicUploadFiles):
-        zip_path = upload_files.raw_zip_file_object().os_path
-        with zipfile.ZipFile(zip_path, 'a') as zf:
-            zf.write(path_source, path_in_upload)
+        with FSUtility.open_archive(
+            upload_files.raw_zip_file_object().os_path, 'a'
+        ) as zip_fs:
+            zip_fs.put_file(path_source, path_in_upload)
     else:
         path = upload_files._raw_dir.os_path  # type: ignore
         shutil.copy(path_source, os.path.join(path, path_in_upload))
