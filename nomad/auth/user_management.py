@@ -68,7 +68,22 @@ class UserManagement(ABC):
         ...
 
 
-class OasisUserManagement(UserManagement):
+class CentralUserManagement(UserManagement):
+    """
+    Resolve users via the central NOMAD `/v1/users` API.
+
+    This backend is selected when
+    `config.oasis.uses_central_user_management == True`.
+    In that mode, user metadata (username/email/attributes) is sourced from the
+    central NOMAD deployment configured by
+    `config.oasis.central_nomad_deployment_url`, not from local Keycloak Admin
+    API queries.
+
+    Note:
+        It is a read-oriented adapter to the central user registry,
+        and cannot create users.
+    """
+
     def __init__(self, users_api_url: str | None = None):
         if users_api_url:
             self._users_api_url = users_api_url
@@ -127,6 +142,15 @@ class OasisUserManagement(UserManagement):
 
 
 class KeycloakUserManagement(UserManagement):
+    """
+    Resolve and manage users through the configured Keycloak Admin API.
+
+    This backend is selected when
+    `config.oasis.uses_central_user_management == False`.
+    It uses `config.keycloak.*` (server URL, realm, admin credentials) to
+    perform user lookup/search/create operations directly against Keycloak.
+    """
+
     def __init__(self) -> None:
         self.__admin_client: KeycloakAdmin | None = None
 
@@ -344,6 +368,6 @@ class KeycloakUserManagement(UserManagement):
 
 
 if config.oasis.uses_central_user_management:
-    user_management: UserManagement = OasisUserManagement()
+    user_management: UserManagement = CentralUserManagement()
 else:
     user_management = KeycloakUserManagement()
