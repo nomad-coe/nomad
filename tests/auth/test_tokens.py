@@ -1278,8 +1278,7 @@ def test_authenticate_updates_last_used(mongo_function):
     updated_pat = result.pat.reload()
     assert updated_pat.last_used_at is not None
 
-    # mongo doesn't store TZ
-    current_time = now().replace(tzinfo=None)
+    current_time = now()
 
     # Verify it happened "just now"
     assert (current_time - updated_pat.last_used_at).total_seconds() < 1

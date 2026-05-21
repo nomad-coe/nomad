@@ -28,6 +28,7 @@ from unidecode import unidecode
 from nomad.datamodel.metainfo.plot import PlotSection
 
 from nomad import utils
+from nomad.common import now
 from nomad.datamodel.data import (
     ArchiveSection,
     BasicElnCategory,
@@ -208,7 +209,7 @@ class ElnBaseSection(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.datetime is None:
-            self.datetime = datetime.datetime.now()
+            self.datetime = now()
 
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
@@ -707,7 +708,7 @@ class SampleID(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.creation_datetime = self.m_parent.datetime
             else:
-                self.creation_datetime = datetime.datetime.now()
+                self.creation_datetime = now()
 
         if self.sample_short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):

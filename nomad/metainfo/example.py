@@ -18,10 +18,9 @@
 
 """An example metainfo package."""
 
-from datetime import datetime
-
 import numpy as np
 
+from nomad.common import now
 from nomad.metainfo import (
     Datetime,
     MCategory,
@@ -167,7 +166,7 @@ if __name__ == '__main__':
     run.code_version = '1.0.0'
 
     parsing = run.m_create(Parsing)
-    parsing.parse_time = datetime.now()
+    parsing.parse_time = now()
 
     run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
     # The same as

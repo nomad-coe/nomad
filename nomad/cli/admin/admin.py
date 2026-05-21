@@ -62,10 +62,11 @@ def reset(remove, i_am_really_sure):
     '--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.'
 )
 def reset_processing(zero_complete_time):
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from nomad import infrastructure
     from nomad import processing as proc
+    from nomad.common import now
 
     infrastructure.setup_mongo()
 
@@ -83,9 +84,9 @@ def reset_processing(zero_complete_time):
             celery_task_id=None,
             errors=[],
             warnings=[],
-            complete_time=datetime.fromtimestamp(0)
+            complete_time=datetime.fromtimestamp(0, tz=timezone.utc)
             if zero_complete_time
-            else datetime.now(),
+            else now(),
         )
 
     reset_collection(proc.Entry)
@@ -105,12 +106,11 @@ def reset_processing(zero_complete_time):
     help='Use the given amount of parallel processes. Default is 1.',
 )
 def lift_embargo(dry, parallel):
-    from datetime import datetime
-
     from dateutil.relativedelta import relativedelta
 
     from nomad import infrastructure
     from nomad import processing as proc
+    from nomad.common import now
     from nomad.search import quantity_values
 
     infrastructure.setup_mongo()
@@ -122,7 +122,7 @@ def lift_embargo(dry, parallel):
         upload = proc.Upload.get(upload_id)
         embargo_length = upload.embargo_length
 
-        if upload.publish_time + relativedelta(months=embargo_length) < datetime.now():
+        if upload.publish_time + relativedelta(months=embargo_length) < now():
             print(
                 f'need to lift the embargo of {upload.upload_id} (publish_time={upload.publish_time}, embargo={embargo_length})'
             )
@@ -250,9 +250,9 @@ def ops():
 @ops.command(help=('Dump the mongo db.'))
 @click.option('--restore', is_flag=True, help='Do not dump, but restore.')
 def dump(restore: bool):
-    from datetime import datetime, timezone
+    from nomad.common import now
 
-    date_str = datetime.now(timezone.utc).strftime('%Y_%m_%d')
+    date_str = now().strftime('%Y_%m_%d')
     print(
         f'mongodump --host {config.mongo.host} --port {config.mongo.port} --db {config.mongo.db_name} -o /backup/fairdi/mongo/{date_str}'
     )

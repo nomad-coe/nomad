@@ -1,7 +1,8 @@
-from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from nomad.models.common import UTCDateTime
 
 __all__ = [
     'ActionRecord',
@@ -22,8 +23,8 @@ class ActionRecord(BaseModel):
     signal_input_requests: list[dict[str, Any]] = Field(default_factory=list)
     signal_inputs_submitted: list[dict[str, Any]] = Field(default_factory=list)
     results: Any = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: UTCDateTime
+    updated_at: UTCDateTime
 
 
 class ActionSummaryRecord(BaseModel):
@@ -32,8 +33,8 @@ class ActionSummaryRecord(BaseModel):
     upload_id: str | None = None
     signal_input_requests: list[dict[str, str | None]] = Field(default_factory=list)
     status: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: UTCDateTime
+    updated_at: UTCDateTime
 
 
 class ActionRecordPage(BaseModel):

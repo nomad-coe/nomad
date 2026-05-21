@@ -137,9 +137,21 @@ class TestAdmin:
     @pytest.mark.parametrize(
         'publish_time,dry,lifted',
         [
-            (datetime.datetime.now(), False, False),
-            (datetime.datetime(year=2012, month=1, day=1), True, False),
-            (datetime.datetime(year=2012, month=1, day=1), False, True),
+            (now(), False, False),
+            (
+                datetime.datetime(
+                    year=2012, month=1, day=1, tzinfo=datetime.timezone.utc
+                ),
+                True,
+                False,
+            ),
+            (
+                datetime.datetime(
+                    year=2012, month=1, day=1, tzinfo=datetime.timezone.utc
+                ),
+                False,
+                True,
+            ),
         ],
     )
     @pytest.mark.asyncio

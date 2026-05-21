@@ -27,6 +27,7 @@ from molid.search.service import SearchConfig, SearchService
 from unidecode import unidecode
 
 from nomad import utils
+from nomad.common import now
 from nomad.config import config
 from nomad.datamodel.data import ArchiveSection, Schema
 from nomad.datamodel.datamodel import EntryArchive
@@ -143,7 +144,7 @@ class BaseSection(Schema):
 
         # Set datetime to now if not set
         if self.datetime is None:
-            self.datetime = datetime.datetime.now()
+            self.datetime = now()
 
         # Update entry name if this is the top-level section
         if isinstance(self.m_parent, EntryArchive):
@@ -1410,7 +1411,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = datetime.datetime.now()
+                self.datetime = now()
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):
