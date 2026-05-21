@@ -5,6 +5,7 @@ import time
 from collections.abc import AsyncGenerator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from pathlib import Path
 from typing import TypeAlias
 from unittest.mock import MagicMock
 
@@ -130,21 +131,26 @@ def pytest_xdist_make_scheduler(config, log):
 
 
 @pytest.fixture(scope='session', autouse=True)
-def raw_files_infra():
-    parent_directory = '.volumes'
+def raw_files_infra(request):
+    parent_directory = Path('.volumes')
     if not os.path.isdir(parent_directory):
         os.makedirs(parent_directory, exist_ok=True)
     directory = tempfile.TemporaryDirectory(dir=parent_directory, prefix='test_fs')
     config.fs.tmp = tempfile.TemporaryDirectory(dir=directory.name, prefix='tmp').name
-    config.fs.staging = tempfile.TemporaryDirectory(
-        dir=directory.name, prefix='staging'
-    ).name
-    config.fs.public = tempfile.TemporaryDirectory(
-        dir=directory.name, prefix='public'
-    ).name
+    config.fs.staging = os.path.relpath(
+        tempfile.TemporaryDirectory(dir=directory.name, prefix='staging').name,
+        start=parent_directory.parent,
+    )
+    config.fs.public = os.path.relpath(
+        tempfile.TemporaryDirectory(dir=directory.name, prefix='public').name,
+        start=parent_directory.parent,
+    )
     config.fs.staging_external = os.path.abspath(config.fs.staging)
     config.fs.public_external = os.path.abspath(config.fs.public)
     config.fs.prefix_size = 2
+    if request.config.getoption('--s3-storage'):
+        config.fs.public_fs.protocol = 's3'
+    config.fs.public_fs.extra = {'anon': True, 'endpoint_url': 'http://localhost:8333'}
     clear_raw_files()
     yield
     directory.cleanup()

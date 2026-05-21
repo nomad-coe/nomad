@@ -20,7 +20,6 @@ import asyncio
 import json
 import os.path
 import re
-import shutil
 import uuid
 import zipfile
 from collections.abc import Generator
@@ -34,7 +33,7 @@ from nomad import infrastructure, utils
 from nomad.archive import to_json
 from nomad.datamodel import ServerContext
 from nomad.datamodel.datamodel import ArchiveSection, EntryArchive, EntryData
-from nomad.files import PublicUploadFiles, StagingUploadFiles, UploadFiles
+from nomad.files import FSUtility, PublicUploadFiles, StagingUploadFiles, UploadFiles
 from nomad.metainfo import Package, Quantity, Reference, SubSection
 from nomad.parsing import parsers
 from nomad.parsing.parser import Parser
@@ -622,9 +621,10 @@ async def test_re_processing(
             tmp, 'tests/data/proc/templates/different_atoms/template.json'
         )
 
-    shutil.copyfile(
-        raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path
+    fs, location = FSUtility.storage(
+        published.upload_files.join_file('raw-restricted.plain.zip').os_path
     )
+    fs.put_file(raw_files, location)
 
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
@@ -731,16 +731,17 @@ async def test_re_process_match(
 
     assert upload.total_entries_count == 1, upload.total_entries_count
 
-    if published:
-        import zipfile
+    upload_files = UploadFiles.get(upload.upload_id)
 
-        upload_files = UploadFiles.get(upload.upload_id)
-        zip_path = upload_files.raw_zip_file_object().os_path  # type: ignore
-        with zipfile.ZipFile(zip_path, mode='a') as zf:
-            zf.write('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
+    assert not upload_files.raw_exists('vasp.xml')
+
+    if published:
+        with upload_files._zip_fs('a') as zip_fs:
+            zip_fs.put_file('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
     else:
-        upload_files = UploadFiles.get(upload.upload_id).to_staging()
-        upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
+        upload_files.to_staging().add_rawfiles('tests/data/parsers/vasp/vasp.xml')
+
+    assert upload_files.raw_exists('vasp.xml')
 
     async with temporal_worker():
         await asyncio.to_thread(upload.process_upload)

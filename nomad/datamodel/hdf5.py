@@ -228,7 +228,7 @@ class HDF5Dataset(NonPrimitive):
         ):
             raise ValueError(f'Invalid HDF5 dataset value: {value}.')
 
-        from nomad.files import UploadFiles
+        from nomad.files import FSUtility, UploadFiles
 
         hdf5_path: str = UploadFiles.get(
             section_context.upload_id
@@ -241,7 +241,7 @@ class HDF5Dataset(NonPrimitive):
 
             file, path = match['file_id'], match['path']
 
-            with File(hdf5_path, 'a') as hdf5_file:
+            with FSUtility.open_h5(hdf5_path, 'r') as hdf5_file:
                 if file in hdf5_file:
                     segment = f'{file}/{path}'
                 else:

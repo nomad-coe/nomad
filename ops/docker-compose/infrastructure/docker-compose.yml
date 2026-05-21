@@ -55,10 +55,19 @@ services:
     volumes:
       - nomad_temporal:/data
     ports:
-      - 7233:7233
-      - 8080:8080
+      - "7233:7233"
+      - "8080:8080"
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.25
+    restart: no
+    container_name: seaweedfs
+    ports:
+      - "8333:8333"
+    volumes:
+      - nomad_seaweedfs:/data
 volumes:
   nomad_mongo:
   nomad_mongo_config:
   nomad_elastic:
   nomad_temporal:
+  nomad_seaweedfs:

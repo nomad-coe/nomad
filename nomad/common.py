@@ -133,15 +133,19 @@ def get_compression_format(path: str) -> Literal['zip', 'tar', 'error'] | None:
     to extract such files. Therefore, we only auto decompress if the file has an extension
     we recognize as decompressable, like ".zip", ".tar" etc.
     """
-    if os.path.isdir(path):
+    from nomad.files import FSUtility
+
+    fs, location = FSUtility.storage(path)
+    if fs.isdir(location):
         return None
     basename_lower = os.path.basename(path).lower()
-    for extension, format in decompress_file_extensions.items():
-        if basename_lower.endswith(extension):
-            if format == 'tar':
-                return 'tar' if tarfile.is_tarfile(path) else 'error'
-            elif format == 'zip':
-                return 'zip' if zipfile.is_zipfile(path) else 'error'
+    with fs.open(location) as file:
+        for extension, format in decompress_file_extensions.items():
+            if basename_lower.endswith(extension):
+                if format == 'tar':
+                    return 'tar' if tarfile.is_tarfile(file) else 'error'
+                elif format == 'zip':
+                    return 'zip' if zipfile.is_zipfile(file) else 'error'
     return None
 
 
