@@ -18,7 +18,6 @@
 
 import urllib
 from collections.abc import Callable, Collection
-from datetime import datetime
 from enum import Enum
 from inspect import Parameter, Signature
 from typing import Annotated
@@ -51,6 +50,7 @@ from nomad.auth.tokens import (
 )
 from nomad.config import config
 from nomad.config.models.config import ModeEnum
+from nomad.models.common import UTCDateTime
 from nomad.utils import get_logger
 
 from ..common import root_path
@@ -372,9 +372,9 @@ class PATResponse(BaseModel):
     description: str | None = None
     revoked: bool
 
-    created_at: datetime
-    expired_at: datetime | None = None
-    last_used_at: datetime | None = None
+    created_at: UTCDateTime
+    expired_at: UTCDateTime | None = None
+    last_used_at: UTCDateTime | None = None
 
     class Config:
         from_attributes = True

@@ -29,6 +29,7 @@ import requests
 from ase.data import atomic_masses, atomic_numbers, chemical_symbols
 from unidecode import unidecode
 
+from nomad.common import now
 from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 from nomad.metainfo import SchemaPackage
 from nomad.metainfo.data_type import m_str
@@ -252,7 +253,7 @@ class BaseSection(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.datetime is None:
-            self.datetime = datetime.datetime.now()
+            self.datetime = now()
 
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
@@ -1937,7 +1938,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = datetime.datetime.now()
+                self.datetime = now()
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):

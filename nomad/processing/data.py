@@ -48,7 +48,6 @@ import validators
 from fastapi.exceptions import RequestValidationError
 from mongoengine import (
     BooleanField,
-    DateTimeField,
     DictField,
     EmbeddedDocument,
     EmbeddedDocumentField,
@@ -100,6 +99,7 @@ from nomad.files import (
 )
 from nomad.metainfo.data_type import Datatype, Datetime
 from nomad.mongo.doi import EmbeddedDOI
+from nomad.mongo.fields import UTCDateTimeField
 from nomad.mongo.groups import MongoUserGroup, user_group_exists
 from nomad.mongo.package import PackageDefinition
 from nomad.normalizing import normalizers
@@ -958,9 +958,9 @@ class Entry(Proc):
     upload_id = StringField(required=True)
     entry_id = StringField(primary_key=True)
     entry_hash = StringField()
-    entry_create_time = DateTimeField(required=True)
-    last_processing_time = DateTimeField()
-    last_edit_time = DateTimeField()
+    entry_create_time = UTCDateTimeField(required=True)
+    last_processing_time = UTCDateTimeField()
+    last_edit_time = UTCDateTimeField()
     mainfile = StringField()
     mainfile_key = StringField()
     parser_name = StringField()
@@ -1777,7 +1777,7 @@ class Upload(Proc):
 
     upload_id = StringField(primary_key=True)
     upload_name: str | None = StringField(default=None)
-    upload_create_time = DateTimeField(required=True)
+    upload_create_time = UTCDateTimeField(required=True)
     description: str | None = StringField(default=None)
     external_db = StringField()
     main_author = StringField(required=True)
@@ -1785,8 +1785,8 @@ class Upload(Proc):
     coauthor_groups = ListField(StringField())
     reviewers = ListField(StringField())
     reviewer_groups = ListField(StringField())
-    last_update = DateTimeField()
-    publish_time = DateTimeField()
+    last_update = UTCDateTimeField()
+    publish_time = UTCDateTimeField()
     embargo_length = IntField(default=0, required=True)
     license = StringField(default='CC BY 4.0', required=True)
     doi = EmbeddedDocumentField(EmbeddedDOI, default=None)

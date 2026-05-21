@@ -24,19 +24,13 @@ from datetime import datetime, timezone
 from multiprocessing import current_process
 from typing import Any, NamedTuple
 
-from mongoengine import (
-    DateTimeField,
-    Document,
-    IntField,
-    ListField,
-    StringField,
-    ValidationError,
-)
+from mongoengine import Document, IntField, ListField, StringField, ValidationError
 from mongoengine.connection import ConnectionFailure
 
 import nomad.patch  # noqa: F401
 from nomad import utils
 from nomad.config import config
+from nomad.mongo.fields import UTCDateTimeField
 from nomad.search import get_statistics
 
 
@@ -181,7 +175,7 @@ class Proc(Document):
         'abstract': True,
     }
 
-    complete_time = DateTimeField()
+    complete_time = UTCDateTimeField()
 
     errors = ListField(StringField())
     warnings = ListField(StringField())

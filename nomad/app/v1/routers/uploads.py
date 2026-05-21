@@ -58,6 +58,7 @@ from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.datacite import DataCiteException
 from nomad.datacite.service import create_doi_for_upload, publish_doi
 from nomad.files import PublicUploadFiles, StagingUploadFiles
+from nomad.models.common import UTCDateTime
 from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup
 from nomad.mongo.search import MongoQueryError, create_mongo_query
@@ -153,7 +154,7 @@ class ProcData(BaseModel):
     warnings: list[str] = Field(
         description='A list of warning messages that occurred during the last processing'
     )
-    complete_time: datetime | None = Field(
+    complete_time: UTCDateTime | None = Field(
         None, description='Date and time of the completion of the last process'
     )
     model_config = ConfigDict(from_attributes=True)
@@ -166,7 +167,7 @@ class UploadProcData(ProcData):
         description='The name of the upload. This can be provided during upload '
         'using the `upload_name` query parameter.',
     )
-    upload_create_time: datetime | None = Field(
+    upload_create_time: UTCDateTime | None = Field(
         None, description='Date and time of the creation of the upload.'
     )
     description: str | None = Field(
@@ -208,7 +209,7 @@ class UploadProcData(ProcData):
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.',
     )
-    publish_time: datetime | None = Field(
+    publish_time: UTCDateTime | None = Field(
         None,
         description='Date and time of publication, if the upload has been published.',
     )
@@ -232,7 +233,7 @@ class UploadProcData(ProcData):
 
 class EntryProcData(ProcData):
     entry_id: str = Field()
-    entry_create_time: datetime = Field()
+    entry_create_time: UTCDateTime = Field()
     mainfile: str = Field()
     mainfile_key: str | None = Field(None)
     upload_id: str = Field()

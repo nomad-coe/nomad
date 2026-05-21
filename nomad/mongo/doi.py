@@ -23,7 +23,7 @@ MDS API (https://support.datacite.org/docs/mds-api-guide).
 
 import datetime
 
-from mongoengine import DateTimeField, Document, EmbeddedDocument, StringField
+from mongoengine import Document, EmbeddedDocument, StringField
 
 from nomad.datacite import (
     create_attributes_from_args,
@@ -34,6 +34,7 @@ from nomad.datacite import (
     publish_doi,
 )
 from nomad.datamodel import User
+from nomad.mongo.fields import UTCDateTimeField
 
 
 class DOIException(Exception):
@@ -50,7 +51,7 @@ class DOI(Document):
     metadata_url = StringField()  # unnecessary
     doi_url = StringField()  # unnecessary
     state = StringField()
-    create_time = DateTimeField()
+    create_time = UTCDateTimeField()
     metadata_xml = StringField()  # unnecessary
 
     @staticmethod
