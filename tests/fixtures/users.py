@@ -193,11 +193,11 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def with_oasis_user_management(monkeypatch):
-    from nomad.auth.user_management import OasisUserManagement
+def with_central_user_management(monkeypatch):
+    from nomad.auth.user_management import CentralUserManagement
 
     monkeypatch.setattr(
-        'nomad.auth.user_management.user_management', OasisUserManagement()
+        'nomad.auth.user_management.user_management', CentralUserManagement()
     )
     yield
     monkeypatch.setattr('nomad.auth.user_management.user_management', _user_management)

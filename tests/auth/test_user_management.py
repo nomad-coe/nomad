@@ -19,13 +19,13 @@
 
 import pytest
 
-from nomad.auth.user_management import OasisUserManagement
+from nomad.auth.user_management import CentralUserManagement
 from tests.fixtures.users import fake_user_uuid
 
 
 @pytest.fixture(scope='function')
 def user_management(api_v1):
-    return OasisUserManagement('users')
+    return CentralUserManagement('users')
 
 
 @pytest.mark.parametrize(
