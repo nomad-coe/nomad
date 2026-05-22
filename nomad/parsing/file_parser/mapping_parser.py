@@ -15,7 +15,7 @@ import jmespath.visitor
 import numpy as np
 from jsonpath_ng.parser import JsonPathParser
 from lxml import etree
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.annotations import Mapper as MapperAnnotation
@@ -993,8 +993,9 @@ class Path(BaseModel, validate_assignment=True):
                     for key in list(current.keys()):
                         child_mode = _get_update_mode(update_mode_spec, key)
                         # Recursively update each key (prefix with '.' for relative path)
-                        incoming[f'.{key}'] = update(
-                            current.get(key), incoming.get(f'.{key}'), child_mode
+                        relative_key = key if key.startswith('.') else f'.{key}'
+                        incoming[relative_key] = update(
+                            current.get(key), incoming.get(relative_key), child_mode
                         )
                 return incoming
 
@@ -1210,6 +1211,8 @@ class BaseMapper(BaseModel):
     update_mode: str = Field(
         'merge', description="""Mode to update target with source."""
     )
+    # Internal attribute to store child mappers for multiple mapper sources
+    _child_mappers: dict[str, 'BaseMapper'] = PrivateAttr({})
 
     def get_data(self, source_data: Any, parser: 'MappingParser', **kwargs) -> Any:
         """Extract data from source (implemented by subclasses).
@@ -1234,6 +1237,18 @@ class BaseMapper(BaseModel):
             Any: Normalized data.
         """
         return data
+
+    def __setitem__(self, key, value):
+        self._child_mappers[key] = value
+
+    def __getitem__(self, key):
+        return self._child_mappers.get(key)
+
+    def __iter__(self):
+        return iter(self._child_mappers.values() or [self])
+
+    def __len__(self):
+        return len(self._child_mappers or [self])
 
     @staticmethod
     def from_dict(
@@ -1324,7 +1339,13 @@ class BaseMapper(BaseModel):
             or (dct.get('function_name'), dct.get('function_args'))
         )
         obj: BaseMapper = BaseMapper()
-        if isinstance(mapper, tuple) and None in mapper:
+        if dct.get('mappers'):
+            mapper = []
+            obj = Mapper()
+            for n, v in enumerate(dct.get('mappers', [])):
+                obj[n] = BaseMapper.from_dict(v, parent)
+
+        elif isinstance(mapper, tuple) and None in mapper:
             return obj
 
         def add_path_attrs(path: Path):
@@ -1358,8 +1379,9 @@ class BaseMapper(BaseModel):
             if len(mapper) == 3:
                 obj.function_kwargs = mapper[2]
 
-        elif isinstance(mapper, list) and isinstance(mapper[0], dict):
-            obj = Mapper()
+        elif isinstance(mapper, list):
+            if mapper and isinstance(mapper[0], dict):
+                obj = Mapper()
         else:
             LOGGER.error('Unknown mapper type.')
 
@@ -1426,6 +1448,9 @@ class BaseMapper(BaseModel):
 
         def get_paths(mapper: BaseMapper) -> list[str]:
             paths = []
+            for m in mapper:
+                paths.extend(get_paths(m))
+
             if mapper.source and mapper.source.transformer:
                 for path in mapper.source.transformer.function_args:
                     paths.extend(filter_path(path.absolute_path))
@@ -1661,7 +1686,8 @@ class Mapper(BaseMapper, validate_assignment=True):
             elif isinstance(mapper, Mapper):
                 # Composite: recursively collect from all sub-mappers
                 for m in mapper.mappers:
-                    paths.extend(get_paths(m))
+                    for mn in m:
+                        paths.extend(get_paths(mn))
             return paths
 
         def set_paths(mapper: BaseMapper, paths: list[str]):
@@ -1673,7 +1699,8 @@ class Mapper(BaseMapper, validate_assignment=True):
 
         def set_remove(mapper: BaseMapper, remove: bool):
             # Recursively propagate remove flag to this mapper and all descendants
-            mapper.remove = remove
+            if mapper.remove is None:
+                mapper.remove = remove
             if isinstance(mapper, Mapper):
                 for m in mapper.mappers:
                     set_remove(m, remove)
@@ -1681,7 +1708,8 @@ class Mapper(BaseMapper, validate_assignment=True):
         # Phase 1: Collect all paths from entire mapper tree
         paths = []
         for mapper in values.get('mappers', []):
-            paths.extend(get_paths(mapper))
+            for m in mapper:
+                paths.extend(get_paths(m))
 
         # Phase 2: Propagate collected paths and remove flag to all mappers
         for mapper in values.get('mappers', []):
@@ -1690,6 +1718,8 @@ class Mapper(BaseMapper, validate_assignment=True):
                 set_paths(mapper, paths)
             # Always propagate remove flag
             set_remove(mapper, values.get('remove'))
+            for m in mapper:
+                set_remove(m, values.get('remove'))
 
         # Phase 3: Store collected paths on parent Mapper
         if not values.get('all_paths'):
@@ -1728,7 +1758,27 @@ class Mapper(BaseMapper, validate_assignment=True):
                            Single values if indices=None, lists if indices specified.
         """
         dct = {}
-        for mapper in self.mappers:
+
+        def is_not_value(value: Any) -> bool:
+            # Empty numpy array
+            if isinstance(value, np.ndarray):
+                return value.size == 0
+            # Pint quantity: check underlying magnitude
+            if hasattr(value, 'magnitude'):
+                return is_not_value(value.magnitude)
+
+            # Check equality with common empty values
+            not_value: Any
+            for not_value in [None, [], {}]:
+                test = value == not_value
+                # Handle numpy array comparison returning array of bools
+                result = test.any() if isinstance(test, np.ndarray) else test
+                if result:
+                    return bool(result)
+
+            return False
+
+        def get_mapper_data(mapper: BaseMapper) -> list[Any]:
             # Start with full source data unless mapper has custom source
             data = source_data
             if mapper.source:
@@ -1744,25 +1794,6 @@ class Mapper(BaseMapper, validate_assignment=True):
                         self.__cache.setdefault(
                             mapper.source.transformer.function_name, data
                         )
-
-            def is_not_value(value: Any) -> bool:
-                # Empty numpy array
-                if isinstance(value, np.ndarray):
-                    return value.size == 0
-                # Pint quantity: check underlying magnitude
-                if hasattr(value, 'magnitude'):
-                    return is_not_value(value.magnitude)
-
-                # Check equality with common empty values
-                not_value: Any
-                for not_value in [None, [], {}]:
-                    test = value == not_value
-                    # Handle numpy array comparison returning array of bools
-                    result = test.any() if isinstance(test, np.ndarray) else test
-                    if result:
-                        return bool(result)
-
-                return False
 
             # Resolve indices: can be direct list or parser attribute name
             indices = mapper.indices
@@ -1792,10 +1823,19 @@ class Mapper(BaseMapper, validate_assignment=True):
                     self.__cache.setdefault(mapper.function_name, value)
             # Store normalized values in result dict
             if value:
-                normalized_value = [mapper.normalize_data(v) for v in value]
-                # Single value if indices=None, list otherwise
+                return [mapper.normalize_data(v) for v in value]
+            return value
+
+        for mapper in self.mappers:
+            value = []
+            for m in mapper:
+                mapper_value = get_mapper_data(m)
+                value.extend(
+                    mapper_value if isinstance(mapper_value, list) else [mapper_value]
+                )
+            if value:
                 dct[mapper.target.path.path] = (
-                    normalized_value[0] if mapper.indices is None else normalized_value
+                    value[0] if mapper.indices is None else value
                 )
         return dct
 
@@ -2073,9 +2113,10 @@ class MappingParser(ABC):
             if isinstance(mapper, Mapper):
                 for sub_mapper in mapper.mappers:
                     # Key by target path so _get_update_mode can find child specs
-                    spec[sub_mapper.target.path.path] = build_update_mode_tree(
-                        sub_mapper
-                    )
+                    if sub_mapper.target:
+                        spec[sub_mapper.target.path.path] = build_update_mode_tree(
+                            sub_mapper
+                        )
             return spec
 
         if isinstance(data, dict):
@@ -2226,8 +2267,16 @@ class MetainfoBaseMapper(BaseMapper):
                 mapper.m_def = dct.get('m_def')
             for n, obj in enumerate(parent.mappers):
                 parent.mappers[n] = MetainfoBaseMapper.from_dict(mdct[n], obj)
+                mdct_n = mdct[n].get('mappers', [])
+                if len(mdct_n) != len(obj):
+                    continue
+                for m, obj_m in enumerate(obj):
+                    parent.mappers[n][m] = MetainfoBaseMapper.from_dict(
+                        mdct_n[m], obj_m
+                    )
             mapper.mappers = parent.mappers
             return mapper
+
         return parent
 
 
@@ -2465,7 +2514,7 @@ class MetainfoParser(MappingParser):
                     mapper.setdefault(key, value)
 
         def build_section_mapper(
-            section: SubSection | MSection, level: int = 0
+            section: SubSection | MSection, level: int = 0, m_def: str | None = None
         ) -> dict[str, Any]:
             mapper: dict[str, Any] = {}
             # Stop recursion for self-referential sections (e.g., Section.parent: Section)
@@ -2499,18 +2548,46 @@ class MetainfoParser(MappingParser):
             if isinstance(section, SubSection) and not annotation:
                 # Level 3: Search all inheriting sections for annotations (polymorphism)
                 for inheriting_section in section_def.all_inheriting_sections or []:
-                    annotation = inheriting_section.m_get_annotations(
+                    section_annotation = inheriting_section.m_get_annotations(
                         MAPPING_ANNOTATION_KEY, {}
                     ).get(self.annotation_key)
-                    if annotation:
+                    section_name = inheriting_section.qualified_name()
+                    if section_annotation:
+                        annotation = section_annotation
                         # Found annotation on derived section: use that section's schema
                         # TODO this does not work as it will applies to base class
                         # section.sub_section = inheriting_section
                         # TODO this is a hacky patch, metainfo should have an alternative
                         # way to resolve the sub-section def
-                        mapper['m_def'] = inheriting_section.qualified_name()
-                        section_def = inheriting_section
-                        break
+                        if m_def is not None and section_name == m_def:
+                            section_def = inheriting_section
+                            mapper['m_def'] = section_name
+                            break
+                        elif m_def is None:
+                            # we add all annotated inheriting sections as mappers
+                            section_mapper = build_section_mapper(
+                                section, level=level, m_def=section_name
+                            )
+                            if section_mapper:
+                                mapper.setdefault('mappers', [])
+                                fill_mapper(
+                                    section_mapper,
+                                    annotation,
+                                    ['remove', 'cache', 'path_parser', 'indices'],
+                                )
+                                mapper['mappers'].append(section_mapper)
+                if mapper.get('mappers', []):
+                    parent_is_root = (
+                        section.name in self.data_object.m_def.all_sub_sections
+                    )
+                    mapper['target'] = f'{"" if parent_is_root else "."}{section.name}'
+                    mapper['indices'] = []
+                    fill_mapper(
+                        mapper,
+                        annotation,
+                        ['remove', 'cache', 'path_parser', 'update_mode'],
+                    )
+                    return mapper
 
             # No annotation found anywhere: section not mapped
             if not annotation:
@@ -2574,6 +2651,7 @@ class MetainfoParser(MappingParser):
                             sannotation,
                             ['remove', 'cache', 'path_parser', 'indices'],
                         )
+                if sub_section_mapper:
                     mapper['mapper'].append(sub_section_mapper)
 
             return mapper
