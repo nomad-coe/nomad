@@ -552,6 +552,87 @@ class APIEntryPoint(EntryPoint):
         )
 
 
+class DashboardEntryPoint(EntryPoint):
+    """Base model for dashboard plugin entry points.
+
+    A dashboard entry point either (a) returns a FastAPI instance from
+    ``load()`` that will be mounted under
+    ``{app_base}/dashboards/{id_url_safe}``, or (b) declares an
+    ``external_url`` pointing to a dashboard served by a separate service.
+    """
+
+    entry_point_type: Literal['dashboard'] = Field(
+        'dashboard',
+        description='Specifies the entry point type.',
+        json_schema_extra={'hidden': True},
+    )
+
+    external_url: str | None = Field(
+        None,
+        description=(
+            'Absolute URL to a dashboard served outside of NOMAD. When set, '
+            '``load()`` is not called and no mount is performed.'
+        ),
+    )
+
+    launch_modes: list[Literal['embedded', 'tab']] = Field(
+        ['embedded', 'tab'],
+        description=(
+            'Supported launch modes for the dashboard. "embedded" renders the '
+            'dashboard inside an iframe in the NOMAD GUI; "tab" opens it in a '
+            'new browser tab. The order matters: the first entry is the '
+            'default action when the dashboard is clicked in the GUI.'
+        ),
+    )
+
+    icon: str | None = Field(
+        None,
+        description=(
+            'Optional absolute URL of an icon to show in the dashboards menu. '
+            'The icon must be hosted by the dashboard plugin (or any other '
+            'reachable origin).'
+        ),
+    )
+
+    @model_validator(mode='before')
+    @classmethod
+    def _validate(cls, v):
+        import urllib.parse
+
+        if isinstance(v, BaseModel):
+            v = v.model_dump(exclude_none=True)
+
+        external_url = v.get('external_url')
+        if external_url:
+            parsed = urllib.parse.urlparse(external_url)
+            if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+                raise ValueError('external_url must be an absolute http(s) URL')
+
+        icon = v.get('icon')
+        if icon:
+            parsed = urllib.parse.urlparse(icon)
+            if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+                raise ValueError('icon must be an absolute http(s) URL')
+
+        if 'launch_modes' in v:
+            if not v['launch_modes']:
+                raise ValueError('launch_modes must contain at least one entry')
+
+        return v
+
+    def load(self) -> 'FastAPI | None':
+        """Lazy-load the dashboard's FastAPI instance. Override in subclasses
+        when serving the dashboard from inside NOMAD. Leave as-is when using
+        ``external_url``.
+        """
+        return None
+
+    def dict_safe(self):
+        return self.model_dump(
+            include=DashboardEntryPoint.model_fields.keys(), exclude_none=True
+        )
+
+
 class ActionEntryPoint(EntryPoint):
     """Base model for action plugin entry points."""
 
@@ -653,6 +734,7 @@ EntryPointType = Union[  # noqa
     AppEntryPoint,
     ExampleUploadEntryPoint,
     APIEntryPoint,
+    DashboardEntryPoint,
     ActionEntryPoint,
     NORTHToolEntryPoint,
 ]

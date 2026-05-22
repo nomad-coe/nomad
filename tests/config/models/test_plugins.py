@@ -25,6 +25,7 @@ from nomad.config import Config
 from nomad.config.models.north import NORTHTool
 from nomad.config.models.plugins import (
     APIEntryPoint,
+    DashboardEntryPoint,
     ExampleUploadEntryPoint,
     NORTHToolEntryPoint,
     UploadResource,
@@ -494,3 +495,91 @@ def test_north_tool_entry_point():
             'external_mounts': [],
         },
     }
+
+
+@pytest.mark.parametrize(
+    'config, error',
+    [
+        pytest.param(
+            {},
+            None,
+            id='defaults-internal',
+        ),
+        pytest.param(
+            {'external_url': 'https://example.com/dashboard'},
+            None,
+            id='external-url',
+        ),
+        pytest.param(
+            {'external_url': 'javascript:alert(1)'},
+            'external_url must be an absolute http',
+            id='external-url-javascript-rejected',
+        ),
+        pytest.param(
+            {'external_url': 'ftp://example.com'},
+            'external_url must be an absolute http',
+            id='external-url-ftp-rejected',
+        ),
+        pytest.param(
+            {'external_url': '/relative/path'},
+            'external_url must be an absolute http',
+            id='external-url-relative-rejected',
+        ),
+        pytest.param(
+            {'icon': 'https://cdn.example.com/icon.svg'},
+            None,
+            id='icon-https-allowed',
+        ),
+        pytest.param(
+            {'icon': '/relative/icon.svg'},
+            'icon must be an absolute http',
+            id='icon-relative-rejected',
+        ),
+        pytest.param(
+            {'icon': 'javascript:alert(1)'},
+            'icon must be an absolute http',
+            id='icon-javascript-rejected',
+        ),
+    ],
+)
+def test_dashboard_entry_point_validation(config, error):
+    if error:
+        with pytest.raises(Exception) as exc_info:
+            DashboardEntryPoint(**config)
+        assert exc_info.match(error)
+    else:
+        DashboardEntryPoint(**config)
+
+
+def test_dashboard_entry_point_launch_modes_default():
+    ep = DashboardEntryPoint(id='x')
+    assert ep.launch_modes == ['embedded', 'tab']
+
+
+def test_dashboard_entry_point_launch_modes_empty_rejected():
+    with pytest.raises(Exception) as exc_info:
+        DashboardEntryPoint(id='x', launch_modes=[])
+    assert exc_info.match('launch_modes must contain at least one entry')
+
+
+def test_dashboard_entry_point_launch_modes_order_preserved():
+    # The first entry is the default action when the dashboard is clicked
+    # in the GUI, so order must be preserved.
+    ep = DashboardEntryPoint(id='x', launch_modes=['tab', 'embedded'])
+    assert ep.launch_modes == ['tab', 'embedded']
+
+
+def test_dashboard_entry_point_dict_safe():
+    ep = DashboardEntryPoint(
+        id='demo',
+        name='Demo',
+        external_url='https://example.com/dashboard',
+        launch_modes=['tab'],
+        icon='https://cdn.example.com/icon.svg',
+    )
+    data = ep.dict_safe()
+    assert data['id'] == 'demo'
+    assert data['entry_point_type'] == 'dashboard'
+    assert data['external_url'] == 'https://example.com/dashboard'
+    assert data['launch_modes'] == ['tab']
+    assert data['icon'] == 'https://cdn.example.com/icon.svg'

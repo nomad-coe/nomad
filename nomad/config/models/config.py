@@ -162,6 +162,16 @@ class Services(ConfigBaseModel):
     h5grove_enabled: bool = Field(
         True, description="""If true the app will serve the h5grove API."""
     )
+    dashboard_frame_ancestors: list[str] = Field(
+        default_factory=lambda: ["'self'"],
+        description="""
+        CSP ``frame-ancestors`` sources permitted to embed dashboard plugin
+        entry points in an iframe. Use ``'self'`` to only allow the NOMAD
+        GUI; add explicit origins (e.g. ``https://example.com``) to allow
+        other hosts. Applied to responses from
+        ``{api_base_path}/dashboards/``.
+        """,
+    )
 
     console_log_level: int | str = Field(
         logging.WARNING,

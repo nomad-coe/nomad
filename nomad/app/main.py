@@ -32,7 +32,7 @@ from nomad.actions.client import get_client
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import check_api_secret
 from nomad.config import config
-from nomad.config.models.plugins import APIEntryPoint
+from nomad.config.models.plugins import APIEntryPoint, DashboardEntryPoint
 from nomad.mongo.cache import MongoBackend
 from nomad.utils.structlogging import get_logger
 
@@ -219,7 +219,16 @@ if config.services.h5grove_enabled:
     app.mount(f'{app_base}/h5grove', h5grove_app)
 
 
-# Add API plugins
+@app.middleware('http')
+async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith(f'{app_base}/dashboards/'):
+        sources = ' '.join(config.services.dashboard_frame_ancestors)
+        response.headers['Content-Security-Policy'] = f'frame-ancestors {sources}'
+    return response
+
+
+# Mount API and dashboard plugin apps
 for entry_point in config.plugins.entry_points.filtered_values():
     if isinstance(entry_point, APIEntryPoint):
         api_app = entry_point.load()
@@ -231,6 +240,26 @@ for entry_point in config.plugins.entry_points.filtered_values():
             f'{app_base}/{entry_point.prefix}',
             api_app,
         )
+    elif isinstance(entry_point, DashboardEntryPoint):
+        if entry_point.external_url is not None:
+            continue
+        try:
+            dashboard_app = entry_point.load()
+            if not isinstance(dashboard_app, FastAPI):
+                raise TypeError(
+                    'load() must return a FastAPI instance when external_url is not set'
+                )
+            mount_with_trailing_slash_redirect(
+                app,
+                f'{app_base}/dashboards/{entry_point.id_url_safe}',
+                dashboard_app,
+            )
+        except Exception as exc:
+            get_logger(__name__).error(
+                'failed to mount dashboard entry point; skipping',
+                entry_point_id=entry_point.id,
+                exc_info=exc,
+            )
 
 # Make sure to mount this last, as it is a catch-all routes that are not yet mounted.
 app.mount(app_base, static_files_app)
