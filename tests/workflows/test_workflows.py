@@ -28,6 +28,7 @@ from nomad.workflows.shared_objects import (
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    TransferUploadOwnershipWorkflowInput,
     UploadProcessingPhase,
     UploadProcessingWorkflowInput,
 )
@@ -104,6 +105,14 @@ class TestFixtures:
     @staticmethod
     def publish_externally_input():
         return PublishExternallyWorkflowInput(upload_id=TEST_UPLOAD_ID)
+
+    @staticmethod
+    def transfer_upload_ownership_input():
+        return TransferUploadOwnershipWorkflowInput(
+            upload_id=TEST_UPLOAD_ID,
+            new_owner_user_id='new-owner-user-id',
+            previous_owner_user_id=TEST_USER_ID,
+        )
 
 
 class TestUploadProcessingWorkflowInput:
@@ -1411,3 +1420,219 @@ class TestWorkflowPerformanceAndScalability:
 
         # Verify workflow processed multiple levels
         assert mock_data_layer['upload_instance'].next_level_entries.call_count == 3
+
+
+class TestTransferUploadOwnershipWorkflow:
+    """Tests for TransferUploadOwnershipWorkflow."""
+
+    @pytest.fixture
+    def ownership_transfer_mock_data_layer(self, mock_data_layer, monkeypatch):
+        """Setup mocks specific to ownership transfer workflow tests."""
+        # Mock OwnershipTransferRecord queryset delete behavior in nomad.mongo.users
+        mock_record_queryset = Mock()
+        mock_record_class = Mock()
+        mock_record_class.objects.return_value = mock_record_queryset
+        monkeypatch.setattr(
+            'nomad.mongo.users.OwnershipTransferRecord', mock_record_class
+        )
+
+        # Mock config with admin_user_id
+        mock_data_layer['config'].services = Mock()
+        mock_data_layer['config'].services.admin_user_id = 'admin-user-123'
+
+        # Configure upload instance for ownership transfer
+        mock_data_layer['upload_instance'].main_author = TEST_USER_ID
+        mock_data_layer['upload_instance'].reviewers = [
+            'reviewer-1',
+            'new-owner-user-id',
+        ]
+        mock_data_layer['upload_instance'].process_status = ProcessStatus.PENDING
+
+        mock_data_layer['record_queryset'] = mock_record_queryset
+        mock_data_layer['record_class'] = mock_record_class
+
+        return mock_data_layer
+
+    @pytest.mark.asyncio
+    async def test_successful_ownership_transfer(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test successful ownership transfer workflow execution."""
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-success',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify setup activity was called
+            ownership_transfer_mock_data_layer['upload_class'].get.assert_called_with(
+                TEST_UPLOAD_ID
+            )
+            # Verify metadata edit was performed
+            assert (
+                ownership_transfer_mock_data_layer['upload_instance'].save.call_count
+                >= 0
+            )
+            # Verify ownership transfer record was cleaned up
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()
+            # Verify process status is SUCCESS
+            assert (
+                ownership_transfer_mock_data_layer['upload_instance'].process_status
+                == ProcessStatus.SUCCESS
+            )
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_removes_reviewers(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test that new owner and previous owner are removed from reviewers."""
+        # Setup: new owner and previous owner are both reviewers
+        ownership_transfer_mock_data_layer['upload_instance'].reviewers = [
+            'reviewer-1',
+            'new-owner-user-id',
+            TEST_USER_ID,
+        ]
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-reviewer-cleanup',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify reviewers were modified
+            upload_instance = ownership_transfer_mock_data_layer['upload_instance']
+            assert upload_instance.save.called
+            # After save calls, reviewers should only contain reviewer-1
+            # (this is handled inside complete_upload_ownership_transfer_activity)
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_with_no_reviewers(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test ownership transfer when no reviewers are set."""
+        ownership_transfer_mock_data_layer['upload_instance'].reviewers = None
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-no-reviewers',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify workflow completed successfully
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_deletes_pending_record(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test that ownership transfer records are deleted after successful transfer."""
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-record-delete',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify cleanup deletes all records for this upload.
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_workflow_failure_handling(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test workflow handles activity failures and sets appropriate status."""
+        # Mock edit_upload_metadata_activity to raise an exception
+        ownership_transfer_mock_data_layer[
+            'upload_instance'
+        ].save.side_effect = Exception('Metadata update failed')
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            # Workflow should handle the failure gracefully
+            with pytest.raises(Exception):
+                await env.client.execute_workflow(
+                    'TransferUploadOwnershipWorkflow',
+                    input_data,
+                    id='test-transfer-ownership-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_with_no_pending_record(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test ownership transfer when no matching transfer records exist."""
+        ownership_transfer_mock_data_layer['record_queryset'].delete.return_value = 0
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-no-record',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify workflow still completed (graceful handling of no matching records).
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()

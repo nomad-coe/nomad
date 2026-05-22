@@ -160,6 +160,7 @@ def check_mongo():
         'd_o_i',  # auto-named from class DOI
         'entry',
         'package_definition',
+        'ownership_transfer',
         'upload',
         'user_group',
         'personal_access_tokens',

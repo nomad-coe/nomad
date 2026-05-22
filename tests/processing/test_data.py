@@ -24,7 +24,7 @@ import uuid
 import zipfile
 from collections.abc import Generator
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 import yaml
@@ -1396,3 +1396,76 @@ async def test_exclude_potcar(user1, temporal_worker, monkeypatch, exclude_potca
             assert 'Removing POTCAR file from upload.' in upload.warnings
         else:
             assert potcar_exists
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'wait_for_result, should_fail, expected_error_message',
+    [
+        pytest.param(True, False, None, id='wait-for-result-success'),
+        pytest.param(
+            True,
+            True,
+            'Failed to execute temporal workflow: boom',
+            id='wait-for-result-error',
+        ),
+        pytest.param(False, False, None, id='background-success'),
+        pytest.param(
+            False,
+            True,
+            'Failed to start temporal workflow: boom',
+            id='background-error',
+        ),
+    ],
+)
+async def test_start_edit_upload_metadata_workflow(
+    monkeypatch, wait_for_result, should_fail, expected_error_message
+):
+    upload = Upload(upload_id='test-upload', main_author='test-author')
+    handle = object()
+    execute_workflow = AsyncMock()
+    start_workflow = AsyncMock(return_value=handle)
+    if should_fail:
+        execute_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+        start_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+
+    client = SimpleNamespace(
+        execute_workflow=execute_workflow,
+        start_workflow=start_workflow,
+    )
+    save = Mock()
+
+    async def mock_get_client():
+        return client
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+    monkeypatch.setattr(upload, 'save', save)
+
+    if should_fail:
+        with pytest.raises(ProcessFailure) as exc:
+            await upload._start_edit_upload_metadata_workflow(
+                {'metadata': {'embargo_length': 0}},
+                'test-user',
+                wait_for_result=wait_for_result,
+            )
+        assert str(exc.value) == expected_error_message
+    else:
+        result = await upload._start_edit_upload_metadata_workflow(
+            {'metadata': {'embargo_length': 0}},
+            'test-user',
+            wait_for_result=wait_for_result,
+        )
+        if wait_for_result:
+            assert result is None
+            save.assert_not_called()
+        else:
+            assert result is handle
+            assert upload.process_status == ProcessStatus.PENDING
+            save.assert_called_once()
+
+    if wait_for_result:
+        client.execute_workflow.assert_awaited_once()
+        client.start_workflow.assert_not_called()
+    else:
+        client.execute_workflow.assert_not_called()
+        client.start_workflow.assert_awaited_once()
