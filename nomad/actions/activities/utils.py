@@ -5,6 +5,7 @@ from nomad.actions.action import get_actions
 from nomad.actions.manager import request_signal_input_activity
 from nomad.workflows.activities import (
     cleanup_entries_batch_activity,
+    complete_upload_ownership_transfer_activity,
     delete_upload_entries_activity,
     delete_upload_files_activity,
     delete_upload_record_activity,
@@ -55,6 +56,7 @@ def get_nomad_internal_activities() -> list[Callable]:
         prepare_next_level_entry_batches,
         process_entry_batch_from_file_activity,
         handle_batch_heartbeat_failure_activity,
+        complete_upload_ownership_transfer_activity,
     ]
 
 

@@ -124,6 +124,7 @@ from nomad.workflows.shared_objects import (
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    TransferUploadOwnershipWorkflowInput,
     UploadProcessingWorkflowInput,
 )
 
@@ -3314,22 +3315,94 @@ class Upload(Proc):
         """
         self.process_status = ProcessStatus.PENDING
         return run_async(
-            self._start_edit_upload_metadata_workflow(edit_request_json, user_id)
+            self._start_edit_upload_metadata_workflow(
+                edit_request_json, user_id, wait_for_result=True
+            )
+        )
+
+    def start_edit_upload_metadata(
+        self, edit_request_json: dict[str, Any], user_id: str
+    ):
+        """
+        Starts a metadata edit workflow and returns immediately.
+
+        Use this for API operations that should not block while waiting for the
+        metadata edit workflow to finish.
+        """
+        if self.process_status == ProcessStatus.RUNNING:
+            raise ProcessAlreadyRunning
+
+        self.process_status = ProcessStatus.PENDING
+        return run_async(
+            self._start_edit_upload_metadata_workflow(
+                edit_request_json, user_id, wait_for_result=False
+            )
         )
 
     async def _start_edit_upload_metadata_workflow(
-        self, edit_request_json: dict[str, Any], user_id: str
+        self,
+        edit_request_json: dict[str, Any],
+        user_id: str,
+        *,
+        wait_for_result: bool,
     ):
         client = await get_client()
         workflow_id = f'edit-upload-metadata-{self.upload_id}-{uuid.uuid4()}'
+        workflow_input = EditUploadMetadataWorkflowInput(
+            upload_id=self.upload_id,
+            edit_request_json=edit_request_json,
+            user_id=user_id,
+        )
+        try:
+            if wait_for_result:
+                await client.execute_workflow(
+                    'EditUploadMetadataWorkflow',
+                    workflow_input,
+                    id=workflow_id,
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                return None
+
+            handle = await client.start_workflow(
+                'EditUploadMetadataWorkflow',
+                workflow_input,
+                id=workflow_id,
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                retry_policy=RetryPolicy(maximum_attempts=1),
+            )
+            self.process_status = ProcessStatus.PENDING
+            self.save()
+            return handle
+        except Exception as e:
+            action = 'execute' if wait_for_result else 'start'
+            raise ProcessFailure(f'Failed to {action} temporal workflow: {e}')
+
+    def transfer_ownership(self, new_owner_user_id: str, previous_owner_user_id: str):
+        """Run the ownership transfer workflow synchronously."""
+        self.process_status = ProcessStatus.PENDING
+        return run_async(
+            self._start_transfer_ownership_workflow(
+                new_owner_user_id, previous_owner_user_id
+            )
+        )
+
+    async def _start_transfer_ownership_workflow(
+        self,
+        new_owner_user_id: str,
+        previous_owner_user_id: str,
+    ):
+        client = await get_client()
+        workflow_id = f'transfer-upload-ownership-{self.upload_id}-{uuid.uuid4()}'
+        workflow_input = TransferUploadOwnershipWorkflowInput(
+            upload_id=self.upload_id,
+            new_owner_user_id=new_owner_user_id,
+            previous_owner_user_id=previous_owner_user_id,
+        )
         try:
             await client.execute_workflow(
-                'EditUploadMetadataWorkflow',
-                EditUploadMetadataWorkflowInput(
-                    upload_id=self.upload_id,
-                    edit_request_json=edit_request_json,
-                    user_id=user_id,
-                ),
+                'TransferUploadOwnershipWorkflow',
+                workflow_input,
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),

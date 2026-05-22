@@ -537,16 +537,20 @@ def ls(ctx, uploads, entries, ids, json, size):
 @click.pass_context
 def chown(ctx, username, uploads):
     from nomad import datamodel
+    from nomad.config import config
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     print(f'{uploads.count()} uploads selected, changing owner ...')
 
+    admin_user_id = config.services.admin_user_id
+    if not admin_user_id:
+        raise click.ClickException('No admin user configured for ownership transfer.')
+
     user = datamodel.User.get(username=username)
     for upload in uploads:
-        upload.edit_upload_metadata(
-            edit_request_json=dict(metadata={'main_author': user.user_id}),
-            user_id=config.services.admin_user_id,
+        upload.start_edit_upload_metadata(
+            {'metadata': {'main_author': user.user_id}}, admin_user_id
         )
 
 

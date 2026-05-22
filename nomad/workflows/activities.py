@@ -17,6 +17,7 @@ from nomad.parsing.parsers import parsers
 from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Entry, Upload
 from nomad.search import delete_upload
+from nomad.uploads import remove_upload_reviewers
 from nomad.workflows.shared_objects import (
     CleanupEntriesBatchActivityInput,
     CleanupEntriesResult,
@@ -31,6 +32,7 @@ from nomad.workflows.shared_objects import (
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    TransferUploadOwnershipWorkflowInput,
     UpdatedFilesResult,
     UploadProcessingWorkflowInput,
     UploadWorkflowIdInput,
@@ -372,6 +374,22 @@ def edit_upload_metadata_activity(input: EditUploadMetadataWorkflowInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
         upload = Upload.get(input.upload_id)
         upload._edit_upload_metadata_local(input.edit_request_json, input.user_id)
+
+
+@activity.defn
+def complete_upload_ownership_transfer_activity(
+    input: TransferUploadOwnershipWorkflowInput,
+):
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        from nomad.mongo.users import OwnershipTransferRecord
+
+        upload = Upload.get(input.upload_id)
+        reviewers_to_remove = {input.new_owner_user_id, input.previous_owner_user_id}
+        remove_upload_reviewers(reviewers_to_remove, upload=upload)
+        OwnershipTransferRecord.objects(
+            resource_type='upload',
+            resource_id=input.upload_id,
+        ).delete()
 
 
 @activity.defn

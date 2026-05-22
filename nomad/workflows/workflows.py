@@ -61,6 +61,7 @@ with workflow.unsafe.imports_passed_through():
     from nomad.config import config
     from nomad.workflows.activities import (
         cleanup_entries_batch_activity,
+        complete_upload_ownership_transfer_activity,
         delete_upload_entries_activity,
         delete_upload_files_activity,
         delete_upload_record_activity,
@@ -98,6 +99,7 @@ with workflow.unsafe.imports_passed_through():
         ProcessExampleUploadWorkflowInput,
         PublishExternallyWorkflowInput,
         PublishUploadWorkflowInput,
+        TransferUploadOwnershipWorkflowInput,
         UploadProcessingPhase,
         UploadProcessingWorkflowInput,
         UploadWorkflowIdInput,
@@ -734,6 +736,88 @@ class EditUploadMetadataWorkflow:
             )
             raise e
 
+        finally:
+            await workflow.execute_activity(
+                finalize_upload_processing_activity,
+                finalize_input,
+                schedule_to_close_timeout=timeout,
+                retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
+            )
+
+
+@workflow.defn
+class TransferUploadOwnershipWorkflow:
+    @workflow.run
+    async def run(self, input: TransferUploadOwnershipWorkflowInput):
+        retry_policy = RetryPolicy(
+            maximum_attempts=2,
+        )
+        timeout = timedelta(
+            seconds=config.temporal.processing_timeouts.edit_upload_metadata_timeout
+        )
+        heartbeat_timeout = timedelta(
+            seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
+        )
+        workflow_info = workflow.info()
+        upload_workflow_input = UploadWorkflowIdInput(
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            process_name='_transfer_upload_ownership',
+        )
+        metadata_edit_input = EditUploadMetadataWorkflowInput(
+            upload_id=input.upload_id,
+            user_id=config.services.admin_user_id,
+            edit_request_json={'metadata': {'main_author': input.new_owner_user_id}},
+        )
+        # Default to failure so finalize always removes workflow_id.
+        finalize_input: (
+            FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+        ) = FinalizeUploadProcessingFailureInput(
+            result='failure',
+            upload_id=input.upload_id,
+            workflow_id=workflow_info.workflow_id,
+            failure_message='Ownership transfer failed',
+        )
+
+        try:
+            await workflow.execute_activity(
+                setup_upload_for_workflow_process,
+                upload_workflow_input,
+                schedule_to_close_timeout=timeout,
+                retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
+            )
+            await workflow.execute_activity(
+                edit_upload_metadata_activity,
+                metadata_edit_input,
+                schedule_to_close_timeout=timeout,
+                heartbeat_timeout=heartbeat_timeout,
+                retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
+            )
+            await workflow.execute_activity(
+                complete_upload_ownership_transfer_activity,
+                input,
+                schedule_to_close_timeout=timeout,
+                retry_policy=retry_policy,
+                priority=EDIT_UPLOAD_METADATA_PRIORITY,
+            )
+            finalize_input = FinalizeUploadProcessingSuccessInput(
+                result='success',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+            )
+
+        except Exception as e:
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                failure_message='Ownership transfer failed',
+                error_details=_extract_error_details(e),
+            )
+            raise e
         finally:
             await workflow.execute_activity(
                 finalize_upload_processing_activity,

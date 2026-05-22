@@ -2301,7 +2301,9 @@ async def test_post_upload_action_lift_embargo(
                 metadata = {'coauthors': user.user_id}
             upload = Upload.get(upload_id)
             await upload._start_edit_upload_metadata_workflow(
-                dict(metadata=metadata), config.services.admin_user_id
+                dict(metadata=metadata),
+                config.services.admin_user_id,
+                wait_for_result=True,
             )
 
         response = await asyncio.to_thread(

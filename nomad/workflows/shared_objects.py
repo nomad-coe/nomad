@@ -192,6 +192,13 @@ class EditUploadMetadataWorkflowInput:
 
 
 @dataclass
+class TransferUploadOwnershipWorkflowInput:
+    upload_id: str
+    new_owner_user_id: str
+    previous_owner_user_id: str
+
+
+@dataclass
 class ImportBundleWorkflowInput:
     upload_id: str
     bundle_path: str

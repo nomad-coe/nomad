@@ -11,6 +11,7 @@ from nomad.workflows.workflows import (
     ProcessExampleUploadWorkflow,
     PublishExternallyWorkflow,
     PublishUploadWorkflow,
+    TransferUploadOwnershipWorkflow,
     UpdateUploadWorkflow,
 )
 
@@ -26,6 +27,7 @@ def get_nomad_internal_workflows() -> list:
         ImportBundleWorkflow,
         PublishUploadWorkflow,
         PublishExternallyWorkflow,
+        TransferUploadOwnershipWorkflow,
     ]
 
 

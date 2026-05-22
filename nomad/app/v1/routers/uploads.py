@@ -48,7 +48,6 @@ from pydantic_core import PydanticCustomError
 
 from nomad import files, utils
 from nomad.app.v1.models.models import TransferBundleRequest
-from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import generate_upload_token
 from nomad.bundles import BundleExporter, BundleImporter
