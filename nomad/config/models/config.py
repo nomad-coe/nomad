@@ -37,6 +37,7 @@ from pydantic import (
 )
 
 from nomad.auth.scopes import _resolve_scopes
+from nomad.common import is_email
 from nomad.config.models.pagination import PaginationBaseModel
 
 from .common import ConfigBaseModel, Options, OptionsGlob
@@ -336,7 +337,7 @@ class Auth(ConfigBaseModel):
     authorized_users: list[str] | None = Field(
         None,
         description="""
-            A list of usernames or user account emails that are authorized to access this
+            A list of usernames that are authorized to access this
             NOMAD deployment. If not specified, all users recognized by the Keycloak
             instance are allowed.
         """,
@@ -345,10 +346,18 @@ class Auth(ConfigBaseModel):
     @field_validator('authorized_users')
     @classmethod
     def normalize_authorized_users(cls, v: list[str] | None) -> list[str] | None:
+        """Cast usernames to lowercase to avoid case-sensitivity issues."""
         if v is None:
             return None
 
-        return list(dict.fromkeys(user.lower().strip() for user in v))
+        users = list(dict.fromkeys(user.lower().strip() for user in v))
+
+        if any(is_email(user) for user in users):
+            logger.warning(
+                'whitelisting users with email is deprecated, please use username instead.'
+            )
+
+        return users
 
     unauthenticated_user_scopes: OptionsGlob = Field(
         OptionsGlob(include=['*:read']),

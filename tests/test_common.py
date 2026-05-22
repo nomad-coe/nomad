@@ -18,7 +18,30 @@
 
 import pytest
 
-from nomad.common import is_safe_path, is_safe_relative_path, parse_timedelta
+from nomad.common import is_email, is_safe_path, is_safe_relative_path, parse_timedelta
+
+
+@pytest.mark.parametrize(
+    ('value', 'result'),
+    [
+        pytest.param('alice@example.com', True, id='valid-basic'),
+        pytest.param('alice.smith+tag@sub.example.co', True, id='valid-subdomain-plus'),
+        pytest.param("john.o'hara@example.com", True, id='valid-apostrophe'),
+        pytest.param('alice', False, id='username-not-email'),
+        pytest.param('.alice@example.com', False, id='local-part-starts-with-dot'),
+        pytest.param('alice.@example.com', False, id='local-part-ends-with-dot'),
+        pytest.param('alice..smith@example.com', False, id='consecutive-dots-local'),
+        pytest.param('alice@localhost', False, id='missing-tld'),
+        pytest.param('alice@example', False, id='missing-dot-in-domain'),
+        pytest.param('alice@-example.com', False, id='domain-label-starts-with-hyphen'),
+        pytest.param('alice@example-.com', False, id='domain-label-ends-with-hyphen'),
+        pytest.param('alice@aol...com', False, id='consecutive-dots-domain'),
+        pytest.param('alice@@example.com', False, id='double-at'),
+        pytest.param('', False, id='empty'),
+    ],
+)
+def test_is_email(value, result):
+    assert is_email(value) is result
 
 
 @pytest.mark.parametrize(
