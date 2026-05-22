@@ -190,6 +190,21 @@ def extract_file(
                 os.remove(filepath)
 
 
+# RFC 5322: https://www.regular-expressions.info/email.html
+_EMAIL_RE = re.compile(
+    r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+"
+    r"(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
+    r'@'
+    r'(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+'
+    r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?',
+    re.IGNORECASE,
+)
+
+
+def is_email(value: str) -> bool:
+    return bool(_EMAIL_RE.fullmatch(value))
+
+
 def is_url(path) -> bool:
     """Utility function for determining whether a filepath represents a URL."""
     return path.startswith('http://') or path.startswith('https://')
