@@ -958,6 +958,7 @@ async def request_signal_input(
     title: str | None = None,
     description: str | None = None,
     content: str | None = None,
+    initial_data: dict[str, Any] | None = None,
     timeout: timedelta = timedelta(hours=1),
 ):
     """
@@ -977,6 +978,7 @@ async def request_signal_input(
         title: Optional title to display in the frontend form.
         description: Optional description to display in the frontend form.
         content: Optional markdown content to display in the frontend form.
+        initial_data: Optional initial data to pre-fill the signal input form.
         timeout: Optional timeout for the signal input activity. Defaults to 1 hour.
 
     Raises:
@@ -991,6 +993,7 @@ async def request_signal_input(
             title=title,
             description=description,
             content=content,
+            initial_data=initial_data,
         ),
         start_to_close_timeout=timeout,
         retry_policy=RetryPolicy(maximum_attempts=3),
