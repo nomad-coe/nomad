@@ -26,7 +26,6 @@ from nomad.workflows.activities import (
     publish_externally_activity,
     publish_upload_activity,
     setup_example_upload_activity,
-    setup_upload_for_workflow_process,
     update_files_activity,
 )
 
@@ -47,7 +46,6 @@ def get_nomad_internal_activities() -> list[Callable]:
         match_all_activity,
         update_files_activity,
         setup_example_upload_activity,
-        setup_upload_for_workflow_process,
         edit_upload_metadata_activity,
         import_bundle_activity,
         publish_upload_activity,

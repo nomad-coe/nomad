@@ -158,10 +158,14 @@ class RunThread(threading.Thread):
     def __init__(self, coro: Coroutine):
         self.coro = coro
         self.result = None
+        self.exception = None
         super().__init__()
 
     def run(self):
-        self.result = asyncio.run(self.coro)
+        try:
+            self.result = asyncio.run(self.coro)
+        except Exception as e:
+            self.exception = e
 
 
 def run_async(coro: Coroutine):
@@ -174,6 +178,8 @@ def run_async(coro: Coroutine):
         thread = RunThread(coro)
         thread.start()
         thread.join()
+        if thread.exception is not None:
+            raise thread.exception
         return thread.result
     else:
         # Create our own loop
@@ -1976,7 +1982,9 @@ class Upload(Proc):
         client = await get_client()
         for workflow_id in self.workflow_ids:  # type: ignore
             try:
-                await client.get_workflow_handle(workflow_id).terminate()
+                handle = client.get_workflow_handle(workflow_id)
+                await handle.cancel()
+                await handle.result()
             except Exception as e:
                 # upload is already terminated
                 pass
@@ -1993,12 +2001,12 @@ class Upload(Proc):
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def publish_upload(self, embargo_length: int | None = None):
-        self.process_status = ProcessStatus.PENDING
         return run_async(self._start_publish_upload_workflow(embargo_length))
 
     async def _start_publish_upload_workflow(self, embargo_length: int | None = None):
         client = await get_client()
         workflow_id = f'publish-upload-{self.upload_id}-{uuid.uuid4()}'
+        self.setup_upload_for_workflow(workflow_id, '_publish_upload')
         try:
             return await client.execute_workflow(
                 'PublishUploadWorkflow',
@@ -2011,6 +2019,7 @@ class Upload(Proc):
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def _publish_upload_local(self, embargo_length: int | None = None):
@@ -2085,7 +2094,6 @@ class Upload(Proc):
         target_deployment_url: str | None = None,
         auth_token: str | None = None,
     ):
-        self.process_status = ProcessStatus.PENDING
         return run_async(
             self._start_publish_externally_workflow(
                 embargo_length=embargo_length,
@@ -2102,6 +2110,7 @@ class Upload(Proc):
     ):
         client = await get_client()
         workflow_id = f'publish-externally-{self.upload_id}-{uuid.uuid4()}'
+        self.setup_upload_for_workflow(workflow_id, '_publish_externally')
         try:
             await client.execute_workflow(
                 'PublishExternallyWorkflow',
@@ -2116,6 +2125,7 @@ class Upload(Proc):
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def _publish_externally_local(
@@ -2271,6 +2281,55 @@ class Upload(Proc):
                 'error loading example upload entry point "{example_upload_entry_point_id}": error in load() function'
             ) from e
 
+    def setup_upload_for_workflow(
+        self, workflow_id: str, process_name: str
+    ) -> dict[str, Any]:
+        """
+        Atomically reserve this upload for a Temporal workflow.
+
+        The update only succeeds if the upload is still in the same
+        non-processing status that this instance was loaded with and no
+        workflow id has been registered.
+        """
+        old_record = self._get_collection().find_one_and_update(
+            {
+                '_id': self.id,
+                '$and': [
+                    {'process_status': self.process_status},
+                    {'process_status': {'$nin': ProcessStatus.STATUSES_PROCESSING}},
+                    {
+                        '$or': [
+                            {'workflow_ids': []},
+                            {'workflow_ids': {'$exists': False}},
+                        ]
+                    },
+                ],
+            },
+            {
+                '$set': {
+                    'process_status': ProcessStatus.PENDING,
+                    'current_process': process_name,
+                    'errors': [],
+                },
+                '$push': {'workflow_ids': workflow_id},
+            },
+        )
+
+        if old_record is None:
+            raise ProcessAlreadyRunning(
+                'Upload is currently blocked by another process'
+            )
+
+        self.reload()
+        return old_record
+
+    def cleanup_upload_after_workflow_fail(self, workflow_id: str, error: Exception):
+        if workflow_id in self.workflow_ids:  # type: ignore
+            self.workflow_ids.remove(workflow_id)  # type: ignore
+        self.last_status_message = str(error)
+        self.fail(error)
+        self.save()
+
     def process_upload(
         self,
         file_operations: list[dict[str, Any]] | None = None,
@@ -2279,10 +2338,6 @@ class Upload(Proc):
         only_updated_files: bool = False,
         trigger_processing: bool = True,
     ):
-        if self.process_status == ProcessStatus.RUNNING:
-            raise ProcessAlreadyRunning
-
-        self.process_status = ProcessStatus.PENDING
         # Start temporal workflow
         return run_async(
             self._start_process_upload_workflow(
@@ -2318,6 +2373,7 @@ class Upload(Proc):
             workflow_tmp_dir=mkdtemp(f'{self.upload_id}_{workflow_id}'),
             trigger_processing=trigger_processing,
         )
+        self.setup_upload_for_workflow(workflow_id, '_process_upload')
         try:
             handle = await client.start_workflow(
                 'UpdateUploadWorkflow',
@@ -2326,10 +2382,9 @@ class Upload(Proc):
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
-            self.process_status = ProcessStatus.PENDING
-            self.save()
             return handle
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def _process_upload_local(
@@ -3313,7 +3368,6 @@ class Upload(Proc):
         primitive data types, i.e. the json format, to be able to pass the request to a
         rabbitmq task).
         """
-        self.process_status = ProcessStatus.PENDING
         return run_async(
             self._start_edit_upload_metadata_workflow(
                 edit_request_json, user_id, wait_for_result=True
@@ -3380,7 +3434,6 @@ class Upload(Proc):
 
     def transfer_ownership(self, new_owner_user_id: str, previous_owner_user_id: str):
         """Run the ownership transfer workflow synchronously."""
-        self.process_status = ProcessStatus.PENDING
         return run_async(
             self._start_transfer_ownership_workflow(
                 new_owner_user_id, previous_owner_user_id
@@ -3399,6 +3452,7 @@ class Upload(Proc):
             new_owner_user_id=new_owner_user_id,
             previous_owner_user_id=previous_owner_user_id,
         )
+        self.setup_upload_for_workflow(workflow_id, '_transfer_upload_ownership')
         try:
             await client.execute_workflow(
                 'TransferUploadOwnershipWorkflow',
@@ -3408,6 +3462,7 @@ class Upload(Proc):
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to execute temporal workflow: {e}')
 
     def _edit_upload_metadata_local(
@@ -3487,7 +3542,6 @@ class Upload(Proc):
         have been created using the :func:`BundleImporter.create_upload_skeleton` method).
         See the :class:`BundleImporter` class for more info. Does not check permissions.
         """
-        self.process_status = ProcessStatus.PENDING
         return run_async(
             self._start_import_bundle_workflow(
                 bundle_path, import_settings, embargo_length
@@ -3502,6 +3556,7 @@ class Upload(Proc):
     ):
         client = await get_client()
         workflow_id = f'import-bundle-{self.upload_id}-{uuid.uuid4()}'
+        self.setup_upload_for_workflow(workflow_id, '_import_bundle')
         try:
             await client.execute_workflow(
                 'ImportBundleWorkflow',
@@ -3516,6 +3571,7 @@ class Upload(Proc):
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to execute temporal workflow: {e}')
 
     def _import_bundle_local(
