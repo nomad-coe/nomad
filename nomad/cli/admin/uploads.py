@@ -143,6 +143,7 @@ def _run_processing(
         elif upload.process_running:
             upload.reset(force=True, process_status=proc.ProcessStatus.FAILURE)
 
+        upload.reload()
         process(upload)
         if wait_until_complete:
             upload.block_until_complete(interval=0.5)

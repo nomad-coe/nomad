@@ -1063,80 +1063,56 @@ class TestUpdateUploadWorkflowCursor:
 class TestWorkflowErrorHandling:
     """Tests for workflow error handling scenarios."""
 
-    @pytest.mark.asyncio
-    async def test_upload_workflow_id_assertion_error(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test that workflows fail when upload is already being processed."""
-        # Set up upload to already have a workflow ID
-        mock_upload_instance = mock_data_layer['upload_instance']
-        mock_upload_instance.workflow_ids = [EXISTING_WORKFLOW_ID]
-
-        def mock_fail(*errors):
-            mock_upload_instance.process_status = ProcessStatus.FAILURE
-            mock_upload_instance.errors.clear()
-            mock_upload_instance.errors.extend(str(error) for error in errors)
-
-        mock_upload_instance.fail = mock_fail
-
-        async with temporal_worker() as env:
-            input_data = TestFixtures.edit_upload_metadata_input()
-            with pytest.raises(
-                Exception
-            ):  # Should raise AssertionError from setup_upload_for_workflow_process
-                await env.client.execute_workflow(
-                    'EditUploadMetadataWorkflow',
-                    input_data,
-                    id='test-workflow-id-conflict',
-                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-                )
-
     @pytest.mark.parametrize(
         'workflow_class, input_fixture, activity_to_fail, mock_target_name, expected_status_message',
         [
-            (
+            pytest.param(
                 'ProcessEntryWorkflow',
                 TestFixtures.process_entry_input,
                 '_process_entry_local',
                 'entry_instance',
                 'Process process_entry failed',
+                id='ProcessEntryWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'UpdateUploadWorkflow',
                 TestFixtures.upload_processing_input,
                 'update_files',
                 'upload_instance',
                 'Process upload failed',
+                id='UpdateUploadWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'EditUploadMetadataWorkflow',
                 TestFixtures.edit_upload_metadata_input,
                 '_edit_upload_metadata_local',
                 'upload_instance',
                 'Edit metadata failed',
+                id='EditUploadMetadataWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'ImportBundleWorkflow',
                 TestFixtures.import_bundle_input,
                 '_import_bundle_local',
                 'upload_instance',
                 'Import bundle failed',
+                id='ImportBundleWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'PublishUploadWorkflow',
                 TestFixtures.publish_upload_input,
                 '_publish_upload_local',
                 'upload_instance',
                 'Publish upload failed',
+                id='PublishUploadWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'PublishExternallyWorkflow',
                 TestFixtures.publish_externally_input,
                 '_publish_externally_local',
                 'upload_instance',
                 'Publish externally failed',
+                id='PublishExternallyWorkflow-failure-handling',
             ),
         ],
     )
@@ -1187,8 +1163,6 @@ class TestWorkflowErrorHandling:
         # Verify workflow ID is cleared for upload-level workflows
         if mock_target_name == 'upload_instance':
             assert not mock_target.workflow_ids
-            # Verify workflow ID was added and then removed
-            assert mock_target.save.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_workflow_id_cleanup_on_success(
@@ -1208,7 +1182,7 @@ class TestWorkflowErrorHandling:
             )
 
         # Verify workflow ID was added and then removed (cleanup)
-        assert mock_data_layer['upload_instance'].save.call_count >= 2
+        assert mock_data_layer['upload_instance'].save.call_count >= 1
         assert not mock_data_layer['upload_instance'].workflow_ids
 
     @pytest.mark.asyncio
@@ -1274,8 +1248,8 @@ class TestWorkflowErrorHandling:
         # Verify that the upload workflow completed successfully
         # (The upload should not be marked as failed due to individual entry failures)
         assert (
-            mock_data_layer['upload_instance'].save.call_count >= 2
-        )  # Add + remove workflow ID calls
+            mock_data_layer['upload_instance'].save.call_count >= 1
+        )  #  remove workflow ID calls
 
 
 class TestWorkflowPerformanceAndScalability:

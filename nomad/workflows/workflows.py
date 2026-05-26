@@ -82,7 +82,6 @@ with workflow.unsafe.imports_passed_through():
         publish_externally_activity,
         publish_upload_activity,
         setup_example_upload_activity,
-        setup_upload_for_workflow_process,
         update_files_activity,
     )
     from nomad.workflows.shared_objects import (
@@ -102,7 +101,6 @@ with workflow.unsafe.imports_passed_through():
         TransferUploadOwnershipWorkflowInput,
         UploadProcessingPhase,
         UploadProcessingWorkflowInput,
-        UploadWorkflowIdInput,
     )
     from nomad.workflows.utils import (
         CLEANUP_ENTRY_BATCH_SIZE,
@@ -544,12 +542,6 @@ class UpdateUploadWorkflow:
             seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
         )
         workflow_info = workflow.info()
-        upload_workflow_input = UploadWorkflowIdInput(
-            upload_id=input.upload_id,
-            workflow_id=workflow_info.workflow_id,
-            process_name='_process_upload',
-            trigger_processing=input.trigger_processing,
-        )
         # Default to failure so finalize always removes workflow_id and cleans temp dir.
         finalize_input: (
             FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
@@ -563,17 +555,6 @@ class UpdateUploadWorkflow:
         skip_finalize = False
         try:
             if input.phase == UploadProcessingPhase.SETUP:
-                # Step 0: Add workflow id to upload
-                await workflow.execute_activity(
-                    setup_upload_for_workflow_process,
-                    upload_workflow_input,
-                    schedule_to_close_timeout=timedelta(
-                        seconds=config.temporal.processing_timeouts.setup_upload_timeout
-                    ),
-                    retry_policy=retry_policy,
-                    priority=UPDATE_UPLOAD_PRIORITY,
-                )
-
                 # Step 1: Update files
                 updated_files = await workflow.execute_activity(
                     update_files_activity,
@@ -609,6 +590,16 @@ class UpdateUploadWorkflow:
             )
 
         except workflow.ContinueAsNewError:
+            raise
+        except asyncio.CancelledError as e:
+            finalize_input = FinalizeUploadProcessingFailureInput(
+                result='failure',
+                failure_message='Workflow was cancelled',
+                upload_id=input.upload_id,
+                workflow_id=workflow_info.workflow_id,
+                workflow_tmp_dir=input.workflow_tmp_dir,
+                error_details=str(e),
+            )
             raise
         except Exception as e:
             finalize_input = FinalizeUploadProcessingFailureInput(
@@ -686,11 +677,6 @@ class EditUploadMetadataWorkflow:
             seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
         )
         workflow_info = workflow.info()
-        upload_workflow_input = UploadWorkflowIdInput(
-            upload_id=input.upload_id,
-            workflow_id=workflow_info.workflow_id,
-            process_name='_edit_upload_metadata',
-        )
         # Default to failure so finalize always removes workflow_id.
         finalize_input: (
             FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
@@ -702,15 +688,6 @@ class EditUploadMetadataWorkflow:
         )
 
         try:
-            # Add workflow id to upload
-            await workflow.execute_activity(
-                setup_upload_for_workflow_process,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=EDIT_UPLOAD_METADATA_PRIORITY,
-            )
-
             # Edit upload metadata
             await workflow.execute_activity(
                 edit_upload_metadata_activity,
@@ -760,11 +737,6 @@ class TransferUploadOwnershipWorkflow:
             seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
         )
         workflow_info = workflow.info()
-        upload_workflow_input = UploadWorkflowIdInput(
-            upload_id=input.upload_id,
-            workflow_id=workflow_info.workflow_id,
-            process_name='_transfer_upload_ownership',
-        )
         metadata_edit_input = EditUploadMetadataWorkflowInput(
             upload_id=input.upload_id,
             user_id=config.services.admin_user_id,
@@ -781,13 +753,6 @@ class TransferUploadOwnershipWorkflow:
         )
 
         try:
-            await workflow.execute_activity(
-                setup_upload_for_workflow_process,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=EDIT_UPLOAD_METADATA_PRIORITY,
-            )
             await workflow.execute_activity(
                 edit_upload_metadata_activity,
                 metadata_edit_input,
@@ -842,11 +807,6 @@ class ImportBundleWorkflow:
             seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
         )
         workflow_info = workflow.info()
-        upload_workflow_input = UploadWorkflowIdInput(
-            upload_id=input.upload_id,
-            workflow_id=workflow_info.workflow_id,
-            process_name='_import_bundle',
-        )
         # Default to failure so finalize always removes workflow_id.
         finalize_input: (
             FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
@@ -858,15 +818,6 @@ class ImportBundleWorkflow:
         )
 
         try:
-            # Add workflow id to upload
-            await workflow.execute_activity(
-                setup_upload_for_workflow_process,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=IMPORT_BUNDLE_PRIORITY,
-            )
-
             # Import bundle
             await workflow.execute_activity(
                 import_bundle_activity,
@@ -916,11 +867,6 @@ class PublishUploadWorkflow:
             seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
         )
         workflow_info = workflow.info()
-        upload_workflow_input = UploadWorkflowIdInput(
-            upload_id=input.upload_id,
-            workflow_id=workflow_info.workflow_id,
-            process_name='_publish_upload',
-        )
         # Default to failure so finalize always removes workflow_id.
         finalize_input: (
             FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
@@ -932,15 +878,6 @@ class PublishUploadWorkflow:
         )
 
         try:
-            # Add workflow id to upload
-            await workflow.execute_activity(
-                setup_upload_for_workflow_process,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=PUBLISH_UPLOAD_PRIORITY,
-            )
-
             # Publish upload
             await workflow.execute_activity(
                 publish_upload_activity,
@@ -991,11 +928,6 @@ class PublishExternallyWorkflow:
             seconds=config.temporal.processing_timeouts.internal_processing_heartbeat_timeout
         )
         workflow_info = workflow.info()
-        upload_workflow_input = UploadWorkflowIdInput(
-            upload_id=input.upload_id,
-            workflow_id=workflow_info.workflow_id,
-            process_name='_publish_externally',
-        )
         # Default to failure so finalize always removes workflow_id.
         finalize_input: (
             FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
@@ -1007,15 +939,6 @@ class PublishExternallyWorkflow:
         )
 
         try:
-            # Add workflow id to upload
-            await workflow.execute_activity(
-                setup_upload_for_workflow_process,
-                upload_workflow_input,
-                schedule_to_close_timeout=timeout,
-                retry_policy=retry_policy,
-                priority=PUBLISH_EXTERNALLY_PRIORITY,
-            )
-
             # Publish externally
             await workflow.execute_activity(
                 publish_externally_activity,

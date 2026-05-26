@@ -35,7 +35,6 @@ from nomad.workflows.shared_objects import (
     TransferUploadOwnershipWorkflowInput,
     UpdatedFilesResult,
     UploadProcessingWorkflowInput,
-    UploadWorkflowIdInput,
 )
 from nomad.workflows.utils import (
     CLEANUP_ENTRY_BATCH_SIZE,
@@ -276,18 +275,6 @@ def process_entry_batch_from_file_activity(input: ProcessEntryBatchFromFileInput
 def handle_batch_heartbeat_failure_activity(input: ProcessEntryBatchFromFileInput):
     for entry_input in _entry_batch_inputs_from_file(input):
         handle_heartbeat_failure_activity(entry_input)
-
-
-@activity.defn
-def setup_upload_for_workflow_process(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    assert len(upload.workflow_ids) == 0, (  # type: ignore
-        'Upload is currently being processed by another workflow'
-    )
-    upload.workflow_ids.append(input.workflow_id)  # type: ignore
-    upload.errors = []
-    upload.current_process = input.process_name
-    upload.save()
 
 
 @activity.defn
