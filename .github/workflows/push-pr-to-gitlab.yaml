@@ -1,38 +1,49 @@
-name: Push the PR to the home Project at MPCDF's gitlab
+name: Push the PR to the home Project at MPCDF's GitLab
+
 on:
   pull_request_target:
     paths-ignore:
-      - '.gitlab-ci.*'
-      - '.github/**'
+      - ".gitlab-ci.*"
+      - ".github/**"
+
 jobs:
   push-to-gitlab:
     runs-on: ubuntu-latest
     env:
-      gitlab_ref: "github-${{ github.event.pull_request.number }}-${{ github.event.pull_request.user.login }}-${{ github.event.pull_request.head.ref }}"
+      GITLAB_REF: "github-pr-${{ github.event.pull_request.number }}"
+      MR_TITLE: "GitHub PR: ${{ github.event.pull_request.title }}"
+      PR_URL: "${{ github.event.pull_request.html_url }}"
+
     steps:
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
-          fetch-depth: '0'
+          fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Git push
         run: |
-          git push "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" HEAD:refs/heads/$gitlab_ref -f
+          git push \
+            "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" \
+            "HEAD:refs/heads/${GITLAB_REF}" \
+            --force
+
       - name: Create MR
         run: |
           curl -X POST -L -G \
             --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}" \
-            --data-urlencode "source_branch=$gitlab_ref" \
+            --data-urlencode "source_branch=${GITLAB_REF}" \
             --data-urlencode "target_branch=develop" \
-            --data-urlencode "title=GitHub PR: ${{ github.event.pull_request.title }}" \
-            --data-urlencode "description=Original pull request on GitHub: ${{ github.event.pull_request.html_url }}" \
+            --data-urlencode "title=${MR_TITLE}" \
+            --data-urlencode "description=Original pull request on GitHub: ${PR_URL}" \
             --data-urlencode "remove_source_branch=true" \
-            gitlab.mpcdf.mpg.de/api/v4/projects/2187/merge_requests
+            "https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/merge_requests"
+
       - name: Comment PR
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@v3
         with:
           message: |
-            A merge request has been opened on gitlab. View the [GitLab merge requests](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests).
+            A merge request has been opened on GitLab. View the [GitLab merge requests](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests).
             This will run CI/CD pipelines, we will continue the discussion, and
             merge on GitLab. After the merge has completed on GitLab, the changes will
             be pushed to `develop` here.
