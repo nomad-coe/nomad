@@ -1189,20 +1189,21 @@ class SearchQuantity:
 
             return filter_path
 
-    def get_query(self, value: Any):
+    def get_query(self, value: Any, query_type: str | None = None):
         """Returns an ES query for this quantity, the query type depends on the
         annotation. Also normalizes the value.
         """
         normalizer = self.annotation.normalizer
         if normalizer:
-            value = normalizer(value)
+            value = (
+                [normalizer(v) for v in value]
+                if isinstance(value, list)
+                else normalizer(value)
+            )
 
-        sub_query = Q(self.annotation.es_query, **{self.search_field: value})
-        return self.wrap_dynamic(sub_query)
-
-    def get_range_query(self, value: Any):
-        """Returns an ES range query for this quantity."""
-        sub_query = Q('range', **{self.search_field: value.dict(exclude_unset=True)})
+        sub_query = Q(
+            query_type or self.annotation.es_query, **{self.search_field: value}
+        )
         return self.wrap_dynamic(sub_query)
 
     def wrap_dynamic(self, sub_query: Q):

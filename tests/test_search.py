@@ -23,6 +23,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from elasticsearch_dsl import Q
 
 from nomad import infrastructure, utils
 from nomad.app.v1.models import (
@@ -44,6 +45,8 @@ from nomad.metainfo.util import MEnum
 from nomad.search import AuthenticationRequiredError as ARE
 from nomad.search import (
     PermissionDeniedError,
+    _api_to_es_query,
+    normalize_api_query,
     quantity_values,
     refresh,
     search,
@@ -310,6 +313,27 @@ def test_search_query(indices, example_data, api_query, total):
     api_query = json.loads(api_query)
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
+
+
+@pytest.mark.parametrize(
+    'api_query, is_terms',
+    [
+        pytest.param({'entry_id:any': ['id-1', 'id-2']}, True, id='term-quantity-any'),
+        pytest.param(
+            {'text_search_contents:any': ['keyword', 'another']},
+            False,
+            id='non-term-quantity-any',
+        ),
+    ],
+)
+def test_any_query(api_query, is_terms):
+    query = normalize_api_query(api_query, doc_type=entry_type)
+    es_query = _api_to_es_query(query, doc_type=entry_type, owner_query=Q())
+    if is_terms:
+        assert es_query.to_dict() == {'terms': {'entry_id': ['id-1', 'id-2']}}
+    else:
+        assert 'bool' in es_query.to_dict()
+        assert 'should' in es_query.to_dict()['bool']
 
 
 class TestsWithGroups:
