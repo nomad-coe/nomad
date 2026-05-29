@@ -150,7 +150,11 @@ def raw_files_infra(request):
     config.fs.prefix_size = 2
     if request.config.getoption('--s3-storage'):
         config.fs.public_fs.protocol = 's3'
-    config.fs.public_fs.extra = {'anon': True, 'endpoint_url': 'http://localhost:8333'}
+    config.fs.public_fs.extra = {
+        'endpoint_url': 'http://localhost:8333',
+        'key': 'nomad_test',
+        'secret': 'nomad_test',
+    }
     clear_raw_files()
     yield
     directory.cleanup()

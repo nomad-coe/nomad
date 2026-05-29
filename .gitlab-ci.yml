@@ -142,6 +142,8 @@ check python dependencies:
     - name: chrislusf/seaweedfs:4.25
       alias: seaweedfs
   variables:
+    AWS_ACCESS_KEY_ID: nomad_test
+    AWS_SECRET_ACCESS_KEY: nomad_test
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
@@ -192,7 +194,7 @@ python tests:
       when: never
     - when: on_success
 
-python tests merging to main:
+python tests with s3:
   parallel: 4
   extends: .base_test
   script:
@@ -210,6 +212,7 @@ python tests merging to main:
       --s3-storage
       tests
   rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /\[s3\]/'
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "develop"'
     - when: never
 
