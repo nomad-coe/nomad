@@ -23,7 +23,7 @@ from importlib.metadata import entry_points, version
 from typing import Literal
 from urllib.parse import quote
 
-from fsspec import AbstractFileSystem, filesystem
+from fsspec import filesystem
 from fsspec.implementations.local import LocalFileSystem
 from msglc.config import config as msglc_config
 from msglc.config import configure
@@ -654,6 +654,13 @@ public/ex/examples_template_985dc9d7/raw-public.plain.zip
 
         return values
 
+    def ensure_buffer_size(self):
+        if self.protocol == 's3':
+            if msglc_config.read_buffer_size < 5 * 2**20:
+                configure(read_buffer_size=5 * 2**20)
+            if msglc_config.write_buffer_size < 5 * 2**20:
+                configure(write_buffer_size=5 * 2**20)
+
     @property
     def target_fs(self):
         if self.protocol is None:
@@ -667,25 +674,9 @@ public/ex/examples_template_985dc9d7/raw-public.plain.zip
                 'Cannot establish valid connection to the target file system.'
             ) from e
 
-        if self.protocol == 's3':
-            if msglc_config.read_buffer_size < 5 * 2**20:
-                configure(read_buffer_size=5 * 2**20)
-            if msglc_config.write_buffer_size < 5 * 2**20:
-                configure(write_buffer_size=5 * 2**20)
+        self.ensure_buffer_size()
 
         return remote_fs
-
-    def real_destination(self, area: str, path: str) -> tuple[AbstractFileSystem, str]:
-        """
-        The `path` could be either relative or absolute.
-        """
-        if not isinstance(self.target_fs, LocalFileSystem):
-            segment = path.split(area, 1)[-1]
-            if not self.simplify_path:
-                segment = f'{area}{segment}'
-            path = f'{self.bucket}/{segment.removeprefix("/")}'
-
-        return self.target_fs, path
 
 
 class FS(ConfigBaseModel):

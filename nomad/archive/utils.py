@@ -53,8 +53,7 @@ def write_archive(path_or_file: str | BytesIO, data: dict) -> None:
     if not isinstance(path_or_file, str):
         dump(path_or_file, data, backend='rust')
     else:
-        fs, location = FSUtility.storage(path_or_file)
-        dump(location, data, fs=fs, backend='rust')
+        dump(FSUtility.upath(path_or_file), data, backend='rust')
 
 
 def combine_archive(target_fp, data: Iterable[tuple]):
@@ -76,8 +75,8 @@ def combine_archive(target_fp, data: Iterable[tuple]):
                 with read_archive(msg_path, detected_version=msg_version) as reader:
                     yield FileInfo(None, uuid, obj=to_json(reader[uuid]))
 
-    combined_fs, combined_location = FSUtility.storage(target_fp.os_path)
-    combine(combined_location, _kernel(), fs=combined_fs, backend='rust')
+    upath = FSUtility.upath(target_fp)
+    combine(upath.path, _kernel(), fs=upath.fs, backend='rust')
 
 
 def read_archive(file_or_path: str | BytesIO, **kwargs):
@@ -116,9 +115,8 @@ def read_archive(file_or_path: str | BytesIO, **kwargs):
         return ArchiveReaderNew(file_or_path)
     if archive_version == 3:
         if isinstance(file_or_path, str):
-            fs, location = FSUtility.storage(file_or_path)
-            if fs.exists(location):
-                return LazyReader(location, fs=fs, **kwargs)
+            if (upath := FSUtility.upath(file_or_path)).exists():
+                return LazyReader(upath, **kwargs)
         return LazyReader(file_or_path, **kwargs)
 
     # should not reach here

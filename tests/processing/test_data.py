@@ -621,9 +621,10 @@ async def test_re_processing(
             tmp, 'tests/data/proc/templates/different_atoms/template.json'
         )
 
-    fs, location = FSUtility.storage(
-        published.upload_files.join_file('raw-restricted.plain.zip').os_path
+    upath = FSUtility.upath(
+        published.upload_files.join_file('raw-restricted.plain.zip')
     )
+    fs, location = upath.fs, upath.path
     fs.put_file(raw_files, location)
 
     # reprocess

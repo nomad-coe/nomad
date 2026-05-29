@@ -608,7 +608,7 @@ class BundleImporter:
     def _import_files(self):
         try:
             cls = PublicUploadFiles if self.upload.published else StagingUploadFiles
-            assert not os.path.exists(cls.base_folder_for(self.upload.upload_id)), (
+            assert not cls.base_folder_for(self.upload.upload_id).exists(), (
                 'Upload folder already exists'
             )
             self.upload_files = cls(self.upload.upload_id, create=True)

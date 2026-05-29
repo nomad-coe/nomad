@@ -135,11 +135,11 @@ def get_compression_format(path: str) -> Literal['zip', 'tar', 'error'] | None:
     """
     from nomad.files import FSUtility
 
-    fs, location = FSUtility.storage(path)
-    if fs.isdir(location):
+    upath = FSUtility.upath(path)
+    if upath.is_dir():
         return None
     basename_lower = os.path.basename(path).lower()
-    with fs.open(location) as file:
+    with upath.open('rb') as file:
         for extension, format in decompress_file_extensions.items():
             if basename_lower.endswith(extension):
                 if format == 'tar':

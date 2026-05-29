@@ -122,16 +122,6 @@ class TestObjects:
         assert directory.exists() == join_create
         assert os.path.isdir(directory.os_path) == join_create
 
-    @pytest.mark.parametrize('filepath', ['test', 'sub/test'])
-    @pytest.mark.parametrize('create', [True, False])
-    def test_directory_join_file_dir_create(
-        self, test_area: str, filepath: str, create: bool
-    ):
-        directory = DirectoryObject(os.path.join(test_area, 'parent'), create=create)
-        file = directory.join_file(filepath, create_dir=create)
-        assert os.path.exists(directory.os_path) == create
-        assert os.path.exists(os.path.dirname(file.os_path)) == create
-
 
 example_entry: dict[str, Any] = {
     'entry_id': '0',

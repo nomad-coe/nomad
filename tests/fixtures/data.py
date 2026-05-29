@@ -439,10 +439,10 @@ def example_data(
     if request.config.getoption('--s3-storage'):
         upload_files = UploadFiles.get('id_published')
         archive_path = upload_files.msg_fp(upload_files.access, fallback=True).os_path
-        fs, location = FSUtility.storage(archive_path)
-        assert not isinstance(fs, LocalFileSystem)
+        upath = FSUtility.upath(archive_path)
+        assert not isinstance(upath.fs, LocalFileSystem)
         assert not os.path.exists(archive_path)
-        assert fs.exists(location)
+        assert upath.exists()
 
     # yield
 

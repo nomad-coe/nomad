@@ -281,11 +281,11 @@ def convert_upload(
         assert isinstance(upload, Upload)
         upload_class = PublicUploadFiles if upload.published else StagingUploadFiles
         base_folder = upload_class.base_folder_for(upload.upload_id)
-        if not os.path.exists(base_folder):
+        if not base_folder.exists():
             flush(f'[ERROR] Base folder not found for upload: {upload.upload_id}')
             continue
 
-        all_folders.append(os.path.abspath(base_folder))
+        all_folders.append(base_folder.absolute().as_posix())
 
     convert_folder(
         all_folders,
