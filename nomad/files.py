@@ -52,6 +52,7 @@ import os
 import shutil
 import stat
 import tempfile
+import warnings
 import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Iterator
@@ -64,7 +65,6 @@ from typing import IO, Any, Literal, NamedTuple
 import magic
 import yaml
 import zipstream
-from deprecation import deprecated
 from fsspec import AbstractFileSystem, filesystem
 from fsspec.implementations.cached import SimpleCacheFileSystem
 from fsspec.implementations.local import LocalFileSystem
@@ -820,15 +820,22 @@ class UploadFiles(DirectoryObject):
 
         return RawDirPage(content=ordered[start:end], total=len(items))
 
-    @deprecated(details='Use raw_exists() instead.')
     def raw_path_exists(self, path: str) -> bool:
+        warnings.warn(
+            'raw_path_exists() is deprecated; use raw_exists() instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.raw_exists(path)
 
-    @deprecated(details='Use raw_isfile() instead.')
     def raw_path_is_file(self, path: str) -> bool:
+        warnings.warn(
+            'raw_path_is_file() is deprecated; use raw_isfile() instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.raw_isfile(path)
 
-    @deprecated(details='Use raw_listdir() instead.')
     def raw_directory_list(
         self,
         path: str = '',
@@ -836,6 +843,11 @@ class UploadFiles(DirectoryObject):
         files_only=False,
         depth: int = -1,
     ) -> Iterable[RawPathInfo]:
+        warnings.warn(
+            'raw_directory_list() is deprecated; use raw_listdir() instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.raw_listdir(path, recursive, files_only, depth)
 
     @contextmanager
