@@ -7,6 +7,7 @@ import pytest
 from pydantic import BaseModel
 from temporalio import workflow
 from temporalio.client import WorkflowExecutionStatus
+from temporalio.common import Priority
 
 from nomad import infrastructure
 from nomad.actions.action import Action
@@ -63,6 +64,8 @@ def mock_action_entry_point():
     mock_entry_point.groups = None
     mock_entry_point.users = None
     mock_entry_point.plugin_package = 'my-plugin'
+    mock_entry_point.priority_key = None
+    mock_entry_point.priority_fairness_key = None
 
     return mock_entry_point
 
@@ -201,7 +204,7 @@ def test_start_action_sync_facade_returns_value(
         lambda: {'my-action': mock_action_entry_point},
     )
 
-    async def mock_async_start_workflow(action, data, workflow_id):
+    async def mock_async_start_workflow(action, data, workflow_id, priority):
         assert workflow_id.startswith('my-action-')
         return workflow_id
 
@@ -215,6 +218,39 @@ def test_start_action_sync_facade_returns_value(
     assert action_instance_id.startswith('my-action-')
 
 
+def test_start_action_sync_facade_passes_priority_and_persists_metadata(
+    monkeypatch, mongo_function, user1, mock_action_entry_point
+):
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'my-action': mock_action_entry_point},
+    )
+    mock_action_entry_point.priority_key = 2
+    mock_action_entry_point.priority_fairness_key = 'user_id'
+
+    async def mock_async_start_workflow(action, data, workflow_id, priority):
+        assert workflow_id.startswith('my-action-')
+        assert priority == Priority(priority_key=2, fairness_key=user1.user_id)
+        return workflow_id
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._async_start_workflow',
+        mock_async_start_workflow,
+    )
+
+    args = MyActionArgs(arg1='test', arg2=123, user_id=user1.user_id)
+    action_instance_id = start_action('my-action', args)
+
+    doc = (
+        infrastructure.mongo_client.get_database(config.mongo.db_name)
+        .get_collection('action_document')
+        .find_one({'action_instance_id': action_instance_id})
+    )
+    assert doc is not None
+    assert doc['priority_key'] == 2
+    assert doc['priority_fairness_key'] == 'user_id'
+
+
 @pytest.mark.asyncio
 async def test_start_action_sync_facade_works_inside_running_loop(
     monkeypatch, mongo_function, async_mongo_function, user1, mock_action_entry_point
@@ -226,7 +262,7 @@ async def test_start_action_sync_facade_works_inside_running_loop(
         lambda: {'my-action': mock_action_entry_point},
     )
 
-    async def mock_async_start_workflow(action, data, workflow_id):
+    async def mock_async_start_workflow(action, data, workflow_id, priority):
         return workflow_id
 
     monkeypatch.setattr(
@@ -255,7 +291,7 @@ async def test_start_action_sync_facade_propagates_exceptions(
         lambda: {'my-action': mock_action_entry_point},
     )
 
-    async def mock_async_start_workflow(action, data, workflow_id):
+    async def mock_async_start_workflow(action, data, workflow_id, priority):
         raise RuntimeError('boom')
 
     monkeypatch.setattr(
@@ -427,6 +463,37 @@ async def test_start_action(
     assert doc is not None
     assert doc.action_id == 'my-action'
     assert doc.status == 'PENDING'
+
+
+@pytest.mark.asyncio
+async def test_start_action_async_passes_priority_and_persists_metadata(
+    monkeypatch, mongo_function, async_mongo_function, user1, mock_action_entry_point
+):
+    monkeypatch.setattr(
+        'nomad.actions.manager.get_actions',
+        lambda: {'my-action': mock_action_entry_point},
+    )
+    mock_action_entry_point.priority_key = 4
+    mock_action_entry_point.priority_fairness_key = 'user_id'
+
+    async def mock_async_start_workflow(action, data, workflow_id, priority):
+        assert workflow_id.startswith('my-action-')
+        assert priority == Priority(priority_key=4, fairness_key=user1.user_id)
+        return workflow_id
+
+    monkeypatch.setattr(
+        'nomad.actions.manager._async_start_workflow', mock_async_start_workflow
+    )
+
+    args = MyActionArgs(arg1='test', arg2=123, user_id=user1.user_id)
+    action_instance_id = await start_action_async('my-action', args)
+
+    doc = await ActionDocument.find_one(
+        ActionDocument.action_instance_id == action_instance_id
+    )
+    assert doc is not None
+    assert doc.priority_key == 4
+    assert doc.priority_fairness_key == 'user_id'
 
 
 @pytest.mark.asyncio

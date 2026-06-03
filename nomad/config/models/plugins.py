@@ -652,6 +652,16 @@ class ActionEntryPoint(EntryPoint):
         None,
         description='List of user IDs that are allowed to start/execute the given action.',
     )
+    priority_key: int | None = Field(
+        None,
+        le=5,
+        ge=1,
+        description='Priority key for the action. Lower values indicate higher priority.',
+    )
+    priority_fairness_key: Literal['user_id'] | None = Field(
+        None,
+        description='Priority fairness key for the action. Determines how priority is assigned between users.',
+    )
 
     @model_validator(mode='before')
     @classmethod
