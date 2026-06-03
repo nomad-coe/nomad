@@ -282,7 +282,12 @@ class MetadataEditRequestHandler:
 
     @classmethod
     def edit_metadata(
-        cls, edit_request_json: dict[str, Any], upload_id: str, user: datamodel.User
+        cls,
+        edit_request_json: dict[str, Any],
+        upload_id: str,
+        user: datamodel.User,
+        *,
+        wait_for_processing: bool = True,
     ) -> dict[str, Any]:
         """
         Method to verify and execute a generic request to edit metadata from a certain user.
@@ -324,7 +329,9 @@ class MetadataEditRequestHandler:
             # Looks good, try to trigger processing
             for upload in handler.affected_uploads:
                 upload.edit_upload_metadata(
-                    edit_request_json, user.user_id
+                    edit_request_json,
+                    user.user_id,
+                    wait_for_processing=wait_for_processing,
                 )  # Trigger the process
         # All went well, return a verified json as response
         verified_json = copy.deepcopy(edit_request_json)
@@ -1965,16 +1972,18 @@ class Upload(Proc):
 
             self.delete()
 
-    def delete_upload(self):
+    def delete_upload(self, *, wait_for_processing: bool = True):
         """
         Deletes the upload, including its processing state and
         staging files. This starts the celery process of deleting the upload.
         """
         self.process_status = ProcessStatus.PENDING
         self.current_process = 'delete_upload'
-        return run_async(self._start_delete_upload_workflow())
+        return run_async(
+            self._start_delete_upload_workflow(wait_for_processing=wait_for_processing)
+        )
 
-    async def _start_delete_upload_workflow(self):
+    async def _start_delete_upload_workflow(self, wait_for_processing: bool = True):
         """
         Internal method to start a temporal delete upload workflow.
         This method should be called from an async context.
@@ -1990,25 +1999,54 @@ class Upload(Proc):
                 pass
         workflow_id = f'delete-upload-{self.upload_id}-{uuid.uuid4()}'
         try:
-            await client.execute_workflow(
+            if wait_for_processing:
+                await client.execute_workflow(
+                    'DeleteUploadWorkflow',
+                    DeleteUploadWorkflowInput(upload_id=self.upload_id),
+                    id=workflow_id,
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                return None
+            handle = await client.start_workflow(
                 'DeleteUploadWorkflow',
                 DeleteUploadWorkflowInput(upload_id=self.upload_id),
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
+            return handle
         except Exception as e:
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
-    def publish_upload(self, embargo_length: int | None = None):
-        return run_async(self._start_publish_upload_workflow(embargo_length))
+    def publish_upload(
+        self, embargo_length: int | None = None, *, wait_for_processing: bool = True
+    ):
+        return run_async(
+            self._start_publish_upload_workflow(
+                embargo_length, wait_for_processing=wait_for_processing
+            )
+        )
 
-    async def _start_publish_upload_workflow(self, embargo_length: int | None = None):
+    async def _start_publish_upload_workflow(
+        self, embargo_length: int | None = None, wait_for_processing: bool = True
+    ):
         client = await get_client()
         workflow_id = f'publish-upload-{self.upload_id}-{uuid.uuid4()}'
         self.setup_upload_for_workflow(workflow_id, '_publish_upload')
         try:
-            return await client.execute_workflow(
+            if wait_for_processing:
+                return await client.execute_workflow(
+                    'PublishUploadWorkflow',
+                    PublishUploadWorkflowInput(
+                        upload_id=self.upload_id,
+                        embargo_length=embargo_length,
+                    ),
+                    id=workflow_id,
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+            handle = await client.start_workflow(
                 'PublishUploadWorkflow',
                 PublishUploadWorkflowInput(
                     upload_id=self.upload_id,
@@ -2018,6 +2056,7 @@ class Upload(Proc):
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
+            return handle
         except Exception as e:
             self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
@@ -3360,7 +3399,13 @@ class Upload(Proc):
             for entry in Entry.objects(upload_id=self.upload_id)  # type: ignore
         ]
 
-    def edit_upload_metadata(self, edit_request_json: dict[str, Any], user_id: str):
+    def edit_upload_metadata(
+        self,
+        edit_request_json: dict[str, Any],
+        user_id: str,
+        *,
+        wait_for_processing: bool = True,
+    ):
         """
         A @process that executes a metadata edit request, restricted to a specific upload,
         on behalf of the provided user. The `edit_request_json` should be a json dict of the
@@ -3370,7 +3415,7 @@ class Upload(Proc):
         """
         return run_async(
             self._start_edit_upload_metadata_workflow(
-                edit_request_json, user_id, wait_for_result=True
+                edit_request_json, user_id, wait_for_processing=wait_for_processing
             )
         )
 
@@ -3383,14 +3428,8 @@ class Upload(Proc):
         Use this for API operations that should not block while waiting for the
         metadata edit workflow to finish.
         """
-        if self.process_status == ProcessStatus.RUNNING:
-            raise ProcessAlreadyRunning
-
-        self.process_status = ProcessStatus.PENDING
-        return run_async(
-            self._start_edit_upload_metadata_workflow(
-                edit_request_json, user_id, wait_for_result=False
-            )
+        return self.edit_upload_metadata(
+            edit_request_json, user_id, wait_for_processing=False
         )
 
     async def _start_edit_upload_metadata_workflow(
@@ -3398,7 +3437,7 @@ class Upload(Proc):
         edit_request_json: dict[str, Any],
         user_id: str,
         *,
-        wait_for_result: bool,
+        wait_for_processing: bool,
     ):
         client = await get_client()
         workflow_id = f'edit-upload-metadata-{self.upload_id}-{uuid.uuid4()}'
@@ -3407,8 +3446,9 @@ class Upload(Proc):
             edit_request_json=edit_request_json,
             user_id=user_id,
         )
+        self.setup_upload_for_workflow(workflow_id, '_edit_metadata')
         try:
-            if wait_for_result:
+            if wait_for_processing:
                 await client.execute_workflow(
                     'EditUploadMetadataWorkflow',
                     workflow_input,
@@ -3425,11 +3465,9 @@ class Upload(Proc):
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
-            self.process_status = ProcessStatus.PENDING
-            self.save()
             return handle
         except Exception as e:
-            action = 'execute' if wait_for_result else 'start'
+            action = 'execute' if wait_for_processing else 'start'
             raise ProcessFailure(f'Failed to {action} temporal workflow: {e}')
 
     def transfer_ownership(self, new_owner_user_id: str, previous_owner_user_id: str):

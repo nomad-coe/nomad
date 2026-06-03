@@ -6,7 +6,6 @@ from nomad.actions.manager import request_signal_input_activity
 from nomad.workflows.activities import (
     cleanup_entries_batch_activity,
     complete_upload_ownership_transfer_activity,
-    delete_upload_entries_activity,
     delete_upload_files_activity,
     delete_upload_record_activity,
     delete_upload_search_activity,
@@ -39,7 +38,6 @@ def get_nomad_internal_activities() -> list[Callable]:
         finalize_upload_processing_activity,
         delete_upload_search_activity,
         delete_upload_files_activity,
-        delete_upload_entries_activity,
         delete_upload_record_activity,
         process_entry_activity,
         process_entry_batch_activity,

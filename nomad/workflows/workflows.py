@@ -62,7 +62,6 @@ with workflow.unsafe.imports_passed_through():
     from nomad.workflows.activities import (
         cleanup_entries_batch_activity,
         complete_upload_ownership_transfer_activity,
-        delete_upload_entries_activity,
         delete_upload_files_activity,
         delete_upload_record_activity,
         delete_upload_search_activity,
@@ -133,14 +132,6 @@ class DeleteUploadWorkflow:
         )
         await workflow.execute_activity(
             delete_upload_files_activity,
-            input,
-            schedule_to_close_timeout=timeout,
-            heartbeat_timeout=heartbeat_timeout,
-            retry_policy=retry_policy,
-            priority=DELETE_UPLOAD_PRIORITY,
-        )
-        await workflow.execute_activity(
-            delete_upload_entries_activity,
             input,
             schedule_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat_timeout,

@@ -2250,6 +2250,14 @@ async def post_upload_edit(
         User,
         Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
     ],
+    wait_for_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """Waits for the processing to complete and return information about the outcome in the response (**USE WITH CARE**)."""
+            )
+        ),
+    ] = True,
 ):
     """
     Updates the metadata of the specified upload and entries. An optional `query` can be
@@ -2270,7 +2278,9 @@ async def post_upload_edit(
     """
     edit_request_json = await request.json()
     try:
-        MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
+        MetadataEditRequestHandler.edit_metadata(
+            edit_request_json, upload_id, user, wait_for_processing=wait_for_processing
+        )
         return UploadProcDataResponse(
             upload_id=upload_id, data=upload_to_pydantic(Upload.get(upload_id))
         )
@@ -2300,6 +2310,14 @@ def delete_upload(
         User,
         Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
     ],
+    wait_for_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """Waits for the processing to complete and return information about the outcome in the response (**USE WITH CARE**)."""
+            )
+        ),
+    ] = True,
 ):
     """
     Delete an existing upload.
@@ -2316,7 +2334,7 @@ def delete_upload(
         only_main_author=True,
     )
     try:
-        upload.delete_upload()
+        upload.delete_upload(wait_for_processing=wait_for_processing)
     except ProcessAlreadyRunning:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -2379,6 +2397,14 @@ def post_upload_action_publish(
             deprecated=True,
         ),
     ] = False,
+    wait_for_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """Waits for the processing to complete and return information about the outcome in the response (**USE WITH CARE**)."""
+            )
+        ),
+    ] = True,
 ):
     """
     Publishes an upload. The upload cannot be modified after this point (except for special
@@ -2440,7 +2466,9 @@ def post_upload_action_publish(
                 detail='The upload is already published.',
             )
         try:
-            upload.publish_upload(embargo_length=embargo_length)
+            upload.publish_upload(
+                embargo_length=embargo_length, wait_for_processing=wait_for_processing
+            )
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,

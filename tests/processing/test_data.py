@@ -1401,7 +1401,7 @@ async def test_exclude_potcar(user1, temporal_worker, monkeypatch, exclude_potca
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    'wait_for_result, should_fail, expected_error_message',
+    'wait_for_processing, should_fail, expected_error_message',
     [
         pytest.param(True, False, None, id='wait-for-result-success'),
         pytest.param(
@@ -1420,7 +1420,7 @@ async def test_exclude_potcar(user1, temporal_worker, monkeypatch, exclude_potca
     ],
 )
 async def test_start_edit_upload_metadata_workflow(
-    monkeypatch, wait_for_result, should_fail, expected_error_message
+    monkeypatch, wait_for_processing, should_fail, expected_error_message
 ):
     upload = Upload(upload_id='test-upload', main_author='test-author')
     handle = object()
@@ -1442,29 +1442,38 @@ async def test_start_edit_upload_metadata_workflow(
     monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
     monkeypatch.setattr(upload, 'save', save)
 
+    def mock_setup_upload_for_workflow(workflow_id, process_name):
+        upload.process_status = ProcessStatus.PENDING
+        upload.current_process = process_name
+        return {}
+
+    monkeypatch.setattr(
+        upload, 'setup_upload_for_workflow', mock_setup_upload_for_workflow
+    )
+
     if should_fail:
         with pytest.raises(ProcessFailure) as exc:
             await upload._start_edit_upload_metadata_workflow(
                 {'metadata': {'embargo_length': 0}},
                 'test-user',
-                wait_for_result=wait_for_result,
+                wait_for_processing=wait_for_processing,
             )
         assert str(exc.value) == expected_error_message
     else:
         result = await upload._start_edit_upload_metadata_workflow(
             {'metadata': {'embargo_length': 0}},
             'test-user',
-            wait_for_result=wait_for_result,
+            wait_for_processing=wait_for_processing,
         )
-        if wait_for_result:
+        if wait_for_processing:
             assert result is None
             save.assert_not_called()
         else:
             assert result is handle
             assert upload.process_status == ProcessStatus.PENDING
-            save.assert_called_once()
+            save.assert_not_called()
 
-    if wait_for_result:
+    if wait_for_processing:
         client.execute_workflow.assert_awaited_once()
         client.start_workflow.assert_not_called()
     else:
