@@ -85,7 +85,7 @@ infrastructure = [
   "rdflib==5", # breaking changes in DCT.dataset in later versions
   "structlog",
   "tabulate",
-  "temporalio>=1.23.0",
+  "temporalio>=1.27.2",
   "cryptography",
   "opentelemetry-api",
   "opentelemetry-sdk",
