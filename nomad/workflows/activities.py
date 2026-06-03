@@ -68,18 +68,11 @@ def delete_upload_files_activity(input: DeleteUploadWorkflowInput):
 
 
 @activity.defn
-def delete_upload_entries_activity(input: DeleteUploadWorkflowInput):
-    with activity_heartbeat(HEARTBEAT_FREQUENCY):
-        # Delete all entries for this upload
-        Entry.objects(upload_id=input.upload_id).delete()  # type: ignore
-
-
-@activity.defn
 def delete_upload_record_activity(input: DeleteUploadWorkflowInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
-        # Delete the upload itself
-        upload = Upload.get(input.upload_id)
-        upload.delete()
+        # Delete all entries for this upload and the upload itself
+        Entry.objects(upload_id=input.upload_id).delete()  # type: ignore
+        Upload.objects(upload_id=input.upload_id).delete()  # type: ignore
 
 
 def _process_single_entry(input: ProcessEntryActivityInput):

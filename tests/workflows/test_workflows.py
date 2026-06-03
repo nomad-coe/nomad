@@ -137,8 +137,11 @@ def mock_data_layer(monkeypatch):
     mock_upload_instance.next_level_entries.return_value = []
     mock_upload_instance.parser_level = 1
 
+    mock_upload_objects = MagicMock()
+
     mock_upload_class = Mock()
     mock_upload_class.get.return_value = mock_upload_instance
+    mock_upload_class.objects.return_value = mock_upload_objects
     monkeypatch.setattr('nomad.workflows.activities.Upload', mock_upload_class)
 
     # Mock Entry class and instances
@@ -206,6 +209,7 @@ def mock_data_layer(monkeypatch):
     return {
         'upload_class': mock_upload_class,
         'upload_instance': mock_upload_instance,
+        'upload_objects': mock_upload_objects,
         'entry_class': mock_entry_class,
         'entry_instance': mock_entry_instance,
         'entry_objects': mock_entry_objects,
@@ -254,8 +258,10 @@ class TestDeleteUploadWorkflow:
                 upload_id=TEST_UPLOAD_ID
             )
             mock_data_layer['entry_objects'].delete.assert_called_once()
-            mock_data_layer['upload_class'].get.assert_called_with(TEST_UPLOAD_ID)
-            mock_data_layer['upload_instance'].delete.assert_called_once()
+            mock_data_layer['upload_class'].objects.assert_called_once_with(
+                upload_id=TEST_UPLOAD_ID
+            )
+            mock_data_layer['upload_objects'].delete.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_deletion_with_no_files(
