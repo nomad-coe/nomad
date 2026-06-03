@@ -2,15 +2,16 @@ import asyncio
 import functools
 import os
 from enum import Enum
-from typing import Annotated, Any, Final
+from typing import Annotated, Any, Final, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi_cache.decorator import cache
 from pydantic import BaseModel
 
 from nomad.actions.action import get_actions
 from nomad.actions.manager import (
+    ActionStreamUnavailable,
     action_log_file_path,
     get_action_result_async,
     get_action_status_async,
@@ -19,10 +20,18 @@ from nomad.actions.manager import (
     list_user_actions,
     start_action_async,
     stop_action_async,
+    stream_action_events_for_user_async,
+    stream_processing_events_for_user_async,
     submit_signal_input,
     validate_action_arg,
 )
-from nomad.actions.models import ActionRecord, ActionRecordPage, ActionSchemaInfo
+from nomad.actions.models import (
+    ActionRecord,
+    ActionRecordPage,
+    ActionSchemaInfo,
+    ActionStreamEvent,
+    ActionStreamEventType,
+)
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
@@ -46,6 +55,22 @@ class ActionStart(BaseModel):
 class ActionSignalInput(BaseModel):
     signal_fn_name: str
     data: Any
+
+
+def _format_sse_event(
+    data: str,
+    *,
+    event: str | None = None,
+    event_id: int | None = None,
+) -> str:
+    lines: list[str] = []
+    if event_id is not None:
+        lines.append(f'id: {event_id}')
+    if event:
+        event_name = event.replace('\n', ' ').replace('\r', ' ')
+        lines.append(f'event: {event_name}')
+    lines.extend(f'data: {line}' for line in data.splitlines() or [''])
+    return '\n'.join(lines) + '\n\n'
 
 
 SCHEMA_CACHE_TTL: Final[int] = 1 * 24 * 60 * 60  # 1 day in seconds
@@ -420,6 +445,124 @@ async def stream_logs(
                     break
 
                 await asyncio.sleep(1)
+
+
+async def stream_sse_events(
+    event_items,
+    *,
+    topic: Literal['action', 'processing'],
+    action_instance_id: str | None = None,
+    user_id: str | None = None,
+):
+    async for item in event_items:
+        yield _format_sse_event(
+            item.event.model_dump_json(),
+            event=item.event.type,
+            event_id=item.offset,
+        )
+
+    # Only action streams expose action status that we can append as a terminal event.
+    if topic != 'action' or action_instance_id is None or user_id is None:
+        return
+
+    try:
+        action_status = await get_action_status_async(
+            action_instance_id=action_instance_id,
+            user_id=user_id,
+        )
+    except Exception:
+        return
+
+    terminal_event = ActionStreamEvent(
+        type=ActionStreamEventType.STATE,
+        name='workflow_status',
+        message=f'Action workflow reached {action_status.name}.',
+        data={'status': action_status.name},
+        terminal=True,
+    )
+    yield _format_sse_event(
+        terminal_event.model_dump_json(),
+        event=terminal_event.type,
+    )
+
+
+@router.get(
+    '/{action_instance_id}/events',
+    tags=[APITag.DEFAULT],
+    summary='Stream workflow events',
+    description='Subscribes to opt-in Workflow Streams events for action or processing topics.',
+    responses=create_responses(_not_authorized),
+)
+async def action_events(
+    action_instance_id: str,
+    user: Annotated[
+        User,
+        Depends(
+            get_current_user([Scope.ACTIONS_READ], allow_anonymous=False),
+        ),
+    ],
+    from_offset: Annotated[
+        int | None,
+        Query(
+            ge=0,
+            description=(
+                'Temporal stream offset to start from. If omitted, Last-Event-ID '
+                'is used when present, otherwise streaming starts at offset 0.'
+            ),
+        ),
+    ] = None,
+    last_event_id: Annotated[str | None, Header(alias='Last-Event-ID')] = None,
+    topic: Annotated[
+        Literal['action', 'processing'],
+        Query(description='Event topic to subscribe to.'),
+    ] = 'action',
+):
+    """Streams opt-in structured workflow events as Server-Sent Events."""
+
+    start_offset = from_offset
+    if start_offset is None:
+        start_offset = 0
+        if last_event_id:
+            try:
+                start_offset = int(last_event_id) + 1
+            except ValueError:
+                raise HTTPException(
+                    status_code=400, detail='Invalid Last-Event-ID header.'
+                )
+
+    try:
+        if topic == 'action':
+            event_items = await stream_action_events_for_user_async(
+                action_instance_id=action_instance_id,
+                user_id=user.user_id,
+                from_offset=start_offset,
+            )
+        else:
+            event_items = await stream_processing_events_for_user_async(
+                upload_id=action_instance_id,
+                user=user,
+                from_offset=start_offset,
+            )
+    except HTTPException:
+        raise
+    except ActionStreamUnavailable as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        detail = str(e)
+        if 'was not registered in the DB' in detail:
+            raise HTTPException(status_code=404, detail='Action not found.')
+        raise HTTPException(status_code=500, detail=detail)
+
+    return StreamingResponse(
+        stream_sse_events(
+            event_items,
+            topic=topic,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
+        ),
+        media_type='text/event-stream',
+        headers={'X-Workflow-Event-First-Offset': str(start_offset)},
+    )
 
 
 @router.get(

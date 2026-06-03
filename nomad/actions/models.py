@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -9,8 +11,70 @@ __all__ = [
     'ActionSummaryRecord',
     'ActionRecordPage',
     'ActionSchemaInfo',
+    'ActionStreamEventSeverity',
+    'ActionStreamEventType',
+    'ActionStreamEvent',
+    'ActionStreamItem',
     'RequestSignalInputActivityInput',
 ]
+
+
+class ActionStreamEventType(str, Enum):
+    """Generic event categories that action UIs can handle consistently."""
+
+    STATE = 'state'
+    MESSAGE = 'message'
+    OUTPUT_DELTA = 'output_delta'
+
+
+class ActionStreamEventSeverity(str, Enum):
+    """User-facing severity for action stream events."""
+
+    INFO = 'info'
+    SUCCESS = 'success'
+    WARNING = 'warning'
+    ERROR = 'error'
+
+
+class ActionStreamEvent(BaseModel):
+    """Structured event that plugin workflows and activities can stream to clients."""
+
+    type: ActionStreamEventType = Field(
+        ..., description='Generic event category for frontend rendering.'
+    )
+    name: str | None = Field(
+        default=None,
+        description='Optional plugin-specific event name, e.g. search_started.',
+    )
+    message: str | None = Field(
+        default=None, description='Short user-facing event message.'
+    )
+    progress: float | None = Field(
+        default=None, description='Optional progress percentage from 0 to 100.'
+    )
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description='Optional structured data for event-specific UI rendering.',
+    )
+    severity: ActionStreamEventSeverity = Field(
+        default=ActionStreamEventSeverity.INFO,
+        description='User-facing event severity.',
+    )
+    terminal: bool = Field(
+        default=False, description='True when this event marks the stream terminal.'
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description='Event creation timestamp.',
+    )
+
+
+class ActionStreamItem(BaseModel):
+    """A stream event paired with its durable Temporal stream offset."""
+
+    offset: int
+    topic: str
+    event: ActionStreamEvent
 
 
 class ActionRecord(BaseModel):

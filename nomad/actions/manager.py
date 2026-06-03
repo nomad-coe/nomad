@@ -31,10 +31,23 @@ from nomad.actions.models import (
     ActionRecord,
     ActionRecordPage,
     ActionSchemaInfo,
+    ActionStreamEvent,
+    ActionStreamEventSeverity,
+    ActionStreamEventType,
+    ActionStreamItem,
     ActionSummaryRecord,
     RequestSignalInputActivityInput,
 )
 from nomad.actions.repositories import AsyncActionRepository, SyncActionRepository
+from nomad.actions.streams import (
+    ACTION_STREAM_TOPIC,
+    PROCESSING_STREAM_TOPIC,
+    ActionStreamUnavailable,
+    action_event_publisher,
+    publish_action_event,
+    stream_action_events_for_user_async,
+    stream_processing_events_for_user_async,
+)
 from nomad.config import config
 from nomad.files import StagingUploadFiles
 from nomad.metainfo.metainfo import Callable
@@ -46,7 +59,13 @@ __all__ = [
     'ActionSummaryRecord',
     'ActionRecordPage',
     'ActionSchemaInfo',
+    'ActionStreamEvent',
+    'ActionStreamEventSeverity',
+    'ActionStreamEventType',
+    'ActionStreamItem',
     'RequestSignalInputActivityInput',
+    'ACTION_STREAM_TOPIC',
+    'PROCESSING_STREAM_TOPIC',
     'action_artifacts_dir',
     'action_instance_artifacts_dir',
     'action_log_file_path',
@@ -58,12 +77,17 @@ __all__ = [
     'get_upload_files',
     'get_user_action',
     'list_user_actions',
+    'ActionStreamUnavailable',
+    'action_event_publisher',
+    'publish_action_event',
     'request_signal_input',
     'request_signal_input_activity',
     'start_action',
     'start_action_async',
     'stop_action',
     'stop_action_async',
+    'stream_processing_events_for_user_async',
+    'stream_action_events_for_user_async',
     'submit_signal_input',
     'validate_action_arg',
 ]
