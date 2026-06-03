@@ -21,7 +21,7 @@ from typing import Any, get_args, get_origin, get_type_hints
 from pydantic import BaseModel, SecretBytes, SecretStr, TypeAdapter
 from temporalio import activity, workflow
 from temporalio.client import WorkflowExecutionStatus
-from temporalio.common import RetryPolicy
+from temporalio.common import Priority, RetryPolicy
 from temporalio.service import RPCError, RPCStatusCode
 
 from nomad import infrastructure
@@ -722,7 +722,7 @@ def action_log_file_path(action_instance_id: str) -> str:
     return os.path.join(log_dir, f'{action_instance_id}.log')
 
 
-async def _async_start_workflow(action, data, workflow_id) -> str:
+async def _async_start_workflow(action, data, workflow_id, priority) -> str:
     """
     Asynchronously starts a workflow.
 
@@ -730,6 +730,7 @@ async def _async_start_workflow(action, data, workflow_id) -> str:
         action: The action to start.
         data: The input data for the workflow.
         workflow_id: The ID of the workflow to start.
+        priority: The priority of the workflow to start.
 
     Returns:
         The ID of the started workflow.
@@ -740,6 +741,7 @@ async def _async_start_workflow(action, data, workflow_id) -> str:
         data,
         id=workflow_id,
         task_queue=action.task_queue,
+        priority=priority,
     )
     return workflow_id
 
@@ -813,6 +815,12 @@ async def _start_action_async(action_id: str, data: Any) -> str:
     action_entry_point = get_actions().get(action_id)
     assert action_entry_point, f'No action data for the given {action_id} ID'
     action = action_entry_point.load()
+    priority = Priority(
+        priority_key=action_entry_point.priority_key,
+        fairness_key=user_id
+        if action_entry_point.priority_fairness_key == 'user_id'
+        else None,
+    )
 
     upload_id = getattr(data, 'upload_id', None)
     new_action = ActionRecord(
@@ -824,10 +832,14 @@ async def _start_action_async(action_id: str, data: Any) -> str:
         input_data=_to_dict(data),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
+        priority_fairness_key=action_entry_point.priority_fairness_key,
+        priority_key=action_entry_point.priority_key,
     )
     await _async_action_repository.create(new_action)
 
-    await _async_start_workflow(action, data, workflow_id)
+    await _async_start_workflow(
+        action=action, data=data, workflow_id=workflow_id, priority=priority
+    )
     return workflow_id
 
 
@@ -844,6 +856,12 @@ def start_action(action_id: str, data: Any) -> str:
     action_entry_point = get_actions().get(action_id)
     assert action_entry_point, f'No action data for the given {action_id} ID'
     action = action_entry_point.load()
+    priority = Priority(
+        priority_key=action_entry_point.priority_key,
+        fairness_key=user_id
+        if action_entry_point.priority_fairness_key == 'user_id'
+        else None,
+    )
 
     record = ActionRecord(
         action_id=action_id,
@@ -854,9 +872,11 @@ def start_action(action_id: str, data: Any) -> str:
         input_data=_to_dict(data),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
+        priority_fairness_key=action_entry_point.priority_fairness_key,
+        priority_key=action_entry_point.priority_key,
     )
     _sync_action_repository.create(record)
-    _run_temporal_sync(_async_start_workflow(action, data, workflow_id))
+    _run_temporal_sync(_async_start_workflow(action, data, workflow_id, priority))
     return workflow_id
 
 

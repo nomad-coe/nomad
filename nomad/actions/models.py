@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -25,6 +25,8 @@ class ActionRecord(BaseModel):
     results: Any = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
+    priority_key: int | None = None
+    priority_fairness_key: Literal['user_id'] | None = None
 
 
 class ActionSummaryRecord(BaseModel):

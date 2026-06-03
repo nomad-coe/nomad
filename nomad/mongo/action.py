@@ -32,6 +32,8 @@ class ActionDocument(Document):
     results: Any = None
     signal_input_requests: list[dict] = Field(default_factory=list)
     signal_inputs_submitted: list[dict] = Field(default_factory=list)
+    priority_key: int | None = None
+    priority_fairness_key: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
