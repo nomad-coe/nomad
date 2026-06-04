@@ -181,7 +181,7 @@ class User(Author):
 
     is_oasis_admin = Quantity(type=bool, default=False)
 
-    _user_cache = TTLCache(maxsize=2048, ttl=24 * 3600)
+    _user_cache: TTLCache = TTLCache(maxsize=2048, ttl=24 * 3600)
     _user_cache_lock = threading.Lock()
 
     @staticmethod

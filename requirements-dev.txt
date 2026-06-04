@@ -118,7 +118,7 @@ networkx==3.6.1 ; python_full_version >= '3.11'  # via matid, pymatgen, -r requi
 nexus-rpc==1.4.0          # via temporalio, -r requirements.txt
 numpy==2.2.6 ; python_full_version < '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
 numpy==2.4.4 ; python_full_version >= '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, -r requirements.txt, nomad-lab (pyproject.toml)
-oauthenticator==17.4.0    # via --override (workspace), -r requirements.txt, nomad-lab (pyproject.toml)
+oauthenticator==17.4.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 oauthlib==3.3.1           # via jupyterhub, -r requirements.txt
 openpyxl==3.1.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
 opentelemetry-api==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, opentelemetry-semantic-conventions, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -171,7 +171,7 @@ pydantic-core==2.46.3     # via pydantic, -r requirements.txt
 pydantic-settings==2.14.0  # via h5grove, molid, optimade, -r requirements.txt
 pygments==2.20.0          # via pytest, rich
 pyinstrument==5.1.2       # via -r requirements.txt, nomad-lab (pyproject.toml)
-pyjwt==2.12.1             # via oauthenticator, -r requirements.txt, nomad-lab (pyproject.toml)
+pyjwt==2.13.0             # via oauthenticator, -r requirements.txt, nomad-lab (pyproject.toml)
 pymatgen==2025.10.7       # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymongo==4.17.0           # via beanie, mongoengine, optimade, -r requirements.txt
 pyparsing==3.3.2          # via bibtexparser, matplotlib, pip-requirements-parser, rdflib, -r requirements.txt
@@ -190,7 +190,7 @@ python-keycloak==7.1.1    # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-logstash==0.4.8    # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-magic==0.4.27 ; sys_platform != 'win32'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-magic-bin==0.4.14 ; sys_platform == 'win32'  # via -r requirements.txt, nomad-lab (pyproject.toml)
-python-multipart==0.0.26  # via -r requirements.txt, nomad-lab (pyproject.toml)
+python-multipart==0.0.31  # via -r requirements.txt, nomad-lab (pyproject.toml)
 pytz==2026.1.post1        # via mongomock, pandas, -r requirements.txt
 pywin32==311 ; sys_platform == 'win32'  # via docker, -r requirements.txt
 pyyaml==6.0.3             # via uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
@@ -215,7 +215,7 @@ sortedcontainers==2.4.0   # via cyclonedx-python-lib
 soupsieve==2.8.3          # via beautifulsoup4, -r requirements.txt
 spglib==2.7.0             # via matid, pymatgen, -r requirements.txt
 sqlalchemy==2.0.49        # via alembic, jupyterhub, -r requirements.txt
-starlette==1.0.0          # via fastapi, -r requirements.txt, nomad-lab (pyproject.toml)
+starlette==1.2.1          # via fastapi, -r requirements.txt, nomad-lab (pyproject.toml)
 structlog==25.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 sympy==1.14.0             # via pymatgen, -r requirements.txt
 tabulate==0.10.0          # via pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
