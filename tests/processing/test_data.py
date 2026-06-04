@@ -28,6 +28,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 import yaml
+from temporalio.client import WorkflowFailureError
 
 from nomad import infrastructure, utils
 from nomad.archive import to_json
@@ -988,6 +989,60 @@ def mock_failure(cls, function_name, monkeypatch):
     mock.__name__ = function_name
 
     monkeypatch.setattr(f'nomad.processing.data.{cls.__name__}.{function_name}', mock)
+
+
+@pytest.mark.asyncio
+async def test_await_workflows_ignores_settled_workflow_failure(monkeypatch):
+    workflow_failure = WorkflowFailureError(cause=RuntimeError('workflow failed'))
+    handle = SimpleNamespace(result=AsyncMock(side_effect=workflow_failure))
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-user',
+        process_status=ProcessStatus.FAILURE,
+        workflow_ids=['test-workflow'],
+    )
+    monkeypatch.setattr(upload, 'reload', Mock())
+
+    async def mock_get_client():
+        return client
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+
+    await upload.await_workflows()
+
+    client.get_workflow_handle.assert_called_once_with('test-workflow')
+    handle.result.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_await_workflows_reraises_active_workflow_failure(monkeypatch):
+    workflow_failure = WorkflowFailureError(cause=RuntimeError('workflow failed'))
+    handle = SimpleNamespace(result=AsyncMock(side_effect=workflow_failure))
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-user',
+        process_status=ProcessStatus.FAILURE,
+        workflow_ids=['test-workflow'],
+    )
+    reload_count = 0
+
+    def reload():
+        nonlocal reload_count
+        reload_count += 1
+        if reload_count == 2:
+            upload.process_status = ProcessStatus.RUNNING
+
+    monkeypatch.setattr(upload, 'reload', reload)
+
+    async def mock_get_client():
+        return client
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+
+    with pytest.raises(WorkflowFailureError):
+        await upload.await_workflows()
 
 
 @pytest.mark.parametrize(
