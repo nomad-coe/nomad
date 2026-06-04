@@ -4,12 +4,24 @@ import os
 from enum import Enum
 from typing import Annotated, Any, Final, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi_cache.decorator import cache
 from pydantic import BaseModel
 
 from nomad.actions.action import get_actions
+from nomad.actions.assets.models import ActionAssetPurpose, ActionAssetUploadResult
+from nomad.actions.assets.service import clone_action_asset, upload_action_asset
 from nomad.actions.manager import (
     ActionStreamUnavailable,
     action_log_file_path,
@@ -55,6 +67,14 @@ class ActionStart(BaseModel):
 class ActionSignalInput(BaseModel):
     signal_fn_name: str
     data: Any
+
+
+class ActionAssetCloneRequest(BaseModel):
+    purpose: ActionAssetPurpose
+    action_id: str | None = None
+    action_instance_id: str | None = None
+    signal_fn_name: str | None = None
+    source_action_instance_id: str | None = None
 
 
 def _format_sse_event(
@@ -115,6 +135,68 @@ def _count_lines_before_offset(log_file: str, offset: int) -> int:
 
 
 @router.post(
+    '/assets/upload',
+    tags=[APITag.DEFAULT],
+    summary='Upload an action asset',
+    response_model=ActionAssetUploadResult,
+)
+async def action_asset_upload(
+    file: Annotated[UploadFile, File(...)],
+    purpose: Annotated[ActionAssetPurpose, Form(...)],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ACTIONS_RUN], allow_anonymous=False)),
+    ],
+    action_id: Annotated[str | None, Form()] = None,
+    action_instance_id: Annotated[str | None, Form()] = None,
+    signal_fn_name: Annotated[str | None, Form()] = None,
+    expected_media_type: Annotated[str | None, Form()] = None,
+    expected_sha256: Annotated[str | None, Form()] = None,
+):
+    try:
+        return await upload_action_asset(
+            user_id=user.user_id,
+            upload_file=file,
+            purpose=purpose,
+            action_id=action_id,
+            action_instance_id=action_instance_id,
+            signal_fn_name=signal_fn_name,
+            expected_media_type=expected_media_type,
+            expected_sha256=expected_sha256,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    '/assets/{filename}/clone',
+    tags=[APITag.DEFAULT],
+    summary='Clone an action asset into a new staged asset',
+    response_model=ActionAssetUploadResult,
+)
+async def action_asset_clone(
+    filename: str,
+    clone_data: ActionAssetCloneRequest,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ACTIONS_RUN], allow_anonymous=False)),
+    ],
+):
+    try:
+        return await clone_action_asset(
+            user_id=user.user_id,
+            source_filename=filename,
+            purpose=clone_data.purpose,
+            action_id=clone_data.action_id,
+            action_instance_id=clone_data.action_instance_id,
+            signal_fn_name=clone_data.signal_fn_name,
+            source_action_instance_id=clone_data.source_action_instance_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
     '/{action_id}/start',
     tags=[APITag.DEFAULT],
     summary='Start an action',
@@ -166,10 +248,8 @@ async def action_start(
             action_id=action_id, data=input_data
         )
         return {'action_instance_id': action_instance_id}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post(
@@ -239,6 +319,8 @@ async def action_signal_input(
         return {'status': 'signal_input_submitted'}
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         detail = str(e)
         if (
@@ -280,6 +362,8 @@ async def action_status(
         status = await get_action_status_async(
             action_instance_id=action_instance_id, user_id=user.user_id
         )
+        if status is None:
+            return {'status': 'UNKNOWN'}
         return {'status': status.name}
     except HTTPException:
         raise
@@ -701,7 +785,7 @@ async def actions(
         Query(
             ge=1,
             le=100,
-            description='Number of action instances to return per page (1–100, default 20).',
+            description='Number of action instances to return per page (1-100, default 20).',
         ),
     ] = 20,
     cursor: Annotated[
