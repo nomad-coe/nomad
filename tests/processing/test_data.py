@@ -38,7 +38,7 @@ from nomad.metainfo import Package, Quantity, Reference, SubSection
 from nomad.parsing import parsers
 from nomad.parsing.parser import Parser
 from nomad.processing import Entry, ProcessStatus, Upload
-from nomad.processing.base import ProcessFailure
+from nomad.processing.base import ProcessAlreadyRunning, ProcessFailure
 from nomad.search import refresh as search_refresh
 from nomad.search import search
 from nomad.utils.exampledata import ExampleData
@@ -1479,3 +1479,160 @@ async def test_start_edit_upload_metadata_workflow(
     else:
         client.execute_workflow.assert_not_called()
         client.start_workflow.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'wait_for_processing, should_fail, expected_error_message',
+    [
+        pytest.param(True, False, None, id='wait-for-result-success'),
+        pytest.param(
+            True,
+            True,
+            'Failed to execute temporal workflow: boom',
+            id='wait-for-result-error',
+        ),
+        pytest.param(False, False, None, id='background-success'),
+        pytest.param(
+            False,
+            True,
+            'Failed to start temporal workflow: boom',
+            id='background-error',
+        ),
+    ],
+)
+async def test_start_delete_upload_workflow(
+    monkeypatch, wait_for_processing, should_fail, expected_error_message
+):
+    upload = Upload(upload_id='test-upload', main_author='test-author')
+    handle = object()
+    execute_workflow = AsyncMock()
+    start_workflow = AsyncMock(return_value=handle)
+    if should_fail:
+        execute_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+        start_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+
+    client = SimpleNamespace(
+        execute_workflow=execute_workflow,
+        start_workflow=start_workflow,
+    )
+    setup_delete_upload_workflow = Mock()
+    cleanup_upload_after_workflow_fail = Mock()
+
+    async def mock_get_client():
+        return client
+
+    def mock_setup_delete_upload_workflow(
+        workflow_id, previous_workflow_ids, previous_process_status
+    ):
+        upload.process_status = ProcessStatus.PENDING
+        upload.current_process = 'delete_upload'
+        upload.workflow_ids = [workflow_id]
+        setup_delete_upload_workflow(
+            workflow_id, previous_workflow_ids, previous_process_status
+        )
+        return {}
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+    monkeypatch.setattr(
+        upload, 'setup_delete_upload_workflow', mock_setup_delete_upload_workflow
+    )
+    monkeypatch.setattr(
+        upload,
+        'cleanup_upload_after_workflow_fail',
+        cleanup_upload_after_workflow_fail,
+    )
+
+    if should_fail:
+        with pytest.raises(ProcessFailure) as exc:
+            await upload._start_delete_upload_workflow(
+                wait_for_processing=wait_for_processing
+            )
+        assert str(exc.value) == expected_error_message
+        cleanup_upload_after_workflow_fail.assert_called_once()
+    else:
+        result = await upload._start_delete_upload_workflow(
+            wait_for_processing=wait_for_processing
+        )
+        if wait_for_processing:
+            assert result is None
+        else:
+            assert result is handle
+        assert upload.process_status == ProcessStatus.PENDING
+        assert upload.current_process == 'delete_upload'
+        cleanup_upload_after_workflow_fail.assert_not_called()
+
+    setup_delete_upload_workflow.assert_called_once_with(
+        setup_delete_upload_workflow.call_args.args[0], [], ProcessStatus.READY
+    )
+    if wait_for_processing:
+        client.execute_workflow.assert_awaited_once()
+        client.start_workflow.assert_not_called()
+        workflow_input = client.execute_workflow.await_args.args[1]
+    else:
+        client.execute_workflow.assert_not_called()
+        client.start_workflow.assert_awaited_once()
+        workflow_input = client.start_workflow.await_args.args[1]
+    assert workflow_input.upload_id == 'test-upload'
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_terminates_non_delete_workflows_before_setup():
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-author',
+        process_status=ProcessStatus.RUNNING,
+        workflow_ids=['process-workflow'],
+    )
+    terminate = AsyncMock()
+    handle = SimpleNamespace(
+        describe=AsyncMock(
+            return_value=SimpleNamespace(
+                raw_description=SimpleNamespace(
+                    workflow_execution_info=SimpleNamespace(
+                        type=SimpleNamespace(name='UpdateUploadWorkflow')
+                    )
+                )
+            )
+        ),
+        terminate=terminate,
+    )
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+
+    (
+        workflow_ids,
+        process_status,
+    ) = await upload._terminate_non_delete_workflows_for_delete(client)
+
+    assert workflow_ids == ['process-workflow']
+    assert process_status == ProcessStatus.RUNNING
+    client.get_workflow_handle.assert_called_once_with('process-workflow')
+    terminate.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_does_not_preempt_existing_delete_workflow():
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-author',
+        process_status=ProcessStatus.PENDING,
+        workflow_ids=['delete-workflow'],
+    )
+    handle = SimpleNamespace(
+        describe=AsyncMock(
+            return_value=SimpleNamespace(
+                raw_description=SimpleNamespace(
+                    workflow_execution_info=SimpleNamespace(
+                        type=SimpleNamespace(name='DeleteUploadWorkflow')
+                    )
+                )
+            )
+        ),
+        terminate=AsyncMock(),
+    )
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+
+    with pytest.raises(ProcessAlreadyRunning):
+        await upload._terminate_non_delete_workflows_for_delete(client)
+
+    handle.terminate.assert_not_called()

@@ -60,7 +60,7 @@ from structlog import wrap_logger
 from structlog.processors import StackInfoRenderer, TimeStamper, format_exc_info
 from temporalio import activity
 from temporalio.common import RetryPolicy
-from temporalio.service import RPCError
+from temporalio.service import RPCError, RPCStatusCode
 
 from nomad import client, datamodel, infrastructure, metainfo, parsing, search, utils
 from nomad.actions import TaskQueue
@@ -1977,8 +1977,6 @@ class Upload(Proc):
         Deletes the upload, including its processing state and
         staging files. This starts the celery process of deleting the upload.
         """
-        self.process_status = ProcessStatus.PENDING
-        self.current_process = 'delete_upload'
         return run_async(
             self._start_delete_upload_workflow(wait_for_processing=wait_for_processing)
         )
@@ -1989,20 +1987,20 @@ class Upload(Proc):
         This method should be called from an async context.
         """
         client = await get_client()
-        for workflow_id in self.workflow_ids:  # type: ignore
-            try:
-                handle = client.get_workflow_handle(workflow_id)
-                await handle.cancel()
-                await handle.result()
-            except Exception as e:
-                # upload is already terminated
-                pass
+        (
+            previous_workflow_ids,
+            previous_process_status,
+        ) = await self._terminate_non_delete_workflows_for_delete(client)
         workflow_id = f'delete-upload-{self.upload_id}-{uuid.uuid4()}'
+        workflow_input = DeleteUploadWorkflowInput(upload_id=self.upload_id)
+        self.setup_delete_upload_workflow(
+            workflow_id, previous_workflow_ids, previous_process_status
+        )
         try:
             if wait_for_processing:
                 await client.execute_workflow(
                     'DeleteUploadWorkflow',
-                    DeleteUploadWorkflowInput(upload_id=self.upload_id),
+                    workflow_input,
                     id=workflow_id,
                     task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                     retry_policy=RetryPolicy(maximum_attempts=1),
@@ -2010,14 +2008,51 @@ class Upload(Proc):
                 return None
             handle = await client.start_workflow(
                 'DeleteUploadWorkflow',
-                DeleteUploadWorkflowInput(upload_id=self.upload_id),
+                workflow_input,
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
             return handle
         except Exception as e:
-            raise ProcessFailure(f'Failed to start temporal workflow: {e}')
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
+            action = 'execute' if wait_for_processing else 'start'
+            raise ProcessFailure(f'Failed to {action} temporal workflow: {e}')
+
+    async def _terminate_non_delete_workflows_for_delete(
+        self, client
+    ) -> tuple[list[str], str]:
+        """
+        Terminate workflows that would otherwise block upload deletion.
+
+        Deleting an upload is allowed to preempt upload processing/edit workflows,
+        but it must not start a second delete workflow for the same upload.
+        """
+        previous_workflow_ids = list(self.workflow_ids)  # type: ignore
+        previous_process_status = str(self.process_status)
+
+        for workflow_id in previous_workflow_ids:
+            handle = client.get_workflow_handle(workflow_id)
+            try:
+                description = await handle.describe()
+                workflow_type = (
+                    description.raw_description.workflow_execution_info.type.name
+                )
+            except RPCError as e:
+                if e.status == RPCStatusCode.NOT_FOUND:
+                    continue
+                raise e
+
+            if workflow_type == 'DeleteUploadWorkflow':
+                raise ProcessAlreadyRunning('Upload is already being deleted')
+
+            try:
+                await handle.terminate()
+            except RPCError as e:
+                if e.status != RPCStatusCode.NOT_FOUND:
+                    raise e
+
+        return previous_workflow_ids, previous_process_status
 
     def publish_upload(
         self, embargo_length: int | None = None, *, wait_for_processing: bool = True
@@ -2351,6 +2386,58 @@ class Upload(Proc):
                     'errors': [],
                 },
                 '$push': {'workflow_ids': workflow_id},
+            },
+        )
+
+        if old_record is None:
+            raise ProcessAlreadyRunning(
+                'Upload is currently blocked by another process'
+            )
+
+        self.reload()
+        return old_record
+
+    def setup_delete_upload_workflow(
+        self,
+        workflow_id: str,
+        previous_workflow_ids: list[str],
+        previous_process_status: str,
+    ) -> dict[str, Any]:
+        """
+        Atomically replace existing workflow state with a delete workflow.
+
+        Delete may preempt other workflow types. To avoid racing with a newly
+        scheduled workflow, only clear the old workflow ids/status if they still
+        match the snapshot taken before terminating those workflows.
+        """
+        workflow_ids_filter: dict[str, Any]
+        if previous_workflow_ids:
+            workflow_ids_filter = {
+                'workflow_ids': {
+                    '$all': previous_workflow_ids,
+                    '$size': len(previous_workflow_ids),
+                }
+            }
+        else:
+            workflow_ids_filter = {
+                '$or': [{'workflow_ids': []}, {'workflow_ids': {'$exists': False}}]
+            }
+
+        old_record = self._get_collection().find_one_and_update(
+            {
+                '_id': self.id,
+                '$and': [
+                    {'process_status': previous_process_status},
+                    workflow_ids_filter,
+                ],
+            },
+            {
+                '$set': {
+                    'process_status': ProcessStatus.PENDING,
+                    'current_process': 'delete_upload',
+                    'errors': [],
+                    'workflow_ids': [workflow_id],
+                }
             },
         )
 
