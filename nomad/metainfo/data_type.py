@@ -1369,7 +1369,7 @@ def to_json_schema_type(in_type: Datatype) -> dict[str, str]:
     raise NotImplementedError(f'Unsupported JSON Schema type: {std_type}')
 
 
-_extra_precision = set()
+_extra_precision: set = set()
 
 
 def _add_extra_precision():

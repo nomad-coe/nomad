@@ -70,7 +70,7 @@ infrastructure = [
   "blinker", # mongoengine needs this for signals
   "dockerspawner",
   "fastapi>=0.99.0",
-  "starlette>=1.0",
+  "starlette>=1.0.1",
   "fastapi-cache2",
   "gunicorn",
   "h5grove[fastapi]>=3", # interface change in 3
@@ -79,9 +79,9 @@ infrastructure = [
   "mongoengine",
   "oauthenticator>=16.3.1",
   "optimade[mongo]>=1.2.0,<1.4.0", # `optimade.server.config.CONFIG` removed
-  "pyjwt[crypto]",
+  "pyjwt[crypto]>=2.13.0",
   "python-logstash",
-  "python-multipart",
+  "python-multipart>=0.0.27",
   "rdflib==5", # breaking changes in DCT.dataset in later versions
   "structlog",
   "tabulate",

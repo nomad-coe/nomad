@@ -1236,7 +1236,7 @@ class GeneralReader:
 
 # module level TTL cache for caching packages
 __lock_pool = Lock()
-__package_pool = TTLCache(maxsize=128, ttl=300)
+__package_pool: TTLCache = TTLCache(maxsize=128, ttl=300)
 
 
 def _fetch_package(key: str) -> Package | None:

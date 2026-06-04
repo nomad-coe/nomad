@@ -100,7 +100,7 @@ networkx==3.6.1 ; python_full_version >= '3.11'  # via matid, pymatgen
 nexus-rpc==1.4.0          # via temporalio
 numpy==2.2.6 ; python_full_version < '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, nomad-lab (pyproject.toml)
 numpy==2.4.4 ; python_full_version >= '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, nomad-lab (pyproject.toml)
-oauthenticator==17.4.0    # via --override (workspace), nomad-lab (pyproject.toml)
+oauthenticator==17.4.0    # via nomad-lab (pyproject.toml)
 oauthlib==3.3.1           # via jupyterhub
 openpyxl==3.1.5           # via nomad-lab (pyproject.toml)
 opentelemetry-api==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, opentelemetry-semantic-conventions, nomad-lab (pyproject.toml)
@@ -144,7 +144,7 @@ pydantic==2.13.3          # via beanie, fastapi, h5grove, lazy-model, molid, opt
 pydantic-core==2.46.3     # via pydantic
 pydantic-settings==2.14.0  # via h5grove, molid, optimade
 pyinstrument==5.1.2       # via nomad-lab (pyproject.toml)
-pyjwt==2.12.1             # via oauthenticator, nomad-lab (pyproject.toml)
+pyjwt==2.13.0             # via oauthenticator, nomad-lab (pyproject.toml)
 pymatgen==2025.10.7       # via nomad-lab (pyproject.toml)
 pymongo==4.17.0           # via beanie, mongoengine, optimade
 pyparsing==3.3.2          # via bibtexparser, matplotlib, rdflib
@@ -155,7 +155,7 @@ python-keycloak==7.1.1    # via nomad-lab (pyproject.toml)
 python-logstash==0.4.8    # via nomad-lab (pyproject.toml)
 python-magic==0.4.27 ; sys_platform != 'win32'  # via nomad-lab (pyproject.toml)
 python-magic-bin==0.4.14 ; sys_platform == 'win32'  # via nomad-lab (pyproject.toml)
-python-multipart==0.0.26  # via nomad-lab (pyproject.toml)
+python-multipart==0.0.31  # via nomad-lab (pyproject.toml)
 pytz==2026.1.post1        # via mongomock, pandas
 pywin32==311 ; sys_platform == 'win32'  # via docker
 pyyaml==6.0.3             # via uvicorn, nomad-lab (pyproject.toml)
@@ -177,7 +177,7 @@ sniffio==1.3.1            # via httpx
 soupsieve==2.8.3          # via beautifulsoup4
 spglib==2.7.0             # via matid, pymatgen
 sqlalchemy==2.0.49        # via alembic, jupyterhub
-starlette==1.0.0          # via fastapi, nomad-lab (pyproject.toml)
+starlette==1.2.1          # via fastapi, nomad-lab (pyproject.toml)
 structlog==25.5.0         # via nomad-lab (pyproject.toml)
 sympy==1.14.0             # via pymatgen
 tabulate==0.10.0          # via pymatgen, nomad-lab (pyproject.toml)

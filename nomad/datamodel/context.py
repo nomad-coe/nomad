@@ -54,7 +54,7 @@ def _opener_and_dumper(file_name: str) -> tuple:
 
 
 # use to cache packages that are retrieved from MongoDB
-_mongo_package_cache = LRUCache(128)
+_mongo_package_cache: LRUCache = LRUCache(128)
 
 
 def populate_builtin_packages():
