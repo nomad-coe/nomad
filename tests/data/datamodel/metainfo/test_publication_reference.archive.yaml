@@ -1,0 +1,11 @@
+definitions:
+  name: My custom schemas
+  sections:
+    MyPublicationReference:
+      base_sections:
+        - nomad.datamodel.metainfo.basesections.PublicationReference
+        - nomad.datamodel.data.EntryData
+
+data:
+  m_def: MyPublicationReference
+  DOI_number: 10.1002/pol.1959.1203512832

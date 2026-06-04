@@ -2033,7 +2033,6 @@ class PublicationReference(ArchiveSection):
         - Updates the archive's metadata references with the DOI number if it is not already present.
         """
         super().normalize(archive, logger)
-        import dateutil.parser
         import requests
 
         from nomad.datamodel.datamodel import EntryMetadata
@@ -2055,9 +2054,28 @@ class PublicationReference(ArchiveSection):
                     ]
                     self.journal = temp_dict['message']['container-title'][0]
                     self.publication_title = temp_dict['message']['title'][0]
-                    self.publication_date = dateutil.parser.parse(
-                        temp_dict['message']['created']['date-time']
-                    )
+
+                    # Get publication date in order of preference
+                    date_parts = None
+                    if 'published' in temp_dict['message']:
+                        date_parts = temp_dict['message']['published']['date-parts']
+                    elif 'published-print' in temp_dict['message']:
+                        date_parts = temp_dict['message']['published-print'][
+                            'date-parts'
+                        ]
+                    elif 'published-online' in temp_dict['message']:
+                        date_parts = temp_dict['message']['published-online'][
+                            'date-parts'
+                        ]
+                    if date_parts and date_parts[0]:
+                        if len(date_parts[0]) == 1:
+                            date_parts[0].extend(
+                                [1, 1]
+                            )  # add month (January) and day (1) if missing
+                        elif len(date_parts[0]) == 2:
+                            date_parts[0].append(1)  # add day (1) if missing
+                        self.publication_date = datetime.datetime(*date_parts[0])
+
                     if not archive.metadata:
                         archive.metadata = EntryMetadata()
                     if not archive.metadata.references:
