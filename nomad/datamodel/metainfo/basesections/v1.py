@@ -22,6 +22,7 @@ import re
 import time
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
+from urllib.parse import quote
 
 import h5py
 import numpy as np
@@ -120,8 +121,10 @@ def pub_chem_api_search(path: str, search: str) -> requests.Response:
         requests.Response: The response as returned from the PubChem PUG API.
     """
     throttle_wait()
+    # encode all special characters, for ex., encode URL-unsafe "#" in smiles C=CC#N
+    safe_search_str = quote(search, safe='')
     return requests.get(
-        url=f'{PUB_CHEM_PUG_PATH}/{path}/{search}/cids/JSON',
+        url=f'{PUB_CHEM_PUG_PATH}/{path}/cids/JSON?{path}={safe_search_str}',
         timeout=EXTERNAL_API_TIMEOUT,
     )
 
@@ -1441,7 +1444,10 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             cid=self.pub_chem_cid, properties=properties
         )
         if not response.ok:
-            msg = f'Property request to PubChem responded with: {response}'
+            msg = (
+                f'Property request to PubChem failed with '
+                f'{response.status_code} {response.reason}: {response.url}'
+            )
             logger.warn(pub_chem_add_throttle_header(response, msg))
             return
         self.pub_chem_link = (
@@ -1474,7 +1480,10 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
         if self.cas_number is None:
             response = pub_chem_api_get_synonyms(cid=self.pub_chem_cid)
             if not response.ok:
-                msg = f'Synonyms request to PubChem responded with: {response}'
+                msg = (
+                    f'Synonyms request to PubChem failed with '
+                    f'{response.status_code} {response.reason}: {response.url}'
+                )
                 logger.warn(pub_chem_add_throttle_header(response, msg))
                 return
             response_dict = response.json()
@@ -1507,7 +1516,10 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             logger.info(f'No results for PubChem search for {path}="{search}".')
             return False
         elif not response.ok:
-            msg = f'PubChem search for {path}="{search}" responded with: {response}'
+            msg = (
+                f'PubChem search for {path}="{search}" failed with '
+                f'{response.status_code} {response.reason}: {response.url}'
+            )
             logger.warn(pub_chem_add_throttle_header(response, msg))
             return False
         try:
