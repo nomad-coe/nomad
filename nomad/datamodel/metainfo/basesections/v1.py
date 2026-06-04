@@ -123,8 +123,14 @@ def pub_chem_api_search(path: str, search: str) -> requests.Response:
     throttle_wait()
     # encode all special characters, for ex., encode URL-unsafe "#" in smiles C=CC#N
     safe_search_str = quote(search, safe='')
+    if path in ['smiles', 'inchi']:
+        # for at least these paths, URL with CGI parameter should always work
+        return requests.get(
+            url=f'{PUB_CHEM_PUG_PATH}/{path}/cids/JSON?{path}={safe_search_str}',
+            timeout=EXTERNAL_API_TIMEOUT,
+        )
     return requests.get(
-        url=f'{PUB_CHEM_PUG_PATH}/{path}/cids/JSON?{path}={safe_search_str}',
+        url=f'{PUB_CHEM_PUG_PATH}/{path}/{safe_search_str}/cids/JSON',
         timeout=EXTERNAL_API_TIMEOUT,
     )
 
