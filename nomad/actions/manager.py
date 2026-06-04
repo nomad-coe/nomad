@@ -10,6 +10,7 @@ It includes functions for:
 
 import asyncio
 import base64
+import inspect
 import os
 import threading
 import uuid
@@ -26,6 +27,12 @@ from temporalio.service import RPCError, RPCStatusCode
 
 from nomad import infrastructure
 from nomad.actions.action import get_actions
+from nomad.actions.assets.models import ActionAssetPurpose
+from nomad.actions.assets.service import (
+    consume_staged_assets,
+    extract_action_asset_refs,
+    rollback_consumed_assets,
+)
 from nomad.actions.client import get_client
 from nomad.actions.models import (
     ActionRecord,
@@ -67,6 +74,7 @@ __all__ = [
     'ACTION_STREAM_TOPIC',
     'PROCESSING_STREAM_TOPIC',
     'action_artifacts_dir',
+    'action_instance_assets_dir',
     'action_instance_artifacts_dir',
     'action_log_file_path',
     'get_action_result',
@@ -91,6 +99,19 @@ __all__ = [
     'submit_signal_input',
     'validate_action_arg',
 ]
+
+ACTION_INSTANCE_ASSETS_DIRNAME = 'assets'
+ACTION_INSTANCE_ARTIFACTS_DIRNAME = 'artifacts'
+ACTION_INSTANCE_NOMAD_SYSTEM_DIRNAME = 'nomad_system'
+
+
+def _ensure_dir(path: str) -> str:
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _action_instance_dir(action_instance_id: str, *parts: str) -> str:
+    return _ensure_dir(os.path.join(config.fs.actions, action_instance_id, *parts))
 
 
 class RunThread(threading.Thread):
@@ -164,7 +185,7 @@ def _to_dict(data: Any) -> dict:
                 and any(arg in secret_types for arg in get_args(field_info.annotation))
             )
         }
-        return data.model_dump(exclude=secret_fields)
+        return data.model_dump(by_alias=True, exclude=secret_fields)
     elif is_dataclass(data) and not isinstance(data, type):
         return asdict(data)
     elif isinstance(data, dict):  # already a dict
@@ -193,6 +214,13 @@ def _validate_with_pydantic(func: Callable, arg):
     return adapter.validate_python(arg)
 
 
+def _get_non_self_params(func: Callable) -> list[inspect.Parameter]:
+    """Return callable parameters excluding a leading ``self`` parameter."""
+
+    sig = inspect.signature(func)  # type: ignore[arg-type]
+    return [param for param in sig.parameters.values() if param.name != 'self']
+
+
 def _get_param_schema(func: Callable) -> dict[str, Any]:
     """
     Generate a JSON Schema for the single argument of a function.
@@ -211,7 +239,7 @@ def _get_param_schema(func: Callable) -> dict[str, Any]:
     [(_, param_type)] = [(n, t) for n, t in hints.items() if n != 'return']
 
     if isinstance(param_type, type) and issubclass(param_type, BaseModel):
-        schema = param_type.model_json_schema()
+        schema = param_type.model_json_schema(by_alias=True)
     else:
         adapter = TypeAdapter(param_type)
         schema = adapter.json_schema()
@@ -230,14 +258,7 @@ def _get_signal_schema(signal_fn: Callable) -> dict[str, Any]:
     Generate a JSON Schema for the single argument of a signal function.
     Raises ValueError if there is more than one argument (excluding 'self').
     """
-    import inspect
-
-    sig = inspect.signature(signal_fn)  # type: ignore
-    params = list(sig.parameters.values())
-
-    # Exclude 'self'
-    if params and params[0].name == 'self':
-        params = params[1:]
+    params = _get_non_self_params(signal_fn)
 
     if len(params) > 1:
         name_str = getattr(signal_fn, '__name__', str(signal_fn))
@@ -252,7 +273,7 @@ def _get_signal_schema(signal_fn: Callable) -> dict[str, Any]:
     param_type = hints.get(params[0].name, Any)
 
     if isinstance(param_type, type) and issubclass(param_type, BaseModel):
-        return param_type.model_json_schema()
+        return param_type.model_json_schema(by_alias=True)
     else:
         adapter = TypeAdapter(param_type)
         return adapter.json_schema()
@@ -716,34 +737,46 @@ def action_artifacts_dir() -> str:
     or reference datasets.
     """
 
-    path = os.path.join(config.fs.actions, 'artifacts')
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
-    return path
+    return _ensure_dir(os.path.join(config.fs.actions, 'artifacts'))
+
+
+def action_instance_assets_dir(action_instance_id: str) -> str:
+    """
+    Returns the path to user-uploaded assets for a specific instance.
+    """
+    return _action_instance_dir(action_instance_id, ACTION_INSTANCE_ASSETS_DIRNAME)
 
 
 def action_instance_artifacts_dir(action_instance_id: str) -> str:
     """
-    Returns the path to the artifacts directory for a specific instance.
-
-    Activities can use this directory to store artifacts that are generated
-    by a given instance, for example a classification_result for a given input.
+    Returns the path to generated outputs for a specific instance.
     """
-    action_instance_dir = os.path.join(config.fs.actions, action_instance_id)
-    if not os.path.exists(action_instance_dir):
-        os.makedirs(action_instance_dir, exist_ok=True)
-    return action_instance_dir
+    return _action_instance_dir(action_instance_id, ACTION_INSTANCE_ARTIFACTS_DIRNAME)
 
 
 def action_log_file_path(action_instance_id: str) -> str:
     """
     Returns the file path for the logs of a given action instance.
-    Logs are stored in config.fs.action/logs/<action_instance_id>.log.
+    Logs are stored in
+    config.fs.actions/<action_instance_id>/nomad_system/logs/<action_instance_id>.log.
+    For backwards compatibility, when the new file does not exist yet but the
+    legacy config.fs.actions/logs/<action_instance_id>.log exists, the legacy
+    path is returned.
     """
-    log_dir = os.path.join(config.fs.actions, 'logs')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f'{action_instance_id}.log')
+    log_filename = f'{action_instance_id}.log'
+
+    new_log_dir = _action_instance_dir(
+        action_instance_id, ACTION_INSTANCE_NOMAD_SYSTEM_DIRNAME, 'logs'
+    )
+    new_log_path = os.path.join(new_log_dir, log_filename)
+
+    legacy_log_dir = _ensure_dir(os.path.join(config.fs.actions, 'logs'))
+    legacy_log_path = os.path.join(legacy_log_dir, log_filename)
+
+    if not os.path.exists(new_log_path) and os.path.exists(legacy_log_path):
+        return legacy_log_path
+
+    return new_log_path
 
 
 async def _async_start_workflow(action, data, workflow_id, priority) -> str:
@@ -846,24 +879,39 @@ async def _start_action_async(action_id: str, data: Any) -> str:
         else None,
     )
 
-    upload_id = getattr(data, 'upload_id', None)
-    new_action = ActionRecord(
-        action_id=action_id,
-        action_instance_id=workflow_id,
-        user_id=user_id,
-        upload_id=upload_id,
-        status='PENDING',
-        input_data=_to_dict(data),
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
-        priority_fairness_key=action_entry_point.priority_fairness_key,
-        priority_key=action_entry_point.priority_key,
-    )
-    await _async_action_repository.create(new_action)
+    rollback_items = []
+    try:
+        asset_refs = extract_action_asset_refs(data)
+        if asset_refs:
+            rollback_items = await consume_staged_assets(
+                refs=asset_refs,
+                user_id=user_id,
+                purpose=ActionAssetPurpose.ACTION_START,
+                target_action_instance_id=workflow_id,
+                action_id=action_id,
+            )
 
-    await _async_start_workflow(
-        action=action, data=data, workflow_id=workflow_id, priority=priority
-    )
+        upload_id = getattr(data, 'upload_id', None)
+        new_action = ActionRecord(
+            action_id=action_id,
+            action_instance_id=workflow_id,
+            user_id=user_id,
+            upload_id=upload_id,
+            status='PENDING',
+            input_data=_to_dict(data),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+            priority_fairness_key=action_entry_point.priority_fairness_key,
+            priority_key=action_entry_point.priority_key,
+        )
+        await _async_action_repository.create(new_action)
+        await _async_start_workflow(
+            action=action, data=data, workflow_id=workflow_id, priority=priority
+        )
+    except Exception:
+        if rollback_items:
+            await rollback_consumed_assets(rollback_items)
+        raise
     return workflow_id
 
 
@@ -880,6 +928,12 @@ def start_action(action_id: str, data: Any) -> str:
     action_entry_point = get_actions().get(action_id)
     assert action_entry_point, f'No action data for the given {action_id} ID'
     action = action_entry_point.load()
+    if extract_action_asset_refs(data):
+        raise ValueError(
+            'ActionAssetRef inputs are not supported from ELNs. '
+            'Use the new Action form in the GUI to create an action.'
+        )
+
     priority = Priority(
         priority_key=action_entry_point.priority_key,
         fairness_key=user_id
@@ -1096,15 +1150,25 @@ async def submit_signal_input(
             f"No pending signal input request found for signal '{signal_fn_name}'."
         )
 
-    action_id = action_data.get('action_id')
-    if action_id is None:
-        raise Exception(
-            'The action was not registered in the DB or was registered under a different user.'
-        )
-    action_entry_point = get_actions().get(action_id)
-    assert action_entry_point, f'No action data for the given {action_id} ID'
-    workflow_cls = action_entry_point.load().workflow
+    rollback_items = []
     try:
+        action_id = action_data.get('action_id')
+        if action_id is None:
+            raise Exception(
+                'The action was not registered in the DB or was registered under a different user.'
+            )
+        action_entry_point = get_actions().get(action_id)
+        assert action_entry_point, f'No action data for the given {action_id} ID'
+        workflow_cls = action_entry_point.load().workflow
+        asset_refs = extract_action_asset_refs(data)
+        if asset_refs:
+            rollback_items = await consume_staged_assets(
+                refs=asset_refs,
+                user_id=user_id,
+                purpose=ActionAssetPurpose.ACTION_SIGNAL,
+                target_action_instance_id=action_instance_id,
+                signal_fn_name=signal_fn_name,
+            )
         await _async_signal_workflow(
             workflow_cls,
             workflow_id=action_instance_id,
@@ -1112,7 +1176,10 @@ async def submit_signal_input(
             data=data,
         )
     except Exception:
-        # Best-effort rollback of the pending request if signaling fails.
+        if rollback_items:
+            await rollback_consumed_assets(rollback_items)
+        # Best-effort rollback of the pending request if asset handling or
+        # signaling fails.
         await _async_action_repository.restore_pending_signal_input(
             action_instance_id=action_instance_id,
             user_id=user_id,

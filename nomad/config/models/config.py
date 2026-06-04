@@ -789,6 +789,35 @@ and no migration path is currently provided.""",
         return values
 
 
+class ActionAssets(ConfigBaseModel):
+    max_file_size_bytes: int = Field(
+        100 * 1024 * 1024,
+        description='Maximum allowed action asset file size in bytes.',
+    )
+    allowed_media_types: list[str] = Field(
+        [
+            'audio/*',
+            'image/*',
+            'application/pdf',
+            'application/json',
+            'text/plain',
+            'application/octet-stream',
+        ],
+        description='Allowed media types for action asset uploads.',
+    )
+    per_user_quota_bytes: int = Field(
+        10 * 1024 * 1024 * 1024,
+        description='Maximum combined size of action assets a user can upload.',
+    )
+
+
+class Actions(ConfigBaseModel):
+    action_assets: ActionAssets = Field(
+        default_factory=ActionAssets,
+        description='Action asset upload/storage configuration.',
+    )
+
+
 class Elastic(ConfigBaseModel):
     username: str = Field(
         '',
@@ -1793,6 +1822,10 @@ class Config(ConfigBaseModel):
         default_factory=FS,
         description="""Filesystem paths and storage layout used by NOMAD.
 WARNING: Modifying the storage configuration of an existing installation would make previously stored data incompatible.""",
+    )
+    actions: Actions = Field(
+        default_factory=Actions,
+        description='Settings related to actions features.',
     )
     elastic: Elastic = Field(
         default_factory=Elastic,

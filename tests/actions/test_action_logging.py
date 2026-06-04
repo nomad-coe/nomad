@@ -9,6 +9,7 @@ from nomad.actions.action_logging import (
     WorkflowRoutingHandler,
     _WorkflowLoggingInboundInterceptor,
 )
+from nomad.actions.manager import action_log_file_path
 from nomad.config import config
 
 
@@ -41,9 +42,8 @@ def test_interceptor_and_routing_handler(tmp_path, monkeypatch):
         structlog.contextvars.bind_contextvars(workflow_id='another-workflow')
         root_logger.error('Something went wrong over here')
 
-        expected_log_dir = os.path.join(str(tmp_path), 'logs')
-        file1 = os.path.join(expected_log_dir, 'test-routed-workflow.log')
-        file2 = os.path.join(expected_log_dir, 'another-workflow.log')
+        file1 = action_log_file_path('test-routed-workflow')
+        file2 = action_log_file_path('another-workflow')
 
         assert os.path.exists(file1)
         assert os.path.exists(file2)
@@ -81,9 +81,14 @@ def test_routing_handler_prefers_action_instance_id(tmp_path, monkeypatch):
         )
         root_logger.info('root-routed message')
 
-        expected_log_dir = os.path.join(str(tmp_path), 'logs')
-        root_file = os.path.join(expected_log_dir, 'root-action-id.log')
-        child_file = os.path.join(expected_log_dir, 'child-workflow-id.log')
+        root_file = action_log_file_path('root-action-id')
+        child_file = os.path.join(
+            str(tmp_path),
+            'child-workflow-id',
+            'nomad_system',
+            'logs',
+            'child-workflow-id.log',
+        )
 
         assert os.path.exists(root_file)
         assert not os.path.exists(child_file)
