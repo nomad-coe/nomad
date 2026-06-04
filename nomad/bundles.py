@@ -342,12 +342,17 @@ class BundleImporter:
 
     def delete_bundle(self):
         """Deletes the bundle file, and optionally, it's parent folder (if empty)."""
+        parent_folder = os.path.dirname(self.bundle_path)
+
         if os.path.exists(self.bundle_path):
             PathObject(self.bundle_path).delete()
-        if self.import_settings.delete_bundle_include_parent_folder:
-            parent_folder = os.path.dirname(self.bundle_path)
-            if not os.listdir(parent_folder):
-                PathObject(parent_folder).delete()
+
+        if (
+            self.import_settings.delete_bundle_include_parent_folder
+            and os.path.isdir(parent_folder)
+            and not os.listdir(parent_folder)
+        ):
+            PathObject(parent_folder).delete()
 
     @property
     def bundle_info(self):
