@@ -197,7 +197,9 @@ class TestAdmin:
         entry = Entry.objects(upload_id=upload_id).first()
 
         result = invoke_cli(
-            cli, ['admin', 'entries', 'rm', entry.entry_id], catch_exceptions=False
+            cli,
+            ['admin', 'entries', 'rm', '--', entry.entry_id],
+            catch_exceptions=False,
         )
 
         assert result.exit_code == 0
