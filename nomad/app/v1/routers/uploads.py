@@ -3280,12 +3280,11 @@ def _get_upload_with_write_access(
             detail='User authentication required to access uploads.',
         )
 
-    mongodb_query = _query_mongodb(upload_id=upload_id)
-    if not mongodb_query.count():
+    upload = _query_mongodb(upload_id=upload_id).first()
+    if upload is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail='The specified upload_id was not found.'
         )
-    upload = mongodb_query.first()
 
     if not is_user_upload_writer(upload, user):
         raise HTTPException(
