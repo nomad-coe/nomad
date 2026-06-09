@@ -2,7 +2,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from nomad.actions import TaskQueue
 from nomad.actions.action import Action, get_actions
+from nomad.actions.activities.utils import get_all_activities
 from nomad.config.models.plugins import ActionEntryPoint, ParserEntryPoint
 
 
@@ -11,6 +13,14 @@ class MockWorkflow:
 
     def run(self):
         pass
+
+
+def cpu_activity():
+    pass
+
+
+def gpu_activity():
+    pass
 
 
 def create_mock_action_entry_point():
@@ -109,3 +119,35 @@ def test_get_actions(
         else:
             result = get_actions()
             assert result == expected_result
+
+
+def test_action_accepts_task_queue_activities():
+    action = Action(
+        task_queue=TaskQueue.CPU,
+        activities=[cpu_activity],
+        workflow=MockWorkflow(),
+        task_queue_activities={TaskQueue.GPU: [gpu_activity]},
+    )
+
+    assert action.task_queue_activities == {TaskQueue.GPU: [gpu_activity]}
+
+
+def test_get_all_activities_includes_action_extra_task_queue_activities():
+    action = Action(
+        task_queue=TaskQueue.CPU,
+        activities=[cpu_activity],
+        workflow=MockWorkflow(),
+        task_queue_activities={TaskQueue.GPU: [gpu_activity]},
+    )
+    mock_entry_point = MagicMock(spec=ActionEntryPoint)
+    mock_entry_point.task_queue = TaskQueue.CPU
+    mock_entry_point.load.return_value = action
+
+    with patch(
+        'nomad.actions.activities.utils.get_actions',
+        return_value={'test-action': mock_entry_point},
+    ):
+        activities = get_all_activities(TaskQueue.GPU)
+
+    assert gpu_activity in activities
+    assert cpu_activity not in activities

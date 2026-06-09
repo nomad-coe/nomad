@@ -61,9 +61,21 @@ def get_all_activities(task_queue: TaskQueue) -> list[Callable]:
     if task_queue != TaskQueue.NOMAD_INTERNAL_WORKFLOWS:
         activities.append(request_signal_input_activity)
     for action_entry_point in get_actions().values():
+        action = action_entry_point.load()
         if action_entry_point.task_queue == task_queue:
-            action = action_entry_point.load()
             activities.extend(action.activities)
+        activities.extend(_task_queue_activities(action, task_queue))
     if task_queue == TaskQueue.NOMAD_INTERNAL_WORKFLOWS:
         activities.extend(get_nomad_internal_activities())
     return list(set(activities))
+
+
+def _task_queue_activities(action, task_queue: TaskQueue) -> list[Callable]:
+    task_queue_activities = getattr(action, 'task_queue_activities', {})
+    queue_value = getattr(task_queue, 'value', task_queue)
+    return [
+        activity
+        for queue, activities in task_queue_activities.items()
+        if queue == task_queue or queue == queue_value
+        for activity in activities
+    ]
