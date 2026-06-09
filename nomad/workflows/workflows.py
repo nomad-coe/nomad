@@ -98,7 +98,6 @@ with workflow.unsafe.imports_passed_through():
         PublishExternallyWorkflowInput,
         PublishUploadWorkflowInput,
         TransferUploadOwnershipWorkflowInput,
-        UploadProcessingPhase,
         UploadProcessingWorkflowInput,
     )
     from nomad.workflows.utils import (
@@ -297,7 +296,7 @@ class UpdateUploadWorkflow:
         """
         process_retry_policy = RetryPolicy(maximum_attempts=2)
 
-        if parse_all_input.phase == UploadProcessingPhase.MATCH:
+        if parse_all_input.phase == 'match':
             # Step 2: Match all, pass updated_files as set. This must only run once;
             # continue-as-new resumes from the current phase/cursor below.
             await workflow.execute_activity(
@@ -310,12 +309,12 @@ class UpdateUploadWorkflow:
                 retry_policy=process_retry_policy,
                 priority=UPDATE_UPLOAD_PRIORITY,
             )
-            parse_all_input.phase = UploadProcessingPhase.PROCESS
+            parse_all_input.phase = 'process'
 
         # Step 3: Parse next level(s)
         # Outer loop: continue until no more parser levels to process.
         while True:
-            if parse_all_input.phase != UploadProcessingPhase.PROCESS:
+            if parse_all_input.phase != 'process':
                 break
 
             if parse_all_input.current_batch_dir is None:
@@ -545,7 +544,7 @@ class UpdateUploadWorkflow:
         )
         skip_finalize = False
         try:
-            if input.phase == UploadProcessingPhase.SETUP:
+            if input.phase == 'setup':
                 # Step 1: Update files
                 updated_files = await workflow.execute_activity(
                     update_files_activity,
@@ -560,7 +559,7 @@ class UpdateUploadWorkflow:
 
                 input.updated_files = updated_files
                 input.min_level = parser_min_level
-                input.phase = UploadProcessingPhase.MATCH
+                input.phase = 'match'
 
             if input.trigger_processing:
                 should_continue_as_new = await self.process_upload(

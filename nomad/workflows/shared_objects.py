@@ -18,7 +18,6 @@
 
 import json
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Any, Literal
 
 
@@ -97,10 +96,7 @@ class UpdatedFilesResult:
         return None
 
 
-class UploadProcessingPhase(StrEnum):
-    SETUP = 'setup'
-    MATCH = 'match'
-    PROCESS = 'process'
+UploadProcessingPhase = Literal['setup', 'match', 'process']
 
 
 @dataclass
@@ -116,15 +112,12 @@ class UploadProcessingWorkflowInput:
     publish_directly_after_processing: bool = False
     updated_files: UpdatedFilesResult = field(default_factory=UpdatedFilesResult)
     min_level: int = 0
-    phase: UploadProcessingPhase = UploadProcessingPhase.SETUP
+    phase: UploadProcessingPhase = 'setup'
     current_batch_dir: str | None = None
     current_batch_index: int = 0
     total_batches: int = 0
     entry_activity_batch_size: int = 1
     next_parser_level: int | None = None
-
-    def __post_init__(self):
-        self.phase = UploadProcessingPhase(self.phase)
 
 
 @dataclass

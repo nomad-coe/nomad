@@ -29,7 +29,6 @@ from nomad.workflows.shared_objects import (
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
     TransferUploadOwnershipWorkflowInput,
-    UploadProcessingPhase,
     UploadProcessingWorkflowInput,
 )
 from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, ENTRY_BATCH_FILE_SIZE
@@ -124,7 +123,7 @@ class TestUploadProcessingWorkflowInput:
             phase='process',
         )
 
-        assert input_data.phase == UploadProcessingPhase.PROCESS
+        assert input_data.phase == 'process'
 
 
 @pytest.fixture
