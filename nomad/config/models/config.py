@@ -2132,16 +2132,19 @@ WARNING: Modifying the storage configuration of an existing installation would m
                     if entry_points_config.get('include') is not None:
                         entry_points_config['include'].append(key)
 
-            for key, plugin in _plugins['entry_points']['options'].items():
+            for key, plugin in list(_plugins['entry_points']['options'].items()):
                 if key not in plugin_entry_point_ids:
                     if isinstance(plugin, dict):
                         # Handle new style plugins that are declared directly in nomad.yaml
                         if plugin.get('entry_point_type') and not plugin.get('id'):
                             plugin['id'] = key
-                        # Update information for old style plugins
+                        # Config for unknown entry points should be ignored with a warning.
                         else:
-                            raise ValueError(
-                                f'Failed loading {key} plugin. Old style plugins are no longer supported.'
+                            _plugins['entry_points']['options'].pop(key, None)
+                            logger.warning(
+                                'Found configuration for non-installed plugin entry point '
+                                f'"{key}" in plugins.entry_points.options. The configuration '
+                                'will be ignored.'
                             )
 
             # Assign URL-safe identifiers to all entry points and check for collisions
