@@ -359,6 +359,36 @@ def test_plugin_polymorphism(mockopen, monkeypatch):
     assert isinstance(config.plugins.entry_points.options['parser'], ParserEntryPoint)
 
 
+def test_missing_plugin_config_warns_and_is_ignored(mockopen, monkeypatch):
+    plugins = {
+        'plugins': {
+            'entry_points': {
+                'options': {
+                    'nomad_aitoolkit.apps:aitoolkit': {
+                        'label': 'configured but not installed'
+                    }
+                }
+            }
+        }
+    }
+    messages = []
+    monkeypatch.setattr(
+        'nomad.config.models.config.logger.warning',
+        messages.append,
+    )
+
+    config = load_test_config(plugins, None, mockopen, monkeypatch)
+
+    config.load_plugins()
+
+    assert 'nomad_aitoolkit.apps:aitoolkit' not in config.plugins.entry_points.options
+    assert any(
+        'Found configuration for non-installed plugin entry point '
+        '"nomad_aitoolkit.apps:aitoolkit"' in message
+        for message in messages
+    )
+
+
 @pytest.mark.parametrize(
     'conf_yaml, conf_expected',
     [
