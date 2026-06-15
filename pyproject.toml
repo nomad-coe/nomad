@@ -69,7 +69,8 @@ infrastructure = [
   "beautifulsoup4>=4,<=4.12.3", # 4.13 introduced breaking changes
   "blinker", # mongoengine needs this for signals
   "dockerspawner",
-  "fastapi>=0.99.0",
+  # TODO: fastapi upper pin: https://github.com/Materials-Consortia/optimade-python-tools/issues/2383
+  "fastapi>=0.99.0,<0.137.0",
   "starlette>=1.0.1",
   "fastapi-cache2",
   "gunicorn",
