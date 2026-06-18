@@ -1603,7 +1603,7 @@ async def put_upload_raw_path(
     transfer is made using method 2, you can specify the query argument `file_name` to name it.
     This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
     (for zip/tar files the names don't matter since they are extracted). See the POST `uploads`
-    endpoint for examples of curl commands for uploading files.
+    endpoint for examples of `curl` commands for uploading files.
 
     Also, this path can be used to copy/move a file from one directory to another. Three
     query parameters are required for a successful operation: 1) `copy_or_move` param to specify
@@ -2117,24 +2117,24 @@ async def post_upload(
     file data in the http body. Both are supported. Note, however, that the second method
     only allows the upload of a single file, and that it does not transfer a filename. If a
     transfer is made using method 2, you can specify the query argument `file_name` to name it.
-    This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
-    (for zip/tar files the names don't matter since they are extracted).
+    This *needs* to be specified when using method 2, unless you are uploading a zip file
+    (for zip files the names don't matter since they are extracted).
 
-    Example curl commands for creating an upload and uploading a file:
+    Example `curl` commands for creating an upload and uploading a file:
 
-    Method 1: multipart-formdata
+    Method 1: multipart/formdata
 
         curl -X 'POST' "url" -F file=@local_file
 
     Method 2: streaming data
 
-        curl -X 'POST' "url" -T local_file
+        curl -X 'POST' "url?file_name=filename" -T local_file
 
     Authentication is required. This can either be done using the regular bearer token,
     or using the simplified upload token. To use the simplified upload token, just
-    specify it as a query parameter in the url, i.e.
+    specify it as a header, i.e.
 
-        curl -X 'POST' "baseurl?token=ABC.XYZ" ...
+        curl -H 'Upload-Token: ABC.XYZ' -X 'POST' "url"  ...
 
     Note, there is a limit on how many unpublished uploads a user can have. If exceeded,
     error code 400 will be returned.
@@ -2849,9 +2849,9 @@ async def post_upload_bundle(
     settings except `embargo_length` requires an admin user to change (these settings
     have default values specified by the system configuration).
 
-    There are two basic ways to upload files: in the multipart-formdata or streaming the
-    file data in the http body. Both are supported. See the POST `uploads` endpoint for
-    examples of curl commands for uploading files.
+    There are two basic ways to upload files: using multipart-formdata or streaming the
+    file data in the HTTP request body. Both are supported. See the POST `uploads` endpoint for
+    examples of `curl` commands for uploading files.
     """
     import_settings = config.bundle_import.default_settings.customize(
         dict(
