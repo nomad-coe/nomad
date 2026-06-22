@@ -964,11 +964,13 @@ class WorkerConfig(ConfigBaseModel):
             core NOMAD activities such as entry and upload processing.
         """,
     )
-    max_tasks_per_child: int = Field(
-        100,
+    max_tasks_per_child: int | None = Field(
+        None,
         description="""
             Maximum number of tasks a worker process will execute before
             it is restarted to prevent potential memory leaks.
+            Note: Bugs have been reported when using the max_tasks_per_child feature that can result in the
+            ProcessPoolExecutor hanging in some circumstances. See https://docs.python.org/3/library/concurrent.futures.html for more info.
         """,
     )
     max_concurrent_activities: int | None = Field(
@@ -1018,6 +1020,23 @@ class WorkerConfig(ConfigBaseModel):
             minimum number of activity slots for resource-based tuning.
             If unset, NOMAD uses `pool_size` as the minimum.
         """,
+    )
+    healthcheck_enabled: bool = Field(
+        True,
+        description="""
+            Enables a lightweight HTTP /health endpoint for worker process health checks.
+            The endpoint is intended for container orchestrators such as Docker or Kubernetes.
+            It is skipped automatically in development mode to avoid port conflicts when
+            running multiple workers on the same machine.
+        """,
+    )
+    healthcheck_host: str = Field(
+        '0.0.0.0',
+        description='Host/interface used by the worker healthcheck HTTP server.',
+    )
+    healthcheck_port: int = Field(
+        8080,
+        description='Port used by the worker healthcheck HTTP server.',
     )
 
 
@@ -1079,7 +1098,7 @@ class Temporal(ConfigBaseModel):
     )
 
     internal_worker: WorkerConfig = Field(
-        default_factory=WorkerConfig,
+        default_factory=lambda: WorkerConfig(max_concurrent_activities=1),
         description='Configuration for the internal action worker.',
     )
     cpu_worker: WorkerConfig = Field(
