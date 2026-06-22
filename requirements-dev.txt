@@ -150,7 +150,7 @@ pendulum==3.2.0           # via fastapi-cache2, -r requirements.txt
 pillow==12.2.0            # via matplotlib, -r requirements.txt
 pint==0.24.4 ; python_full_version < '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 pint==0.25.3 ; python_full_version >= '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
-pip==26.1.1               # via pip-api, nomad-lab (pyproject.toml)
+pip==26.1.2               # via pip-api, nomad-lab (pyproject.toml)
 pip-api==0.0.34           # via pip-audit
 pip-audit==2.10.0         # via nomad-lab (pyproject.toml)
 pip-requirements-parser==32.0.1  # via pip-audit
@@ -215,7 +215,7 @@ sortedcontainers==2.4.0   # via cyclonedx-python-lib
 soupsieve==2.8.3          # via beautifulsoup4, -r requirements.txt
 spglib==2.7.0             # via matid, pymatgen, -r requirements.txt
 sqlalchemy==2.0.49        # via alembic, jupyterhub, -r requirements.txt
-starlette==1.2.1          # via fastapi, -r requirements.txt, nomad-lab (pyproject.toml)
+starlette==1.3.1          # via fastapi, -r requirements.txt, nomad-lab (pyproject.toml)
 structlog==25.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 sympy==1.14.0             # via pymatgen, -r requirements.txt
 tabulate==0.10.0          # via pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)

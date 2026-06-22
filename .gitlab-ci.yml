@@ -17,8 +17,8 @@ variables:
   DOCKER_TAG: ${CI_COMMIT_REF_SLUG}
   DOCKER_HOST: tcp://docker-dind:2375
   DOCKER_TLS_CERTDIR: ""
-  PYTHON_VERSION: '3.13'
-  UV_VERSION: '0.11'
+  PYTHON_VERSION: "3.13"
+  UV_VERSION: "0.11"
   UV_OS_LABEL: trixie # Debian 13 "trixie"
   UV_IMAGE: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$UV_OS_LABEL
 
@@ -340,7 +340,6 @@ audit python:
   before_script:
     - uv venv
     - uv pip install ".[dev,infrastructure]" -c requirements-dev.txt
-    - uv pip install pip-audit
   script:
     - EXIT=0
     - uv audit || EXIT=1
