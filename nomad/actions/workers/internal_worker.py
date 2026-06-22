@@ -15,6 +15,10 @@ from temporalio.worker import (
 from nomad.actions import TaskQueue
 from nomad.actions.activities.utils import get_all_activities
 from nomad.actions.client import get_client
+from nomad.actions.workers.health_check import (
+    should_start_health_server,
+    start_health_server,
+)
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
@@ -52,7 +56,7 @@ async def run_worker(worker_config: WorkerConfig):
         'max_workers': worker_config.pool_size,
         'initializer': worker_process_initializer,
     }
-    if sys.version_info >= (3, 11):
+    if sys.version_info >= (3, 11) and worker_config.max_tasks_per_child is not None:
         executor_kwargs['max_tasks_per_child'] = worker_config.max_tasks_per_child
 
     # NOTE: internal processing is not thread safe, avoid using ThreadPoolExecutor with more than 1 worker.
@@ -104,11 +108,23 @@ async def run_worker(worker_config: WorkerConfig):
             )
 
         worker = Worker(**worker_kwargs)
+        health_runner = None
+
+        if should_start_health_server(worker_config):
+            health_runner = await start_health_server(
+                host=worker_config.healthcheck_host,
+                port=worker_config.healthcheck_port,
+            )
 
         # Run the worker until SIGTERM
         logger.info('Starting internal processing worker.')
         worker_task = asyncio.create_task(worker.run())
-        await stop_event.wait()
+
+        try:
+            await stop_event.wait()
+        finally:
+            if health_runner is not None:
+                await health_runner.cleanup()
 
         logger.info('Stopping worker.')
         worker_task.cancel()
