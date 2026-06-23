@@ -15,10 +15,10 @@ PUBLISH_EXTERNALLY_PRIORITY = Priority(priority_key=2)
 DELETE_UPLOAD_PRIORITY = Priority(priority_key=3)
 IMPORT_BUNDLE_PRIORITY = Priority(priority_key=4)
 PROCESS_EXAMPLE_UPLOAD_PRIORITY = Priority(priority_key=4)
-BATCH_PROCESS_ENTRIES_PRIORITY = Priority(priority_key=4)
+BATCH_PROCESS_ENTRIES_PRIORITY = Priority(priority_key=5)
 PROCESS_UPLOAD_PRIORITY = Priority(priority_key=4)
 UPDATE_UPLOAD_PRIORITY = Priority(priority_key=4)
-BATCH_PROCESS_ENTRY_PRIORITY = Priority(priority_key=4)
+BATCH_PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
 PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
 
 _GENERIC_TEMPORAL_ERROR_MESSAGES = (
