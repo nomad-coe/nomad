@@ -1092,6 +1092,30 @@ class Temporal(ConfigBaseModel):
         None,
         description='The bind address for the Prometheus metrics server. If not set, the runtime will not be configured with Prometheus metrics.',
     )
+    api_key: str | None = Field(
+        None,
+        description='API Key used to connect to the Temporal server.',
+    )
+    use_tls: bool = Field(
+        False,
+        description='Whether to use TLS to connect to the Temporal server. Defaults to False. If True and no certificates are provided, default system certificates are used.',
+    )
+    tls_client_cert: str | None = Field(
+        None,
+        description='Path to the client certificate (PEM format) or the raw certificate content string to use for mTLS.',
+    )
+    tls_client_key: str | None = Field(
+        None,
+        description='Path to the client private key (PEM format) or the raw key content string to use for mTLS.',
+    )
+    tls_server_root_ca_cert: str | None = Field(
+        None,
+        description='Path to the server root CA certificate (PEM format) or the raw CA certificate content string to verify the server certificate.',
+    )
+    tls_domain: str | None = Field(
+        None,
+        description='The server name / domain to verify TLS against.',
+    )
     processing_timeouts: ProcessingTimeouts = Field(
         default_factory=ProcessingTimeouts,
         description='Timeout configuration for individual processing workflows and activities.',
