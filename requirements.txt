@@ -63,7 +63,6 @@ httpcore==1.0.9           # via httpx
 httptools==0.7.1          # via uvicorn
 httpx==0.27.2             # via python-keycloak, nomad-lab (pyproject.toml)
 idna==3.13                # via anyio, email-validator, httpx, requests, yarl
-importlib-metadata==8.7.1  # via opentelemetry-api
 isodate==0.7.2            # via rdflib
 jinja2==3.1.6             # via jupyterhub
 jmespath==1.1.0           # via aiobotocore, botocore, nomad-lab (pyproject.toml)
@@ -100,23 +99,23 @@ networkx==3.6.1 ; python_full_version >= '3.11'  # via matid, pymatgen
 nexus-rpc==1.4.0          # via temporalio
 numpy==2.2.6 ; python_full_version < '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, nomad-lab (pyproject.toml)
 numpy==2.4.4 ; python_full_version >= '3.11'  # via ase, contourpy, h5grove, h5py, matid, matplotlib, monty, pandas, pymatgen, scikit-learn, scipy, spglib, tifffile, xarray, nomad-lab (pyproject.toml)
-oauthenticator==17.4.0    # via nomad-lab (pyproject.toml)
+oauthenticator==17.4.0    # via --override (workspace), nomad-lab (pyproject.toml)
 oauthlib==3.3.1           # via jupyterhub
 openpyxl==3.1.5           # via nomad-lab (pyproject.toml)
-opentelemetry-api==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, opentelemetry-semantic-conventions, nomad-lab (pyproject.toml)
-opentelemetry-exporter-otlp==1.41.1  # via nomad-lab (pyproject.toml)
-opentelemetry-exporter-otlp-proto-common==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-grpc==1.41.1  # via opentelemetry-exporter-otlp, nomad-lab (pyproject.toml)
-opentelemetry-exporter-otlp-proto-http==1.41.1  # via opentelemetry-exporter-otlp
-opentelemetry-instrumentation==0.62b1  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo
-opentelemetry-instrumentation-asgi==0.62b1  # via opentelemetry-instrumentation-fastapi, nomad-lab (pyproject.toml)
-opentelemetry-instrumentation-elasticsearch==0.62b1  # via nomad-lab (pyproject.toml)
-opentelemetry-instrumentation-fastapi==0.62b1  # via nomad-lab (pyproject.toml)
-opentelemetry-instrumentation-pymongo==0.62b1  # via nomad-lab (pyproject.toml)
-opentelemetry-proto==1.41.1  # via opentelemetry-exporter-otlp-proto-common, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk==1.41.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, nomad-lab (pyproject.toml)
-opentelemetry-semantic-conventions==0.62b1  # via opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk
-opentelemetry-util-http==0.62b1  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-fastapi
+opentelemetry-api==1.42.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk, opentelemetry-semantic-conventions, nomad-lab (pyproject.toml)
+opentelemetry-exporter-otlp==1.42.1  # via nomad-lab (pyproject.toml)
+opentelemetry-exporter-otlp-proto-common==1.42.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-grpc==1.42.1  # via opentelemetry-exporter-otlp, nomad-lab (pyproject.toml)
+opentelemetry-exporter-otlp-proto-http==1.42.1  # via opentelemetry-exporter-otlp
+opentelemetry-instrumentation==0.63b1  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo
+opentelemetry-instrumentation-asgi==0.63b1  # via opentelemetry-instrumentation-fastapi, nomad-lab (pyproject.toml)
+opentelemetry-instrumentation-elasticsearch==0.63b1  # via nomad-lab (pyproject.toml)
+opentelemetry-instrumentation-fastapi==0.63b1  # via nomad-lab (pyproject.toml)
+opentelemetry-instrumentation-pymongo==0.63b1  # via nomad-lab (pyproject.toml)
+opentelemetry-proto==1.42.1  # via opentelemetry-exporter-otlp-proto-common, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http
+opentelemetry-sdk==1.42.1  # via opentelemetry-exporter-otlp-proto-grpc, opentelemetry-exporter-otlp-proto-http, nomad-lab (pyproject.toml)
+opentelemetry-semantic-conventions==0.63b1  # via opentelemetry-instrumentation, opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-elasticsearch, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-pymongo, opentelemetry-sdk
+opentelemetry-util-http==0.63b1  # via opentelemetry-instrumentation-asgi, opentelemetry-instrumentation-fastapi
 optimade==1.3.1           # via nomad-lab (pyproject.toml)
 orjson==3.11.8            # via h5grove, pymatgen, nomad-lab (pyproject.toml)
 packaging==26.1           # via deprecation, gunicorn, jupyterhub, matplotlib, mongomock, opentelemetry-instrumentation, plotly, xarray
@@ -208,5 +207,4 @@ wrapt==2.1.2              # via aiobotocore, opentelemetry-instrumentation, open
 xarray==2025.6.1 ; python_full_version < '3.11'  # via nomad-lab (pyproject.toml)
 xarray==2026.4.0 ; python_full_version >= '3.11'  # via nomad-lab (pyproject.toml)
 yarl==1.23.0              # via aiohttp
-zipp==3.23.1              # via importlib-metadata
 zipstream-ng==1.9.0       # via nomad-lab (pyproject.toml)
