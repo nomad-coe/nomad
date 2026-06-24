@@ -1785,7 +1785,7 @@ def _and_clauses(query: Query) -> Generator[Query, None, None]:
 
 
 def _buckets_to_interval(
-    owner: str = 'public',
+    owner: str | None = 'public',
     query: Query | EsQuery | None = None,
     aggregations: dict[str, Aggregation] = {},
     user_id: str | None = None,
@@ -1895,7 +1895,7 @@ def _buckets_to_interval(
 
 
 def search(
-    owner: str = 'public',
+    owner: str | None = 'public',
     query: Query | EsQuery | None = None,
     pagination: MetadataPagination | None = None,
     required: MetadataRequired | None = None,

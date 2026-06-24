@@ -86,7 +86,10 @@ async def test_upload_and_download(
     archive_name = 'example_versioned_metainfo.zip'
 
     async def pack_and_publish(
-        property_name: str, property_value: str, with_schema: bool, def_id: str = None
+        property_name: str,
+        property_value: str,
+        with_schema: bool,
+        def_id: str | None = None,
     ):
         """
         Generates and publishes an example upload with customizable schema and

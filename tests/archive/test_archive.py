@@ -1026,8 +1026,8 @@ def assert_required_results(
     results: dict,
     required: dict,
     archive: MSection,
-    current_results: dict | str = None,
-    current_archive_serialized: str | dict = None,
+    current_results: dict | str | None = None,
+    current_archive_serialized: str | dict | None = None,
 ):
     """
     Asserts if the resulting dict from a :class:`RequiredReader` contains everything that
@@ -1065,6 +1065,7 @@ def assert_required_results(
             # results based archive. We should continue the assert from the resolved
             # results and resolved section in the archive.
             assert current_results == current_archive_serialized
+            assert archive.m_def is not None
             resolved: Any = archive.m_def.section_cls.m_from_dict(results).m_resolve(
                 current_results
             )

@@ -145,7 +145,7 @@ counter = increment()
 
 # noinspection SpellCheckingInspection,DuplicatedCode
 def test_remote_reference(json_dict, example_data_with_reference, user1):
-    def __user_print(msg, required, *, result: dict = None):
+    def __user_print(msg, required, *, result: dict | None = None):
         with UserReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(user1.user_id), result)
@@ -877,7 +877,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
         },
     )
 
-    def __upload_print(msg, required, *, result: dict = None):
+    def __upload_print(msg, required, *, result: dict | None = None):
         with UploadReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_published_with_ref'), result)
@@ -1295,7 +1295,9 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
         },
     )
 
-    def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __entry_print(
+        msg, required, *, to_file: bool = False, result: dict | None = None
+    ):
         with EntryReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_03'), result)
@@ -1747,7 +1749,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
         },
     )
 
-    def __fs_print(msg, required, *, result: dict = None):
+    def __fs_print(msg, required, *, result: dict | None = None):
         with FileSystemReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_published_with_ref'), result)
@@ -2217,7 +2219,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_group_reader(groups_function, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -2456,7 +2458,7 @@ def test_group_reader(groups_function, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_general_reader(json_dict, example_data_with_reference, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -2847,7 +2849,7 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_metainfo_reader(mongo_function_with_indexed_def, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -3323,7 +3325,7 @@ def test_metainfo_reader(mongo_function_with_indexed_def, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_general_reader_search(json_dict, example_data_with_reference, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -3417,7 +3419,12 @@ def test_general_reader_access_via_group(
     json_dict, uploads_graph_access_via_group, user2, user3
 ):
     def __ge_print(
-        msg, required, *, to_file: bool = False, result: dict = None, user: dict = None
+        msg,
+        required,
+        *,
+        to_file: bool = False,
+        result: dict | None = None,
+        user: dict | None = None,
     ):
         with MongoReader(required, user=user) as reader:
             if result:
@@ -3563,7 +3570,9 @@ data:
 
 
 def test_custom_schema_archive_and_definition(user1, custom_data):
-    def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __entry_print(
+        msg, required, *, to_file: bool = False, result: dict | None = None
+    ):
         with EntryReader(required, user=user1) as reader:
             response = reader.sync_read('id_example')
             if result:
@@ -3987,7 +3996,7 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
         },
     )
 
-    def __fs_print(msg, required, *, result: dict = None):
+    def __fs_print(msg, required, *, result: dict | None = None):
         with FileSystemReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_custom'), result)

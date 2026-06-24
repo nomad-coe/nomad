@@ -92,6 +92,7 @@ class ExampleSection(ArchiveSection):
     )
 
 
+assert ExampleSection.m_def is not None
 ExampleSection.m_def.m_annotations[MAPPING_ANNOTATION_KEY] = dict(
     xml=MapperAnnotation(mapper='a'),
     hdf5=MapperAnnotation(mapper='g'),

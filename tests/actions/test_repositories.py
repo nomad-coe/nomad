@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 
@@ -10,7 +11,7 @@ from nomad.config import config
 
 def _record(action_instance_id: str, user_id: str, **overrides) -> ActionRecord:
     now = datetime.now(timezone.utc)
-    payload = {
+    payload: dict[str, Any] = {
         'action_id': 'my-action',
         'action_instance_id': action_instance_id,
         'user_id': user_id,

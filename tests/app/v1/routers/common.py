@@ -1256,7 +1256,12 @@ def assert_required(data, required, default_key: str):
 
 
 def assert_aggregations(
-    response_json, name, agg, total: int = -1, size: int = -1, default_key: str = None
+    response_json,
+    name,
+    agg,
+    total: int = -1,
+    size: int = -1,
+    default_key: str = '',
 ):
     assert 'aggregations' in response_json
     assert name in response_json['aggregations']

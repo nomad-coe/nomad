@@ -194,6 +194,7 @@ def get_template_excited(type: str) -> EntryArchive:
 
 def get_template_tb_wannier() -> EntryArchive:
     """Returns a basic archive template for a TB calculation."""
+    assert runschema is not None
     template = get_template_computation()
     run = template.run[-1]
     run.program = runschema.run.Program(name='Wannier90', version='3.1.0')
@@ -231,6 +232,7 @@ def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArch
     Multiple core holes can be set by passing a `list` of terms. Terms which where already of a list type now become nested.
     For multiple core holes, the lists still have to contain `None` in all relevant positions.
     """
+    assert runschema is not None
     # instantiate skeleton
     template = get_template_computation()  # assumes BrKSi2
     template.run[-1].method.append(runschema.method.Method())
@@ -522,7 +524,7 @@ def get_template_dos(
 
 def add_template_band_structure(
     template: EntryArchive,
-    band_gaps: list = None,
+    band_gaps: list | None = None,
     type: str = 'electronic',
     has_references: bool = True,
     has_reciprocal_cell: bool = True,
@@ -538,6 +540,7 @@ def add_template_band_structure(
         has_references: Whether the band structure has energy references or not.
         has_reciprocal_cell: Whether the reciprocal cell is available or not.
     """
+    assert runschema is not None
     if band_gaps is None:
         band_gaps = [None]
     if not has_reciprocal_cell:
@@ -607,7 +610,7 @@ def add_template_band_structure(
 
 
 def get_template_band_structure(
-    band_gaps: list = None,
+    band_gaps: list | None = None,
     type: str = 'electronic',
     has_references: bool = True,
     has_reciprocal_cell: bool = True,
@@ -823,6 +826,7 @@ def dft_method_referenced() -> EntryArchive:
 @pytest.fixture(scope='session')
 def dft_exact_exchange() -> EntryArchive:
     """Add exact exchange explicitely to a PBE calculation."""
+    assert runschema is not None
     template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
     template.run[0].method[0].dft.xc_functional.hybrid.append(
         runschema.method.Functional()
@@ -1671,17 +1675,17 @@ def create_system(
     label: str,
     structural_type: str,
     dimensionality: str,
-    building_block: str,
+    building_block: str | None,
     elements: list[str],
     formula_hill: str,
     formula_reduced: str,
     formula_anonymous: str,
     system_relation: Relation,
-    indices: list[list[int]] = None,
-    material_id: str = None,
-    atoms: ArchiveSection = None,
-    cell: Cell = None,
-    symmetry: Symmetry = None,
+    indices: list[list[int]] | None = None,
+    material_id: str | None = None,
+    atoms: ArchiveSection | None = None,
+    cell: Cell | None = None,
+    symmetry: Symmetry | None = None,
 ) -> ResultSystem:
     system = ResultSystem()
     system.label = label
