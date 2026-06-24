@@ -296,6 +296,7 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert Upload.objects(upload_id=upload_id).first() is None
     assert Entry.objects(upload_id=upload_id).count() is 0
 
+    assert infrastructure.mongo_client is not None
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']
     assert mongo_collection.count_documents({}) == 0

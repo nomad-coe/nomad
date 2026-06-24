@@ -241,7 +241,9 @@ class Entry(MSection):
     not_indexed = Quantity(type=str)
 
 
-def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None, **kwargs):
+def assert_mapping(
+    mapping: dict, path: str, es_type: str, field: str | None = None, **kwargs
+):
     for segment in path.split('.'):
         assert 'properties' in mapping
         mapping = mapping['properties'].get(segment)
@@ -300,7 +302,11 @@ def assert_entries_indexed(entries: list[Entry]):
     )
 
     entry_specs = sorted(
-        [entry.entry_id + '-' + entry.results.material.material_id for entry in entries]
+        [
+            entry.entry_id + '-' + entry.results.material.material_id
+            for entry in entries
+            if entry.results is not None and entry.results.material is not None
+        ]
     )
 
     assert material_docs_based_entry_specs == entry_specs
@@ -309,9 +315,12 @@ def assert_entries_indexed(entries: list[Entry]):
         material = next(
             entry.results.material
             for entry in entries
-            if entry.results.material.material_id == material_doc['material_id']
+            if entry.results is not None
+            and entry.results.material is not None
+            and entry.results.material.material_id == material_doc['material_id']
         )
 
+        assert Material.m_def is not None
         for quantity in Material.m_def.quantities:
             if material.m_is_set(quantity):
                 assert material_doc[quantity.name] == getattr(material, quantity.name)
@@ -499,7 +508,7 @@ def test_mapping_detection(metainfo_type, es_type):
     assert a.m_annotations['elasticsearch'].mapping['type'] == es_type
 
 
-def create_entry(spec: str, material_kwargs: dict = None):
+def create_entry(spec: str, material_kwargs: dict | None = None):
     entry_id, material_id = spec.split('-')
     changed = material_id.endswith('*')
     if changed:

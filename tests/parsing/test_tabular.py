@@ -924,7 +924,11 @@ def get_context(upload_id, schema_file):
 
     class MyContext(ClientContext):
         def load_raw_file(
-            self, path: str, upload_id: str, installation_url: str, url: str = None
+            self,
+            path: str,
+            upload_id: str,
+            installation_url: str,
+            url: str | None = None,
         ):
             archive = super().load_raw_file(path, upload_id, installation_url, url)
             archive.metadata = EntryMetadata(

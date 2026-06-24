@@ -638,6 +638,10 @@ async def test_re_processing(
 
     # assert new process time
     if with_failure != 'not-matched':
+        assert published.last_update is not None
+        assert old_upload_time is not None
+        assert first_entry.last_processing_time is not None
+        assert old_entry_time is not None
         assert published.last_update > old_upload_time
         assert first_entry.last_processing_time > old_entry_time
 
@@ -951,11 +955,14 @@ async def test_process_partial(
     assert new_timestamps.keys() == expected_result.keys()
     for key, expect_updated in expected_result.items():
         if expect_updated:
-            assert key not in old_timestamps or (
-                old_timestamps[key]
-                and new_timestamps[key]
-                and old_timestamps[key] < new_timestamps[key]
-            )
+            if key not in old_timestamps:
+                continue
+
+            old_timestamp = old_timestamps[key]
+            new_timestamp = new_timestamps[key]
+            assert old_timestamp is not None
+            assert new_timestamp is not None
+            assert old_timestamp < new_timestamp
 
 
 def test_re_pack(published: Upload):
@@ -1083,7 +1090,7 @@ async def test_parent_child_parser(temporal_worker, user1, tmp):
             mime: str,
             buffer: bytes,
             decoded_buffer: str,
-            compression: str = None,
+            compression: str | None = None,
         ):
             if decoded_buffer.startswith('parentchild\n'):
                 return set(
@@ -1100,9 +1107,11 @@ async def test_parent_child_parser(temporal_worker, user1, tmp):
             mainfile: str,
             archive: EntryArchive,
             logger=None,
-            child_archives: dict[str, EntryArchive] = None,
+            child_archives: dict[str, EntryArchive] | None = None,
         ):
             archive.metadata.comment = 'parent'
+            if child_archives is None:
+                return
             for mainfile_key, child_archive in child_archives.items():
                 child_archive.metadata.comment = mainfile_key
 

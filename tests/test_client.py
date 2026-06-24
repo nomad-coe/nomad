@@ -103,7 +103,7 @@ def quiet_archivequery_in_ci(monkeypatch):
 
 
 def assert_results(
-    results: list[MSection], sub_section_defs: list[SubSection] = None, total=1
+    results: list[MSection], sub_section_defs: list[SubSection] | None = None, total=1
 ):
     assert len(results) == total
     for result in results:
@@ -111,6 +111,7 @@ def assert_results(
         if sub_section_defs:
             current = result
             for sub_section_def in sub_section_defs:
+                assert current.m_def is not None
                 for other_sub_section_def in current.m_def.all_sub_sections.values():
                     if other_sub_section_def != sub_section_def:
                         assert (
@@ -155,11 +156,15 @@ async def test_async_query_basic(async_api_v1, published_wo_user_metadata):
 @pytest.mark.skipif(runschema is None, reason=SCHEMA_IMPORT_ERROR)
 @pytest.mark.parametrize(
     'q_required,sub_sections',
-    [
-        ({'run': '*'}, [EntryArchive.run]),
-        ({'run': {'system': '*'}}, [EntryArchive.run, runschema.run.Run.system]),
-        ({'run[0]': {'system': '*'}}, [EntryArchive.run, runschema.run.Run.system]),
-    ],
+    (
+        [
+            ({'run': '*'}, [EntryArchive.run]),
+            ({'run': {'system': '*'}}, [EntryArchive.run, runschema.run.Run.system]),
+            ({'run[0]': {'system': '*'}}, [EntryArchive.run, runschema.run.Run.system]),
+        ]
+        if runschema is not None
+        else []
+    ),
 )
 async def test_async_query_required(
     elastic_function, async_api_v1, published_wo_user_metadata, q_required, sub_sections

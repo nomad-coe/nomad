@@ -121,8 +121,9 @@ atoms_wrap_mode = (
     else None
 )
 
-atoms_wrap_mode_no_pbc = atoms_wrap_mode.m_copy()
-atoms_wrap_mode_no_pbc.periodic = [False, False, False]
+atoms_wrap_mode_no_pbc = atoms_wrap_mode.m_copy() if atoms_wrap_mode else None
+if atoms_wrap_mode_no_pbc is not None:
+    atoms_wrap_mode_no_pbc.periodic = [False, False, False]
 
 
 @pytest.fixture(scope='module')

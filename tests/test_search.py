@@ -64,7 +64,7 @@ def split(path):
 def assert_search_upload(
     entries: int | Iterable = -1,
     additional_keys: list[str] = [],
-    upload_id: str = None,
+    upload_id: str | None = None,
     **kwargs,
 ):
     if isinstance(entries, list):
@@ -81,6 +81,7 @@ def assert_search_upload(
     if upload_id is not None:
         body['query'] = dict(match=dict(upload_id=upload_id))
 
+    assert infrastructure.elastic_client is not None
     search_results = infrastructure.elastic_client.search(
         index=config.elastic.entries_index, body=body
     )['hits']

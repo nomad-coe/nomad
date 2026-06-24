@@ -48,7 +48,11 @@ def context():
             )
 
         def load_raw_file(
-            self, path: str, upload_id: str, installation_url: str, url: str = None
+            self,
+            path: str,
+            upload_id: str,
+            installation_url: str,
+            url: str | None = None,
         ) -> MSection:
             assert installation_url is None or installation_url == self.installation_url
             return MySection()

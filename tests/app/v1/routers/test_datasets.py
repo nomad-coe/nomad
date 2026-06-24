@@ -133,8 +133,8 @@ def assert_pagination(pagination):
 
 def assert_dataset(
     dataset,
-    query: Query = None,
-    entries: list[str] = None,
+    query: Query | None = None,
+    entries: list[str] | None = None,
     n_entries: int = -1,
     **kwargs,
 ):

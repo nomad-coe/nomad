@@ -67,9 +67,11 @@ def assert_section_def(section_def: Section):
 
 
 def assert_section_instance(section: MSection):
+    assert section.m_def is not None
     assert_section_def(section.m_def)
 
     if section.m_parent is not None:
+        assert section.m_parent_sub_section is not None
         assert (
             section.m_parent.m_get_sub_section(
                 section.m_parent_sub_section, section.m_parent_index
@@ -473,7 +475,7 @@ class TestM2:
         class TestAnnotation(AnnotationModel):
             string: str = 'default'
             integer: int = 0
-            no_default: str = None
+            no_default: str | None = None
 
         AnnotationModel.m_registry['test'] = TestAnnotation
 

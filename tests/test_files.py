@@ -132,7 +132,7 @@ example_entry_id = example_entry['entry_id']
 
 
 def generate_example_entry(
-    entry_id: int, with_mainfile_prefix: bool, subdirectory: str = None, **kwargs
+    entry_id: int, with_mainfile_prefix: bool, subdirectory: str | None = None, **kwargs
 ) -> EntryWithFiles:
     """Generate an example entry with :class:`EntryMetadata` and rawfile."""
 
@@ -708,10 +708,10 @@ def create_test_upload_files(
     archives: list[datamodel.EntryArchive] | None = None,
     published: bool = True,
     embargo_length: int = 0,
-    raw_files: str = None,
+    raw_files: str | None = None,
     template_files: str = example_file,
     template_mainfile: str = example_mainfile_raw_path,
-    additional_files_path: str = None,
+    additional_files_path: str | None = None,
 ) -> UploadFiles:
     """
     Creates an upload_files object and the underlying files for test/mock purposes.
