@@ -1770,6 +1770,8 @@ class Archive(ConfigBaseModel):
             fast_loading_threshold=self.fast_loading_threshold,
             trivial_size=self.trivial_size,
             copy_chunk_size=self.copy_chunk_size,
+            # Memory may leak when set to True in concurrent scenarios.
+            disable_gc=False,
         )
 
 

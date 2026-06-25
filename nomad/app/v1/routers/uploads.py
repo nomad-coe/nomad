@@ -15,17 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import functools
 import io
 import os
 import shutil
 import tarfile
 import zipfile
-from asyncio import sleep
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Annotated, Any, cast
 from urllib.parse import unquote, urlparse
 
+import anyio
 import requests
 from fastapi import (
     APIRouter,
@@ -114,11 +115,6 @@ class APITag(str, Enum):
 
 
 logger = utils.get_logger(__name__)
-
-
-async def async_wrapper(content):
-    for x in content:
-        yield x
 
 
 class UploadRole(str, Enum):
@@ -1257,7 +1253,7 @@ def get_upload_rawdir_path(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_upload_raw(
+def get_upload_raw(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     user: Annotated[User, Depends(get_current_user([Scope.UPLOADS_READ]))],
 ):
@@ -1287,11 +1283,10 @@ async def get_upload_raw(
     if FSUtility.is_local(file_path := upload_files.raw_zip_file_object().os_path):
         return FileResponse(file_path, media_type='application/zip')
 
-    async def file_stream():
+    def file_stream():
         with FSUtility.open(file_path) as file_obj:
             while chunk := file_obj.read(2**20):
                 yield chunk
-                await sleep(0)
 
     return StreamingResponse(file_stream(), media_type='application/zip')
 
@@ -1625,7 +1620,9 @@ async def put_upload_raw_path(
             detail='`trigger_processing` must be true when `wait_for_processing` is set.`',
         )
 
-    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+    upload = await anyio.to_thread.run_sync(
+        _get_upload_with_write_access, upload_id, user, False
+    )
 
     if local_path and not os.path.isfile(local_path):
         raise HTTPException(
@@ -1676,177 +1673,186 @@ async def put_upload_raw_path(
             detail='Either an upload file or the query parameters for moving/copying a file should be provided.',
         )
 
-    if entry_hash:
-        upload_path = upload_paths[0]
-        full_path = os.path.join(path, os.path.basename(upload_path))
-        entry_id = utils.generate_entry_id(upload_id, full_path)
-        entry = upload.get_entry(entry_id)
-        if entry and entry_hash != entry.entry_hash or not entry:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                detail='The provided hash did not match the current file.',
+    def execute_put_raw():
+        if entry_hash:
+            upload_path = upload_paths[0]
+            full_path = os.path.join(path, os.path.basename(upload_path))
+            entry_id = utils.generate_entry_id(upload_id, full_path)
+            entry = upload.get_entry(entry_id)
+            if entry and entry_hash != entry.entry_hash or not entry:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    detail='The provided hash did not match the current file.',
+                )
+
+        upload_files = StagingUploadFiles(upload_id)
+
+        compression_format = None
+        for upload_path in upload_paths:
+            compression_format = get_compression_format(upload_path)
+            if compression_format == 'error':
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail='Cannot extract file. Bad file format or file extension?',
+                )
+            if not compression_format and not overwrite_if_exists:
+                full_path = os.path.join(path, os.path.basename(upload_path))
+                if upload_files.raw_exists(full_path):
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        detail='The provided path already exists and overwrite_if_exists is set to False.',
+                    )
+
+        if not wait_for_processing:
+            # Process on worker (normal case)
+            if copy_or_move:  # the case for move/copy an existing file
+                path_to_target_file = os.path.join(path, file_name)
+                if upload_files.raw_exists(path_to_target_file):
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        detail='The provided path already exists.',
+                    )
+                if not upload_files.raw_exists(path):
+                    raise HTTPException(
+                        status.HTTP_404_NOT_FOUND,
+                        detail='No file or folder with that path found.',
+                    )
+                if not upload_files.raw_exists(copy_or_move_source_path):
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        detail=f'No file or folder with that source path: {copy_or_move_source_path}',
+                    )
+                file_operations = [
+                    dict(
+                        op=copy_or_move.upper(),
+                        path_to_existing_file=copy_or_move_source_path,
+                        path_to_target_file=path_to_target_file,
+                    )
+                ]
+            else:
+                file_operations = [
+                    dict(
+                        op='ADD',
+                        path=upload_path,
+                        target_dir=path,
+                        temporary=(method != 0),
+                        auto_decompress=auto_decompress,
+                    )
+                    for upload_path in upload_paths
+                ]
+
+            # Initiate processing
+            try:
+                upload.process_upload(
+                    file_operations=file_operations,
+                    only_updated_files=True,
+                    trigger_processing=trigger_processing,
+                )
+            except ProcessAlreadyRunning:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail='The upload is currently blocked by another process.',
+                )
+
+            # Create response
+            if request.headers.get('Accept') == 'application/json':
+                response = PutRawFileResponse(
+                    upload_id=upload_id, data=upload_to_pydantic(upload)
+                )
+                response_text = response.model_dump_json()
+                media_type = 'application/json'
+            else:
+                response_text = _thank_you_message
+                media_type = 'text/plain'
+
+            return StreamingResponse(
+                create_stream_from_string(response_text), media_type=media_type
             )
 
-    upload_files = StagingUploadFiles(upload_id)
-
-    compression_format = None
-    for upload_path in upload_paths:
-        compression_format = get_compression_format(upload_path)
-        if compression_format == 'error':
+        # Process locally
+        if copy_or_move:  # case for move/copy an existing file
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail='Cannot extract file. Bad file format or file extension?',
+                detail='Cannot move/copy the file with wait_for_processing set to true.',
             )
-        if not compression_format and not overwrite_if_exists:
-            full_path = os.path.join(path, os.path.basename(upload_path))
-            if upload_files.raw_exists(full_path):
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    detail='The provided path already exists and overwrite_if_exists is set to False.',
-                )
 
-    if not wait_for_processing:
-        # Process on worker (normal case)
-        if copy_or_move:  # the case for move/copy an existing file
-            path_to_target_file = os.path.join(path, file_name)
-            if upload_files.raw_exists(path_to_target_file):
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    detail='The provided path already exists.',
-                )
-            if not upload_files.raw_exists(path):
-                raise HTTPException(
-                    status.HTTP_404_NOT_FOUND,
-                    detail='No file or folder with that path found.',
-                )
-            if not upload_files.raw_exists(copy_or_move_source_path):
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    detail=f'No file or folder with that source path: {copy_or_move_source_path}',
-                )
-            file_operations: Any = [
-                dict(
-                    op=copy_or_move.upper(),
-                    path_to_existing_file=copy_or_move_source_path,
-                    path_to_target_file=path_to_target_file,
-                )
-            ]
-        else:
-            file_operations = [
-                dict(
-                    op='ADD',
-                    path=upload_path,
-                    target_dir=path,
-                    temporary=(method != 0),
-                    auto_decompress=auto_decompress,
-                )
-                for upload_path in upload_paths
-            ]
+        if len(upload_paths) != 1 or compression_format:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail='`wait_for_processing` can only be used with single files, and not with compressed files.',
+            )
 
-        # Initiate processing
+        upload_path = upload_paths[0]
+        full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            upload.process_upload(
-                file_operations=file_operations,
-                only_updated_files=True,
-                trigger_processing=trigger_processing,
+            entry = upload.put_file_and_process_local(
+                upload_path,
+                path,
+                reprocess_settings=Reprocess(
+                    index_individual_entries=True, reprocess_existing_entries=True
+                ),
             )
+
+            search_refresh()
+
+            archive = None
+            if (
+                entry
+                and entry.process_status == ProcessStatus.SUCCESS
+                and include_archive
+            ):
+                # NOTE: We can't rely on ES to get the metadata for the entry, since it may
+                # not have had enough time to update its index etc. For now, we will just
+                # ignore this, as we do not need it.
+                archive = answer_entry_archive_request(
+                    dict(upload_id=upload_id, mainfile=full_path),
+                    required='*',
+                    user=user,
+                    entry_metadata=dict(
+                        upload_id=upload_id,
+                        entry_id=entry.entry_id,
+                        parser_name=entry.parser_name,
+                    ),
+                )['data']['archive']
+
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=upload_to_pydantic(upload),
+                processing=ProcessingData(
+                    upload_id=upload_id,
+                    path=full_path,
+                    entry_id=entry.entry_id if entry else None,
+                    parser_name=entry.parser_name if entry else None,
+                    entry=entry_to_pydantic(entry) if entry else None,
+                    archive=archive,
+                ),
+            )
+
+            return StreamingResponse(
+                create_stream_from_string(response.model_dump_json()),
+                media_type='application/json',
+            )
+        except HTTPException:
+            raise
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail='The upload is currently blocked by another process.',
+                detail='The upload is currently being processed, operation not allowed.',
+            )
+        except Exception as e:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Unexpected exception occurred: {e}',
             )
 
-        # Create response
-        if request.headers.get('Accept') == 'application/json':
-            response = PutRawFileResponse(
-                upload_id=upload_id, data=upload_to_pydantic(upload)
-            )
-            response_text = response.model_dump_json()
-            media_type = 'application/json'
-        else:
-            response_text = _thank_you_message
-            media_type = 'text/plain'
-
-        return StreamingResponse(
-            create_stream_from_string(response_text), media_type=media_type
-        )
-
-    # Process locally
-    if copy_or_move:  # case for move/copy an existing file
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='Cannot move/copy the file with wait_for_processing set to true.',
-        )
-
-    if len(upload_paths) != 1 or compression_format:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='`wait_for_processing` can only be used with single files, and not with compressed files.',
-        )
-
-    upload_path = upload_paths[0]
-    full_path = os.path.join(path, os.path.basename(upload_path))
     try:
-        entry = upload.put_file_and_process_local(
-            upload_path,
-            path,
-            reprocess_settings=Reprocess(
-                index_individual_entries=True, reprocess_existing_entries=True
-            ),
-        )
-
-        search_refresh()
-
-        archive = None
-        if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
-            # NOTE: We can't rely on ES to get the metadata for the entry, since it may
-            # not have had enough time to update its index etc. For now, we will just
-            # ignore this, as we do not need it.
-            archive = answer_entry_archive_request(
-                dict(upload_id=upload_id, mainfile=full_path),
-                required='*',
-                user=user,
-                entry_metadata=dict(
-                    upload_id=upload_id,
-                    entry_id=entry.entry_id,
-                    parser_name=entry.parser_name,
-                ),
-            )['data']['archive']
-
-        response = PutRawFileResponse(
-            upload_id=upload_id,
-            data=upload_to_pydantic(upload),
-            processing=ProcessingData(
-                upload_id=upload_id,
-                path=full_path,
-                entry_id=entry.entry_id if entry else None,
-                parser_name=entry.parser_name if entry else None,
-                entry=entry_to_pydantic(entry) if entry else None,
-                archive=archive,
-            ),
-        )
-
-        return StreamingResponse(
-            create_stream_from_string(response.model_dump_json()),
-            media_type='application/json',
-        )
-    except HTTPException:
-        raise
-    except ProcessAlreadyRunning:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='The upload is currently being processed, operation not allowed.',
-        )
-    except Exception as e:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail=f'Unexpected exception occurred: {e}',
-        )
+        return await anyio.to_thread.run_sync(execute_put_raw)
     finally:
-        try:
-            shutil.rmtree(os.path.dirname(upload_path))
-        except Exception:  # noqa
-            pass
+        if wait_for_processing and method != 0 and upload_paths:
+            try:
+                shutil.rmtree(os.path.dirname(upload_paths[0]))
+            except Exception:  # noqa
+                pass
 
 
 @router.delete(
@@ -2144,10 +2150,13 @@ async def post_upload(
     """
     if not user.is_admin:
         # Check upload limit
-        if (
-            _query_mongodb(main_author=str(user.user_id), publish_time=None).count()
-            >= config.services.upload_limit
-        ):  # type: ignore
+        limit_exceeded = await anyio.to_thread.run_sync(
+            lambda: (
+                _query_mongodb(main_author=str(user.user_id), publish_time=None).count()
+                >= config.services.upload_limit
+            )
+        )
+        if limit_exceeded:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 detail=strip(
@@ -2187,20 +2196,6 @@ async def post_upload(
         elif len(upload_paths) == 1:
             upload_name = os.path.basename(upload_paths[0])
 
-    upload: Upload = Upload.create(
-        upload_id=upload_id,
-        main_author=user,
-        upload_name=upload_name,
-        upload_create_time=datetime.now(timezone.utc),
-        embargo_length=embargo_length,
-        publish_directly=publish_directly,
-    )
-
-    # Create staging files
-    files.StagingUploadFiles(upload_id=upload_id, create=True)
-
-    logger.info('upload created', upload_id=upload_id)
-
     file_operations = [
         dict(
             op='ADD',
@@ -2212,12 +2207,30 @@ async def post_upload(
         for i_path, upload_path in enumerate(upload_paths)
     ]
 
-    # If creating an example upload, the contents are loaded only during the
-    # first processing: they should not be loaded anymore in later reprocessing.
-    if example_upload_id is not None:
-        upload.process_example_upload(example_upload_id, file_operations)
-    elif upload_paths:
-        upload.process_upload(file_operations)
+    def create_upload_sync() -> Upload:
+        upload_obj: Upload = Upload.create(
+            upload_id=upload_id,
+            main_author=user,
+            upload_name=upload_name,
+            upload_create_time=datetime.now(timezone.utc),
+            embargo_length=embargo_length,
+            publish_directly=publish_directly,
+        )
+
+        # Create staging files
+        files.StagingUploadFiles(upload_id=upload_id, create=True)
+
+        logger.info('upload created', upload_id=upload_id)
+
+        # If creating an example upload, the contents are loaded only during the
+        # first processing: they should not be loaded anymore in later reprocessing.
+        if example_upload_id is not None:
+            upload_obj.process_example_upload(example_upload_id, file_operations)
+        elif upload_paths:
+            upload_obj.process_upload(file_operations)
+        return upload_obj
+
+    upload = await anyio.to_thread.run_sync(create_upload_sync)
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -2281,11 +2294,18 @@ async def post_upload_edit(
     """
     edit_request_json = await request.json()
     try:
-        MetadataEditRequestHandler.edit_metadata(
-            edit_request_json, upload_id, user, wait_for_processing=wait_for_processing
+        await anyio.to_thread.run_sync(
+            functools.partial(
+                MetadataEditRequestHandler.edit_metadata,
+                edit_request_json,
+                upload_id,
+                user,
+                wait_for_processing=wait_for_processing,
+            )
         )
+        upload = await anyio.to_thread.run_sync(Upload.get, upload_id)
         return UploadProcDataResponse(
-            upload_id=upload_id, data=upload_to_pydantic(Upload.get(upload_id))
+            upload_id=upload_id, data=upload_to_pydantic(upload)
         )
     except RequestValidationError:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
@@ -2727,7 +2747,7 @@ def get_upload_bundle(
             detail=strip(f'Could not export due to error: {e}'),
         )
 
-    return StreamingResponse(async_wrapper(stream), media_type='application/zip')
+    return StreamingResponse(stream, media_type='application/zip')
 
 
 @router.post(
@@ -2905,17 +2925,21 @@ async def post_upload_bundle(
             )
         bundle_path = bundle_paths[0]
 
-        bundle_importer.open(bundle_path)
-        upload = bundle_importer.create_upload_skeleton()
-        bundle_importer.close()
-        # Import the bundle using the unified method
-        upload.import_bundle(
-            bundle_path=bundle_path,
-            import_settings=import_settings.model_dump()
-            if import_settings is not None
-            else {},
-            embargo_length=embargo_length,
-        )
+        def do_import():
+            bundle_importer.open(bundle_path)
+            upload_obj = bundle_importer.create_upload_skeleton()
+            bundle_importer.close()
+            # Import the bundle using the unified method
+            upload_obj.import_bundle(
+                bundle_path=bundle_path,
+                import_settings=import_settings.model_dump()
+                if import_settings is not None
+                else {},
+                embargo_length=embargo_length,
+            )
+            return upload_obj
+
+        upload = await anyio.to_thread.run_sync(do_import)
 
         return UploadProcDataResponse(
             upload_id=upload.upload_id, data=upload_to_pydantic(upload)
@@ -3465,7 +3489,7 @@ def stop_upload_processing(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def assign_doi(
+def assign_doi(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     user: Annotated[
         User,
