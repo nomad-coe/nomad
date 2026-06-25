@@ -580,7 +580,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             if not os.path.exists(file_name):
                 assert access not in os.path.basename(file_name)
             elif access in os.path.basename(file_name):
-                if 'archive' in file_name:
+                if file_name.endswith('.msg.msg'):
                     assert os.path.getsize(file_name) > 100, (
                         'Archive files should have been packed'
                     )
@@ -595,6 +595,36 @@ class TestPublicUploadFiles(UploadFilesContract):
                 )
 
         assert upload_files.to_staging() is None
+
+    @pytest.mark.parametrize(
+        'with_source_h5',
+        [True, False],
+        ids=['with-source-h5', 'without-source-h5'],
+    )
+    def test_to_staging_upload_files_include_archive_h5(
+        self, test_upload_id, with_source_h5
+    ):
+        _, entries, public_upload_files = create_public_upload(
+            test_upload_id, entry_specs='p', with_upload=False
+        )
+        if not with_source_h5:
+            public_upload_files.h5_fp(public_upload_files.access).delete()
+
+        restored_staging_upload_files = public_upload_files.to_staging(
+            create=True, include_archive=True
+        )
+        assert restored_staging_upload_files is not None
+
+        for entry in entries:
+            with restored_staging_upload_files.read_archive(entry.entry_id) as archive:
+                assert entry.entry_id in archive
+
+            archive_h5 = PathObject(
+                restored_staging_upload_files.archive_hdf5_location(entry.entry_id)
+            )
+            assert archive_h5.exists() == with_source_h5
+
+        restored_staging_upload_files.delete()
 
     def test_repack(self, test_upload):
         upload_id, entries, upload_files = test_upload
