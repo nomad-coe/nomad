@@ -1669,14 +1669,23 @@ class StagingUploadFiles(UploadFiles):
         try:
             combine_archive(target_dir.msg_fp(access), create_iterator())
 
-            with FSUtility.open_h5(
-                target_dir.h5_fp(access).os_path, 'w'
-            ) as hdf5_target:
-                for entry_id in entries:
-                    with File(self.archive_hdf5_location(entry_id), 'a') as hdf5_source:
-                        group = hdf5_target.create_group(entry_id)
-                        for key in hdf5_source.keys():
-                            hdf5_source.copy(key, group)
+            write_h5 = any(
+                [
+                    self.join_dir('archive').join_file(f'{entry_id}.h5').exists()
+                    for entry_id in entries
+                ]
+            )
+            if write_h5:
+                with FSUtility.open_h5(
+                    target_dir.h5_fp(access).os_path, 'w'
+                ) as hdf5_target:
+                    for entry_id in entries:
+                        with File(
+                            self.archive_hdf5_location(entry_id), 'a'
+                        ) as hdf5_source:
+                            group = hdf5_target.create_group(entry_id)
+                            for key in hdf5_source.keys():
+                                hdf5_source.copy(key, group)
         except Exception as e:
             self.logger.error('exception during packing archives', exc_info=e)
             raise
@@ -2037,7 +2046,7 @@ class PublicUploadFiles(UploadFiles):
         ):
             upath = FSUtility.upath(nominal_path)
             fs, location = upath.fs, upath.path
-            if export_settings.include_archive_files:
+            if export_settings.include_archive_files and fs.exists(location):
                 yield DiskFileSource(
                     os.path.dirname(location), os.path.basename(location), fs
                 )
