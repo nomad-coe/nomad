@@ -624,13 +624,20 @@ class SectionAdaptor extends ArchiveAdaptor {
       // Regular quantities
       if (property.m_annotations?.browser) {
         if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
-          const deploymentUrl = this.parsedObjUrl.deploymentUrl
-          const uploadId = this.parsedObjUrl.uploadId
-          const path = this.obj[property.name]
-          const uploadUrl = createUploadUrl(deploymentUrl, uploadId, path, index)
-          return new RawFileAdaptor(uploadUrl, null, false)
+          if (this.entryIsEditable || !property.shape?.length) {
+            const deploymentUrl = this.parsedObjUrl.deploymentUrl
+            const uploadId = this.parsedObjUrl.uploadId
+            const path = this.obj[property.name]
+            const uploadUrl = createUploadUrl(deploymentUrl, uploadId, path, index)
+            return new RawFileAdaptor(uploadUrl, null, false)
+          }
         }
       }
+
+      if (this.entryIsEditable && property.shape.length === 1 && property?.m_annotations?.eln?.[0]) {
+        return this.adaptorFactory(appendDataUrl(this.parsedObjUrl, urlSuffix), value[index], property)
+      }
+
       return this.adaptorFactory(appendDataUrl(this.parsedObjUrl, urlSuffix), value, property)
     } else if (property.m_def === AttributeMDef) {
       return this.adaptorFactory(
