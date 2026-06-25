@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
 from nomad.metainfo.elasticsearch_extension import entry_index, entry_type
+from nomad.tracing import traced
 
 from ..models import User
 
@@ -79,6 +80,7 @@ class SuggestionsRequest(BaseModel):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='suggestions.get_suggestions')
 async def get_suggestions(
     request: Request,
     data: SuggestionsRequest,

@@ -52,10 +52,6 @@ dependencies = [
   "scipy>=1.7.1",
   "unidecode",
   "xarray>=0.20.2",
-  "opentelemetry-instrumentation-asgi==0.63b1",
-  "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
-  "opentelemetry-instrumentation-pymongo==0.63b1",
-  "opentelemetry-instrumentation-elasticsearch==0.63b1",
 ]
 
 [project.urls]
@@ -92,6 +88,10 @@ infrastructure = [
   "opentelemetry-sdk",
   "opentelemetry-instrumentation-fastapi",
   "opentelemetry-exporter-otlp",
+  "opentelemetry-instrumentation-asgi==0.63b1",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
+  "opentelemetry-instrumentation-pymongo==0.63b1",
+  "opentelemetry-instrumentation-elasticsearch==0.63b1",
   "uvicorn[standard]",
   "validators",
   "zipstream-ng",

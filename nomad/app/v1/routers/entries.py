@@ -66,6 +66,7 @@ from nomad.search import (
     search,
 )
 from nomad.search import update_metadata as es_update_metadata
+from nomad.tracing import traced
 from nomad.utils import strip
 
 from ..models import (
@@ -1300,6 +1301,7 @@ def export_entries_metadata(
         )
 
 
+@traced(span_name='entries.read_archive')
 def _read_archive(entry_metadata, uploads, required_reader: RequiredReader):
     entry_id = entry_metadata['entry_id']
     upload_id = entry_metadata['upload_id']
@@ -1326,6 +1328,7 @@ def _validate_required(required: ArchiveRequired, user) -> RequiredReader:
         )
 
 
+@traced(span_name='entries.read_entry_from_archive')
 def _read_entry_from_archive(entry: dict, uploads, required_reader: RequiredReader):
     entry_id, upload_id = entry['entry_id'], entry['upload_id']
 
@@ -1344,6 +1347,7 @@ def _read_entry_from_archive(entry: dict, uploads, required_reader: RequiredRead
         return None
 
 
+@traced(span_name='entries.answer_entries_archive_request')
 async def _answer_entries_archive_request(
     request: Request,
     owner: Owner,
@@ -1496,6 +1500,7 @@ async def get_entries_archive_query(
     )
 
 
+@traced(span_name='entries.answer_entries_archive_download_request')
 def _answer_entries_archive_download_request(
     owner: Owner, query: Query, required: ArchiveRequired, files: Files, user: User
 ):
@@ -1881,6 +1886,7 @@ def get_entry_raw_file(
     )
 
 
+@traced(span_name='entries.answer_entry_archive_request')
 def answer_entry_archive_request(
     query: dict, required: ArchiveRequired, user: User, entry_metadata=None
 ):
@@ -1939,6 +1945,7 @@ def answer_entry_archive_request(
         _bad_edit_request_unauthorized,
     ),
 )
+@traced(span_name='entries.post_entry_edit')
 def post_entry_edit(
     data: EntryEdit,
     entry_id: Annotated[

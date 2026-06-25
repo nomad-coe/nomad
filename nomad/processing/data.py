@@ -2558,6 +2558,7 @@ class Upload(Proc):
         else:
             self.cleanup()
 
+    @traced(span_name='upload.put_file_and_process_local')
     def put_file_and_process_local(
         self, path, target_dir, reprocess_settings: Reprocess | None = None
     ) -> Entry:

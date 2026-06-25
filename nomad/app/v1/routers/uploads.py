@@ -71,6 +71,7 @@ from nomad.processing import (
 )
 from nomad.search import QueryValidationError, search, search_iterator
 from nomad.search import refresh as search_refresh
+from nomad.tracing import traced
 from nomad.utils import strip
 
 from ..models import (
@@ -1135,6 +1136,7 @@ def get_upload_entry(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.get_upload_rawdir_path')
 def get_upload_rawdir_path(
     request: Request,
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
@@ -1308,6 +1310,7 @@ async def get_upload_raw(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.get_upload_raw_path')
 def get_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
@@ -2657,6 +2660,7 @@ def post_upload_action_lift_embargo(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.get_upload_bundle')
 def get_upload_bundle(
     user: Annotated[
         User,
@@ -2940,6 +2944,7 @@ async def post_upload_bundle(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.transfer_upload_bundle')
 def transfer_upload_bundle(
     transfer_options: TransferBundleRequest,
     upload_id: Annotated[

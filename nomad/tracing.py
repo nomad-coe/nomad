@@ -68,28 +68,52 @@ def traced(func=None, *, span_name=None):
     """
     Decorator to trace a function call with OpenTelemetry.
     """
+    import asyncio
     from functools import wraps
 
     def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if not telemetry_enabled:
-                return f(*args, **kwargs)
+        if asyncio.iscoroutinefunction(f):
 
-            from opentelemetry import trace
+            @wraps(f)
+            async def wrapper(*args, **kwargs):
+                if not telemetry_enabled:
+                    return await f(*args, **kwargs)
 
-            tracer = trace.get_tracer(f.__module__)
-            name = span_name or f'{f.__qualname__}'
-            with tracer.start_as_current_span(name) as span:
-                try:
-                    result = f(*args, **kwargs)
-                    return result
-                except Exception as e:
-                    span.record_exception(e)
-                    span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
-                    raise
+                from opentelemetry import trace
 
-        return wrapper
+                tracer = trace.get_tracer(f.__module__)
+                name = span_name or f'{f.__qualname__}'
+                with tracer.start_as_current_span(name) as span:
+                    try:
+                        result = await f(*args, **kwargs)
+                        return result
+                    except Exception as e:
+                        span.record_exception(e)
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                        raise
+
+            return wrapper
+        else:
+
+            @wraps(f)
+            def wrapper(*args, **kwargs):
+                if not telemetry_enabled:
+                    return f(*args, **kwargs)
+
+                from opentelemetry import trace
+
+                tracer = trace.get_tracer(f.__module__)
+                name = span_name or f'{f.__qualname__}'
+                with tracer.start_as_current_span(name) as span:
+                    try:
+                        result = f(*args, **kwargs)
+                        return result
+                    except Exception as e:
+                        span.record_exception(e)
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                        raise
+
+            return wrapper
 
     if func:
         return decorator(func)

@@ -37,6 +37,7 @@ from nomad.metainfo import (
     Section,
     SubSection,
 )
+from nomad.tracing import traced
 
 from ..datamodel.context import ServerContext, parse_path
 from .query import (
@@ -252,6 +253,7 @@ class RequiredReader:
     #
     #     return result
 
+    @traced(span_name='archive.RequiredReader.read')
     def read(
         self, archive_reader: ArchiveReader, entry_id: str, upload_id: str
     ) -> dict:

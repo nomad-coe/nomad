@@ -32,6 +32,7 @@ from nomad.graph.graph_reader import (
     UserReader,
 )
 from nomad.graph.lazy_wrapper import LazyWrapper
+from nomad.tracing import traced
 
 from ..models import User
 from .entries import EntriesArchive
@@ -82,6 +83,7 @@ def relocate_children(request):
     response_class=GraphJSONResponse,
     include_in_schema=False,
 )
+@traced(span_name='graph.raw_query')
 async def raw_query(
     user: Annotated[User, Depends(get_current_user([Scope.GRAPH_READ]))],
     query=Body(...),
@@ -105,6 +107,7 @@ async def raw_query(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='graph.basic_query')
 async def basic_query(
     user: Annotated[User, Depends(get_current_user([Scope.GRAPH_READ]))],
     # todo: may need to re-enable validation
@@ -132,6 +135,7 @@ async def basic_query(
     response_class=GraphJSONResponse,
     include_in_schema=False,
 )
+@traced(span_name='graph.archive_query')
 async def archive_query(
     data: EntriesArchive,
     user: Annotated[User, Depends(get_current_user([Scope.GRAPH_READ]))],
