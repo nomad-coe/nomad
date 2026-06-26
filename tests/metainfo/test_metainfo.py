@@ -391,6 +391,21 @@ class TestM2:
             class TestSection(Run, System):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
 
+    def test_extending_sections_registration(self):
+        class TestBase(MSection):
+            base_value = Quantity(type=str)
+
+        class TestExtension(TestBase):
+            m_def = Section(extends_base_section=True)
+            extension_value = Quantity(type=str)
+
+        pkg = Package(section_definitions=[TestBase.m_def, TestExtension.m_def])
+        pkg.init_metainfo()
+        pkg.init_metainfo()  # should be deduplicated
+
+        assert TestExtension.m_def not in TestBase.m_def.inheriting_sections
+        assert TestBase.m_def.extending_sections == [TestExtension.m_def]
+
     def test_qualified_name(self):
         assert System.m_def.qualified_name() == 'nomad.metainfo.example.System'
 

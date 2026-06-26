@@ -288,6 +288,8 @@ def derive_authors(entry: 'EntryMetadata') -> list[User]:
 
 
 class CompatibleSectionDef(MSection):
+    """A directly used section definition or one of its recursive base sections."""
+
     definition_qualified_name = Quantity(
         type=str,
         description='The qualified name of the compatible section.',
@@ -1187,6 +1189,13 @@ class EntryMetadata(MSection):
                 for v in CompatibleSectionDef.m_def.quantities
             )
 
+        compatible_sections: dict[Section, bool] = {
+            section: True for section in sections_set
+        }
+        for section in sections_set:
+            for base_section in section.all_base_sections:
+                compatible_sections.setdefault(base_section, False)
+
         self.entry_references.extend(entry_references)
         self.search_quantities.extend(search_quantities)
         self.quantities = sorted(list(quantities))
@@ -1201,34 +1210,12 @@ class EntryMetadata(MSection):
                 used_directly=used_directly,
             )
 
-        def collect_base_sections(_section, used_directly: bool = False):
-            for _b in _section.base_sections:
-                if used_directly:
-                    # always overrides the directly used section definitions
-                    section_defs[_b.qualified_name()] = generate_compatible(
-                        _b, used_directly=used_directly
-                    )
-                elif _b.qualified_name() not in section_defs:
-                    # indirect usage may be directly used elsewhere, do not overwrite
-                    section_defs[_b.qualified_name()] = generate_compatible(
-                        _b, used_directly=used_directly
-                    )
-                # all the base sections of the base sections are indirectly used
-                collect_base_sections(_b, used_directly=False)
-
-        section_defs = {}
-        for section in sections_set:
-            section_defs[section.qualified_name()] = generate_compatible(
-                section, used_directly=True
-            )
-            for extending in section.extending_sections:
-                section_defs[extending.qualified_name()] = generate_compatible(
-                    extending, used_directly=True
-                )
-            collect_base_sections(section, used_directly=True)
-
         self.section_defs = sorted(
-            list(section_defs.values()), key=lambda x: x.definition_qualified_name
+            [
+                generate_compatible(section, used_directly=used_directly)
+                for section, used_directly in compatible_sections.items()
+            ],
+            key=lambda x: x.definition_qualified_name,
         )
 
 

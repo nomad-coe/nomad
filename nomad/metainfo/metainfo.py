@@ -3780,17 +3780,21 @@ class Section(Definition):
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
+        # Regular inheritance: register as a normal child
         if not self.extends_base_section:
             for base_section in self.base_sections:
                 if self not in base_section.inheriting_sections:
                     base_section.inheriting_sections += [self]  # cannot use append here
+
+        # Extension: register as an extender of its single base section
         elif len(self.base_sections) == 1:
             base_section = self.base_sections[0]
             for name, attr in self.section_cls.__dict__.items():
                 if isinstance(attr, Property):
                     setattr(base_section.section_cls, name, attr)
-            if self not in base_section.inheriting_sections:
+            if self not in base_section.extending_sections:
                 base_section.extending_sections += [self]  # cannot use append here
+
         else:
             raise MetainfoError(
                 f'Section {self} extend the base section, but has no or more than one base section.'
