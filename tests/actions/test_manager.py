@@ -16,6 +16,7 @@ from nomad.actions.manager import (
     RequestSignalInputActivityInput,
     _async_stop_workflow,
     _get_param_schema,
+    _to_dict,
     _validate_with_pydantic,
     get_action_result,
     get_action_result_async,
@@ -98,6 +99,37 @@ def test_validate_with_pydantic():
 
     with pytest.raises(Exception):
         _validate_with_pydantic(my_func, {'arg1': 'test'})
+
+
+def test_to_dict():
+    from pydantic import SecretStr
+
+    class NestedModel(BaseModel):
+        secret_val: SecretStr
+        normal_val: str
+
+    class TestModel(BaseModel):
+        direct_secret: SecretStr
+        nested_model: NestedModel
+        list_secrets: list[SecretStr]
+        list_models: list[NestedModel]
+
+    data = TestModel(
+        direct_secret=SecretStr('secret1'),
+        nested_model=NestedModel(secret_val=SecretStr('secret2'), normal_val='normal'),
+        list_secrets=[SecretStr('secret3'), SecretStr('secret4')],
+        list_models=[
+            NestedModel(secret_val=SecretStr('secret5'), normal_val='normal2')
+        ],
+    )
+
+    serialized = _to_dict(data)
+    assert 'direct_secret' not in serialized
+    assert 'secret_val' not in serialized['nested_model']
+    assert serialized['nested_model']['normal_val'] == 'normal'
+    assert serialized['list_secrets'] == []
+    assert 'secret_val' not in serialized['list_models'][0]
+    assert serialized['list_models'][0]['normal_val'] == 'normal2'
 
 
 def test_get_param_schema():

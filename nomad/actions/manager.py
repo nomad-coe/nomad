@@ -17,7 +17,7 @@ import uuid
 from collections.abc import Coroutine
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import Any, get_type_hints
 
 from pydantic import BaseModel, SecretBytes, SecretStr, TypeAdapter
 from temporalio import activity, workflow
@@ -174,24 +174,49 @@ def _run_temporal_sync(coro: Coroutine[Any, Any, Any]) -> Any:
 
 
 def _to_dict(data: Any) -> dict:
-    if isinstance(data, BaseModel):  # pydantic
-        secret_types = (SecretStr, SecretBytes)
-        secret_fields = {
-            field_name
-            for field_name, field_info in type(data).model_fields.items()
-            if field_info.annotation in secret_types
-            or (
-                get_origin(field_info.annotation)
-                and any(arg in secret_types for arg in get_args(field_info.annotation))
+    """Convert data to dictionary and remove all secret fields"""
+
+    def _internal_to_dict(data: Any) -> dict:
+        "Convert input to dictionary"
+        if isinstance(data, BaseModel):  # pydantic
+            return data.model_dump(by_alias=True)
+        elif is_dataclass(data) and not isinstance(data, type):
+            return asdict(data)
+        elif isinstance(data, dict):  # already a dict
+            return data
+        else:
+            raise TypeError(f'Unsupported type: {type(data)}')
+
+    def _remove_secrets(val: Any) -> Any:
+        """Recursively remove all secrets in the generated dictionary/lists"""
+        if isinstance(val, dict):
+            new_data = {}
+            for k, v in val.items():
+                if isinstance(v, (SecretStr, SecretBytes)):
+                    continue
+                new_data[k] = _remove_secrets(v)
+            return new_data
+        elif isinstance(val, list):
+            return [
+                _remove_secrets(item)
+                for item in val
+                if not isinstance(item, (SecretStr, SecretBytes))
+            ]
+        elif isinstance(val, tuple):
+            return tuple(
+                _remove_secrets(item)
+                for item in val
+                if not isinstance(item, (SecretStr, SecretBytes))
             )
-        }
-        return data.model_dump(by_alias=True, exclude=secret_fields)
-    elif is_dataclass(data) and not isinstance(data, type):
-        return asdict(data)
-    elif isinstance(data, dict):  # already a dict
-        return data
-    else:
-        raise TypeError(f'Unsupported type: {type(data)}')
+        elif isinstance(val, set):
+            return {
+                _remove_secrets(item)
+                for item in val
+                if not isinstance(item, (SecretStr, SecretBytes))
+            }
+        return val
+
+    return _remove_secrets(_internal_to_dict(data))
 
 
 def _validate_with_pydantic(func: Callable, arg):
