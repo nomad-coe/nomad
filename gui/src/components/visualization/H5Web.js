@@ -42,11 +42,14 @@ const H5Web = ({upload_id, filename, initialPath, sidebarOpen, source}) => {
             params: {
               file: filepath, upload_id: upload_id, format, path: dataset.path, source: source
             },
-            headers: {Authorization: "Bearer " + api?.keycloak?.token}
+            headers: (api?.keycloak?.token ? {Authorization: "Bearer " + api?.keycloak?.token} : {})
           })
           return new File([response.data], "test." + format)
         }}
-        axiosConfig={{params: {file: filepath, upload_id: upload_id, source: source}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
+        axiosConfig={{
+          params: {file: filepath, upload_id: upload_id, source: source},
+          headers: (api?.keycloak?.token ? {Authorization: "Bearer " + api?.keycloak?.token} : {})
+        }}
       >
         <App disableDarkMode initialPath={initialPath} sidebarOpen={sidebarOpen}/>
 
