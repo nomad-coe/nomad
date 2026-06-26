@@ -44,8 +44,7 @@ from .common import assert_entry
     'mode, user, expected_status_code',
     [pytest.param('multipart', 'user1', 409, id='conflict_in_concurrent_editing')],
 )
-# Flaky when run concurrently via pytest-xdist
-@pytest.mark.xfail()
+@pytest.mark.xfail(reason='Flaky when run concurrently via pytest-xdist')
 def test_editing_raw_file(
     proc_infra,
     auth_headers,

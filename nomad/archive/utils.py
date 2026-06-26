@@ -20,8 +20,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 from msglc import FileInfo, LazyReader, LazyWriter, combine, dump
+
+if TYPE_CHECKING:
+    from typing import Any
 
 v2_magic: bytes = b'nomad-archive-v2023'
 v2_magic_len: int = len(v2_magic)
@@ -123,7 +127,8 @@ def read_archive(file_or_path: str | BytesIO, **kwargs):
     raise NotImplementedError
 
 
-def to_json(data):
+def to_json(data: Any) -> Any:
+    """Convert data into JSON-compatible Python data."""
     if hasattr(data, 'to_json'):
         return data.to_json()
 
