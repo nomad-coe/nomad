@@ -10,7 +10,6 @@ from fsspec.implementations.local import LocalFileSystem
 
 from nomad import bundles, datamodel, processing, utils
 from nomad.archive import read_archive, to_json, write_archive
-from nomad.config import config
 from nomad.datamodel import EntryArchive, OptimadeEntry, User
 from nomad.datamodel.datamodel import SearchableQuantity
 from nomad.files import FSUtility, UploadFiles
@@ -238,7 +237,6 @@ async def processeds(
     return results
 
 
-@pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def non_empty_processed(
     non_empty_uploaded: tuple[str, str], user1: User, proc_infra
