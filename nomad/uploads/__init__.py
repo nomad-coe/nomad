@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from nomad.processing import Upload
+from nomad.files import StagingUploadFiles, PublicUploadFiles
+from nomad.infrastructure import mongo_client, setup_mongo
+from nomad.processing.data import Upload
 
 
 def _as_unique_user_ids(user_ids: str | Iterable[str]) -> list[str]:
@@ -82,3 +82,112 @@ def remove_upload_reviewers(
         resolved_upload.save()
 
     return removed
+
+
+def _get_upload(upload_id: str) -> Upload:
+    """
+    Retrieve an upload document without applying any access checks.
+
+    Args:
+        upload_id: The unique identifier for the upload.
+
+    Returns:
+        The matching upload document.
+
+    Raises:
+        AttributeError: If no upload exists for the given id.
+    """
+
+    if mongo_client is None:
+        setup_mongo()
+
+    upload = Upload.get(upload_id)
+
+    if upload is None:
+        raise AttributeError(f'No upload found with id: {upload_id}')
+
+    return upload
+
+
+def _check_upload_access(upload_id, user_id: str) -> bool:
+    """
+    Check whether the given user can access the upload.
+
+    Access is currently limited to the upload's main author and direct coauthors.
+
+    Args:
+        upload_id: The unique identifier for the upload.
+        user_id: The unique identifier for the user requesting access.
+
+    Returns:
+        True if the user is authorized to access the upload, otherwise False.
+    """
+
+    upload = _get_upload(upload_id)
+
+    is_coauthor = isinstance(upload.coauthors, list) and user_id in upload.coauthors
+    is_authorized = upload.main_author == user_id or is_coauthor
+
+    if not is_authorized:
+        return False
+
+    return True
+
+
+def get_upload(upload_id: str, user_id: str) -> Upload:
+    """
+    Retrieve an upload after verifying user authorization.
+
+    Args:
+        upload_id: The unique identifier for the upload.
+        user_id: The unique identifier for the user.
+
+    Returns:
+        The matching upload document.
+
+    Raises:
+        PermissionError: If the upload exists but the user is not authorized.
+    """
+    if not _check_upload_access(upload_id, user_id):
+        raise PermissionError(
+            f'User {user_id} is not authorized to access upload {upload_id}.'
+        )
+
+    upload = _get_upload(upload_id)
+
+    return upload
+
+
+def get_upload_files(
+    upload_id: str, user_id: str
+) -> StagingUploadFiles | PublicUploadFiles:
+    """
+    Retrieve upload files after verifying user authorization.
+
+    If access is granted, staging files are preferred when present;
+    otherwise public files are returned.
+
+    Args:
+        upload_id: The unique identifier for the upload.
+        user_id: The unique identifier for the user.
+
+    Returns:
+        The upload files object for the upload.
+
+    Raises:
+        PermissionError: If the upload exists but the user is not authorized.
+        AttributeError: If the upload exists but neither staging nor public files
+            are available.
+    """
+    if not _check_upload_access(upload_id, user_id):
+        raise PermissionError(
+            f'User {user_id} is not authorized to access upload {upload_id}.'
+        )
+
+    # User is authorized, retrieve and return files
+    if StagingUploadFiles.exists_for(upload_id):
+        return StagingUploadFiles(upload_id)
+    if PublicUploadFiles.exists_for(upload_id):
+        return PublicUploadFiles(upload_id)
+
+    raise AttributeError(f'No public or staging upload files not found for {upload_id}')

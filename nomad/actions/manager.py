@@ -14,10 +14,11 @@ import inspect
 import os
 import threading
 import uuid
+import warnings
 from collections.abc import Coroutine
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 from pydantic import BaseModel, SecretBytes, SecretStr, TypeAdapter
 from temporalio import activity, workflow
@@ -56,10 +57,11 @@ from nomad.actions.streams import (
     stream_processing_events_for_user_async,
 )
 from nomad.config import config
-from nomad.files import StagingUploadFiles
 from nomad.metainfo.metainfo import Callable
-from nomad.processing.data import Upload
 from nomad.utils.structlogging import get_logger
+
+if TYPE_CHECKING:
+    from nomad.files import PublicUploadFiles, StagingUploadFiles
 
 __all__ = [
     'ActionRecord',
@@ -711,8 +713,13 @@ async def get_user_action(action_instance_id: str, user_id: str) -> ActionRecord
     return ActionRecord.model_validate(action_document)
 
 
-def get_upload_files(upload_id: str, user_id: str) -> StagingUploadFiles | None:
+def get_upload_files(
+    upload_id: str, user_id: str
+) -> 'StagingUploadFiles | PublicUploadFiles':
     """
+    NOTE: This function is deprecated. Import `get_upload_files` from nomad.uploads
+    instead.
+
     Retrieves files for an upload after verifying user authorization.
 
     Checks if the user is the main author or a coauthor.
@@ -722,35 +729,20 @@ def get_upload_files(upload_id: str, user_id: str) -> StagingUploadFiles | None:
         user_id: The unique identifier for the user.
 
     Returns:
-        The UploadFiles object if found and authorized, otherwise None
-        (if the upload doesn't exist or the associated files aren't found).
-
-    Raises:
-        PermissionError: If the upload exists but the user is not authorized.
+        The UploadFiles object if found and authorized.
     """
-    if infrastructure.mongo_client is None:
-        infrastructure.setup_mongo()
+    warnings.warn(
+        '`nomad.actions.manager.get_upload_files` is deprecated; '
+        'import `get_upload_files` from `nomad.uploads` instead.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    upload = Upload.get(upload_id)
+    from nomad.uploads import get_upload_files as nomad_get_upload_files
 
-    if upload is None:
-        return None
+    upload_files = nomad_get_upload_files(upload_id, user_id)
 
-    # Determine if user is authorized to get the upload.
-    is_coauthor = isinstance(upload.coauthors, list) and user_id in upload.coauthors
-    is_authorized = upload.main_author == user_id or is_coauthor
-
-    # Raise error if not authorized
-    if not is_authorized:
-        raise PermissionError(
-            f'User {user_id} is not authorized to access upload {upload_id}.'
-        )
-
-    # User is authorized, retrieve and return files
-    if StagingUploadFiles.exists_for(upload_id):
-        return StagingUploadFiles(upload_id)
-
-    return None
+    return upload_files
 
 
 def action_artifacts_dir() -> str:
