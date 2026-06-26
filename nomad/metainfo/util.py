@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import re
 from copy import deepcopy
 from typing import Any, cast
@@ -945,3 +946,51 @@ def quantity_to_json_schema(
     else:
         schema.update(shape_to_json_schema(quantity.shape, base_type, value_schema))
     return schema
+
+
+class MDefNotFound(ValueError):
+    """Raised when a metainfo definition cannot be found."""
+
+
+class MDefWithoutMetainfo(ValueError):
+    """Raised when a resolved object does not expose a metainfo definition."""
+
+
+def resolve_m_def(m_def: str):
+    """
+    Resolve Section/SubSection/Quantity from qualified name (m_def) such as:
+        package_name.schema_packages.calculations.MySchema
+        package_name.schema_packages.calculations.MySection.sub_section
+        package_name.schema_packages.calculations.quantity
+
+    """
+    parts: list[str] = m_def.split('.')
+    module_path: str = '.'.join(parts[:-1])
+    class_name: str = parts[-1]
+
+    try:
+        module = importlib.import_module(module_path)
+        section = getattr(module, class_name)
+    except (ImportError, AttributeError, ValueError):
+        try:
+            module_path = '.'.join(parts[:-2])
+            class_name = parts[-2]
+            property_name = parts[-1]
+            module = importlib.import_module(module_path)
+            section = getattr(getattr(module, class_name), property_name)
+        except (ImportError, AttributeError, ValueError, IndexError) as e:
+            raise MDefNotFound(
+                f'Could not resolve {m_def} to a valid schema class or property.',
+            ) from e
+
+    if not hasattr(section, 'm_def'):
+        raise MDefWithoutMetainfo(
+            f'{section=} does not have metainfo definition.',
+        )
+
+    # otherwise circular import
+    from nomad.metainfo import Quantity, SubSection
+
+    if isinstance(section, (SubSection, Quantity)):
+        return section
+    return section.m_def

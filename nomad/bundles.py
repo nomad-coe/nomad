@@ -18,6 +18,7 @@ from fastapi import HTTPException, status
 from packaging import version
 
 from nomad import datamodel, search, utils
+from nomad.app.v1.models import MetadataRequired
 from nomad.config import config
 from nomad.config.models.config import BundleExportSettings, BundleImportSettings
 from nomad.files import (
@@ -32,13 +33,49 @@ from nomad.files import (
     StreamedFileSource,
     UploadFiles,
     ZipFileSource,
-    bundle_info_filename,
     create_zipstream,
     json_to_streamed_file,
     zipfile,
 )
+from nomad.files import bundle_info_filename as BUNDLE_INFO_FILENAME
+from nomad.metainfo import Section
+from nomad.metainfo.util import resolve_m_def
 from nomad.processing.base import ProcessStatus
 from nomad.processing.data import Entry, Upload, mongo_entry_metadata
+
+
+def get_section_defs_for_upload(upload_id: str) -> list[Section]:
+    """Get section definitions from all entries in an upload."""
+    upload = Upload.get(upload_id)
+    definitions_by_id: dict[str, Section] = {}
+
+    entries = search.search_iterator(
+        owner='all',
+        query={'upload_id': upload_id, 'processed': True},
+        user_id=upload.main_author,
+        required=MetadataRequired(
+            include=[
+                'entry_id',
+                'section_defs.definition_qualified_name',
+                'section_defs.definition_id',
+            ]
+        ),
+    )
+
+    for entry in entries:
+        for section_def in entry.get('section_defs', []):
+            qualified_name = section_def.get('definition_qualified_name')
+            if not qualified_name:
+                continue
+
+            definition = resolve_m_def(qualified_name)
+            if isinstance(definition, Section):
+                definitions_by_id.setdefault(
+                    section_def.get('definition_id', definition.definition_id),
+                    definition,
+                )
+
+    return list(definitions_by_id.values())
 
 
 class BundleExporter:
@@ -50,7 +87,7 @@ class BundleExporter:
         zipped: bool,
         overwrite: bool,
         export_settings: BundleExportSettings,
-    ):
+    ) -> None:
         """
         Class for exporting an upload as a *bundle*. Bundles are used to export and import
         uploads between different NOMAD installations. After instantiating a BundleExporter,
@@ -85,12 +122,12 @@ class BundleExporter:
         self.export_settings = export_settings
 
     @classmethod
-    def check_export_settings(cls, export_settings: BundleExportSettings):
+    def check_export_settings(cls, export_settings: BundleExportSettings) -> None:
         assert (
             export_settings.include_archive_files or export_settings.include_raw_files
         ), 'Export must include the archive files or the raw files, or both'
 
-    def export_bundle(self) -> Iterable[bytes]:
+    def export_bundle(self) -> Iterable[bytes] | None:
         # Safety checks
         if self.export_as_stream:
             assert self.export_path is None, (
@@ -106,26 +143,28 @@ class BundleExporter:
             assert self.overwrite or not os.path.exists(self.export_path), (
                 '`export_path` already exists.'
             )
-        assert (
-            not self.upload.process_running
-            or self.upload.current_process == 'publish_externally'
-            or self.upload.current_process == '_publish_externally'
+
+        assert not self.upload.process_running or self.upload.current_process in (
+            'publish_externally',
+            '_publish_externally',
         ), 'Upload is being processed.'
 
         file_source = CombinedFileSource(self._get_file_sources())
 
-        # Export
+        # Export as stream
         if self.export_as_stream:
             return create_zipstream(file_source.to_streamed_files())
+
+        # Create parent dir
+        os.makedirs(os.path.dirname(os.path.abspath(self.export_path)), exist_ok=True)
+
+        if self.zipped:
+            file_source.to_zipfile(self.export_path, self.overwrite)
         else:
-            # Create parent dir if it does not exist
-            parent_dir = os.path.dirname(os.path.abspath(self.export_path))
-            if not os.path.exists(parent_dir):
-                os.makedirs(parent_dir)
-            if self.zipped:
-                file_source.to_zipfile(self.export_path, self.overwrite)
-            else:
-                file_source.to_disk(self.export_path, False, self.overwrite)
+            file_source.to_disk(
+                self.export_path, move_files=False, overwrite=self.overwrite
+            )
+
         return None
 
     def _get_file_sources(self) -> Iterable[FileSource]:
@@ -133,14 +172,18 @@ class BundleExporter:
         # 1. The bundle info json
         bundle_info = self._create_bundle_info()
         yield StreamedFileSource(
-            json_to_streamed_file(bundle_info, bundle_info_filename)
+            json_to_streamed_file(bundle_info, BUNDLE_INFO_FILENAME)
         )
 
         # 2. Files from the upload dir
         yield from self.upload.upload_files.files_to_bundle(self.export_settings)
 
-    def _create_bundle_info(self):
-        """Create the bundle_info.json data"""
+    def _create_bundle_info(self) -> dict[str, Any]:
+        """Create the bundle_info.json manifest used to recreate the upload.
+
+        The manifest stores source deployment metadata, export settings, upload
+        metadata, successful entry metadata, and optionally dataset definitions.
+        """
         bundle_info: dict[str, Any] = dict(
             upload_id=self.upload.upload_id,
             source=config.meta.dict(),  # Information about the source system, i.e. this NOMAD installation
@@ -159,6 +202,7 @@ class BundleExporter:
                     entry_dict['datasets'] = None
                 else:
                     dataset_ids.update(entry_datasets)
+
         if self.export_settings.include_datasets:
             bundle_info['datasets'] = [
                 datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
@@ -187,13 +231,14 @@ class BundleImporter:
                 `BundleImportSettings` for applicable options.
                 NOTE: the dictionary must specify a complete set of options.
             embargo_length:
-                Used to set the embargo length. If set to None, the value will be imported
+                Used to set the embargo length in months. If set to None, the value will be imported
                 from the bundle. The value should be between 0 and 36. A value of 0 means
                 no embargo.
         """
         self.user = user
         self.import_settings = import_settings
         self.embargo_length = embargo_length
+
         # Internals
         self.bundle_path: str = None
         self.bundle: BrowsableFileSource = None
@@ -210,11 +255,11 @@ class BundleImporter:
                 if not path.lower().endswith('.zip'):
                     return False
                 zip_file = zipfile.ZipFile(path, 'r')
-                zip_file.getinfo(bundle_info_filename)
+                zip_file.getinfo(BUNDLE_INFO_FILENAME)
                 return True
             except Exception:
                 return False
-        return os.path.isfile(os.path.join(path, bundle_info_filename))
+        return os.path.isfile(os.path.join(path, BUNDLE_INFO_FILENAME))
 
     def check_api_permissions(self):
         """
@@ -358,7 +403,7 @@ class BundleImporter:
     def bundle_info(self):
         if not self._bundle_info:
             assert self.bundle, 'Must open a bundle before getting the bundle info.'
-            with self.bundle.open(bundle_info_filename, 'rt') as f:
+            with self.bundle.open(BUNDLE_INFO_FILENAME, 'rt') as f:
                 self._bundle_info = json.load(f, cls=StandardJSONDecoder)
         return self._bundle_info
 

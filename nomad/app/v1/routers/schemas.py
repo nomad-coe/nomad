@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import importlib
 from enum import Enum
 from typing import Annotated
 
@@ -25,7 +24,7 @@ from fastapi.responses import JSONResponse
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
-from nomad.metainfo import Quantity, SubSection
+from nomad.metainfo.util import MDefNotFound, MDefWithoutMetainfo, resolve_m_def
 
 router = APIRouter()
 
@@ -133,47 +132,22 @@ Format for the returned schema. Available formats:
     schema is serialized in the format specified by the `format` query parameter.
     """
 
-    def resolve_m_def(m_def: str):
-        """
-        Resolve Section/SubSection/Quantity from qualified name (m_def) such as:
-            package_name.schema_packages.calculations.MySchema
-            package_name.schema_packages.calculations.MySection.sub_section
-            package_name.schema_packages.calculations.quantity
-        """
-        parts: list[str] = m_def.split('.')
-        module_path: str = '.'.join(parts[:-1])
-        class_name: str = parts[-1]
-
-        try:
-            module = importlib.import_module(module_path)
-            section = getattr(module, class_name)
-        except (ImportError, AttributeError, ValueError) as e:
-            try:
-                module_path = '.'.join(parts[:-2])
-                class_name = parts[-2]
-                property_name = parts[-1]
-                module = importlib.import_module(module_path)
-                section = getattr(getattr(module, class_name), property_name)
-            except (ImportError, AttributeError, ValueError, IndexError) as e:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f'Could not resolve {m_def} to a valid schema class  or property.',
-                ) from e
-
-        if not hasattr(section, 'm_def'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'{section=} does not have metainfo definition.',
-            )
-        if isinstance(section, SubSection) or isinstance(section, Quantity):
-            return section
-        return section.m_def
-
     # Split the identifier into qualified name and optional tag
     qualified_name, _, tag = schema_id.partition('@')
 
     # Resolve class
-    section = resolve_m_def(m_def=qualified_name)
+    try:
+        section = resolve_m_def(m_def=qualified_name)
+    except MDefNotFound as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Could not resolve {qualified_name} to a valid schema class or property.',
+        ) from e
+    except MDefWithoutMetainfo as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
 
     # Check the tag if provided
     if tag and tag != section.definition_id:
@@ -191,7 +165,7 @@ Format for the returned schema. Available formats:
             ),
             media_type='application/schema+json',
         )
-    elif format == SerializationFormat.METAINFO:
+    if format == SerializationFormat.METAINFO:
         return JSONResponse(
             content=section.m_def.m_to_dict(),
             media_type='application/json',

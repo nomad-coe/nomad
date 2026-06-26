@@ -2171,11 +2171,10 @@ class MSection(metaclass=MObjectMeta):
     def m_from_dict(
         cls: type[MSectionBound], data: dict[str, Any], **kwargs
     ) -> MSectionBound:
-        """Creates a section from the given serializable data dictionary.
+        """Creates a Section from the given serializable data dictionary.
 
         This is the 'opposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g.
-        loaded from JSON, and turns it into a proper section, i.e. instance of the given
-        section class.
+        loaded from JSON, and turns it into an instance of the given Section class.
         """
         return MSection.from_dict(data, cls=cls, **kwargs)
 
@@ -4003,6 +4002,7 @@ class Package(Definition):
 
     @property
     def m_is_custom_package(self) -> bool:
+        """Whether this package is backed by an uploaded schema entry."""
         return self.upload_id is not None and self.entry_id is not None
 
     def __init_metainfo__(self):
@@ -4451,7 +4451,7 @@ def all_definitions(self):
 @derived(cached=True)
 def dependencies(self):
     """
-    All packages which have definitions that definitions from this package need. Being
+    All packages that provide definitions needed by this package. Being
     'needed' includes categories, base sections, and referenced definitions.
     """
     to_add = set()
