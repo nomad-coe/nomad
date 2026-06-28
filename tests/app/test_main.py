@@ -250,12 +250,15 @@ def test_external_app_dcat(
 
 def test_user_dependency_on_all_endpoints():
     from nomad.app.main import app
+    from nomad.config import config
 
     ignored_mounts = {'/optimade', '/dcat', '/h5grove'}
 
     whitelisted_endpoints = {
         '/alive',
         '/-/health',
+        '/metrics',
+        f'{config.services.api_base_path}/metrics',
     }
     expected_unprotected = {'/api/v1/auth/token'}
 
