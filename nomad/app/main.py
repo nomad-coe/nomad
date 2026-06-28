@@ -118,9 +118,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+from nomad.metrics import setup_prometheus
 from nomad.tracing import setup_tracing
 
 setup_tracing(app)
+setup_prometheus(app)
 
 app_base = config.services.api_base_path
 

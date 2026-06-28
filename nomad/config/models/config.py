@@ -1824,17 +1824,34 @@ class Uploads(ConfigBaseModel):
     )
 
 
-class Telemetry(ConfigBaseModel):
+class TelemetryTracing(ConfigBaseModel):
     enabled: bool = Field(False, description='Enable OpenTelemetry tracing.')
     service_name: str = Field(
         'nomad-FAIR', description='Service name for OpenTelemetry.'
+    )
+    sampler_ratio: float = Field(
+        0.1, description='The ratio of traces to sample (0.0 to 1.0).'
     )
     otlp_endpoint: str | None = Field(
         'http://localhost:4318/v1/traces',
         description='OTLP exporter endpoint (e.g. grpc://localhost:4317 or http://localhost:4318/v1/traces).',
     )
-    sampler_ratio: float = Field(
-        0.1, description='The ratio of traces to sample (0.0 to 1.0).'
+
+
+class TelemetryMetrics(ConfigBaseModel):
+    api_prometheus_enabled: bool = Field(
+        False, description='Enable Prometheus metrics exporter for FastAPI API.'
+    )
+
+
+class Telemetry(ConfigBaseModel):
+    tracing: TelemetryTracing = Field(
+        default_factory=TelemetryTracing,
+        description='Configuration for OpenTelemetry tracing.',
+    )
+    metrics: TelemetryMetrics = Field(
+        default_factory=TelemetryMetrics,
+        description='Configuration for metrics reporting (e.g., Prometheus).',
     )
 
 
@@ -1898,7 +1915,7 @@ WARNING: Modifying the storage configuration of an existing installation would m
     )
     telemetry: Telemetry = Field(
         default_factory=Telemetry,
-        description='Configuration for OpenTelemetry tracing.',
+        description='Configuration for NOMAD telemetry.',
     )
     tests: Tests = Field(
         default_factory=Tests,

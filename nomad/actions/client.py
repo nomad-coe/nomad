@@ -56,7 +56,7 @@ def _load_cert_or_key(val: str | None) -> bytes | None:
 async def get_client() -> Client:
     # Ensure telemetry is initialized in this process before Temporal plugin checks
     # the global tracer provider type.
-    if config.telemetry.enabled:
+    if config.telemetry.tracing.enabled:
         from nomad.tracing import setup_tracing
 
         setup_tracing()
@@ -70,7 +70,7 @@ async def get_client() -> Client:
         else EncryptionCodec(),
     )
     plugins = []
-    if config.telemetry.enabled:
+    if config.telemetry.tracing.enabled:
         plugins.append(OpenTelemetryPlugin(add_temporal_spans=True))
 
     tls: bool | TLSConfig | None = None

@@ -31,7 +31,7 @@ _setup_done = False
 _setup_pid = None
 _traced_enabled = False
 _instrumented_apps: set[tuple[int, int]] = set()
-telemetry_enabled = config.telemetry.enabled
+telemetry_enabled = config.telemetry.tracing.enabled
 
 
 class TracingProcessPoolExecutor(ProcessPoolExecutor):
@@ -143,7 +143,7 @@ def trace_span(name: str, attributes: dict[str, Any] | None = None):
 
 def setup_tracing(app: 'FastAPI | None' = None):
     global _setup_done, _setup_pid
-    configured_service_name = config.telemetry.service_name
+    configured_service_name = config.telemetry.tracing.service_name
 
     if not telemetry_enabled:
         return
@@ -173,7 +173,7 @@ def setup_tracing(app: 'FastAPI | None' = None):
             pid=current_pid,
             service_name=configured_service_name,
             tracer_provider_type=type(trace.get_tracer_provider()).__name__,
-            otlp_endpoint=config.telemetry.otlp_endpoint,
+            otlp_endpoint=config.telemetry.tracing.otlp_endpoint,
         )
         return
 
@@ -197,22 +197,25 @@ def setup_tracing(app: 'FastAPI | None' = None):
         set_global_textmap(TraceContextTextMapPropagator())
         name = configured_service_name
         resource = Resource.create({'service.name': name})
-        sampler = TraceIdRatioBased(config.telemetry.sampler_ratio)
+        sampler = TraceIdRatioBased(config.telemetry.tracing.sampler_ratio)
         provider = create_tracer_provider(resource=resource, sampler=sampler)
 
-        if config.telemetry.otlp_endpoint:
-            if config.telemetry.otlp_endpoint.startswith('http'):
+        if config.telemetry.tracing.otlp_endpoint:
+            if config.telemetry.tracing.otlp_endpoint.startswith('http'):
                 processor = BatchSpanProcessor(
-                    OTLPHTTPSpanExporter(endpoint=config.telemetry.otlp_endpoint)
+                    OTLPHTTPSpanExporter(
+                        endpoint=config.telemetry.tracing.otlp_endpoint
+                    )
                 )
             else:
                 insecure = (
-                    config.telemetry.otlp_endpoint.startswith('http://')
-                    or 'localhost' in config.telemetry.otlp_endpoint
+                    config.telemetry.tracing.otlp_endpoint.startswith('http://')
+                    or 'localhost' in config.telemetry.tracing.otlp_endpoint
                 )
                 processor = BatchSpanProcessor(
                     OTLPSpanExporter(
-                        endpoint=config.telemetry.otlp_endpoint, insecure=insecure
+                        endpoint=config.telemetry.tracing.otlp_endpoint,
+                        insecure=insecure,
                     )
                 )
             provider.add_span_processor(processor)
@@ -229,8 +232,8 @@ def setup_tracing(app: 'FastAPI | None' = None):
             pid=current_pid,
             service_name=name,
             tracer_provider_type=type(trace.get_tracer_provider()).__name__,
-            otlp_endpoint=config.telemetry.otlp_endpoint,
-            sampler_ratio=config.telemetry.sampler_ratio,
+            otlp_endpoint=config.telemetry.tracing.otlp_endpoint,
+            sampler_ratio=config.telemetry.tracing.sampler_ratio,
         )
 
         PymongoInstrumentor().instrument()

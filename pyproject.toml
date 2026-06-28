@@ -92,6 +92,7 @@ infrastructure = [
   "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
   "opentelemetry-instrumentation-pymongo==0.63b1",
   "opentelemetry-instrumentation-elasticsearch==0.63b1",
+  "prometheus-client",
   "uvicorn[standard]",
   "validators",
   "zipstream-ng",

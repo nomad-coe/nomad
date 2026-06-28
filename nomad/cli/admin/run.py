@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import os
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -199,7 +200,6 @@ def run_app(
 
     if with_gui:
         import glob
-        import os
         import shutil
 
         gui_folder = os.path.abspath(
@@ -268,6 +268,26 @@ def run_app(
                 # without this, scope['scheme'] stays 'http' and absolute URLs
                 # (e.g. the slash-redirect target) are emitted as http://.
                 self.cfg.set('forwarded_allow_ips', '*')
+
+                if config.telemetry.metrics.api_prometheus_enabled:
+                    import shutil
+
+                    multiproc_dir = os.path.join(config.fs.tmp, 'prometheus_multiproc')
+                    os.environ['PROMETHEUS_MULTIPROC_DIR'] = multiproc_dir
+
+                    from prometheus_client import multiprocess
+
+                    def on_starting(server):
+                        if os.path.exists(multiproc_dir):
+                            shutil.rmtree(multiproc_dir)
+                        os.makedirs(multiproc_dir, exist_ok=True)
+
+                    def child_exit(server, worker):
+                        multiprocess.mark_process_dead(worker.pid)
+
+                    self.cfg.set('on_starting', on_starting)
+                    self.cfg.set('child_exit', child_exit)
+
                 for key, value in kwargs.items():
                     if key in self.cfg.settings and value is not None:
                         self.cfg.set(key, value)
