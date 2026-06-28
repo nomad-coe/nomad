@@ -18,6 +18,7 @@
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.staticfiles import StaticFiles
 
 from nomad.config import config
 from nomad.metrics import setup_prometheus
@@ -87,5 +88,58 @@ def test_prometheus_monitoring_unmatched(monkeypatch):
     assert metrics_response.status_code == 200
     assert (
         'nomad_fastapi_requests_total{method="GET",path="/unmatched",status_code="404"}'
+        in metrics_response.text
+    )
+
+
+def test_prometheus_monitoring_mounted_fastapi_uses_templated_path(monkeypatch):
+    monkeypatch.setattr(config.telemetry.metrics, 'api_prometheus_enabled', True)
+
+    app = FastAPI()
+    mounted_app = FastAPI()
+
+    @mounted_app.get('/child/{item_id}')
+    async def get_item(item_id: str):
+        return {'item': item_id}
+
+    app.mount('/mounted-fastapi', mounted_app)
+    setup_prometheus(app)
+
+    client = TestClient(app)
+    response = client.get('/mounted-fastapi/child/123')
+    assert response.status_code == 200
+
+    metrics_path = f'{config.services.api_base_path}/metrics'
+    metrics_response = client.get(metrics_path)
+    assert metrics_response.status_code == 200
+    assert (
+        'nomad_fastapi_requests_total{method="GET",path="/mounted-fastapi/child/{item_id}",status_code="200"}'
+        in metrics_response.text
+    )
+    assert '/mounted-fastapi/*' not in metrics_response.text
+
+
+def test_prometheus_monitoring_static_mount_uses_coarse_path(monkeypatch, tmp_path):
+    monkeypatch.setattr(config.telemetry.metrics, 'api_prometheus_enabled', True)
+
+    docs_dir = tmp_path / 'docs'
+    docs_dir.mkdir()
+    (docs_dir / 'index.html').write_text('ok', encoding='utf-8')
+
+    app = FastAPI()
+    mounted_app = FastAPI()
+    mounted_app.mount('/docs', StaticFiles(directory=docs_dir), name='docs')
+    app.mount('/mounted-static', mounted_app)
+    setup_prometheus(app)
+
+    client = TestClient(app)
+    response = client.get('/mounted-static/docs/index.html')
+    assert response.status_code == 200
+
+    metrics_path = f'{config.services.api_base_path}/metrics'
+    metrics_response = client.get(metrics_path)
+    assert metrics_response.status_code == 200
+    assert (
+        'nomad_fastapi_requests_total{method="GET",path="/mounted-static/docs/*",status_code="200"}'
         in metrics_response.text
     )
