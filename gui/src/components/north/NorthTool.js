@@ -138,7 +138,7 @@ export function useNorthToolHook(tool, uploadId, path) {
         raiseError(error)
         return "error"
       })
-  }, [api, raiseError, name])
+  }, [api, raiseError, name, uploadId])
 
   return { launch, stop, getToolStatus }
 }

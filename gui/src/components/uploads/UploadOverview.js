@@ -341,9 +341,16 @@ function UploadOverview(props) {
         'reviewer_groups': { [action]: 'all' }
       }
     })
-      .then(requestRefreshUpload)
-      .catch(raiseError)
-  }, [api, requestRefreshUpload, raiseError, uploadId])
+      .then(results => {
+        updateUpload({ upload: results.data })
+      })
+      .catch(error => {
+        if (error.status === 504) {
+          requestRefreshUpload()
+        }
+        raiseError(error)
+      })
+  }, [api, updateUpload, requestRefreshUpload, raiseError, uploadId])
 
   useEffect(() => {
     if (uploading) return
@@ -382,21 +389,42 @@ function UploadOverview(props) {
 
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, { metadata: { upload_name: upload_name } })
-      .then(() => requestRefreshUpload())
-      .catch(raiseError)
+      .then(results => {
+        updateUpload({ upload: results.data })
+      })
+      .catch(error => {
+        if (error.status === 504) {
+          requestRefreshUpload()
+        }
+        raiseError(error)
+      })
   }
 
   const handlePublish = ({ embargo_length }) => {
     api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
-      .then(results => updateUpload({ upload: results.data }))
-      .catch(raiseError)
+      .then(results => {
+        updateUpload({ upload: results.data })
+      })
+      .catch(error => {
+        if (error.status === 504) {
+          requestRefreshUpload()
+        }
+        raiseError(error)
+      })
   }
 
   const handleLiftEmbargo = () => {
     setOpenEmbargoConfirmDialog(false)
     api.post(`/uploads/${uploadId}/edit`, { metadata: { embargo_length: 0 } })
-      .then(() => requestRefreshUpload())
-      .catch(raiseError)
+      .then(results => {
+        updateUpload({ upload: results.data })
+      })
+      .catch(error => {
+        if (error.status === 504) {
+          requestRefreshUpload()
+        }
+        raiseError(error)
+      })
   }
 
   const handleReload = () => {
@@ -417,8 +445,15 @@ function UploadOverview(props) {
 
   const handleDelete = () => {
     api.delete(`/uploads/${uploadId}`)
-      .then(results => updateUpload({ upload: results.data }))
-      .catch(raiseError)
+      .then(results => {
+        updateUpload({ upload: results.data })
+      })
+      .catch(error => {
+        if (error.status === 504) {
+          requestRefreshUpload()
+        }
+        raiseError(error)
+      })
   }
 
   if (!hasUpload || !entries) {
