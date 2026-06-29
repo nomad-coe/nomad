@@ -15,6 +15,7 @@ from nomad.actions.action_logging import (
 )
 from nomad.actions.activities.utils import get_all_activities
 from nomad.actions.client import get_client
+from nomad.actions.nexus import get_all_nexus_service_handlers
 from nomad.actions.workers.health_check import (
     should_start_health_server,
     start_health_server,
@@ -61,6 +62,7 @@ async def run_worker(worker_config: WorkerConfig):
             'task_queue': TaskQueue.CPU.value,
             'workflows': get_all_workflows(TaskQueue.CPU),
             'activities': get_all_activities(TaskQueue.CPU),
+            'nexus_service_handlers': get_all_nexus_service_handlers(TaskQueue.CPU),
             'activity_executor': executor,
             'interceptors': [WorkflowLoggingInterceptor()],
             'graceful_shutdown_timeout': timedelta(

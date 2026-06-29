@@ -5,6 +5,7 @@ import pytest
 from nomad.actions import TaskQueue
 from nomad.actions.action import Action, get_actions
 from nomad.actions.activities.utils import get_all_activities
+from nomad.actions.nexus import get_all_nexus_service_handlers
 from nomad.config.models.plugins import ActionEntryPoint, ParserEntryPoint
 
 
@@ -20,6 +21,10 @@ def cpu_activity():
 
 
 def gpu_activity():
+    pass
+
+
+class MockNexusServiceHandler:
     pass
 
 
@@ -132,6 +137,38 @@ def test_action_accepts_task_queue_activities():
     assert action.task_queue_activities == {TaskQueue.GPU: [gpu_activity]}
 
 
+def test_action_accepts_nexus_service_handlers():
+    handler = MockNexusServiceHandler()
+    action = Action(
+        task_queue=TaskQueue.CPU,
+        activities=[cpu_activity],
+        workflow=MockWorkflow(),
+        nexus_service_handlers=[handler],
+    )
+
+    assert action.nexus_service_handlers == [handler]
+
+
+def test_action_defaults_to_no_nexus_service_handlers():
+    action = Action(
+        task_queue=TaskQueue.CPU,
+        activities=[cpu_activity],
+        workflow=MockWorkflow(),
+    )
+
+    assert action.nexus_service_handlers == []
+
+
+def test_action_rejects_non_list_nexus_service_handlers():
+    with pytest.raises(TypeError, match='nexus_service_handlers must be a list'):
+        Action(
+            task_queue=TaskQueue.CPU,
+            activities=[cpu_activity],
+            workflow=MockWorkflow(),
+            nexus_service_handlers=MockNexusServiceHandler(),  # type: ignore[arg-type]
+        )
+
+
 def test_get_all_activities_includes_action_extra_task_queue_activities():
     action = Action(
         task_queue=TaskQueue.CPU,
@@ -151,3 +188,37 @@ def test_get_all_activities_includes_action_extra_task_queue_activities():
 
     assert gpu_activity in activities
     assert cpu_activity not in activities
+
+
+def test_get_all_nexus_service_handlers_includes_matching_action_handlers():
+    cpu_handler = MockNexusServiceHandler()
+    gpu_handler = MockNexusServiceHandler()
+    cpu_action = Action(
+        task_queue=TaskQueue.CPU,
+        activities=[cpu_activity],
+        workflow=MockWorkflow(),
+        nexus_service_handlers=[cpu_handler],
+    )
+    gpu_action = Action(
+        task_queue=TaskQueue.GPU,
+        activities=[gpu_activity],
+        workflow=MockWorkflow(),
+        nexus_service_handlers=[gpu_handler],
+    )
+    cpu_entry_point = MagicMock(spec=ActionEntryPoint)
+    cpu_entry_point.task_queue = TaskQueue.CPU
+    cpu_entry_point.load.return_value = cpu_action
+    gpu_entry_point = MagicMock(spec=ActionEntryPoint)
+    gpu_entry_point.task_queue = TaskQueue.GPU
+    gpu_entry_point.load.return_value = gpu_action
+
+    with patch(
+        'nomad.actions.nexus.get_actions',
+        return_value={
+            'cpu-action': cpu_entry_point,
+            'gpu-action': gpu_entry_point,
+        },
+    ):
+        handlers = get_all_nexus_service_handlers(TaskQueue.CPU)
+
+    assert handlers == [cpu_handler]

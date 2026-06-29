@@ -15,6 +15,7 @@ from temporalio.worker import (
 from nomad.actions import TaskQueue
 from nomad.actions.activities.utils import get_all_activities
 from nomad.actions.client import get_client
+from nomad.actions.nexus import get_all_nexus_service_handlers
 from nomad.actions.workers.health_check import (
     should_start_health_server,
     start_health_server,
@@ -76,6 +77,9 @@ async def run_worker(worker_config: WorkerConfig):
             'task_queue': TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
             'workflows': get_all_workflows(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
             'activities': get_all_activities(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
+            'nexus_service_handlers': get_all_nexus_service_handlers(
+                TaskQueue.NOMAD_INTERNAL_WORKFLOWS
+            ),
             'activity_executor': executor,
             'shared_state_manager': SharedStateManager.create_from_multiprocessing(
                 multiprocessing.Manager()
