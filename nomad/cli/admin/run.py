@@ -272,7 +272,9 @@ def run_app(
                 if config.telemetry.metrics.api_prometheus_enabled:
                     import shutil
 
-                    multiproc_dir = os.path.join(config.fs.tmp, 'prometheus_multiproc')
+                    multiproc_dir = os.path.join(
+                        config.fs.local_tmp, 'prometheus_multiproc'
+                    )
                     os.environ['PROMETHEUS_MULTIPROC_DIR'] = multiproc_dir
 
                     from prometheus_client import multiprocess
