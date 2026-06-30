@@ -1,0 +1,15 @@
+{
+  "data": {
+    "a": 1,
+    "b": 2,
+    "c": 3
+  },
+  "schema": {
+    "rules": {
+      "rule_a": {
+        "source": "a",
+        "target": "b"
+      }
+    }
+  }
+}
