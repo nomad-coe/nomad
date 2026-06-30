@@ -380,6 +380,30 @@ class TestStagingUploadFiles(UploadFilesContract):
         )
         assert os.path.isfile(filepath)
 
+    @pytest.fixture(scope='function')
+    def example_tar_gz_file(self, tmp_path):
+        import tarfile
+
+        tar_path = tmp_path / 'examples_template.tar.gz'
+        with tarfile.open(tar_path, 'w:gz') as tar:
+            for filepath in example_file_contents:
+                local_path = os.path.join(
+                    example_directory, filepath.removeprefix('examples_template/')
+                )
+                tar.add(local_path, arcname=filepath)
+        return str(tar_path)
+
+    @pytest.mark.parametrize('target_dir', ['', 'subdir'])
+    def test_add_rawfiles_tar(self, test_upload_id, target_dir, example_tar_gz_file):
+        test_upload = StagingUploadFiles(test_upload_id, create=True)
+        test_upload.add_rawfiles(example_tar_gz_file, target_dir=target_dir)
+        for filepath in example_file_contents:
+            filepath = os.path.join(target_dir, filepath) if target_dir else filepath
+            with test_upload.raw_file(filepath) as f:
+                content = f.read()
+                if filepath == example_mainfile_raw_path:
+                    assert len(content) > 0
+
     def test_pack(self, test_upload: StagingUploadWithFiles):
         _, entries, upload_files = test_upload
         upload_files.pack(entries, with_embargo=entries[0].with_embargo)

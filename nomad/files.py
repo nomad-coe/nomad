@@ -51,6 +51,7 @@ import json
 import os
 import shutil
 import stat
+import tarfile
 import tempfile
 import warnings
 import zipfile
@@ -1444,56 +1445,102 @@ class StagingUploadFiles(UploadFiles):
         if isinstance(target_path, str):
             assert self._fs.exists(target_path), f'{target_path} does not exist'
             path = target_path
+            target_fs = self._fs
         else:
             assert target_path.exists(), f'{target_path} does not exist'
             path = target_path.os_path
+            target_fs = target_path._fs
         assert is_safe_relative_path(target_dir)
 
         archive_format = get_compression_format(path) if auto_decompress else None
         if archive_format == 'error':
             raise ValueError('Bad archive.')
 
-        @contextmanager
-        def open_archive() -> Iterator[tuple[str, str, AbstractFileSystem]]:
-            if archive_format in ('zip', 'tar'):
-                with FSUtility.open_archive(path) as _fs:
-                    yield '', '', _fs
-            else:
-                yield (
-                    path,
-                    os.path.dirname(path) if self._fs.isfile(path) else path,
-                    self._fs,
-                )
-
         dst_root = os.path.join(self._raw_dir.os_path, target_dir)
 
         try:
-            with open_archive() as pack:
-                src_root, src_parent, src_fs = pack
-                for item, info in src_fs.find(src_root, None, True, True).items():
-                    rel_path = os.path.relpath(item, src_parent)
-                    dst_path = os.path.join(dst_root, rel_path)
-                    if info['type'] == 'file':
-                        if self._fs.exists(dst_path) and not self._fs.isfile(dst_path):
-                            raise ValueError(
-                                f'Cannot merge a file with a directory or vice versa: {rel_path}.'
-                            )
-                        if src_fs is not self._fs or item != dst_path:
-                            self._fs.mkdirs(os.path.dirname(dst_path), exist_ok=True)
-                            with (
-                                src_fs.open(item) as src_f,
-                                self._fs.open(dst_path, 'wb') as dst_f,
-                            ):
-                                shutil.copyfileobj(src_f, dst_f)
+            if archive_format == 'tar':
+                with target_fs.open(path, 'rb') as f:
+                    with tarfile.open(fileobj=f, mode='r|*') as tar:
+                        for member in tar:
+                            rel_path = member.name
+                            if not is_safe_relative_path(rel_path):
+                                continue
+                            dst_path = os.path.join(dst_root, rel_path)
+                            if member.isfile():
+                                if self._fs.exists(dst_path) and not self._fs.isfile(
+                                    dst_path
+                                ):
+                                    raise ValueError(
+                                        f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                    )
+                                self._fs.mkdirs(
+                                    os.path.dirname(dst_path), exist_ok=True
+                                )
+                                with (
+                                    tar.extractfile(member) as src_f,
+                                    self._fs.open(dst_path, 'wb') as dst_f,
+                                ):
+                                    shutil.copyfileobj(src_f, dst_f)
 
-                        if updated_files is not None:
-                            updated_files.add(os.path.join(target_dir, rel_path))
-                    elif info['type'] == 'directory':
-                        if self._fs.exists(dst_path) and not self._fs.isdir(dst_path):
-                            raise ValueError(
-                                f'Cannot merge a file with a directory or vice versa: {rel_path}.'
-                            )
-                        self._fs.mkdirs(dst_path, True)
+                                if updated_files is not None:
+                                    updated_files.add(
+                                        os.path.join(target_dir, rel_path)
+                                    )
+                            elif member.isdir():
+                                if self._fs.exists(dst_path) and not self._fs.isdir(
+                                    dst_path
+                                ):
+                                    raise ValueError(
+                                        f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                    )
+                                self._fs.mkdirs(dst_path, True)
+            else:
+
+                @contextmanager
+                def open_archive() -> Iterator[tuple[str, str, AbstractFileSystem]]:
+                    if archive_format == 'zip':
+                        with FSUtility.open_archive(path) as _fs:
+                            yield '', '', _fs
+                    else:
+                        yield (
+                            path,
+                            os.path.dirname(path) if self._fs.isfile(path) else path,
+                            self._fs,
+                        )
+
+                with open_archive() as pack:
+                    src_root, src_parent, src_fs = pack
+                    for item, info in src_fs.find(src_root, None, True, True).items():
+                        rel_path = os.path.relpath(item, src_parent)
+                        dst_path = os.path.join(dst_root, rel_path)
+                        if info['type'] == 'file':
+                            if self._fs.exists(dst_path) and not self._fs.isfile(
+                                dst_path
+                            ):
+                                raise ValueError(
+                                    f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                )
+                            if src_fs is not self._fs or item != dst_path:
+                                self._fs.mkdirs(
+                                    os.path.dirname(dst_path), exist_ok=True
+                                )
+                                with (
+                                    src_fs.open(item) as src_f,
+                                    self._fs.open(dst_path, 'wb') as dst_f,
+                                ):
+                                    shutil.copyfileobj(src_f, dst_f)
+
+                            if updated_files is not None:
+                                updated_files.add(os.path.join(target_dir, rel_path))
+                        elif info['type'] == 'directory':
+                            if self._fs.exists(dst_path) and not self._fs.isdir(
+                                dst_path
+                            ):
+                                raise ValueError(
+                                    f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                )
+                            self._fs.mkdirs(dst_path, True)
         finally:
             if cleanup_source_file_and_dir:
                 self._fs.rm(path, recursive=True)
