@@ -481,3 +481,165 @@ def test_transform_use_rule_unknown_rule_name_raises():
     transformer = load_transformer({'main': main, 'lib': lib})
     with pytest.raises(ValueError, match="Rule name 'missing' not found"):
         transformer.transform({}, 'main', {})
+
+
+def test_transform_with_array_notation():
+    """
+    Test that array notation in source paths is correctly handled.
+    """
+    transformation_rules, source, expected = load_example(
+        'list_with_array_notation_transformation'
+    )
+    transformer = load_transformer(transformation_rules)
+    result = transformer.transform(
+        source, 'list_with_array_notation_transformation', {}, array_rules=True
+    )
+    assert result == expected, 'Failed list_with_array_notation_transformation'
+
+
+@pytest.mark.parametrize(
+    'source,target',
+    [
+        pytest.param('a[n]', 'b', id='missing-target-array-notation'),
+        pytest.param('a', 'b[n]', id='missing-source-array-notation'),
+        pytest.param('a[n].b[n]', 'b[n]', id='number-of-arrays-mismatch'),
+        pytest.param('a[n1]', 'b[n2]', id='different-array-indices'),
+        pytest.param('a[n1].b[n2]', 'b[n2].c[n1]', id='wrong-array-index-positions'),
+    ],
+)
+def test_transform_with_incorrect_array_notation(source, target):
+    """
+    Test that incorrect array notation raises an error.
+    """
+    transformation_rules = {
+        'test': Rules(rules={'rule': Rule(source=source, target=target)})
+    }
+    transformer = load_transformer(transformation_rules)
+    with pytest.raises(ValueError):
+        transformer.transform({}, 'test', {}, array_rules=True)
+
+
+@pytest.mark.parametrize(
+    'transformation_name,target',
+    [
+        ('basic_transformation', {}),
+        ('list_transformation', {}),
+        ('dict_to_list_transformation', []),
+        ('list_to_list_transformation', []),
+        ('dict_to_list_with_none_transformation', []),
+        ('dict_with_regex_transformation', {}),
+        ('dict_with_regex_transformation_no_match', {}),
+        ('dict_with_default_transformation', {}),
+        (
+            'dict_with_default_transformation_missing_b',
+            {},
+        ),
+        (
+            'dict_with_default_transformation_missing_a_and_b',
+            {},
+        ),
+        ('nested_transformation', {}),
+        ('complex_transformation', {}),
+        ('conditional_transformation_not_met', {}),
+        ('conditional_transformation_met', {}),
+    ],
+)
+def test_transform_use_array_rules_without_array_notation(transformation_name, target):
+    """
+    Test for Transformer.transform method with array rules without array notation.
+    To ensure default behavior is not affected.
+    """
+
+    transformation_rules, source, expected = load_example(transformation_name)
+    transformer = load_transformer(transformation_rules)
+
+    assert source is not None, (
+        f"'source' key missing in test data for '{transformation_name}'"
+    )
+    assert target is not None, (
+        f"'target' key missing in test data for '{transformation_name}'"
+    )
+    assert expected is not None, (
+        f"'expected' key missing in test data for '{transformation_name}'"
+    )
+
+    result = transformer.transform(
+        source, transformation_name, target, array_rules=True
+    )
+    assert result == expected, f"Failed for transformation '{transformation_name}''"
+
+
+def test_transform_array_rules_preseves_other_params():
+    transformation_rule = Rule(
+        source='a[n]',
+        target='b[n]',
+        default_value=42,
+        conditions=[
+            Condition(
+                regex_condition=RegexCondition(
+                    regex_path='payload.kind', regex_pattern=r'^ok$'
+                )
+            )
+        ],
+        use_rule='#lib.some_rule',
+    )
+    array_rules = Transformer._resolve_array_rule(['a[0]'], transformation_rule, 'test')
+    for rule_name, rule in array_rules['test'].rules.items():
+        assert rule.default_value == transformation_rule.default_value, (
+            'Default value not preserved in array rule resolution'
+        )
+        assert rule.conditions == transformation_rule.conditions, (
+            'Conditions not preserved in array rule resolution'
+        )
+        assert rule.use_rule == transformation_rule.use_rule, (
+            'use_rule not preserved in array rule resolution'
+        )
+
+
+def test_transform_with_array_rules_with_referenced_rule():
+    """
+    Test that array rules work correctly when referencing another rule.
+    """
+    library = Rules(rules={'base': Rule(source='a[n]', target='b[n]')})
+    main = Rules(rules={'test': Rule(target='x', use_rule='#lib.base')})
+    transformer = load_transformer({'main': main, 'lib': library})
+
+    result = transformer.transform({'a': [1, 2]}, 'main', {}, array_rules=True)
+    assert result == {'b': [1, 2]}, 'Failed for array rules with referenced rule'
+
+
+def test_transform_with_inplace_transformation():
+    """
+    Test that inplace transformation works correctly.
+    """
+    transformation_rules, source, expected = load_example('inplace_transformation')
+    transformer = load_transformer(transformation_rules)
+    result = transformer.transform(source, 'inplace_transformation', inplace=True)
+    result2 = transformer.transform(source, 'inplace_transformation', source)
+
+    assert result == expected, (
+        'Inplace transformation did not modify source as expected'
+    )
+    assert result2 == result, 'Standard way didnt match inplace transformation result'
+
+
+def test_transform_with_inplace_deletion_transformation():
+    """
+    Test that inplace deletion transformation works correctly.
+    """
+    transformation_rules, source, expected = load_example(
+        'inplace_deletion_transformation'
+    )
+    transformer = load_transformer(transformation_rules)
+    result = transformer.transform(
+        source, 'inplace_deletion_transformation', inplace=True, delete_sources=True
+    )
+    result2 = transformer.transform(
+        source, 'inplace_deletion_transformation', source, delete_sources=True
+    )
+    assert result == expected, (
+        'Inplace deletion transformation did not modify source as expected'
+    )
+    assert result2 == result, (
+        'Standard way didnt match inplace deletion transformation result'
+    )

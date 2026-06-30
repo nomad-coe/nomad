@@ -104,5 +104,23 @@
         2
       ]
     }
+  },
+  "list_with_array_notation_transformation": {
+    "a":{
+      "b":[
+      {"e": 1},
+      {"e": 2},
+      {"e": 3}
+      ]
+    }
+  },
+  "inplace_transformation": {
+    "a": 1,
+    "b": 1,
+    "c": 3
+  },
+  "inplace_deletion_transformation": {
+    "b": 1,
+    "c": 3
   }
 }
