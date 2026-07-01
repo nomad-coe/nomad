@@ -26,7 +26,7 @@ from nomad.config import config
 
 # Set multiprocess directory before importing prometheus_client
 if config.telemetry.metrics.api_prometheus_enabled:
-    multiproc_dir = os.path.join(config.fs.tmp, 'prometheus_multiproc')
+    multiproc_dir = os.path.join(config.fs.local_tmp, 'prometheus_multiproc')
     os.makedirs(multiproc_dir, exist_ok=True)
     os.environ['PROMETHEUS_MULTIPROC_DIR'] = multiproc_dir
 
