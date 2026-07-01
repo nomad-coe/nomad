@@ -83,7 +83,7 @@ class BundleExporter:
         self,
         upload: Upload,
         export_as_stream: bool,
-        export_path: str,
+        export_path: str | None,
         zipped: bool,
         overwrite: bool,
         export_settings: BundleExportSettings,
@@ -666,7 +666,15 @@ class BundleImporter:
             for file_source in self.upload_files.files_from_bundle(
                 self.bundle, self.import_settings
             ):
-                file_source.to_disk(self.upload_files.os_path, overwrite=True)
+                if isinstance(file_source, DiskFileSource):
+                    # When importing from an extracted bundle folder, copy the contents
+                    # of `raw/` and `archive/` into the upload root instead of nesting
+                    # them again as `raw/raw` or `archive/archive`.
+                    FileSource.to_disk(
+                        file_source, self.upload_files.os_path, overwrite=True
+                    )
+                else:
+                    file_source.to_disk(self.upload_files.os_path, overwrite=True)
 
             if self.upload.published and self.embargo_length is not None:
                 # Repack the upload

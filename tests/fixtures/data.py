@@ -254,7 +254,7 @@ async def non_empty_processed_with_temporal(
     temporal_worker: TemporalWorkerContext,
 ) -> processing.Upload:
     """
-    Provides a processed upload. Upload was uploaded with user1.
+    Provides a processed upload that was uploaded by user1.
     """
     uploaded_id, uploaded_path = non_empty_uploaded
     upload = Upload.create(upload_id=uploaded_id, main_author=user1)
