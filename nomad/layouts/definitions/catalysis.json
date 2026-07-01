@@ -1,0 +1,112 @@
+{
+  "id": "catalysis",
+  "label": "Catalysis",
+  "priority": 20,
+  "query": {
+    "quantities:any": ["results.properties.catalytic"]
+  },
+  "overview": {
+    "type": "container",
+    "editable": false,
+    "children": [
+      {
+        "type": "container",
+        "title": "Material",
+        "md": 6,
+        "children": [
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_iupac",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_reduced",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_hill",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_descriptive",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/elements",
+            "direction": "horizontal",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/n_elements",
+            "md": 6
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "md": 6,
+        "sm": 12,
+        "title": "Catalytic reaction",
+        "children": [
+          {
+            "type": "quantity",
+            "property": "data/name",
+            "sm": 12
+          },
+          {
+            "type": "quantity",
+            "property": "data/reaction_name",
+            "sm": 12
+          },
+          {
+            "type": "quantity",
+            "property": "data/reaction_type",
+            "direction": "horizontal",
+            "sm": 12
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["data.figures"]
+        },
+        "children": [
+          {
+            "type": "plot",
+            "title": "Plots",
+            "property": "data/figures",
+            "sm": 12,
+            "md": 6,
+            "sx": {"height": "600px"}
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["workflow2"]
+        },
+        "children": [
+          {
+            "type": "container",
+            "sm": 12,
+            "md": 6,
+            "sx": {"height": "600px"},
+            "title": "Workflow",
+            "children": [
+              {
+                "type": "workflow"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

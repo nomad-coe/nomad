@@ -105,6 +105,10 @@ class GraphEntry(mapped(EntryProcData, mainfile='mainfile_path', entry_metadata=
     upload: GraphUpload
     archive: MSection
     metadata: GraphEntryMetadata
+    matching_layouts: list[dict[str, Any]]
+    default_layout_id: str
+    resolved_layout_id: str
+    resolved_archive_request: dict[str, Any]
 
 
 class EntriesRequestOptions(BaseModel):

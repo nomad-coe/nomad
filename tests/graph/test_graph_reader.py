@@ -4256,12 +4256,21 @@ def json_dict():
 
 @pytest_asyncio.fixture(scope='function')
 async def example_data_with_figure(
-    elastic_function, raw_files_module, mongo_function, user1, temporal_worker
+    elastic_function,
+    raw_files_module,
+    mongo_function,
+    user1,
+    user2,
+    temporal_worker,
 ):
     data = ExampleData(main_author=user1)
 
     data.create_upload(
-        upload_id='id_published_with_ref', upload_name='name_published', published=False
+        upload_id='id_published_with_ref',
+        upload_name='name_published',
+        published=False,
+        coauthors=[user2.user_id],
+        reviewers=[user2.user_id],
     )
 
     directory = 'tests/data/datamodel/metainfo/plotly'
@@ -4374,6 +4383,125 @@ def test_figure_resolution(user1, example_data_with_figure, query, result):
                 assert_dict(response, result)
 
     __entry_print(query, result=result)
+
+
+def test_auto_layout_populates_archive_payload(user1, user2, example_data_with_figure):
+    """
+    Test that auto_from_layout derives the archive payload needed by the layout.
+    """
+    from nomad.graph.graph_reader import EntryReader
+
+    required = {
+        Token.METADATA: {
+            'entry_type': '*',
+            'entry_name': '*',
+            'published': '*',
+            'with_embargo': '*',
+            'main_author': '*',
+            'coauthors': '*',
+            'reviewers': '*',
+            'coauthor_groups': '*',
+            'reviewer_groups': '*',
+            'writers': '*',
+            'writer_groups': '*',
+            'viewers': '*',
+            'viewer_groups': '*',
+        },
+        'matching_layouts': '*',
+        'default_layout_id': '*',
+        'resolved_layout_id': '*',
+        Token.ARCHIVE: {'m_request': {'directive': 'auto_from_layout'}},
+    }
+
+    with EntryReader(required, user=user1) as reader:
+        response = reader.sync_read('id_plotly')
+        assert 'resolved_layout_id' in response
+        assert response['resolved_layout_id'] == 'default'
+        assert response['default_layout_id'] == 'default'
+        assert response['matching_layouts'][0]['id'] == 'default'
+        assert response['matching_layouts'][0]['overview']['type'] == 'container'
+        archive_metadata = example_data_with_figure.archives['id_plotly'].metadata
+        metadata = response[Token.METADATA]
+        assert metadata['entry_type'] == archive_metadata.entry_type
+        assert metadata['entry_name'] == archive_metadata.entry_name
+        assert metadata['published'] is False
+        assert metadata['with_embargo'] is False
+        assert metadata['main_author'] == user1.user_id
+        assert metadata['coauthors'] == [user2.user_id]
+        assert metadata['reviewers'] == [user2.user_id]
+        assert metadata.get('coauthor_groups', []) == []
+        assert metadata.get('reviewer_groups', []) == []
+        assert metadata.get('writers', []) == []
+        assert metadata.get('writer_groups', []) == []
+        assert metadata.get('viewers', []) == []
+        assert metadata.get('viewer_groups', []) == []
+        assert 'archive' in response
+        assert 'm_def' in response['archive'], (
+            f'Root m_def is missing. Archive keys: {list(response["archive"].keys())}'
+        )
+
+        # Verify that figures (which are triggered by the layout) are present
+        data = response['archive'].get('data', {})
+        assert 'figures' in data
+        assert len(data['figures']) > 0
+
+        # Keep parity with the frontend layout request shape: compact m_def strings
+        # are resolved by the GUI against its metainfo cache.
+        data_request = response['resolved_archive_request']['data']
+        assert data_request['m_request']['m_def_format'] == 'short'
+        assert data_request['m_def']['m_request']['m_def_format'] == 'short'
+
+
+def test_auto_layout_rejects_unknown_layout(user1, example_data_with_figure):
+    from nomad.graph.graph_reader import ConfigError, EntryReader
+
+    required = {
+        Token.ARCHIVE: {
+            'm_request': {
+                'directive': 'auto_from_layout',
+                'layout_id': 'does-not-exist',
+            }
+        }
+    }
+
+    with (
+        EntryReader(required, user=user1) as reader,
+        pytest.raises(ConfigError, match='Unknown layout id'),
+    ):
+        reader.sync_read('id_plotly')
+
+
+def test_layout_like_data_request_includes_inherited_figures_without_definition_errors(
+    user1, example_data_with_figure
+):
+    required = {
+        Token.ARCHIVE: {
+            'data': {
+                'm_request': {
+                    'directive': 'plain',
+                    'include_definition': 'both',
+                    'm_def_format': 'short',
+                    'depth': 2,
+                },
+                'm_def': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                        'export_whole_package': True,
+                    }
+                },
+                'figures': '*',
+            }
+        }
+    }
+
+    with EntryReader(required, user=user1) as reader:
+        response = reader.sync_read('id_plotly')
+        assert 'figures' in response.get('archive', {}).get('data', {})
+        messages = [error.get('message') for error in response.get('m_errors', [])]
+        assert 'Definition figures is not found.' not in messages, (
+            f'Unexpected errors in response: {response.get("m_errors")}'
+        )
 
 
 def test_mongo_reader_explicit_upload_lookup_skips_container_query(

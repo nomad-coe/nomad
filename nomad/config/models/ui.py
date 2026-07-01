@@ -231,6 +231,10 @@ class Entry(ConfigBaseModel):
     cards: Cards = Field(
         description='Controls the cards that are displayed on the entry overview page.'
     )
+    server_layouts: bool = Field(
+        True,
+        description='Enables server-side layout registry and request derivation in the GUI.',
+    )
 
 
 class Pagination(ConfigBaseModel):
