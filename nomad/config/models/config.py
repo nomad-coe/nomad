@@ -1151,6 +1151,16 @@ class Temporal(ConfigBaseModel):
         default_factory=TemporalOIDC,
         description='OIDC client-credentials authentication for Temporal clients.',
     )
+    payload_codec_key: str | None = Field(
+        None,
+        min_length=32,
+        description='Optional key used to encrypt Temporal payloads. When unset, services.api_secret is used by default.',
+    )
+    payload_codec_key_id: str = Field(
+        'default',
+        min_length=1,
+        description='Identifier stored with payloads encrypted using payload_codec_key.',
+    )
     use_tls: bool = Field(
         False,
         description='Whether to use TLS to connect to the Temporal server. Defaults to False. If True and no certificates are provided, default system certificates are used.',

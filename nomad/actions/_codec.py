@@ -8,6 +8,17 @@ from temporalio.converter import PayloadCodec
 from nomad.auth.tokens import check_api_secret
 from nomad.config import config
 
+_ENCRYPTED_ENCODING = b'binary/encrypted'
+_KEY_ID_METADATA = 'encryption-key-id'
+
+
+def _create_fernet(secret: str) -> Fernet:
+    # Fernet requires a URL-safe, base64-encoded 32-byte key. Pad shorter
+    # secrets (as used in tests) and truncate longer ones.
+    secret_bytes = secret.encode()
+    padded_key = b'\0' * max(32 - len(secret_bytes), 0) + secret_bytes
+    return Fernet(base64.urlsafe_b64encode(padded_key[:32]))
+
 
 class EncryptionCodec(PayloadCodec):
     """A PayloadCodec that encrypts/decrypts all Payloads."""
@@ -15,36 +26,51 @@ class EncryptionCodec(PayloadCodec):
     def __init__(self) -> None:
         super().__init__()
 
-        # Fernet requires a URL safe, base64 encoded, 32 byte key. So, we pad the SECRET_KEY
-        # if it's not long enough (like in TEST environments) or we truncate it if it's too long.
+        # Payloads using the default key retain the existing metadata format so
+        # previously recorded workflow histories remain decryptable during replay.
         check_api_secret()
-        secret = config.services.api_secret
-        padded_key = b'\0' * max(32 - len(secret), 0) + secret.encode()
-        encoded_key = base64.urlsafe_b64encode(padded_key[:32])
-        self.fernet = Fernet(encoded_key)
+        self.default_fernet = _create_fernet(config.services.api_secret)
+
+        codec_key = config.temporal.payload_codec_key
+        self.key_id = config.temporal.payload_codec_key_id if codec_key else None
+        self.fernet = _create_fernet(codec_key) if codec_key else self.default_fernet
 
     async def encode(self, payloads: Iterable[Payload]) -> list[Payload]:
         """Encrypt all payloads during encoding."""
-        return [
-            Payload(
-                metadata={
-                    'encoding': b'binary/encrypted',
-                },
-                data=self.encrypt(p.SerializeToString()),
+        encoded_payloads = []
+        for payload in payloads:
+            metadata = {'encoding': _ENCRYPTED_ENCODING}
+            if self.key_id is not None:
+                metadata[_KEY_ID_METADATA] = self.key_id.encode()
+            encoded_payloads.append(
+                Payload(
+                    metadata=metadata,
+                    data=self.encrypt(payload.SerializeToString()),
+                )
             )
-            for p in payloads
-        ]
+        return encoded_payloads
 
     async def decode(self, payloads: Iterable[Payload]) -> list[Payload]:
         """Decode all payloads decrypting those with expected encoding."""
         ret: list[Payload] = []
         for p in payloads:
             # Ignore ones without our expected encoding
-            if p.metadata.get('encoding', b'').decode() != 'binary/encrypted':
+            if p.metadata.get('encoding') != _ENCRYPTED_ENCODING:
                 ret.append(p)
                 continue
 
-            ret.append(Payload.FromString(self.decrypt(p.data)))
+            payload_key_id = p.metadata.get(_KEY_ID_METADATA)
+            if payload_key_id is None:
+                fernet = self.default_fernet
+            else:
+                key_id = payload_key_id.decode()
+                if key_id != self.key_id:
+                    raise ValueError(
+                        f'No Temporal payload codec key configured for key ID {key_id!r}'
+                    )
+                fernet = self.fernet
+
+            ret.append(Payload.FromString(fernet.decrypt(p.data)))
         return ret
 
     def encrypt(self, data: bytes) -> bytes:
