@@ -1040,6 +1040,57 @@ class WorkerConfig(ConfigBaseModel):
     )
 
 
+class TemporalOIDC(ConfigBaseModel):
+    enabled: bool = Field(
+        False,
+        description='Use an OAuth 2.0 client-credentials access token to authenticate Temporal clients.',
+    )
+    token_url: str | None = Field(
+        None,
+        description='OIDC token endpoint used to obtain Temporal access tokens.',
+    )
+    client_id: str | None = Field(
+        None,
+        description='Confidential OIDC client ID representing this NOMAD deployment.',
+    )
+    client_secret: str | None = Field(
+        None,
+        description='Confidential OIDC client secret. Configure this through deployment secrets.',
+    )
+    scope: str | None = Field(
+        None,
+        description='Optional OAuth 2.0 scope sent with client-credentials token requests.',
+    )
+    refresh_margin: float = Field(
+        30,
+        ge=0,
+        description='Number of seconds before expiry at which an access token is renewed.',
+    )
+    request_timeout: float = Field(
+        10,
+        gt=0,
+        description='Timeout in seconds for requests to the OIDC token endpoint.',
+    )
+
+    @model_validator(mode='after')
+    def validate_client_credentials(self):
+        if not self.enabled:
+            return self
+
+        missing = [
+            field_name
+            for field_name in ('token_url', 'client_id', 'client_secret')
+            if not getattr(self, field_name)
+        ]
+        if missing:
+            raise ValueError(
+                'Temporal OIDC authentication requires: ' + ', '.join(missing)
+            )
+
+        self.token_url = self.token_url.rstrip('/')
+        return self
+
+
 class Temporal(ConfigBaseModel):
     host: str = Field(
         'localhost',
@@ -1096,6 +1147,10 @@ class Temporal(ConfigBaseModel):
         None,
         description='API Key used to connect to the Temporal server.',
     )
+    oidc: TemporalOIDC = Field(
+        default_factory=TemporalOIDC,
+        description='OIDC client-credentials authentication for Temporal clients.',
+    )
     use_tls: bool = Field(
         False,
         description='Whether to use TLS to connect to the Temporal server. Defaults to False. If True and no certificates are provided, default system certificates are used.',
@@ -1133,6 +1188,14 @@ class Temporal(ConfigBaseModel):
         default_factory=lambda: WorkerConfig(pool_size=12),
         description='Configuration for the GPU action worker.',
     )
+
+    @model_validator(mode='after')
+    def validate_authentication(self):
+        if self.oidc.enabled and self.api_key:
+            raise ValueError(
+                'Configure either temporal.api_key or temporal.oidc, not both.'
+            )
+        return self
 
 
 class Keycloak(ConfigBaseModel):

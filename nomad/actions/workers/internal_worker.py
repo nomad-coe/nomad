@@ -14,7 +14,7 @@ from temporalio.worker import (
 
 from nomad.actions import TaskQueue
 from nomad.actions.activities.utils import get_all_activities
-from nomad.actions.client import get_client
+from nomad.actions.client import close_client, get_client
 from nomad.actions.nexus import get_all_nexus_service_handlers
 from nomad.actions.workers.health_check import (
     should_start_health_server,
@@ -136,3 +136,5 @@ async def run_worker(worker_config: WorkerConfig):
             await worker_task
         except asyncio.CancelledError:
             logger.info('Worker shut down cleanly.')
+        finally:
+            await close_client()

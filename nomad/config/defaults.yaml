@@ -78,6 +78,8 @@ temporal:
   namespace: default
   port: 7233
   graceful_shutdown_timeout: 1
+  oidc:
+    enabled: false
   processing_timeouts:
     internal_processing_heartbeat_timeout: 600
     delete_upload_timeout: 7200

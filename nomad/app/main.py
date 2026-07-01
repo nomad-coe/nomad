@@ -28,7 +28,7 @@ from fastapi_cache import FastAPICache
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from temporalio.client import Client
 
-from nomad.actions.client import get_client
+from nomad.actions.client import close_client, get_client
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import check_api_secret
 from nomad.config import config
@@ -108,6 +108,7 @@ async def lifespan(app: FastAPI):
         logger.error(f'Failed to connect to temporal', exc_info=e)
         raise
     finally:
+        await close_client()
         if infrastructure.async_mongo_client is not None:
             await infrastructure.async_mongo_client.close()
             infrastructure.async_mongo_client = None
