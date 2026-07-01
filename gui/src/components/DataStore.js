@@ -436,7 +436,7 @@ const DataStore = React.memo(({children}) => {
           metadata.writers?.some(u => u.user_id === user.sub) ||
           metadata.writer_groups?.some(g => user.groups?.includes(g))
         ))
-        const isEditableArchive = metadata && !metadata.published && metadata.quantities && metadata.quantities.includes('data')
+        const isEditableArchive = metadata && !metadata.published && metadata.quantities && metadata.quantities.includes('data') && /archive\.(json|yaml)$/.test(metadata?.mainfile || '')
         const editable = isWriter && isEditableArchive && selectedEntry.current === `${deploymentUrl}:${entryId}`
         const isProcessing = !!metadata?.process_running
         Object.assign(dataToUpdate, {metadataApiData, metadata, uploadId, editable, isProcessing, error: undefined})
