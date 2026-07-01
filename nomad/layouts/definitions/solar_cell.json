@@ -1,0 +1,93 @@
+{
+  "id": "solar_cell",
+  "label": "Solar cell",
+  "priority": 40,
+  "query": {
+    "sections:any": ["nomad.datamodel.results.SolarCell"]
+  },
+  "overview": {
+    "type": "container",
+    "editable": false,
+    "children": [
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["results.material.topology"]
+        },
+        "children": [
+          {
+            "type": "material",
+            "title": "Material",
+            "md": 7,
+            "sx": {"height": "650px"}
+          }
+        ]
+      },
+      {
+        "type": "plot",
+        "title": "Device structure",
+        "property": "data/figures",
+        "md": 5,
+        "sx": {"height": "650px"}
+      },
+      {
+        "type": "container",
+        "title": "Solar cell properties",
+        "sx": {"height": "330px"},
+        "children": [
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/efficiency",
+            "sm": 3
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/fill_factor",
+            "sm": 3
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/open_circuit_voltage",
+            "sm": 3
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/short_circuit_current_density",
+            "sm": 3
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/illumination_intensity",
+            "sm": 3
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/device_area",
+            "sm": 3
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/device_architecture",
+            "sm": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/absorber",
+            "sm": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/absorber_fabrication",
+            "sm": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/properties/optoelectronic/solar_cell/device_stack",
+            "direction": "horizontal",
+            "sm": 12
+          }
+        ]
+      }
+    ]
+  }
+}

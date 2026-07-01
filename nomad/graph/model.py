@@ -114,6 +114,7 @@ class MetainfoPagination(Pagination):
 class DirectiveType(Enum):
     plain = 'plain'
     resolved = 'resolved'
+    auto_from_layout = 'auto_from_layout'
 
     def __repr__(self):
         return self.value
@@ -179,6 +180,16 @@ class RequestConfig(BaseModel):
         Indicate whether to include or exclude the current quantity/section.
         References can be resolved using `resolved`.
         The `*` is a shortcut of `plain`.
+        The `auto_from_layout` directive can be used for server-side request derivation.
+        """,
+    )
+    layout_id: str | None = Field(
+        None,
+        description="""
+        An optional layout ID for server-side request derivation. Only used when
+        `directive` is `auto_from_layout`. If omitted, the backend selects the default
+        matching layout. If provided, the layout must exist, be enabled, and match the
+        entry.
         """,
     )
     include: Annotated[frozenset[str] | None, AfterValidator(check_pattern)] = Field(

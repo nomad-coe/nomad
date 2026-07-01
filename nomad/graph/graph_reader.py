@@ -79,6 +79,11 @@ from nomad.graph.model import (
     RequestConfig,
     ResolveType,
 )
+from nomad.layouts import (
+    build_layout_context,
+    create_layout_plan,
+    get_layout_query_intent,
+)
 from nomad.metainfo import (
     Definition,
     MSectionReference,
@@ -99,8 +104,31 @@ from nomad.processing import Entry, Upload
 
 logger = utils.get_logger(__name__)
 
+
 GenericList: TypeAlias = list | ArchiveList | ArchiveListNew | LazyList
 GenericDict: TypeAlias = dict | ArchiveDict | ArchiveDictNew | LazyDict
+
+
+@dataclasses.dataclass(frozen=True)
+class _LayoutArchiveRequest:
+    raw: dict[str, Any]
+    normalized: dict | RequestConfig
+
+
+@dataclasses.dataclass(frozen=True)
+class _EntryLayoutReadPlan:
+    """Precomputed entry/response/archive updates for layout-aware reads."""
+
+    entry_updates: dict[str, Any] = dataclasses.field(default_factory=dict)
+    response_updates: dict[str, Any] = dataclasses.field(default_factory=dict)
+    archive_request: _LayoutArchiveRequest | None = None
+
+
+def _normalize_layout_archive_request(
+    raw_request: dict[str, Any],
+) -> _LayoutArchiveRequest:
+    normalized_request, _ = _parse_required(raw_request, ArchiveReader)
+    return _LayoutArchiveRequest(raw=raw_request, normalized=normalized_request)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -779,6 +807,37 @@ def _normalise_index(index: tuple | None, length: int) -> range:
 
 def _unwrap_subsection(target):
     return target.sub_section.m_resolved() if isinstance(target, SubSection) else target
+
+
+def _get_property_definition(node: GraphNode, name: str):
+    """
+    Resolve a property definition for the current node, falling back to the
+    archive object's runtime definition when the carried graph definition is
+    missing inherited properties.
+    """
+
+    candidates = [
+        getattr(node, 'definition', None),
+        getattr(node.archive, 'm_def', None),
+    ]
+
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        if isinstance(candidate, SubSection):
+            candidate = candidate.sub_section
+        if hasattr(candidate, 'm_resolved'):
+            candidate = candidate.m_resolved()
+
+        all_properties = getattr(candidate, 'all_properties', None)
+        if all_properties is None:
+            continue
+
+        child_definition = all_properties.get(name, None)
+        if child_definition is not None:
+            return child_definition
+
+    return None
 
 
 class GeneralReader:
@@ -1673,6 +1732,8 @@ class MongoReader(GeneralReader):
                             if read_list
                             else await reader.read(*args),
                         )
+                except ConfigError:
+                    raise
                 except Exception as exc:
                     self._log(str(exc))
 
@@ -1682,8 +1743,29 @@ class MongoReader(GeneralReader):
                 continue
 
             if key == Token.METADATA and self.__class__ is EntryReader:
-                # hitting the bottom of the current scope
-                await offload_read(ElasticSearchReader, node.entry_id)
+                preloaded_metadata = node.archive.get(Token.METADATA)
+                if isinstance(preloaded_metadata, dict):
+                    # Layout-aware reads already loaded archive metadata. Walk that
+                    # snapshot from an isolated root so the literal ``metadata`` path
+                    # does not trigger searchable-edge offloading for every child.
+                    metadata_result: dict[str, Any] = {}
+                    await self._walk(
+                        node.replace(
+                            archive=preloaded_metadata,
+                            current_path=[],
+                            result_root=metadata_result,
+                        ),
+                        value,
+                        current_config,
+                    )
+                    await _populate_result(
+                        node.result_root,
+                        node.current_path + [key],
+                        metadata_result,
+                    )
+                else:
+                    # Regular entry reads continue to resolve metadata through ES.
+                    await offload_read(ElasticSearchReader, node.entry_id)
                 continue
 
             if key in (Token.UPLOAD, Token.UPLOADS) and self.__class__ is EntryReader:
@@ -2119,13 +2201,103 @@ class EntryReader(MongoReader):
     def datasets(self):
         return Dataset.m_def.a_mongo.objects(entries=self.target_entry_id)
 
+    async def _build_layout_read_plan(
+        self, target_entry: dict[str, Any], archive: GenericDict
+    ) -> _EntryLayoutReadPlan:
+        """
+        Resolve layout state before the normal graph walk.
+
+        Search metadata comes from Mongo where possible, while archive metadata
+        supplies the quantities/sections/results needed by layout matching and
+        request derivation.
+        """
+        intent = get_layout_query_intent(self.required_query)
+        if not (intent.requires_search_metadata or intent.requires_layout_resolution):
+            return _EntryLayoutReadPlan()
+
+        archive_metadata = await goto_child(archive, 'metadata')
+        metadata_dict = await async_to_json(archive_metadata)
+        layout_context = build_layout_context(target_entry, metadata_dict)
+        plan = create_layout_plan(
+            layout_context,
+            requested_layout_id=intent.requested_layout_id,
+        )
+        archive_request = _normalize_layout_archive_request(plan.archive_request)
+
+        entry_updates = {
+            'metadata': metadata_dict,
+            'default_layout_id': plan.default_layout_id,
+            'matching_layouts': plan.matching_layouts,
+            'resolved_layout_id': plan.resolved_layout_id,
+        }
+        response_updates = {
+            'resolved_layout_id': plan.resolved_layout_id,
+            'resolved_archive_request': archive_request.raw,
+        }
+
+        return _EntryLayoutReadPlan(
+            entry_updates=entry_updates,
+            response_updates=response_updates,
+            archive_request=archive_request,
+        )
+
+    async def _read_layout_archive(
+        self, archive: GenericDict, request: _LayoutArchiveRequest
+    ) -> dict[str, Any]:
+        with ArchiveReader(
+            request.normalized,
+            user=self.user,
+            init=False,
+            config=self.global_config,
+            global_root=self.global_root,
+        ) as reader:
+            return await reader.read(archive)
+
     # noinspection PyMethodOverriding
     async def read(self, entry_id: str) -> dict:  # type: ignore
+        """Read one entry and resolve a server-selected layout when requested."""
         with self._prepare_reading() as response:
-            # if it is a string, no access
+            # Entry process data establishes access and supplies the upload needed to
+            # open the archive. A string result denotes a missing or inaccessible entry.
             if isinstance(target_entry := await self.retrieve_entry(entry_id), dict):
                 self.target_entry_id = entry_id
+                required_query = self.required_query
+                intent = get_layout_query_intent(required_query)
 
+                if intent.auto_from_layout:
+                    layout_plan = _EntryLayoutReadPlan()
+                    try:
+                        # Keep one archive reader open while metadata selects and compiles
+                        # the layout and ArchiveReader materializes its derived payload.
+                        with self.load_archive(
+                            target_entry['upload_id'], entry_id
+                        ) as archive:
+                            layout_plan = await self._build_layout_read_plan(
+                                target_entry, archive
+                            )
+                            assert layout_plan.archive_request is not None
+                            response[Token.ARCHIVE] = await self._read_layout_archive(
+                                archive, layout_plan.archive_request
+                            )
+                    except ValueError as exc:
+                        raise ConfigError(str(exc)) from exc
+
+                    # Expose compiled layout state and preloaded metadata to the normal
+                    # graph walk. The archive was already written above, so remove that
+                    # edge to prevent a second archive open.
+                    target_entry.update(layout_plan.entry_updates)
+                    # These fields describe how the server satisfied auto_from_layout and
+                    # are returned even though they are not part of the archive itself.
+                    response.update(layout_plan.response_updates)
+                    if isinstance(required_query, dict):
+                        required_query = {
+                            key: value
+                            for key, value in required_query.items()
+                            if key != Token.ARCHIVE
+                        }
+
+                # Resolve all remaining requested entry fields with the standard graph
+                # machinery, preserving the legacy path when layouts are client-driven.
                 await self._walk(
                     GraphNode(
                         upload_id=target_entry['upload_id'],
@@ -2140,7 +2312,7 @@ class EntryReader(MongoReader):
                         current_depth=0,
                         reader=self,
                     ),
-                    self.required_query,
+                    required_query,
                     self.global_config,
                 )
 
@@ -2793,9 +2965,7 @@ class ArchiveReader(ArchiveLikeReader):
                 continue
 
             # could just be a quantity
-            child_definition = getattr(node.definition, 'all_properties', {}).get(
-                name, None
-            )
+            child_definition = _get_property_definition(node, name)
             if child_definition is None:
                 self._log(
                     f'Definition {name} is not found.', error_type=QueryError.NOTFOUND
@@ -2978,7 +3148,7 @@ class ArchiveReader(ArchiveLikeReader):
             if config.if_include(key) and (
                 omit_keys is None or all(not k.startswith(key) for k in omit_keys)
             ):
-                child_definition = node.definition.all_properties.get(key, None)
+                child_definition = _get_property_definition(node, key)
 
                 if child_definition is None:
                     self._log(f'Definition {key} is not found.')
@@ -3048,7 +3218,10 @@ class ArchiveReader(ArchiveLikeReader):
                     )
                 else:
                     with DefinitionReader(
-                        RequestConfig(directive=DirectiveType.plain),
+                        RequestConfig(
+                            directive=DirectiveType.plain,
+                            export_whole_package=config.export_whole_package,
+                        ),
                         user=self.user,
                         init=False,
                         config=config,
@@ -3077,7 +3250,10 @@ class ArchiveReader(ArchiveLikeReader):
             )
         elif config.include_definition is not DefinitionType.none:
             with DefinitionReader(
-                RequestConfig(directive=DirectiveType.plain),
+                RequestConfig(
+                    directive=DirectiveType.plain,
+                    export_whole_package=config.export_whole_package,
+                ),
                 user=self.user,
                 init=False,
                 config=config,
