@@ -19,7 +19,7 @@
 from re import fullmatch
 
 from fastapi import HTTPException
-from mongoengine import DictField, Document, ListField, StringField
+from mongoengine import DictField, Document, ListField, Q, StringField
 from pymongo.errors import DocumentTooLarge
 from starlette import status
 
@@ -95,11 +95,13 @@ class PackageDefinition(Document):
         """
         Get the package definition that contains the given section definition ID.
         """
-        for field in ('snapshot_section_ids', 'snapshot_package_id'):
-            if package := cls.objects(**{field: snapshot_id}).first():
-                result = package.to_mongo().to_dict()
-                result['snapshot_package_id'] = result.pop('_id')
-                return result
+        package = cls.objects(
+            Q(snapshot_section_ids=snapshot_id) | Q(snapshot_package_id=snapshot_id)
+        ).first()
+        if package:
+            result = package.to_mongo().to_dict()
+            result['snapshot_package_id'] = result.pop('_id')
+            return result
 
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
