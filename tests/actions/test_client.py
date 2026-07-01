@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
@@ -127,6 +128,74 @@ async def test_get_client_passes_custom_tls_config(monkeypatch, tmp_path):
     assert tls_config.client_private_key == b'raw_key_string'
     assert tls_config.server_root_ca_cert is None
     assert tls_config.domain == 'temporal.example.com'
+
+
+@pytest.mark.asyncio
+async def test_get_client_uses_managed_oidc_token_and_plaintext_locally(monkeypatch):
+    connect = AsyncMock(return_value=object())
+
+    class FakeTokenManager:
+        def __init__(self, settings):
+            self.task = None
+
+        async def initial_token(self):
+            return 'oidc-token'
+
+        def start(self, client):
+            self.task = asyncio.create_task(asyncio.sleep(3600))
+            return self.task
+
+        async def stop(self):
+            assert self.task is not None
+            self.task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await self.task
+
+    monkeypatch.setattr(client_module, '_runtime', object())
+    monkeypatch.setattr(client_module.Client, 'connect', connect)
+    monkeypatch.setattr(client_module, 'OIDCTokenManager', FakeTokenManager)
+    monkeypatch.setattr(config.services, 'mode', ModeEnum.DEVELOPMENT)
+    monkeypatch.setattr(config.telemetry.tracing, 'enabled', False)
+    monkeypatch.setattr(config.temporal, 'api_key', None)
+    monkeypatch.setattr(config.temporal.oidc, 'enabled', True)
+    monkeypatch.setattr(config.temporal, 'use_tls', False)
+    monkeypatch.setattr(config.temporal, 'tls_client_cert', None)
+    monkeypatch.setattr(config.temporal, 'tls_client_key', None)
+    monkeypatch.setattr(config.temporal, 'tls_server_root_ca_cert', None)
+    monkeypatch.setattr(config.temporal, 'tls_domain', None)
+
+    try:
+        first = await client_module.get_client()
+        second = await client_module.get_client()
+
+        assert first is second
+        assert connect.await_count == 1
+        assert connect.await_args.kwargs['api_key'] == 'oidc-token'
+        assert connect.await_args.kwargs['tls'] is False
+    finally:
+        await client_module.close_client()
+
+
+@pytest.mark.asyncio
+async def test_get_client_rejects_oidc_plaintext_outside_development(monkeypatch):
+    connect = AsyncMock(return_value=object())
+    monkeypatch.setattr(client_module.Client, 'connect', connect)
+    monkeypatch.setattr(config.services, 'mode', ModeEnum.PRODUCTION)
+    monkeypatch.setattr(config.telemetry.tracing, 'enabled', False)
+    monkeypatch.setattr(config.temporal.oidc, 'enabled', True)
+    monkeypatch.setattr(config.temporal, 'use_tls', False)
+    monkeypatch.setattr(config.temporal, 'tls_client_cert', None)
+    monkeypatch.setattr(config.temporal, 'tls_client_key', None)
+    monkeypatch.setattr(config.temporal, 'tls_server_root_ca_cert', None)
+    monkeypatch.setattr(config.temporal, 'tls_domain', None)
+
+    with pytest.raises(
+        AssertionError,
+        match='without TLS is only allowed in development mode',
+    ):
+        await client_module._connect_client('oidc-token')
+
+    connect.assert_not_awaited()
 
 
 def test_load_cert_or_key(tmp_path):

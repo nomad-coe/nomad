@@ -1,4 +1,7 @@
+import asyncio
 import threading
+import weakref
+from dataclasses import dataclass
 
 import temporalio.converter
 from temporalio.client import Client, TLSConfig
@@ -7,11 +10,28 @@ from temporalio.contrib.pydantic import PydanticPayloadConverter
 from temporalio.runtime import PrometheusConfig, Runtime, TelemetryConfig
 
 from nomad.actions._codec import EncryptionCodec
+from nomad.actions.oidc import OIDCTokenManager
 from nomad.config import config
 from nomad.config.models.config import ModeEnum
 
 _runtime: Runtime | None = None
 _runtime_lock = threading.Lock()
+
+
+@dataclass
+class _ManagedOIDCClient:
+    client: Client
+    token_manager: OIDCTokenManager
+    refresh_task: asyncio.Task[None]
+
+
+_oidc_clients: weakref.WeakKeyDictionary[
+    asyncio.AbstractEventLoop, _ManagedOIDCClient
+] = weakref.WeakKeyDictionary()
+_oidc_creation_locks: weakref.WeakKeyDictionary[
+    asyncio.AbstractEventLoop, asyncio.Lock
+] = weakref.WeakKeyDictionary()
+_oidc_clients_lock = threading.Lock()
 
 
 def _get_metrics_config() -> PrometheusConfig | None:
@@ -53,7 +73,50 @@ def _load_cert_or_key(val: str | None) -> bytes | None:
     return val.encode('utf-8')
 
 
-async def get_client() -> Client:
+def _get_oidc_creation_lock(loop: asyncio.AbstractEventLoop) -> asyncio.Lock:
+    with _oidc_clients_lock:
+        lock = _oidc_creation_locks.get(loop)
+        if lock is None:
+            lock = asyncio.Lock()
+            _oidc_creation_locks[loop] = lock
+        return lock
+
+
+def _get_managed_oidc_client(
+    loop: asyncio.AbstractEventLoop,
+) -> _ManagedOIDCClient | None:
+    with _oidc_clients_lock:
+        managed = _oidc_clients.get(loop)
+        if managed is not None and managed.refresh_task.done():
+            _oidc_clients.pop(loop, None)
+            return None
+        return managed
+
+
+def _forget_managed_oidc_client(
+    loop_ref: weakref.ReferenceType[asyncio.AbstractEventLoop],
+    refresh_task: asyncio.Task[None],
+) -> None:
+    loop = loop_ref()
+    if loop is None:
+        return
+    with _oidc_clients_lock:
+        managed = _oidc_clients.get(loop)
+        if managed is not None and managed.refresh_task is refresh_task:
+            _oidc_clients.pop(loop, None)
+
+
+async def close_client() -> None:
+    """Stop OIDC credential renewal for the client owned by this event loop."""
+    loop = asyncio.get_running_loop()
+    with _oidc_clients_lock:
+        managed = _oidc_clients.pop(loop, None)
+        _oidc_creation_locks.pop(loop, None)
+    if managed is not None:
+        await managed.token_manager.stop()
+
+
+async def _connect_client(api_key: str | None) -> Client:
     # Ensure telemetry is initialized in this process before Temporal plugin checks
     # the global tracer provider type.
     if config.telemetry.tracing.enabled:
@@ -62,6 +125,18 @@ async def get_client() -> Client:
         setup_tracing()
 
     host = f'{config.temporal.host}:{config.temporal.port}'
+    tls_configured = bool(
+        config.temporal.use_tls
+        or config.temporal.tls_client_cert
+        or config.temporal.tls_client_key
+        or config.temporal.tls_server_root_ca_cert
+        or config.temporal.tls_domain
+    )
+    if config.temporal.oidc.enabled and not tls_configured:
+        assert config.services.mode == ModeEnum.DEVELOPMENT, (
+            'Temporal OIDC authentication without TLS is only allowed in development mode.'
+        )
+
     data_converter = temporalio.converter.DataConverter(
         payload_converter_class=PydanticPayloadConverter,
         payload_codec=None
@@ -73,14 +148,11 @@ async def get_client() -> Client:
     if config.telemetry.tracing.enabled:
         plugins.append(OpenTelemetryPlugin(add_temporal_spans=True))
 
-    tls: bool | TLSConfig | None = None
-    if (
-        config.temporal.use_tls
-        or config.temporal.tls_client_cert
-        or config.temporal.tls_client_key
-        or config.temporal.tls_server_root_ca_cert
-        or config.temporal.tls_domain
-    ):
+    # The SDK enables TLS automatically when an API key is supplied. Explicitly
+    # disable that behavior for an OIDC-enabled local development deployment that
+    # has not enabled TLS. Production federation deployments should enable TLS.
+    tls: bool | TLSConfig | None = False if config.temporal.oidc.enabled else None
+    if tls_configured:
         if (
             config.temporal.tls_client_cert
             or config.temporal.tls_client_key
@@ -101,10 +173,40 @@ async def get_client() -> Client:
     client = await Client.connect(
         host,
         namespace=config.temporal.namespace,
-        api_key=config.temporal.api_key,
+        api_key=api_key,
         tls=tls,
         data_converter=data_converter,
         runtime=_get_runtime(),
         plugins=plugins,
     )
     return client
+
+
+async def get_client() -> Client:
+    if not config.temporal.oidc.enabled:
+        return await _connect_client(config.temporal.api_key)
+
+    loop = asyncio.get_running_loop()
+    managed = _get_managed_oidc_client(loop)
+    if managed is not None:
+        return managed.client
+
+    async with _get_oidc_creation_lock(loop):
+        managed = _get_managed_oidc_client(loop)
+        if managed is not None:
+            return managed.client
+
+        token_manager = OIDCTokenManager(config.temporal.oidc)
+        token = await token_manager.initial_token()
+        client = await _connect_client(token)
+        refresh_task = token_manager.start(client)
+        managed = _ManagedOIDCClient(client, token_manager, refresh_task)
+        with _oidc_clients_lock:
+            _oidc_clients[loop] = managed
+        loop_ref = weakref.ref(loop)
+
+        def forget_client(task: asyncio.Task[None]) -> None:
+            _forget_managed_oidc_client(loop_ref, task)
+
+        refresh_task.add_done_callback(forget_client)
+        return client
