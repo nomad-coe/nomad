@@ -99,6 +99,13 @@ def setup_mongo():
     db = mongo_client.get_database(config.mongo.db_name)
     db.get_collection('cache').drop()
 
+    from nomad.mongo.groups import MongoUserGroup
+    from nomad.processing import Entry, Upload
+
+    MongoUserGroup.ensure_indexes()
+    Upload.ensure_indexes()
+    Entry.ensure_indexes()
+
     return mongo_client
 
 
