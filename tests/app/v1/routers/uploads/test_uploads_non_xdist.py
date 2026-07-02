@@ -30,7 +30,7 @@ from tests.app.v1.routers.common import (
     assert_response,
     perform_get,
 )
-from tests.app.v1.routers.uploads.test_basic_uploads import (
+from tests.app.v1.routers.uploads.test_uploads import (
     assert_file_upload_and_processing,
     assert_pagination,
 )
