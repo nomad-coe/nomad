@@ -82,6 +82,7 @@ class MongoUserGroup(Document):
     meta = {
         'strict': False,
         'collection': 'user_group',
+        'auto_create_index': False,
         'indexes': [
             'group_name',
             'owner',

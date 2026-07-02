@@ -992,6 +992,7 @@ class Entry(Proc):
 
     meta: Any = {
         'strict': False,
+        'auto_create_index': False,
         'indexes': [
             'upload_id',
             'parser_name',
@@ -1817,6 +1818,7 @@ class Upload(Proc):
 
     meta: Any = {
         'strict': False,
+        'auto_create_index': False,
         'indexes': [
             'main_author',
             'coauthors',
