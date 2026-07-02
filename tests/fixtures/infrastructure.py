@@ -74,7 +74,7 @@ class CustomScheduler(LoadScopeScheduling):
     integration_tests = [
         'tests/app/v1/routers/test_apps.py',
         'tests/app/v1/routers/test_federation.py',
-        'tests/app/v1/routers/uploads/test_basic_uploads_legacy.py',
+        'tests/app/v1/routers/uploads/test_uploads_non_xdist.py',
         'tests/app/v1/routers/uploads/test_transfer_bundle.py',
         'tests/archive/test_archive.py',
         'tests/logtransfer/test_logtransfer.py',
