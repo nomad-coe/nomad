@@ -76,6 +76,9 @@ class GuiFiles(StaticFiles):
                     headers=dict(etag=GuiFiles.gui_data_etag),
                 )
             else:
+                assert GuiFiles.gui_artifacts_path is not None, (
+                    'GUI artifacts path was not initialized'
+                )
                 response = FileResponse(
                     GuiFiles.gui_artifacts_path,
                     media_type='application/javascript',

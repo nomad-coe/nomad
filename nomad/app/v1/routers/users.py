@@ -199,9 +199,11 @@ def get_user(
         Depends(get_current_user([Scope.USERS_READ])),
     ],
 ):
-    return datamodel.User.get(user_id=str(user_id)).m_to_dict(
-        with_out_meta=True, include_derived=True
-    )
+    user = datamodel.User.get(user_id=str(user_id))
+    if user is None:
+        return None
+
+    return user.m_to_dict(with_out_meta=True, include_derived=True)
 
 
 @router.put(

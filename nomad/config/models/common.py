@@ -141,7 +141,7 @@ class Options(OptionsBase):
     elements and defining the configuration of each element.
     """
 
-    options: dict[str, Any] | None = Field(  # type: ignore
+    options: dict[str, Any] | None = Field(
         {}, description='Contains the available options.'
     )
 
@@ -149,14 +149,16 @@ class Options(OptionsBase):
         """Returns a list of keys that fullfill the include/exclude
         requirements.
         """
-        if self.include is None or '*' in self.include:
+        if (self.include is None or '*' in self.include) and self.options is not None:
             include = list(self.options.keys())
         else:
             include = self.include
+
         if self.exclude is not None and '*' in self.exclude:
             return []
         else:
             exclude = self.exclude or []
+
         return [key for key in include if key not in exclude]
 
     def filtered_values(self) -> list[Any]:
@@ -164,7 +166,9 @@ class Options(OptionsBase):
         requirements.
         """
         return [
-            self.options[key] for key in self.filtered_keys() if key in self.options
+            self.options[key]
+            for key in self.filtered_keys()
+            if (self.options is not None and key in self.options)
         ]
 
     def filtered_items(self) -> list[tuple[str, Any]]:

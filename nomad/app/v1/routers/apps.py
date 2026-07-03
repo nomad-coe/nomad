@@ -344,19 +344,21 @@ def get_search_quantity(
     return result
 
 
-def glob(path: str, include: list[str], exclude: list[str]) -> bool:
+def glob(path: str, include: list[str] | None, exclude: list[str] | None) -> bool:
     """
     Determines if path matches include and not exclude.
     """
-    match = False if include else True
+    match: bool = False if include else True
     for pattern in include or []:
         if fnmatch.fnmatch(path, pattern):
             match = True
             break
+
     for pattern in exclude or []:
         if fnmatch.fnmatch(path, pattern):
             match = False
             break
+
     return match
 
 
@@ -365,7 +367,9 @@ def prefilter_search_quantities(
 ) -> list[SearchQuantity]:
     """Pre-filters for a specific app based on its entry point."""
     entry_point = app_entry_points_cache.get(app_path)
+    assert entry_point is not None
     sq_filter = entry_point.app.search_quantities
+    assert sq_filter is not None
     return [
         sq
         for key, sq in search_quantities.items()
@@ -502,6 +506,7 @@ def _build_app_response(app: App) -> dict[str, Any]:
     # Columns
     for column in app.columns or []:
         add_jmespath(column.search_quantity, 'the results table column')
+
     # Widgets
     if app.dashboard and app.dashboard.widgets:
         for widget in app.dashboard.widgets:
