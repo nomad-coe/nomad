@@ -4284,7 +4284,10 @@ def all_base_sections(self) -> list[Section]:
 
 @derived(cached=True)
 def all_inheriting_sections(self) -> list[Section]:
-    result: set[Section] = set()
+    # dict as ordered set: a plain set iterates in identity-hash order, which
+    # varies between processes and makes polymorphic section resolution
+    # (and thus parser output ordering) non-deterministic
+    result: dict[Section, None] = {}
     for inheriting_section in self.inheriting_sections:
         if isinstance(inheriting_section, SectionProxy):
             # In some reference resolution contexts, it is important to reevaluate later
@@ -4295,8 +4298,8 @@ def all_inheriting_sections(self) -> list[Section]:
                 # In some reference resolution contexts, it is important to reevaluate later
                 _track_changes(self)
                 continue
-            result.add(inheriting_inheriting_section)
-        result.add(inheriting_section)
+            result[inheriting_inheriting_section] = None
+        result[inheriting_section] = None
     return list(result)
 
 
