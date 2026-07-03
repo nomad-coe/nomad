@@ -113,7 +113,9 @@ async def lifespan(app: FastAPI):
             await infrastructure.async_mongo_client.close()
             infrastructure.async_mongo_client = None
             infrastructure.async_mongo_loop = None
-        if os.path.exists(GuiFiles.gui_artifacts_path):
+        if GuiFiles.gui_artifacts_path is not None and os.path.exists(
+            GuiFiles.gui_artifacts_path
+        ):
             os.remove(GuiFiles.gui_artifacts_path)
 
 
@@ -232,6 +234,9 @@ async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
 
 
 # Mount API and dashboard plugin apps
+if config.plugins is None:
+    raise RuntimeError('No plugins are loaded')
+
 for entry_point in config.plugins.entry_points.filtered_values():
     if isinstance(entry_point, APIEntryPoint):
         api_app = entry_point.load()

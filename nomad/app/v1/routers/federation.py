@@ -117,7 +117,10 @@ async def logs(
     except KeyError:
         # read IP from request directly (note that this is not necessarily an IP address,
         # e.g. can also be string 'localhost'.
-        ip_address = str(request.client.host)
+        if request.client is None:
+            ip_address = 'unknown'
+        else:
+            ip_address = str(request.client.host)
 
     if not config.logstash.enabled:
         raise HTTPException(

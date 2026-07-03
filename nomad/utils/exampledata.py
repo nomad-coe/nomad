@@ -379,6 +379,7 @@ class ExampleData:
         atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
 
         archive = EntryArchive()
+        assert runschema is not None
         run = runschema.run.Run()
         archive.run.append(run)
         run.m_create(runschema.run.Program, name='VASP')
@@ -435,12 +436,15 @@ def create_entry_archive(
     if metadata:
         entry_metadata = entry.m_create(EntryMetadata)
         entry_metadata.m_update(**metadata)
+
     if results:
         entry_results = Results.m_from_dict(results)
         entry.m_add_sub_section(EntryArchive.results, entry_results)
-    if run:
+
+    if run and runschema is not None:
         entry_run = runschema.run.Run.m_from_dict(run)
         entry.m_add_sub_section(EntryArchive.run, entry_run)
+
     if workflow:
         entry_workflow = Workflow.m_from_dict(workflow)
         entry.m_add_sub_section(EntryArchive.workflow2, entry_workflow)

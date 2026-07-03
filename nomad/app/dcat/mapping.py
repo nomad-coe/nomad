@@ -172,6 +172,9 @@ class Mapping:
             return person
 
         user = User.get(user_id=user_id)
+        if user is None:
+            raise RuntimeError('Failed to resolve user')
+
         person = BNode()
 
         self.g.add((person, RDF.type, FOAF.Person))
@@ -190,6 +193,8 @@ class Mapping:
             person = self.map_user(user_id)
 
         user = User.get(user_id=user_id)
+        if user is None:
+            raise RuntimeError('Failed to resolve user')
         self.g.add((person, RDF.type, VCARD.Individual))
         self.g.add((person, VCARD.givenName, Literal(user.first_name)))
         self.g.add((person, VCARD.familyName, Literal(user.last_name)))

@@ -22,7 +22,7 @@ from nomad.metainfo.data_type import Datatype, to_optimade_type
 from nomad.metainfo.elasticsearch_extension import SearchQuantity, entry_type
 from nomad.metainfo.metainfo import Quantity, Reference
 
-_provider_specific_fields: dict[str, SearchQuantity] = None
+_provider_specific_fields: dict[str, SearchQuantity] | None = None
 
 
 def create_provider_field(name, definition):
