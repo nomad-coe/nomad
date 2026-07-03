@@ -27,9 +27,11 @@ import yaml
 from nomad.datamodel import EntryArchive, ServerContext
 from nomad.datamodel.metainfo.simulation import run
 from nomad.graph.graph_reader import (
+    ArchiveReader,
     EntryReader,
     FileSystemReader,
     GeneralReader,
+    GraphNode,
     MongoReader,
     Token,
     UploadReader,
@@ -138,6 +140,63 @@ def increment():
     while True:
         n += 1
         yield n
+
+
+@pytest.mark.asyncio
+async def test_definition_resolution_is_cached_per_graph_request(monkeypatch):
+    upload_calls = []
+    fetch_calls = []
+    definitions = {'first-id': object(), 'second-id': object()}
+
+    def get_upload(upload_id, user, include_others):
+        upload_calls.append((upload_id, user, include_others))
+        return object()
+
+    def fetch_section(context, m_def, m_def_id):
+        fetch_calls.append((m_def, m_def_id))
+        return definitions[m_def_id]
+
+    monkeypatch.setattr(
+        'nomad.graph.graph_reader.get_upload_with_read_access', get_upload
+    )
+    monkeypatch.setattr(ServerContext, 'fetch_section', fetch_section)
+
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload-id',
+            entry_id='entry-id',
+            current_path=[],
+            result_root={},
+            ref_result_root={},
+            archive={},
+            archive_root={},
+            definition=None,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+
+        assert (
+            await reader._retrieve_definition('First', 'first-id', node)
+            is definitions['first-id']
+        )
+        assert (
+            await reader._retrieve_definition('First', 'first-id', node)
+            is definitions['first-id']
+        )
+        assert (
+            await reader._retrieve_definition('Second', 'second-id', node)
+            is definitions['second-id']
+        )
+
+        with ArchiveReader({}, reader_cache=reader._reader_cache) as child_reader:
+            assert (
+                await child_reader._retrieve_definition('First', 'first-id', node)
+                is definitions['first-id']
+            )
+
+    assert upload_calls == [('upload-id', None, True)]
+    assert fetch_calls == [('First', 'first-id'), ('Second', 'second-id')]
 
 
 counter = increment()

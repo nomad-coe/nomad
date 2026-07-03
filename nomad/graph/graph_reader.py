@@ -124,6 +124,18 @@ class _EntryLayoutReadPlan:
     archive_request: _LayoutArchiveRequest | None = None
 
 
+@dataclasses.dataclass
+class _ReaderCache:
+    """State shared by readers participating in one graph request."""
+
+    server_contexts: dict[str | None, ServerContext] = dataclasses.field(
+        default_factory=dict
+    )
+    definitions: dict[tuple[str | None, str | None, str | None, str | None], Any] = (
+        dataclasses.field(default_factory=dict)
+    )
+
+
 def _normalize_layout_archive_request(
     raw_request: dict[str, Any],
 ) -> _LayoutArchiveRequest:
@@ -879,6 +891,7 @@ class GeneralReader:
         init: bool = True,
         config: RequestConfig | None = None,
         global_root: dict | None = None,
+        reader_cache: _ReaderCache | None = None,
     ):
         """
         Supports two modes of initialisation:
@@ -903,6 +916,7 @@ class GeneralReader:
         # use to provide a link to the final response dict
         # so that some data can be populated in different places
         self.global_root: dict = global_root
+        self._reader_cache = reader_cache or _ReaderCache()
 
         # for cacheing
         # can only store uploads in the reader
@@ -943,6 +957,18 @@ class GeneralReader:
     def close(self):
         for upload in self.upload_pool.values():
             upload.close()
+
+    def _get_server_context(self, upload_id: str | None) -> ServerContext:
+        """Return one authorized server context per upload and graph request."""
+        if upload_id not in self._reader_cache.server_contexts:
+            upload = (
+                get_upload_with_read_access(upload_id, self.user, include_others=True)
+                if upload_id
+                else None
+            )
+            self._reader_cache.server_contexts[upload_id] = ServerContext(upload)
+
+        return self._reader_cache.server_contexts[upload_id]
 
     @property
     def auth_user_id(self) -> str:
@@ -1183,6 +1209,7 @@ class GeneralReader:
                 raise ArchiveError(f'Upload {upload_id} does not exist.')
 
             self.upload_pool[upload_id] = upload.upload_files
+            self._reader_cache.server_contexts[upload_id] = ServerContext(upload)
 
         try:
             with self.upload_pool[upload_id].read_archive(entry_id) as reader:
@@ -1331,12 +1358,21 @@ class ArchiveLikeReader(GeneralReader):
         todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
         """
 
+        cache_key = (
+            node.upload_id if node else None,
+            node.entry_id if node else None,
+            m_def,
+            m_def_id,
+        )
+        if cache_key in self._reader_cache.definitions:
+            return self._reader_cache.definitions[cache_key]
+
+        def cache(definition):
+            self._reader_cache.definitions[cache_key] = definition
+            return definition
+
         def new_context(_id):
-            return ServerContext(
-                get_upload_with_read_access(_id, self.user, include_others=True)
-                if _id
-                else None
-            )
+            return self._get_server_context(_id)
 
         async def __resolve_definition_in_archive(
             _root,
@@ -1374,16 +1410,22 @@ class ArchiveLikeReader(GeneralReader):
             if new_def := new_context(node.upload_id if node else None).fetch_section(
                 m_def, m_def_id
             ):
-                return new_def
+                return cache(new_def)
 
         if m_def is not None:
             if m_def.startswith(('#/', '/')):
                 # appears to be a local definition
-                return await __resolve_definition_in_archive(
-                    node.archive_root,
-                    [v for v in m_def.split('/') if v not in ('', '#', 'definitions')],
-                    await goto_child(node.archive_root, ['metadata', 'upload_id']),
-                    await goto_child(node.archive_root, ['metadata', 'entry_id']),
+                return cache(
+                    await __resolve_definition_in_archive(
+                        node.archive_root,
+                        [
+                            v
+                            for v in m_def.split('/')
+                            if v not in ('', '#', 'definitions')
+                        ],
+                        await goto_child(node.archive_root, ['metadata', 'upload_id']),
+                        await goto_child(node.archive_root, ['metadata', 'entry_id']),
+                    )
                 )
             # todo: !!!need to unify different formats!!!
             # check if m_def matches the pattern 'entry_id:example_id.example_section.example_quantity'
@@ -1395,17 +1437,19 @@ class ArchiveLikeReader(GeneralReader):
                 if (
                     cached_package := _fetch_package(f'{upload_id}:{entry_id}')
                 ) is not None:  # early fetch to avoid loading archive from disk
-                    return cached_package.m_resolve_path(tokens)
+                    return cache(cached_package.m_resolve_path(tokens))
                 with self.load_archive(upload_id, entry_id) as archive:
-                    return await __resolve_definition_in_archive(
-                        archive, tokens, upload_id, entry_id
+                    return cache(
+                        await __resolve_definition_in_archive(
+                            archive, tokens, upload_id, entry_id
+                        )
                     )
 
         # use the conventional approach
         proxy = MSectionReference().normalize(
             m_def, context=new_context(node.upload_id)
         )
-        return proxy.section_cls.m_def
+        return cache(proxy.section_cls.m_def)
 
 
 class MongoReader(GeneralReader):
@@ -1714,6 +1758,7 @@ class MongoReader(GeneralReader):
             'init': False,
             'config': current_config,
             'global_root': self.global_root,
+            'reader_cache': self._reader_cache,
         }
 
         for key, value in required.items():
@@ -2250,6 +2295,7 @@ class EntryReader(MongoReader):
             init=False,
             config=self.global_config,
             global_root=self.global_root,
+            reader_cache=self._reader_cache,
         ) as reader:
             return await reader.read(archive)
 
@@ -2730,6 +2776,7 @@ class FileSystemReader(GeneralReader):
                 init=False,
                 config=parent_config,
                 global_root=self.global_root,
+                reader_cache=self._reader_cache,
             ) as reader:
                 return await reader.read(entry.entry_id)
         return {}
@@ -2938,6 +2985,7 @@ class ArchiveReader(ArchiveLikeReader):
                     init=False,
                     config=current_config,
                     global_root=self.global_root,
+                    reader_cache=self._reader_cache,
                 ) as reader:
                     await _populate_result(
                         node.result_root,
@@ -2968,7 +3016,8 @@ class ArchiveReader(ArchiveLikeReader):
             child_definition = _get_property_definition(node, name)
             if child_definition is None:
                 self._log(
-                    f'Definition {name} is not found.', error_type=QueryError.NOTFOUND
+                    f'Definition {name} is not found.',
+                    error_type=QueryError.NOTFOUND,
                 )
                 continue
 
@@ -3226,6 +3275,7 @@ class ArchiveReader(ArchiveLikeReader):
                         init=False,
                         config=config,
                         global_root=self.global_root,
+                        reader_cache=self._reader_cache,
                     ) as reader:
                         await _populate_result(
                             node.result_root,
@@ -3258,6 +3308,7 @@ class ArchiveReader(ArchiveLikeReader):
                 init=False,
                 config=config,
                 global_root=self.global_root,
+                reader_cache=self._reader_cache,
             ) as reader:
                 await _populate_result(
                     node.result_root,

@@ -55,11 +55,45 @@ def _opener_and_dumper(file_name: str) -> tuple:
 
 # use to cache packages that are retrieved from MongoDB
 _mongo_package_cache: LRUCache = LRUCache(128)
+# Resolve package and section IDs without fetching their package document first.
+_mongo_definition_cache: LRUCache = LRUCache(8192)
+
+
+def _cache_package_definitions(
+    package: Package,
+    package_id: str,
+    section_ids: list[str],
+):
+    _mongo_package_cache[package_id] = package
+    _mongo_definition_cache[package_id] = (package_id, None)
+    for section_index, section_id in enumerate(section_ids):
+        _mongo_definition_cache[section_id] = (package_id, section_index)
+
+
+def _get_cached_definition(definition_id: str):
+    location = _mongo_definition_cache.get(definition_id)
+    if location is None:
+        return None
+
+    package_id, section_index = location
+    package = _mongo_package_cache.get(package_id)
+    if package is None:
+        return None
+
+    if section_index is None:
+        return package
+    if section_index >= len(package.section_definitions):
+        return None
+    return package.section_definitions[section_index]
 
 
 def populate_builtin_packages():
     for package in Package.registry.values():
-        _mongo_package_cache[package.definition_id] = package
+        _cache_package_definitions(
+            package,
+            package.definition_id,
+            [section.definition_id for section in package.section_definitions],
+        )
 
 
 class Context:
@@ -346,6 +380,9 @@ class Context:
         """
         Fetch a section definition by its reference name and ID.
         """
+        if definition := _get_cached_definition(def_id):
+            return definition
+
         try:
             mongo_package = self._fetch_package(def_ref, def_id)
         except Exception:  # noqa
@@ -369,16 +406,10 @@ class Context:
             ):
                 section.snapshot_id = snapshot
 
-            _mongo_package_cache[snapshot_package_id] = pkg
-
-        if def_id == snapshot_package_id:
-            return pkg
-
-        for section in pkg.section_definitions:
-            if section.snapshot_id == def_id:
-                return section
-
-        return None
+        _cache_package_definitions(
+            pkg, snapshot_package_id, mongo_package['snapshot_section_ids']
+        )
+        return _get_cached_definition(def_id)
 
     @contextmanager
     def update_entry(
