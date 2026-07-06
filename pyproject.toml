@@ -29,7 +29,7 @@ dependencies = [
   "json_stream",
   "kaleido<=0.2.1", # v1.0.0 not compatible with plotly < 6.0.0
   "lxml>=5.2",
-  "matid>=2.1.3",
+  "matid>=2.2.0",
   'molid>=0.8.5',
   "msglc[msgspec,s3fs]>=260423",
   "numpy>=1.22.4",
