@@ -158,7 +158,7 @@ class FSUtility:
     def _open_archive_fs(
         path: str, mode: Literal['a', 'w', 'r'], protocol=None, extra=None
     ):
-        if path.lower().endswith('.zip'):
+        if path.lower().endswith(('.zip', '.eln')):
             fs_class = ZipFileSystem
             fs_options = [mode]
             if protocol:
