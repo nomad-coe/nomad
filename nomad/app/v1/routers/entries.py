@@ -376,6 +376,7 @@ def _default_sub_section_payload(
 def _section_def_from_dict(
     section_data: dict[str, Any],
     fallback_def: metainfo.Section,
+    archive: metainfo.MSection = None,
 ) -> metainfo.Section:
     """Resolve the actual Section definition for a raw dict.
 
@@ -393,7 +394,7 @@ def _section_def_from_dict(
         # resolve to the real Section definition without needing a DB context.
         proxy = metainfo.MSectionReference().normalize(
             m_def_name,
-            section=datamodel.EntryArchive.m_def,
+            section=archive if archive is not None else datamodel.EntryArchive.m_def,
         )
         if isinstance(proxy, metainfo.Section):
             return proxy
@@ -418,6 +419,7 @@ def _resolve_archive_change_target_in_dict(
     path: str,
     *,
     create_missing: bool,
+    archive: metainfo.MSection = None,
 ) -> tuple[dict[str, Any], metainfo.Property, int | None]:
     """Walk *archive_data* (a raw dict) to the parent container described by *path*.
 
@@ -444,7 +446,9 @@ def _resolve_archive_change_target_in_dict(
         property_name = parts[index]
 
         # Allow the actual section type to differ (polymorphism via m_def).
-        current_section_def = _section_def_from_dict(current_data, current_section_def)
+        current_section_def = _section_def_from_dict(
+            current_data, current_section_def, archive=archive
+        )
 
         try:
             definition = current_section_def.all_properties[property_name]
@@ -538,7 +542,9 @@ def _resolve_archive_change_target_in_dict(
     property_name = parts[-1]
 
     # Resolve section def one last time for the final hop.
-    current_section_def = _section_def_from_dict(current_data, current_section_def)
+    current_section_def = _section_def_from_dict(
+        current_data, current_section_def, archive=archive
+    )
 
     try:
         definition = current_section_def.all_properties[property_name]
@@ -558,6 +564,7 @@ def _resolve_archive_change_target_in_dict(
 def _apply_archive_change_to_dict(
     archive_data: dict[str, Any],
     change: ArchiveChange,
+    archive: metainfo.MSection = None,
 ) -> None:
     """Apply a single :class:`ArchiveChange` directly to the raw *archive_data* dict.
 
@@ -569,6 +576,7 @@ def _apply_archive_change_to_dict(
         archive_data,
         change.path,
         create_missing=change.action != ArchiveChangeAction.remove,
+        archive=archive,
     )
 
     if change.action == ArchiveChangeAction.remove:
@@ -2010,9 +2018,11 @@ def post_entry_edit(
             )
 
     # Apply changes directly to the raw dict – no full archive deserialisation.
+    # This context-only archive resolves relative m_def references to local schemas.
     # TODO no handling of concurrent changes yet
+    archive = datamodel.EntryArchive(m_context=context)
     for change in data.changes:
-        _apply_archive_change_to_dict(archive_data, change)
+        _apply_archive_change_to_dict(archive_data, change, archive=archive)
 
     reprocess_settings = Reprocess(
         index_individual_entries=True, reprocess_existing_entries=True
