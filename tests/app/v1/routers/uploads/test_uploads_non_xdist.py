@@ -241,6 +241,11 @@ def test_editing_raw_file(
             id='upload-w-child-entries',
         ),
         pytest.param(
+            dict(upload_id='silly_value', expected_status_code=404),
+            id='invalid-upload_id',
+        ),
+        # Test access/permission
+        pytest.param(
             dict(
                 user=None,
                 expected_status_code=200,
@@ -261,10 +266,7 @@ def test_editing_raw_file(
             id='nologin-embargo',
         ),
         pytest.param(dict(user='user0', expected_data_len=1), id='admin-access'),
-        pytest.param(
-            dict(upload_id='silly_value', expected_status_code=404),
-            id='invalid-upload_id',
-        ),
+        # Test pagination
         pytest.param(
             dict(
                 upload_id='id_published',
@@ -457,12 +459,14 @@ def test_get_upload_entries(auth_headers, client, mongo_module, example_data, kw
             200,
             id='child-entry',
         ),
+        # Test access/permission
         pytest.param('id_embargo', 'id_embargo_1', None, 401, id='no-credentials'),
         pytest.param(
             'id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'
         ),
         pytest.param('id_embargo', 'id_embargo_1', 'user2', 403, id='no-access'),
         pytest.param('id_embargo', 'id_embargo_1', 'user0', 200, id='admin-access'),
+        # Test invalid upload/entry IDs
         pytest.param(
             'silly_value', 'id_embargo_1', 'user1', 404, id='invalid-upload_id'
         ),
@@ -763,6 +767,7 @@ def test_get_upload_rawdir_path(
             ),
             id='no-args',
         ),
+        # Test access/permission
         pytest.param(
             dict(
                 user='user2',
@@ -779,6 +784,7 @@ def test_get_upload_rawdir_path(
         pytest.param(
             dict(user='invalid', expected_status_code=401), id='invalid-credentials'
         ),
+        # Test filter by `is_processing`
         pytest.param(
             dict(
                 query_params={'is_processing': True, 'roles': 'main_author'},
@@ -803,6 +809,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-is_processing-False',
         ),
+        # Test filter by `is_published`
         pytest.param(
             dict(
                 query_params={'is_published': True},
@@ -829,6 +836,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-is_published-False',
         ),
+        # Test filter by `upload_id`
         pytest.param(
             dict(
                 query_params={'upload_id': 'id_published'},
@@ -843,6 +851,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-upload_id-multiple',
         ),
+        # Test filter by `upload_name`
         pytest.param(
             dict(
                 query_params={'upload_name': 'name_published'},
@@ -925,6 +934,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-upload_name-fuzzy-empty',
         ),
+        # Test pagination
         pytest.param(
             dict(
                 query_params={'page_size': 2},
@@ -1001,6 +1011,7 @@ def test_get_upload_rawdir_path(
             dict(query_params={'order_by': 'upload_id'}, expected_status_code=422),
             id='pag-invalid-order_by',
         ),
+        # Test `roles`
         pytest.param(
             dict(
                 user='user2',
@@ -1123,6 +1134,7 @@ def test_get_upload_raw(
 @pytest.mark.parametrize(
     'args, expected_status_code, expected_mime_type, expected_content',
     [
+        # Test unpublished file
         pytest.param(
             dict(
                 user='user1',
@@ -1168,6 +1180,7 @@ def test_get_upload_raw(
             'content',
             id='unpublished-file-admin-auth',
         ),
+        # Test published file
         pytest.param(
             dict(
                 user='user1',
@@ -1202,6 +1215,7 @@ def test_get_upload_raw(
             'content',
             id='published-file-admin-auth',
         ),
+        # Test compression
         pytest.param(
             dict(
                 user='user1',
@@ -1268,6 +1282,7 @@ def test_get_upload_raw(
             ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
             id='published-dir-compressed-root',
         ),
+        # Test failures
         pytest.param(
             dict(
                 user='user1',
@@ -1292,6 +1307,7 @@ def test_get_upload_raw(
             None,
             id='bad-path',
         ),
+        # Test query param: offset and length
         pytest.param(
             dict(
                 user='user1',
@@ -1342,6 +1358,7 @@ def test_get_upload_raw(
             'nten',
             id='published-file-offset-and-length',
         ),
+        # Test invalid query parameters
         pytest.param(
             dict(
                 user='user1',
@@ -1367,6 +1384,7 @@ def test_get_upload_raw(
             None,
             id='invalid-length',
         ),
+        # Test access/permission
         pytest.param(
             dict(
                 user=None,
@@ -1510,6 +1528,14 @@ def test_get_upload_raw_path(
             id='published',
         ),
         pytest.param(
+            'id_child_entries',
+            'test_content/mainfile_w_children.json',
+            'user1',
+            200,
+            id='entry-w-child-entries',
+        ),
+        # Test failures
+        pytest.param(
             'id_published',
             'test_content/doesnotexist.json',
             None,
@@ -1523,6 +1549,7 @@ def test_get_upload_raw_path(
             404,
             id='bad-upload-id',
         ),
+        # Test access/permission
         pytest.param(
             'id_unpublished',
             'test_content/id_unpublished_1/mainfile.json',
@@ -1542,14 +1569,7 @@ def test_get_upload_raw_path(
             'test_content/id_unpublished_1/mainfile.json',
             'user1',
             200,
-            id='auth',
-        ),
-        pytest.param(
-            'id_child_entries',
-            'test_content/mainfile_w_children.json',
-            'user1',
-            200,
-            id='entry-w-child-entries',
+            id='ok-with-access',
         ),
     ],
 )
@@ -1574,12 +1594,6 @@ def test_get_upload_entry_archive_mainfile(
     'upload_id, entry_id, user, status_code',
     [
         pytest.param('id_published', 'id_01', None, 200, id='published'),
-        pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
-        pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
-        pytest.param(
-            'id_unpublished', 'id_unpublished_1', None, 401, id='unpublished-nologin'
-        ),
-        pytest.param('id_unpublished', 'id_unpublished_1', 'user1', 200, id='auth'),
         pytest.param(
             'id_child_entries',
             'id_child_entries_child1',
@@ -1587,6 +1601,14 @@ def test_get_upload_entry_archive_mainfile(
             200,
             id='child-entry',
         ),
+        # Test failures
+        pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
+        pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
+        # Test access/permission
+        pytest.param(
+            'id_unpublished', 'id_unpublished_1', None, 401, id='unpublished-nologin'
+        ),
+        pytest.param('id_unpublished', 'id_unpublished_1', 'user1', 200, id='auth'),
     ],
 )
 def test_get_upload_entry_archive(
