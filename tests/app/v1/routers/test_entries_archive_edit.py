@@ -17,8 +17,10 @@
 #
 
 import json
+from datetime import datetime, timezone
 
 import pytest
+import yaml
 from fastapi import HTTPException
 
 from nomad import utils
@@ -352,6 +354,83 @@ def test_post_entry_edit_preserves_eln_sample_components(
     assert archive_data['data']['components'] == [{'name': 'fee', 'mass': 3e-6}]
 
     assert_edit_reprocessed_successfully('eln_upload_id', entry_id, mainfile)
+
+
+def test_post_entry_edit_resolves_same_upload_yaml_schema(
+    client,
+    auth_headers,
+    users_dict,
+    elastic_function,
+    mongo_function,
+    raw_files_function,
+):
+    upload_id = 'custom_schema_edit_upload'
+    schema_mainfile = 'schema.archive.yaml'
+    data_mainfile = 'data.archive.json'
+    entry_id = utils.generate_entry_id(upload_id, data_mainfile)
+
+    example_data = ExampleData(main_author=users_dict['user1'])
+    example_data.create_upload(upload_id=upload_id, published=False)
+    metadata = EntryMetadata(
+        entry_id=entry_id,
+        upload_id=upload_id,
+        mainfile=data_mainfile,
+        entry_hash=f'dummy_hash_{entry_id}',
+        domain='dft',
+        entry_create_time=datetime.now(timezone.utc),
+        processed=True,
+        parser_name='parsers/archive',
+        main_author=users_dict['user1'],
+    )
+    example_data.entries[entry_id] = metadata
+    example_data.archives[entry_id] = EntryArchive(metadata=metadata)
+    example_data.upload_entries[upload_id] = [entry_id]
+    example_data.save(with_files=False)
+
+    upload_files = create_test_upload_files(upload_id, published=False, archives=[])
+    with upload_files.raw_file(schema_mainfile, 'wt') as f:
+        yaml.safe_dump(
+            {
+                'definitions': {
+                    'name': 'Edit test schema',
+                    'sections': {
+                        'CustomEntry': {
+                            'base_sections': ['nomad.datamodel.data.EntryData'],
+                            'quantities': {'custom_value': {'type': 'str'}},
+                        }
+                    },
+                }
+            },
+            f,
+        )
+    with upload_files.raw_file(data_mainfile, 'wt') as f:
+        json.dump(
+            {
+                'data': {
+                    'm_def': (
+                        f'../upload/raw/{schema_mainfile}'
+                        '#/definitions/section_definitions/0'
+                    ),
+                    'custom_value': 'before',
+                }
+            },
+            f,
+        )
+
+    response = client.post(
+        f'entries/{entry_id}/edit',
+        headers=auth_headers['user1'],
+        json={'changes': [{'path': 'data/custom_value', 'new_value': 'after'}]},
+    )
+
+    assert response.status_code == 200, response.text
+    with upload_files.raw_file(data_mainfile, 'rt') as f:
+        archive_data = json.load(f)
+    assert archive_data['data']['custom_value'] == 'after'
+    assert archive_data['data']['m_def'] == (
+        f'../upload/raw/{schema_mainfile}#/definitions/section_definitions/0'
+    )
+    assert_edit_reprocessed_successfully(upload_id, entry_id, data_mainfile)
 
 
 def test_section_def_from_dict():
