@@ -33,6 +33,7 @@ class OwnershipTransferRecord(Document):
     """
 
     RESOURCE_TYPE_UPLOAD = 'upload'
+    RESOURCE_TYPE_GROUP = 'group'
 
     STATE_PENDING = 'pending'
     STATE_RESPONDING = 'responding'

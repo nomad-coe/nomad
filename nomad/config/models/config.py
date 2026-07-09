@@ -1265,6 +1265,10 @@ class Mongo(ConfigBaseModel):
         None,
         description='Optional password for MongoDB authentication.',
     )
+    ownership_transfer_record_ttl: int = Field(
+        90 * 24 * 3600,
+        description='TTL in seconds for persisted ownership transfer records.',
+    )
 
 
 class Logstash(ConfigBaseModel):
@@ -1892,10 +1896,6 @@ class Uploads(ConfigBaseModel):
         page_size=10, order_by='upload_create_time', order='desc'
     )
     entries: Entries = Entries()
-    ownership_transfer_record_ttl_seconds: int = Field(
-        90 * 24 * 3600,
-        description='TTL in seconds for persisted upload ownership transfer records.',
-    )
 
 
 class TelemetryTracing(ConfigBaseModel):
