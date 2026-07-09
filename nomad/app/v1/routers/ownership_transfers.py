@@ -16,6 +16,9 @@
 # limitations under the License.
 #
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
 from typing import Annotated, Any, Literal
@@ -26,18 +29,25 @@ from mongoengine.queryset.visitor import Q
 from pydantic import BaseModel, Field
 
 from nomad import utils
+from nomad.app.v1.models.groups import (
+    UserGroup,
+    UserGroupEdit,
+    UserGroupMember,
+    UserGroupMemberRole,
+)
 from nomad.app.v1.routers.auth import get_current_user
+from nomad.app.v1.routers.groups_utils import get_user_role
 from nomad.auth.scopes import Scope
 from nomad.common import now
 from nomad.config import config
 from nomad.datamodel import User as DatamodelUser
+from nomad.mongo.groups import get_mongo_user_group
 from nomad.mongo.users import OwnershipTransferRecord
 from nomad.processing import Upload
 from nomad.uploads import add_upload_reviewers, remove_upload_reviewers
 
 from ..models import User
 from .uploads import (
-    UploadProcDataResponse,
     _check_upload_not_processing,
     _get_upload_with_write_access,
     upload_to_pydantic,
@@ -91,26 +101,96 @@ class OwnershipTransferActionResponse(BaseModel):
     result: dict[str, Any] | None = None
 
 
+def _raise_transfer_not_found() -> None:
+    raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Transfer does not exist.')
+
+
+def _raise_transfer_unauthorized(
+    action: Literal['access', 'respond', 'cancel'],
+) -> None:
+    detail = {
+        'access': 'access this transfer',
+        'respond': 'respond to this transfer request',
+        'cancel': 'cancel this transfer request',
+    }
+    raise HTTPException(
+        status.HTTP_403_FORBIDDEN,
+        detail=f'You are not authorized to {detail.get(action, "perform this action")}.',
+    )
+
+
+def _raise_transfer_pending_request_missing() -> None:
+    raise HTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        detail=(
+            'No pending transfer request for this transfer id. '
+            'The request may have expired or already been handled.'
+        ),
+    )
+
+
+def _raise_resource_not_found(resource_name: str) -> None:
+    raise HTTPException(
+        status.HTTP_404_NOT_FOUND, detail=f'{resource_name.title()} does not exist.'
+    )
+
+
+def _get_target_user(
+    request: OwnershipTransferCreateRequest,
+    resource_name: str,
+    current_owner_user_id: str | None,
+) -> DatamodelUser:
+    try:
+        target_user = DatamodelUser.get(
+            **{str(request.target_user_type): request.target_user}
+        )
+    except KeyError:
+        target_user = None
+
+    if target_user is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f'Could not resolve target user by {request.target_user_type}. '
+                f'Provide a valid {request.target_user_type}.'
+            ),
+        )
+
+    if target_user.user_id == current_owner_user_id:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f'The specified user is already the owner of this {resource_name}.',
+        )
+
+    return target_user
+
+
 def _ensure_supported_resource_type(resource_type: str) -> None:
-    if resource_type != 'upload':
+    supported_types = [
+        OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD,
+        OwnershipTransferRecord.RESOURCE_TYPE_GROUP,
+    ]
+    if resource_type not in supported_types:
+        supported_types_text = ', '.join(f'"{t}"' for t in supported_types)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 f'Unsupported resource_type={resource_type!r}. '
-                'Currently only resource_type="upload" is supported.'
+                f'Currently only {supported_types_text} are supported.'
             ),
         )
 
 
-def _map_upload_ownership_transfer_resource(
+def _map_ownership_transfer_resource(
     record: OwnershipTransferRecord,
-    upload_name: str | None,
+    resource_name: str | None,
 ) -> OwnershipTransferResource:
+    _ensure_supported_resource_type(record.resource_type)
     return OwnershipTransferResource(
         transfer_id=str(record.id),
-        resource_type='upload',
+        resource_type=record.resource_type,
         resource_id=record.resource_id,
-        resource_name=upload_name,
+        resource_name=resource_name,
         source_user_id=record.source_user_id,
         target_user_id=record.target_user_id,
         requested_at=record.requested_at.isoformat(),
@@ -119,31 +199,69 @@ def _map_upload_ownership_transfer_resource(
     )
 
 
-def _cleanup_stale_upload_ownership_transfer_records(upload: Upload) -> None:
-    """Delete stale pending transfer records and revoke stale reviewer access."""
-    expiry_cutoff = now() - timedelta(
-        seconds=config.uploads.ownership_transfer_record_ttl_seconds
+def _get_ownership_transfer_expiry_cutoff():
+    return now() - timedelta(seconds=config.mongo.ownership_transfer_record_ttl)
+
+
+def _is_stale_ownership_transfer_record(
+    record: OwnershipTransferRecord,
+    current_owner_user_id: str | None,
+    expiry_cutoff=None,
+) -> bool:
+    if expiry_cutoff is None:
+        expiry_cutoff = _get_ownership_transfer_expiry_cutoff()
+    return current_owner_user_id != record.source_user_id or record.is_expired(
+        expiry_cutoff
     )
-    stale_reviewer_ids: list[str] = []
+
+
+def _delete_stale_pending_ownership_transfer_records(
+    resource_type: str,
+    resource_id: str,
+    current_owner_user_id: str | None,
+) -> list[OwnershipTransferRecord]:
+    expiry_cutoff = _get_ownership_transfer_expiry_cutoff()
+    stale_records: list[OwnershipTransferRecord] = []
 
     pending_records = OwnershipTransferRecord.objects(
-        resource_type=OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD,
-        resource_id=upload.upload_id,
+        resource_type=resource_type,
+        resource_id=resource_id,
         state=OwnershipTransferRecord.STATE_PENDING,
     )
     for record in pending_records:
-        stale = upload.main_author != record.source_user_id or record.is_expired(
-            expiry_cutoff
-        )
-        if not stale:
+        if not _is_stale_ownership_transfer_record(
+            record, current_owner_user_id, expiry_cutoff
+        ):
             continue
 
-        stale_reviewer_ids.append(record.target_user_id)
+        stale_records.append(record)
         record.delete()
+
+    return stale_records
+
+
+def _cleanup_stale_upload_ownership_transfer_records(upload: Upload) -> None:
+    """Delete stale pending transfer records and revoke stale reviewer access."""
+    stale_reviewer_ids = [
+        record.target_user_id
+        for record in _delete_stale_pending_ownership_transfer_records(
+            OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD,
+            upload.upload_id,
+            upload.main_author,
+        )
+    ]
 
     removed_count = remove_upload_reviewers(stale_reviewer_ids, upload=upload)
     if removed_count > 0:
         upload.reload()
+
+
+def _cleanup_stale_group_ownership_transfer_records(group: UserGroup) -> None:
+    _delete_stale_pending_ownership_transfer_records(
+        OwnershipTransferRecord.RESOURCE_TYPE_GROUP,
+        group.group_id,
+        group.owner,
+    )
 
 
 def _create_upload_ownership_transfer(
@@ -160,29 +278,7 @@ def _create_upload_ownership_transfer(
     _check_upload_not_processing(upload)
     _cleanup_stale_upload_ownership_transfer_records(upload)
 
-    new_owner = None
-    try:
-        new_owner = DatamodelUser.get(
-            **{str(request.target_user_type): request.target_user}
-        )
-    except KeyError:
-        pass
-
-    if new_owner is None:
-        detail = (
-            f'Could not resolve target user by {request.target_user_type}. '
-            f'Provide a valid {request.target_user_type}.'
-        )
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail=detail,
-        )
-
-    if new_owner.user_id == upload.main_author:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='The specified user is already the owner of this upload.',
-        )
+    new_owner = _get_target_user(request, 'upload', upload.main_author)
 
     record = OwnershipTransferRecord.create_or_replace(
         resource_type=OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD,
@@ -204,14 +300,18 @@ def _create_upload_ownership_transfer(
     )
 
     upload.reload()
-    return _map_upload_ownership_transfer_resource(record, upload.upload_name)
+    return _map_ownership_transfer_resource(record, upload.upload_name)
 
 
-def _list_upload_ownership_transfers(
+def _list_ownership_transfers(
+    resource_type: str,
     direction: Literal['incoming', 'outgoing', 'all'] | None,
     resource_id: str | None,
     state: str | None,
     user: User,
+    get_resource: Callable[[str], Any | None],
+    get_owner_user_id: Callable[[Any], str | None],
+    get_resource_name: Callable[[Any], str | None],
 ) -> OwnershipTransferResponse:
     query = OwnershipTransferRecord.objects
 
@@ -223,35 +323,31 @@ def _list_upload_ownership_transfers(
         query = query(Q(target_user_id=user.user_id) | Q(source_user_id=user.user_id))
 
     if resource_id is not None:
-        query = query(
-            resource_type=OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD,
-            resource_id=resource_id,
-        )
+        query = query(resource_type=resource_type, resource_id=resource_id)
     else:
-        query = query(resource_type=OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD)
+        query = query(resource_type=resource_type)
 
     if state is not None:
         query = query(state=state)
 
-    expiry_cutoff = now() - timedelta(
-        seconds=config.uploads.ownership_transfer_record_ttl_seconds
-    )
+    expiry_cutoff = _get_ownership_transfer_expiry_cutoff()
 
     transfers: list[OwnershipTransferResource] = []
     for record in query.order_by('-updated_at'):
-        upload = Upload.get(record.resource_id)
-        if upload is None:
+        resource = get_resource(record.resource_id)
+        if resource is None:
             continue
 
-        if record.state == OwnershipTransferRecord.STATE_PENDING:
-            stale = upload.main_author != record.source_user_id or record.is_expired(
-                expiry_cutoff
+        if (
+            record.state == OwnershipTransferRecord.STATE_PENDING
+            and _is_stale_ownership_transfer_record(
+                record, get_owner_user_id(resource), expiry_cutoff
             )
-            if stale:
-                continue
+        ):
+            continue
 
         transfers.append(
-            _map_upload_ownership_transfer_resource(record, upload.upload_name)
+            _map_ownership_transfer_resource(record, get_resource_name(resource))
         )
 
     return OwnershipTransferResponse(transfers=transfers)
@@ -262,45 +358,33 @@ def _get_upload_ownership_transfer(
 ) -> OwnershipTransferResource:
     record = OwnershipTransferRecord.get_by_transfer_id(transfer_id)
     if record is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, detail='Transfer does not exist.'
-        )
+        _raise_transfer_not_found()
 
     if (
         record.target_user_id != user.user_id
         and record.source_user_id != user.user_id
         and not user.is_admin
     ):
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail='You are not authorized to access this transfer.',
-        )
+        _raise_transfer_unauthorized('access')
 
     upload = Upload.get(record.resource_id)
     if upload is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Upload does not exist.')
+        _raise_resource_not_found('Upload')
 
-    if record.state == OwnershipTransferRecord.STATE_PENDING:
-        expiry_cutoff = now() - timedelta(
-            seconds=config.uploads.ownership_transfer_record_ttl_seconds
-        )
-        stale = upload.main_author != record.source_user_id or record.is_expired(
-            expiry_cutoff
-        )
-        if stale:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                detail='Transfer does not exist.',
-            )
+    if (
+        record.state == OwnershipTransferRecord.STATE_PENDING
+        and _is_stale_ownership_transfer_record(record, upload.main_author)
+    ):
+        _raise_transfer_not_found()
 
-    return _map_upload_ownership_transfer_resource(record, upload.upload_name)
+    return _map_ownership_transfer_resource(record, upload.upload_name)
 
 
 def _respond_to_upload_ownership_transfer(
     transfer_id: str,
     request: OwnershipTransferRespondRequest,
     user: User,
-) -> UploadProcDataResponse:
+) -> dict[str, Any]:
     record = OwnershipTransferRecord.claim_pending(
         transfer_id,
         OwnershipTransferRecord.STATE_RESPONDING,
@@ -309,24 +393,15 @@ def _respond_to_upload_ownership_transfer(
     if record is None:
         existing_record = OwnershipTransferRecord.get_by_transfer_id(transfer_id)
         if existing_record is None:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                detail='Transfer does not exist.',
-            )
+            _raise_transfer_not_found()
         if existing_record.target_user_id != user.user_id:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                detail='You are not authorized to respond to this transfer request.',
-            )
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='No pending transfer request for this transfer id. The request may have expired or already been handled.',
-        )
+            _raise_transfer_unauthorized('respond')
+        _raise_transfer_pending_request_missing()
 
     upload = Upload.get(record.resource_id)
     if upload is None:
         record.delete()
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Upload does not exist.')
+        _raise_resource_not_found('Upload')
 
     try:
         _check_upload_not_processing(upload)
@@ -338,14 +413,11 @@ def _respond_to_upload_ownership_transfer(
         )
         raise
 
-    if request.action == 'accept':
-        if upload.main_author != record.source_user_id:
-            record.delete()
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail='The transfer request is no longer valid.',
-            )
+    if _is_stale_ownership_transfer_record(record, upload.main_author):
+        record.delete()
+        _raise_transfer_pending_request_missing()
 
+    if request.action == 'accept':
         if not config.services.admin_user_id:
             OwnershipTransferRecord.release_claim(
                 transfer_id,
@@ -391,15 +463,16 @@ def _respond_to_upload_ownership_transfer(
     )
 
     upload.reload()
-    return UploadProcDataResponse(
-        upload_id=upload.upload_id, data=upload_to_pydantic(upload)
-    )
+    return {
+        'upload_id': upload.upload_id,
+        'data': upload_to_pydantic(upload),
+    }
 
 
 def _cancel_upload_ownership_transfer(
     transfer_id: str,
     user: User,
-) -> UploadProcDataResponse:
+) -> dict[str, Any]:
     record = OwnershipTransferRecord.claim_pending(
         transfer_id,
         OwnershipTransferRecord.STATE_CANCELING,
@@ -408,19 +481,10 @@ def _cancel_upload_ownership_transfer(
     if record is None:
         existing_record = OwnershipTransferRecord.get_by_transfer_id(transfer_id)
         if existing_record is None:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                detail='Transfer does not exist.',
-            )
+            _raise_transfer_not_found()
         if existing_record.source_user_id != user.user_id:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                detail='You are not authorized to cancel this transfer request.',
-            )
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='No pending transfer request for this transfer id. The request may have expired or already been handled.',
-        )
+            _raise_transfer_unauthorized('cancel')
+        _raise_transfer_pending_request_missing()
 
     try:
         upload = _get_upload_with_write_access(
@@ -438,6 +502,10 @@ def _cancel_upload_ownership_transfer(
             OwnershipTransferRecord.STATE_CANCELING,
         )
         raise
+
+    if _is_stale_ownership_transfer_record(record, upload.main_author):
+        record.delete()
+        _raise_transfer_pending_request_missing()
 
     canceled_user_ids = [record.target_user_id]
     record.delete()
@@ -467,9 +535,212 @@ def _cancel_upload_ownership_transfer(
         reviewer_access_removed=reviewer_access_removed,
     )
     upload.reload()
-    return UploadProcDataResponse(
-        upload_id=upload.upload_id, data=upload_to_pydantic(upload)
+    return {
+        'upload_id': upload.upload_id,
+        'data': upload_to_pydantic(upload),
+    }
+
+
+def _create_group_ownership_transfer(
+    request: OwnershipTransferCreateRequest,
+    user: User,
+) -> OwnershipTransferResource:
+    group = get_mongo_user_group(request.resource_id)
+    if group is None:
+        _raise_resource_not_found('User group')
+
+    _cleanup_stale_group_ownership_transfer_records(group)
+
+    group_member = get_user_role(group.members_info, user.user_id)
+
+    unauthorized_error = HTTPException(
+        status.HTTP_403_FORBIDDEN,
+        detail=(
+            f"You are not authorized to transfer user group '{group.group_id}'."
+            ' Only group owners and admins are allowed to transfer group ownership.'
+        ),
     )
+
+    if group_member is None:
+        if group.owner != user.user_id and not user.is_admin:
+            raise unauthorized_error
+    else:
+        if not user.is_admin and group_member.role != UserGroupMemberRole.OWNER:
+            raise unauthorized_error
+
+    new_owner = _get_target_user(request, 'group', group.owner)
+
+    record = OwnershipTransferRecord.create_or_replace(
+        resource_type=OwnershipTransferRecord.RESOURCE_TYPE_GROUP,
+        resource_id=group.group_id,
+        source_user_id=group.owner or group_member.user_id,
+        target_user_id=new_owner.user_id,
+    )
+
+    logger.info(
+        'group ownership transfer requested',
+        group_id=group.group_id,
+        transfer_id=str(record.id),
+        actor_user_id=user.user_id,
+        actor_is_admin=user.is_admin,
+        current_owner_user_id=group.owner,
+        new_owner_user_id=new_owner.user_id,
+    )
+
+    return _map_ownership_transfer_resource(record, group.group_name)
+
+
+def _get_group_ownership_transfer(
+    transfer_id: str, user: User
+) -> OwnershipTransferResource:
+    record = OwnershipTransferRecord.get_by_transfer_id(transfer_id)
+    if record is None:
+        _raise_transfer_not_found()
+
+    if (
+        record.target_user_id != user.user_id
+        and record.source_user_id != user.user_id
+        and not user.is_admin
+    ):
+        _raise_transfer_unauthorized('access')
+
+    group = get_mongo_user_group(record.resource_id)
+    if group is None:
+        _raise_resource_not_found('User group')
+
+    if (
+        record.state == OwnershipTransferRecord.STATE_PENDING
+        and _is_stale_ownership_transfer_record(record, group.owner)
+    ):
+        _raise_transfer_not_found()
+
+    return _map_ownership_transfer_resource(record, group.group_name)
+
+
+def _respond_to_group_ownership_transfer(
+    transfer_id: str,
+    request: OwnershipTransferRespondRequest,
+    user: User,
+) -> dict[str, Any]:
+    record = OwnershipTransferRecord.claim_pending(
+        transfer_id,
+        OwnershipTransferRecord.STATE_RESPONDING,
+        target_user_id=user.user_id,
+    )
+    if record is None:
+        existing_record = OwnershipTransferRecord.get_by_transfer_id(transfer_id)
+        if existing_record is None:
+            _raise_transfer_not_found()
+        if existing_record.target_user_id != user.user_id:
+            _raise_transfer_unauthorized('respond')
+        _raise_transfer_pending_request_missing()
+
+    group = get_mongo_user_group(record.resource_id)
+    if group is None:
+        record.delete()
+        _raise_resource_not_found('User group')
+
+    _cleanup_stale_group_ownership_transfer_records(group)
+    if _is_stale_ownership_transfer_record(record, group.owner):
+        record.delete()
+        _raise_transfer_pending_request_missing()
+
+    if request.action == 'accept':
+        previous_owner_user_id = group.owner
+        updated_members_info = [
+            UserGroupMember(user_id=member.user_id, role=member.role)
+            for member in group.members_info
+        ]
+        found_target = False
+        for member in updated_members_info:
+            if member.role == UserGroupMemberRole.OWNER:
+                member.role = UserGroupMemberRole.MEMBER
+            if member.user_id == user.user_id:
+                member.role = UserGroupMemberRole.OWNER
+                found_target = True
+
+        if not found_target:
+            updated_members_info.append(
+                UserGroupMember(user_id=user.user_id, role=UserGroupMemberRole.OWNER)
+            )
+
+        group.clean_update_reload(UserGroupEdit(members_info=updated_members_info))
+        record.delete()
+        extra_log = dict(
+            previous_owner_user_id=previous_owner_user_id,
+            new_owner_user_id=user.user_id,
+        )
+    else:
+        record.refuse(actor_user_id=user.user_id)
+        extra_log = dict(owner_user_id=group.owner)
+
+    logger.info(
+        f'group transfer {request.action}ed',
+        group_id=group.group_id,
+        transfer_id=transfer_id,
+        actor_user_id=user.user_id,
+        actor_is_admin=user.is_admin,
+        **extra_log,
+    )
+
+    group.reload()
+    return {
+        'group_id': group.group_id,
+        'data': UserGroup.model_validate(group),
+    }
+
+
+def _cancel_group_ownership_transfer(
+    transfer_id: str,
+    user: User,
+) -> dict[str, Any]:
+    record = OwnershipTransferRecord.claim_pending(
+        transfer_id,
+        OwnershipTransferRecord.STATE_CANCELING,
+        source_user_id=user.user_id,
+    )
+    if record is None:
+        existing_record = OwnershipTransferRecord.get_by_transfer_id(transfer_id)
+        if existing_record is None:
+            _raise_transfer_not_found()
+        if existing_record.source_user_id != user.user_id:
+            _raise_transfer_unauthorized('cancel')
+        _raise_transfer_pending_request_missing()
+
+    group = get_mongo_user_group(record.resource_id)
+    if group is None:
+        record.delete()
+        _raise_resource_not_found('User group')
+
+    _cleanup_stale_group_ownership_transfer_records(group)
+    if _is_stale_ownership_transfer_record(record, group.owner):
+        record.delete()
+        _raise_transfer_pending_request_missing()
+
+    record.delete()
+    duplicate_pending_records = list(
+        OwnershipTransferRecord.objects(
+            resource_type=OwnershipTransferRecord.RESOURCE_TYPE_GROUP,
+            resource_id=group.group_id,
+            state=OwnershipTransferRecord.STATE_PENDING,
+        )
+    )
+    for duplicate_record in duplicate_pending_records:
+        duplicate_record.delete()
+
+    logger.info(
+        'group transfer canceled',
+        group_id=group.group_id,
+        transfer_id=transfer_id,
+        actor_user_id=user.user_id,
+        actor_is_admin=user.is_admin,
+        owner_user_id=group.owner,
+    )
+    group.reload()
+    return {
+        'group_id': group.group_id,
+        'data': UserGroup.model_validate(group).model_dump(mode='json'),
+    }
 
 
 @router.get(
@@ -502,11 +773,28 @@ def list_ownership_transfers(
         Depends(get_current_user([Scope.UPLOADS_READ], allow_anonymous=False)),
     ] = None,
 ):
-    if resource_type == 'upload':
-        return _list_upload_ownership_transfers(
-            direction=direction, resource_id=resource_id, state=state, user=user
-        )
     _ensure_supported_resource_type(resource_type)
+    resource_getter: Callable[[str], Any | None]
+    if resource_type == 'upload':
+        resource_type = OwnershipTransferRecord.RESOURCE_TYPE_UPLOAD
+        resource_getter = Upload.get
+        owner_getter = lambda upload: upload.main_author
+        resource_name_getter = lambda upload: upload.upload_name
+    elif resource_type == 'group':
+        resource_type = OwnershipTransferRecord.RESOURCE_TYPE_GROUP
+        resource_getter = get_mongo_user_group
+        owner_getter = lambda group: group.owner
+        resource_name_getter = lambda group: group.group_name
+    return _list_ownership_transfers(
+        resource_type,
+        direction,
+        resource_id,
+        state,
+        user,
+        resource_getter,
+        owner_getter,
+        resource_name_getter,
+    )
 
 
 @router.post(
@@ -529,9 +817,11 @@ def create_ownership_transfer(
         ),
     ],
 ):
+    _ensure_supported_resource_type(request.resource_type)
     if request.resource_type == 'upload':
         return _create_upload_ownership_transfer(request=request, user=user)
-    _ensure_supported_resource_type(request.resource_type)
+    if request.resource_type == 'group':
+        return _create_group_ownership_transfer(request=request, user=user)
 
 
 @router.get(
@@ -553,9 +843,11 @@ def get_ownership_transfer(
         Depends(get_current_user([Scope.UPLOADS_READ], allow_anonymous=False)),
     ] = None,
 ):
+    _ensure_supported_resource_type(resource_type)
     if resource_type == 'upload':
         return _get_upload_ownership_transfer(transfer_id=transfer_id, user=user)
-    _ensure_supported_resource_type(resource_type)
+    if resource_type == 'group':
+        return _get_group_ownership_transfer(transfer_id=transfer_id, user=user)
 
 
 @router.post(
@@ -583,19 +875,28 @@ def respond_to_ownership_transfer(
         ),
     ] = None,
 ):
+    _ensure_supported_resource_type(resource_type)
+
     if resource_type == 'upload':
-        result = _respond_to_upload_ownership_transfer(
+        result_payload = _respond_to_upload_ownership_transfer(
             transfer_id=transfer_id,
             request=OwnershipTransferRespondRequest(action=request.action),
             user=user,
         )
-    else:
-        _ensure_supported_resource_type(resource_type)
+        resource_id = result_payload.get('upload_id')
+    elif resource_type == 'group':
+        result_payload = _respond_to_group_ownership_transfer(
+            transfer_id=transfer_id,
+            request=OwnershipTransferRespondRequest(action=request.action),
+            user=user,
+        )
+        resource_id = result_payload.get('group_id')
+
     return OwnershipTransferActionResponse(
         transfer_id=transfer_id,
-        resource_type='upload',
-        resource_id=result.upload_id,
-        result=result.model_dump(exclude_none=True),
+        resource_type=resource_type,
+        resource_id=resource_id,
+        result=result_payload,
     )
 
 
@@ -623,13 +924,22 @@ def cancel_ownership_transfer(
         ),
     ] = None,
 ):
+    _ensure_supported_resource_type(resource_type)
+
     if resource_type == 'upload':
-        result = _cancel_upload_ownership_transfer(transfer_id=transfer_id, user=user)
-    else:
-        _ensure_supported_resource_type(resource_type)
+        result_payload = _cancel_upload_ownership_transfer(
+            transfer_id=transfer_id, user=user
+        )
+        resource_id = result_payload.get('upload_id')
+    elif resource_type == 'group':
+        result_payload = _cancel_group_ownership_transfer(
+            transfer_id=transfer_id, user=user
+        )
+        resource_id = result_payload.get('group_id')
+
     return OwnershipTransferActionResponse(
         transfer_id=transfer_id,
-        resource_type='upload',
-        resource_id=result.upload_id,
-        result=result.model_dump(exclude_none=True),
+        resource_type=resource_type,
+        resource_id=resource_id,
+        result=result_payload,
     )
