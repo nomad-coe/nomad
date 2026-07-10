@@ -1502,7 +1502,9 @@ async def put_upload_raw_path(
 
         compression_format = None
         for upload_path in upload_paths:
-            compression_format = get_compression_format(upload_path)
+            compression_format = (
+                get_compression_format(upload_path) if auto_decompress else None
+            )
             if compression_format == 'error':
                 raise HTTPException(
                     status.HTTP_400_BAD_REQUEST,
