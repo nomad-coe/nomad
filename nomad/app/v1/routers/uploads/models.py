@@ -40,6 +40,10 @@ class APITag(str, Enum):
     BUNDLE = 'uploads/bundle'
 
 
+class UploadTransferFormat(str, Enum):
+    bundle = 'bundle'
+
+
 class UploadRole(str, Enum):
     main_author = 'main_author'
     reviewer = 'reviewer'
