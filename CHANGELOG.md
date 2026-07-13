@@ -26,7 +26,6 @@
 
 - [Fixed issue with HDF5 files not being accessible without login.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/dd84b5bafe311aed14cbbfefd6351b3014b05c69) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3081))
 - [Fixed issue with API entrypoint URLs not working without slash.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/c60bc23c6c8e200ba617a279e9e57b6fb615da10) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2942))
-- [Fixed issue in parsing non-scalar config values from environment variables.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/592885635eeca3947d8f2eb906feb8488cbfeddd) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2994))
 - [Fixed issue in resolving schemas using the API.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/d4117d4161db253ccafef6d45d6ee51b1605d1c9) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2992))
 - [Fixed issue with HDF5 file preview not working due to URL redirects.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/b6f5badb557c3ddf3ddc0deed0d04739e2f63f8c) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2991))
 - [Fixed issue with the JSONSchema export of self-referencing schemas.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/2b41084438a27e471560d34a4f3fde53e31f6267) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2988))
