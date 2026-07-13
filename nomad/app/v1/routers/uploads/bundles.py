@@ -48,7 +48,7 @@ from .default import (
     get_current_user,
     strip,
 )
-from .models import APITag, UploadProcDataResponse
+from .models import APITag, UploadProcDataResponse, UploadTransferFormat
 from .utils import (
     _check_upload_not_processing,
     _get_files_if_provided,
@@ -65,6 +65,20 @@ _upload_bundle_response = (
 )
 
 
+@router.get(
+    '/{upload_id}/export',
+    tags=[APITag.BUNDLE],
+    summary='Exports the specified upload.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _upload_bundle_response,
+        _upload_not_found,
+        _not_authorized_to_upload,
+        _bad_request,
+    ),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
 @router.get(
     '/{upload_id}/bundle',
     tags=[APITag.BUNDLE],
@@ -86,6 +100,15 @@ def get_upload_bundle(
         Depends(get_current_user([Scope.UPLOADS_BUNDLE_READ])),
     ],
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
+    format: Annotated[
+        UploadTransferFormat,
+        FastApiQuery(
+            description=strip(
+                """
+                The export format. Currently only `bundle` is supported."""
+            )
+        ),
+    ] = UploadTransferFormat.bundle,
     include_raw_files: Annotated[
         bool | None,
         FastApiQuery(
@@ -115,6 +138,15 @@ def get_upload_bundle(
             )
         ),
     ] = True,
+    include_schemas: Annotated[
+        bool | None,
+        FastApiQuery(
+            description=strip(
+                """
+                If schemas should be included in the bundle (false by default)."""
+            )
+        ),
+    ] = False,
 ):
     """
     Get an *upload bundle* for the specified upload. An upload bundle is a file bundle which
@@ -128,6 +160,7 @@ def get_upload_bundle(
             include_raw_files=include_raw_files,
             include_archive_files=include_archive_files,
             include_datasets=include_datasets,
+            include_schemas=include_schemas,
         )
     )
 
@@ -150,6 +183,15 @@ def get_upload_bundle(
 
 
 @router.post(
+    '/import',
+    tags=[APITag.BUNDLE],
+    summary='Imports an upload to this NOMAD deployment.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_not_authorized, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+@router.post(
     '/bundle',
     tags=[APITag.BUNDLE],
     summary='Posts an *upload bundle* to this NOMAD deployment.',
@@ -170,6 +212,15 @@ async def post_upload_bundle(
             )
         ),
     ],
+    format: Annotated[
+        UploadTransferFormat,
+        FastApiQuery(
+            description=strip(
+                """
+                The import format. Currently only `bundle` is supported."""
+            )
+        ),
+    ] = UploadTransferFormat.bundle,
     file: Annotated[list[UploadFile] | None, File()] = None,
     local_path: Annotated[
         str | None,

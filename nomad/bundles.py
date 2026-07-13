@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import hashlib
 import json
 import os
 from collections.abc import Iterable
@@ -46,13 +47,13 @@ from nomad.files import (
     zipfile,
 )
 from nomad.files import bundle_info_filename as BUNDLE_INFO_FILENAME
-from nomad.metainfo import Section
+from nomad.metainfo import Package, Section
 from nomad.metainfo.util import resolve_m_def
 from nomad.processing.base import ProcessStatus
 from nomad.processing.data import Entry, Upload, mongo_entry_metadata
 
 
-def get_section_defs_for_upload(upload_id: str) -> list[Section]:
+def _get_section_defs_for_upload(upload_id: str) -> list[Section]:
     """Get section definitions from all entries in an upload."""
     upload = Upload.get(upload_id)
     definitions_by_id: dict[str, Section] = {}
@@ -84,6 +85,34 @@ def get_section_defs_for_upload(upload_id: str) -> list[Section]:
                 )
 
     return list(definitions_by_id.values())
+
+
+def _get_package_for_section(definition: Section) -> Package | None:
+    """Get schema package for a section definition."""
+    parent = definition.m_parent
+    while parent is not None and not isinstance(parent, Package):
+        parent = getattr(parent, 'm_parent', None)
+    return parent if isinstance(parent, Package) else None
+
+
+def _get_schema_packages_for_upload(upload_id: str) -> list[Package]:
+    """Collect schema packages referenced by entries in an upload."""
+    packages_by_key: dict[tuple[str | None, str | None, str | None], Package] = {}
+
+    for definition in _get_section_defs_for_upload(upload_id):
+        package = _get_package_for_section(definition)
+        if package is None:
+            continue
+
+        key = (package.upload_id, package.entry_id, package.name)
+        packages_by_key.setdefault(key, package)
+
+    return [
+        packages_by_key[key]
+        for key in sorted(
+            packages_by_key, key=lambda item: tuple(v or '' for v in item)
+        )
+    ]
 
 
 class BundleExporter:
@@ -183,7 +212,19 @@ class BundleExporter:
             json_to_streamed_file(bundle_info, BUNDLE_INFO_FILENAME)
         )
 
-        # 2. Files from the upload dir
+        # 2. Synthetic schema archive files in raw/
+        if self.export_settings.include_schemas:
+            for package in _get_schema_packages_for_upload(self.upload.upload_id):
+                package_dict = package.m_to_dict(with_out_meta=True)
+                # Use `sort_keys` to ensure stable hashes (from key orders)
+                package_json = json.dumps(package_dict, sort_keys=True).encode()
+                package_hash = hashlib.md5(package_json).hexdigest()[:8]
+                file_path = f'raw/schema_package_{package_hash}.archive.json'
+                yield StreamedFileSource(
+                    json_to_streamed_file({'definitions': package_dict}, file_path)
+                )
+
+        # 3. Files from the upload dir
         yield from self.upload.upload_files.files_to_bundle(self.export_settings)
 
     def _create_bundle_info(self) -> dict[str, Any]:
@@ -223,10 +264,10 @@ class BundleExporter:
 class BundleImporter:
     def __init__(
         self,
-        user: datamodel.User,
+        user: datamodel.User | None,
         import_settings: BundleImportSettings,
         embargo_length: int | None = None,
-    ):
+    ) -> None:
         """
         Class for importing an upload from a *bundle*.
 
@@ -248,14 +289,14 @@ class BundleImporter:
         self.embargo_length = embargo_length
 
         # Internals
-        self.bundle_path: str = None
-        self.bundle: BrowsableFileSource = None
-        self.upload: Upload = None
-        self.upload_files: UploadFiles = None
-        self._bundle_info: dict[str, Any] = None
+        self.bundle_path: str | None = None
+        self.bundle: BrowsableFileSource | None = None
+        self.upload: Upload | None = None
+        self.upload_files: UploadFiles | None = None
+        self._bundle_info: dict[str, Any] | None = None
 
     @classmethod
-    def looks_like_a_bundle(cls, path):
+    def looks_like_a_bundle(cls, path: str) -> bool:
         """Fast method to make a (very shallow) check if the object specified by `path` looks like a valid bundle."""
         assert os.path.exists(path), f'Path not found: {path}'
         if os.path.isfile(path):
@@ -269,7 +310,7 @@ class BundleImporter:
                 return False
         return os.path.isfile(os.path.join(path, BUNDLE_INFO_FILENAME))
 
-    def check_api_permissions(self):
+    def check_api_permissions(self) -> None:
         """
         Checks if the specified user is allowed to import a bundle via the api. Raises a
         HTTPException if not. This is a quick check, which does not require the bundle to be opened.
@@ -287,7 +328,8 @@ class BundleImporter:
                         detail=f'Changing the setting {k} requires an admin user',
                     )
 
-    def open(self, bundle_path: str):
+    def open(self, bundle_path: str) -> None:
+        """Open a bundle from a directory or zip file path."""
         self.bundle_path = bundle_path
         if os.path.isdir(bundle_path):
             self.bundle = DiskFileSource(bundle_path)
@@ -316,7 +358,7 @@ class BundleImporter:
                     detail=f'Bundles uploaded from an oasis must be published in the oasis first.',
                 )
 
-        keys_exist(
+        _keys_exist(
             self.bundle_info,
             ('upload_id', 'upload.main_author'),
             'Missing key in bundle_info.json: {key}',
@@ -334,7 +376,7 @@ class BundleImporter:
         self.upload = Upload.create(upload_id=upload_id, main_author=main_author_user)
         return self.upload
 
-    def import_bundle(self, upload: Upload, running_locally) -> str:
+    def import_bundle(self, upload: Upload, running_locally: bool) -> str | None:
         """
         Import the data to the provided upload skeleton (the most costly step of the
         import process). Should only be invoked from a @process or a @process_local method on
@@ -369,6 +411,7 @@ class BundleImporter:
             if self.import_settings.trigger_processing:
                 return self._reprocess_upload()
             return None
+
         except Exception as e:
             logger.error('could not import bundle', exc_info=e)
             self.bundle.close()
@@ -389,11 +432,12 @@ class BundleImporter:
                     search.delete_upload(self.upload.upload_id, refresh=True)
                 raise e
 
-    def close(self):
+    def close(self) -> None:
+        """Close the currently opened bundle, if any."""
         if self.bundle:
             self.bundle.close()
 
-    def delete_bundle(self):
+    def delete_bundle(self) -> None:
         """Deletes the bundle file, and optionally, it's parent folder (if empty)."""
         parent_folder = os.path.dirname(self.bundle_path)
 
@@ -408,14 +452,15 @@ class BundleImporter:
             PathObject(parent_folder).delete()
 
     @property
-    def bundle_info(self):
+    def bundle_info(self) -> dict[str, Any]:
+        """Load and cache the bundle manifest from `bundle_info.json`."""
         if not self._bundle_info:
             assert self.bundle, 'Must open a bundle before getting the bundle info.'
             with self.bundle.open(BUNDLE_INFO_FILENAME, 'rt') as f:
                 self._bundle_info = json.load(f, cls=StandardJSONDecoder)
         return self._bundle_info
 
-    def _check_bundle_and_settings(self, running_locally: bool):
+    def _check_bundle_and_settings(self, running_locally: bool) -> None:
         """Perform various initial sanity checks."""
         # Sanity checks of the settings
         assert not (self.import_settings.trigger_processing and running_locally), (
@@ -440,7 +485,7 @@ class BundleImporter:
             'entries',
         )
 
-        keys_exist(
+        _keys_exist(
             self.bundle_info,
             required_keys_root_level,
             'Missing key in bundle_info.json: {key}',
@@ -458,7 +503,7 @@ class BundleImporter:
         except Exception:
             assert False, 'Bad bundle version'
 
-    def _import_upload_mongo_data(self, current_time):
+    def _import_upload_mongo_data(self, current_time: datetime) -> None:
         upload_dict = self.bundle_info['upload']
         assert (
             self.upload.upload_id == self.bundle_info['upload_id'] == upload_dict['_id']
@@ -469,11 +514,11 @@ class BundleImporter:
                 'Upload published but no entries in bundle_info.json'
             )
         # Check user references
-        check_user_ids([upload_dict['main_author']], 'Invalid main_author: {id}')
-        check_user_ids(
+        _check_user_ids([upload_dict['main_author']], 'Invalid main_author: {id}')
+        _check_user_ids(
             upload_dict.get('coauthors', []), 'Invalid coauthor reference: {id}'
         )
-        check_user_ids(
+        _check_user_ids(
             upload_dict.get('reviewers', []), 'Invalid reviewers reference: {id}'
         )
         # Define which keys we think okay to copy from the bundle
@@ -551,12 +596,12 @@ class BundleImporter:
             str, str
         ] = {}  # Map from old to new id (usually the same)
         for dataset_dict in datasets:
-            keys_exist(
+            _keys_exist(
                 dataset_dict,
                 required_keys_datasets,
                 'Missing key in dataset definition: {key}',
             )
-            check_user_ids(
+            _check_user_ids(
                 [dataset_dict['user_id']], 'Invalid dataset creator id: {id}'
             )
             dataset_id = dataset_dict['dataset_id']
@@ -584,7 +629,7 @@ class BundleImporter:
         return new_datasets, dataset_id_mapping
 
     def _import_entries_mongo_data(
-        self, current_time, dataset_id_mapping
+        self, current_time: datetime, dataset_id_mapping: dict[str, str]
     ) -> list[Entry]:
         """Creates mongo entries from the data in the bundle_info"""
         required_keys_entry_level = (
@@ -598,7 +643,7 @@ class BundleImporter:
 
         entries = []
         for entry_dict in self.bundle_info['entries']:
-            keys_exist(
+            _keys_exist(
                 entry_dict, required_keys_entry_level, 'Missing key for entry: {key}'
             )
             assert (
@@ -616,7 +661,7 @@ class BundleImporter:
             assert entry_dict['_id'] == expected_entry_id, (
                 'Provided entry id does not match generated value'
             )
-            check_user_ids(
+            _check_user_ids(
                 entry_dict.get('entry_coauthors', []),
                 'Invalid entry_coauthor reference: {id}',
             )
@@ -663,7 +708,7 @@ class BundleImporter:
             entries.append(entry)
         return entries
 
-    def _import_files(self):
+    def _import_files(self) -> None:
         try:
             cls = PublicUploadFiles if self.upload.published else StagingUploadFiles
             assert not cls.base_folder_for(self.upload.upload_id).exists(), (
@@ -711,8 +756,8 @@ class BundleImporter:
             self.upload_files.close()  # Because full_entry_metadata reads the archive files.
         return entry_data_to_index
 
-    def _index_search(self, entry_data_to_index: list[datamodel.EntryArchive]):
-        # Index in elastic search
+    def _index_search(self, entry_data_to_index: list[datamodel.EntryArchive]) -> None:
+        """Index imported archive data in Elasticsearch."""
         if entry_data_to_index:
             search.index(
                 entry_data_to_index,
@@ -720,13 +765,16 @@ class BundleImporter:
                 refresh=True,
             )
 
-    def _reprocess_upload(self):
+    def _reprocess_upload(self) -> str | None:
+        """Trigger local reprocessing for the imported upload."""
         return self.upload._process_upload_local(
-            reprocess_settings=self.import_settings.process_settings
+            reprocess_settings=self.import_settings.process_settings.model_dump()
         )
 
 
-def keys_exist(data: dict[str, Any], required_keys: Iterable[str], error_message: str):
+def _keys_exist(
+    data: dict[str, Any], required_keys: Iterable[str], error_message: str
+) -> None:
     """
     Checks if the specified keys exist in the provided dictionary structure `data`.
     Supports dot-notation to access subkeys.
@@ -738,7 +786,7 @@ def keys_exist(data: dict[str, Any], required_keys: Iterable[str], error_message
             current = current[sub_key]
 
 
-def check_user_ids(user_ids: Iterable[str], error_message: str):
+def _check_user_ids(user_ids: Iterable[str], error_message: str) -> None:
     """
     Checks if all user_ids provided in the Iterable `user_ids` are valid. If not, raises an
     AssertionError with the specified error message. The string {id} in `error_message` is

@@ -1665,6 +1665,9 @@ class BundleExportSettings(ConfigBaseModel):
     include_datasets: bool = Field(
         True, description='If the datasets should be included in the export'
     )
+    include_schemas: bool = Field(
+        False, description='If schemas should be included in the export'
+    )
 
 
 class BundleExport(ConfigBaseModel):

@@ -17,14 +17,24 @@
 #
 
 import io
+import json
 import os
 import zipfile
 
-from nomad.bundles import BundleExporter, BundleImporter, get_section_defs_for_upload
+from nomad.bundles import (
+    BundleExporter,
+    BundleImporter,
+    _get_package_for_section,
+    _get_schema_packages_for_upload,
+    _get_section_defs_for_upload,
+)
 from nomad.config import config
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.datamodel import EntryMetadata
+from nomad.metainfo import MSection, Package, Quantity
 from nomad.processing import Entry, Upload
+
+# Test for helper functions
 
 
 def test_get_section_defs_for_upload(non_empty_processed_with_temporal):
@@ -40,7 +50,7 @@ def test_get_section_defs_for_upload(non_empty_processed_with_temporal):
             for section_def in entry_metadata.section_defs:
                 indexed_definition_ids.add(section_def.definition_id)
 
-    definitions = get_section_defs_for_upload(
+    definitions = _get_section_defs_for_upload(
         non_empty_processed_with_temporal.upload_id
     )
 
@@ -53,6 +63,57 @@ def test_get_section_defs_for_upload(non_empty_processed_with_temporal):
     assert EntryMetadata.m_def.qualified_name() in qualified_names
     assert 'nomad.datamodel.results.Results' in qualified_names
     assert 'runschema.run.Run' in qualified_names
+
+
+def test_get_package_for_section():
+    package = Package(name='tests.package_for_section')
+
+    class PackageForSectionSchema(MSection):
+        value = Quantity(type=str)
+
+    package.section_definitions.append(PackageForSectionSchema.m_def)
+
+    assert _get_package_for_section(PackageForSectionSchema.m_def) is package
+    assert _get_package_for_section(EntryArchive.m_def) is EntryArchive.m_def.m_parent
+
+
+def test_get_schema_packages_for_upload(monkeypatch):
+    package_a = Package(name='tests.schema_package_a')
+    package_a.upload_id = 'upload-a'
+    package_a.entry_id = 'entry-a'
+    package_b = Package(name='tests.schema_package_b')
+    package_b.upload_id = 'upload-b'
+    package_b.entry_id = 'entry-b'
+    builtin_package = Package(name='tests.builtin_schema_package')
+
+    class PackageASchema(MSection):
+        value = Quantity(type=str)
+
+    class PackageBSchema(MSection):
+        value = Quantity(type=str)
+
+    class BuiltinSchema(MSection):
+        value = Quantity(type=str)
+
+    package_a.section_definitions.append(PackageASchema.m_def)
+    package_b.section_definitions.append(PackageBSchema.m_def)
+    builtin_package.section_definitions.append(BuiltinSchema.m_def)
+
+    monkeypatch.setattr(
+        'nomad.bundles._get_section_defs_for_upload',
+        lambda upload_id: [
+            PackageBSchema.m_def,
+            PackageASchema.m_def,
+            PackageASchema.m_def,
+            BuiltinSchema.m_def,
+        ],
+    )
+
+    assert _get_schema_packages_for_upload('test-upload') == [
+        builtin_package,
+        package_a,
+        package_b,
+    ]
 
 
 # Test bundle export
@@ -76,6 +137,7 @@ def test_archive_preserving_bundle_export_as_stream(non_empty_processed_with_tem
 
     with zipfile.ZipFile(io.BytesIO(b''.join(bundle_stream))) as zf:
         names = set(zf.namelist())
+        bundle_info = json.loads(zf.read('bundle_info.json'))
 
         expected_stable = {
             'bundle_info.json',
@@ -89,6 +151,81 @@ def test_archive_preserving_bundle_export_as_stream(non_empty_processed_with_tem
 
         archive_files = {name for name in names if name.startswith('archive/')}
         assert len(archive_files) == 1
+
+        assert bundle_info['upload_id'] == non_empty_processed_with_temporal.upload_id
+        assert bundle_info['export_settings']['include_raw_files'] is True
+        assert bundle_info['export_settings']['include_archive_files'] is True
+        assert bundle_info['export_settings']['include_datasets'] is True
+        assert bundle_info['export_settings']['include_schemas'] is False
+        assert len(bundle_info['entries']) == len(
+            non_empty_processed_with_temporal.successful_entries
+        )
+
+        assert not any(
+            name.startswith('raw/schema_package_') and name.endswith('.archive.json')
+            for name in names
+        )
+
+
+def test_bundle_export_includes_schema_raw_files(monkeypatch):
+    # Prepare a fake upload
+    package = Package(name='tests.bundle_export_schema')
+
+    class BundleSchema(MSection):
+        value = Quantity(type=str)
+
+    class MongoStub:
+        def to_dict(self):
+            return {'_id': 'test-upload'}
+
+    class UploadFilesStub:
+        def files_to_bundle(self, _settings):
+            return []
+
+    class UploadStub:
+        upload_id = 'test-upload'
+        process_running = False
+        current_process = None
+        successful_entries = []
+        upload_files = UploadFilesStub()
+
+        def to_mongo(self):
+            return MongoStub()
+
+    package.section_definitions.append(BundleSchema.m_def)
+
+    fake_upload = UploadStub()
+
+    monkeypatch.setattr(
+        'nomad.bundles._get_schema_packages_for_upload',
+        lambda upload_id: [package],
+    )
+
+    exporter = BundleExporter(
+        upload=fake_upload,
+        export_as_stream=True,
+        export_path=None,
+        zipped=True,
+        overwrite=False,
+        export_settings=config.bundle_export.default_settings.customize(
+            dict(
+                include_raw_files=False,
+                include_archive_files=True,
+                include_schemas=True,
+            )
+        ),
+    )
+
+    with zipfile.ZipFile(io.BytesIO(b''.join(exporter.export_bundle()))) as zf:
+        schema_files = [
+            name
+            for name in zf.namelist()
+            if name.startswith('raw/schema_package_') and name.endswith('.archive.json')
+        ]
+        assert len(schema_files) == 1
+        assert json.loads(zf.read(schema_files[0])) == {
+            'definitions': package.m_to_dict(with_out_meta=True)
+        }
 
 
 # Tests for bundle transfer roundtrip
