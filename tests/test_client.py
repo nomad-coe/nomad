@@ -141,16 +141,18 @@ async def many_uploads(
 
 
 @pytest.mark.asyncio
-async def test_async_query_basic(async_api_v1, published_wo_user_metadata):
+async def test_async_query_basic(
+    elastic_function, async_api_v1, published_wo_user_metadata
+):
     async_query = ArchiveQuery()
 
-    assert_results(async_query.download())
+    assert_results(await async_query.async_download())
 
     async_query = ArchiveQuery(
         query=dict(upload_id=[published_wo_user_metadata.upload_id])
     )
 
-    assert_results(async_query.download())
+    assert_results(await async_query.async_download())
 
 
 @pytest.mark.asyncio
@@ -172,7 +174,7 @@ async def test_async_query_required(
 ):
     async_query = ArchiveQuery(required=q_required)
 
-    assert_results(async_query.download(), sub_section_defs=sub_sections)
+    assert_results(await async_query.async_download(), sub_section_defs=sub_sections)
 
 
 @pytest.mark.asyncio
@@ -181,11 +183,11 @@ async def test_async_query_auth(
 ):
     async_query = ArchiveQuery(username=user2.username, password='password')
 
-    assert_results(async_query.download(), total=0)
+    assert_results(await async_query.async_download(), total=0)
 
     async_query = ArchiveQuery(username=user1.username, password='password')
 
-    assert_results(async_query.download(), total=1)
+    assert_results(await async_query.async_download(), total=1)
 
 
 @pytest.mark.asyncio
@@ -194,12 +196,12 @@ async def test_async_query_parallel(
 ):
     async_query = ArchiveQuery(required=dict(run='*'))
 
-    assert_results(async_query.download(), total=4)
-    assert_results(async_query.download(), total=0)
+    assert_results(await async_query.async_download(), total=4)
+    assert_results(await async_query.async_download(), total=0)
 
     async_query = ArchiveQuery(required=dict(run='*'), page_size=1)
 
-    assert_results(async_query.download(), total=4)
+    assert_results(await async_query.async_download(), total=4)
 
 
 def load_example(path: str):
