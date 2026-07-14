@@ -113,7 +113,9 @@ def create_reference(data, pretty):
 @pytest.fixture(scope='function')
 def assert_parser_result(log_output):
     def _assert(
-        entry_archive: EntryArchive, has_errors: bool = False, has_warnings: bool = None
+        entry_archive: EntryArchive,
+        has_errors: bool = False,
+        has_warnings: bool | None = None,
     ):
         errors_exist = False
         warnings_exist = False

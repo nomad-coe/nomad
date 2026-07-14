@@ -1,0 +1,621 @@
+{
+  "id": "simulation",
+  "label": "Simulation",
+  "priority": 10,
+  "query": {
+    "quantities:any": ["results.method.simulation.program_name"]
+  },
+  "overview": {
+    "type": "container",
+    "editable": false,
+    "children": [
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["results.material.topology"]
+        },
+        "children": [
+          {
+            "type": "material",
+            "title": "Material",
+            "md": 7,
+            "sx": {"height": "650px"}
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["results.method.simulation"]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Method",
+            "md": 5,
+            "sx": {"height": "650px"},
+            "children": [
+              {
+                "type": "container",
+                "title": "Program",
+                "children": [
+                  {
+                    "type": "quantity",
+                    "property": "results/method/simulation/program_name",
+                    "sm": 6
+                  },
+                  {
+                    "type": "quantity",
+                    "property": "results/method/simulation/program_version",
+                    "sm": 6
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": ["results.method.simulation.dft"]
+                },
+                "children": [
+                  {
+                    "type": "container",
+                    "title": "DFT",
+                    "children": [
+                      {
+                        "type": "quantity",
+                        "property": "results/method/simulation/dft/dft_type",
+                        "sm": 6
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "results/method/simulation/dft/basis_set_type",
+                        "sm": 6
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "results/method/simulation/dft/core_electron_treatment",
+                        "sm": 6
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "results/method/simulation/dft/jacobs_ladder",
+                        "sm": 6
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "results/method/simulation/dft/xc_functional_names",
+                        "direction": "horizontal"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.thermodynamic.trajectory"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "container",
+                    "title": "Molecular dynamics",
+                    "children": [
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/thermodynamic_ensemble",
+                        "sm": 5
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/integration_timestep",
+                        "sm": 7,
+                        "displayUnit": "fs"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/thermostat_parameters/0/thermostat_type",
+                        "sm": 4
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/thermostat_parameters/0/reference_temperature",
+                        "sm": 4
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/thermostat_parameters/0/coupling_constant",
+                        "label": "Thermostat coupling constant",
+                        "sm": 4,
+                        "displayUnit": "fs"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/barostat_parameters/0/barostat_type",
+                        "sm": 12
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/barostat_parameters/0/reference_pressure",
+                        "sm": 6,
+                        "displayUnit": "GPa"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/barostat_parameters/0/coupling_constant",
+                        "label": "Barostat coupling constant",
+                        "sm": 6,
+                        "displayUnit": "fs"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": ["results.properties.geometry_optimization"]
+                },
+                "children": [
+                  {
+                    "type": "container",
+                    "title": "Geometry optimization",
+                    "children": [
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/type"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/convergence_tolerance_energy_difference",
+                        "displayUnit": "eV"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "workflow2/method/convergence_tolerance_displacement_maximum",
+                        "displayUnit": "angstrom"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": [
+            "results.properties.electronic.band_structure_electronic.segment",
+            "results.properties.electronic.dos_electronic",
+            "results.properties.electronic.dos_electronic_new",
+            "results.properties.electronic.band_gap"
+          ]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Electronic properties",
+            "children": [
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.electronic.band_structure_electronic.segment"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "band_structure_electronic",
+                    "title": "Band structure",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 6,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.electronic.band_structure_electronic.segment"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "brillouin_zone_electronic",
+                    "title": "Brillouin zone",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 3,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.electronic.dos_electronic",
+                    "results.properties.electronic.dos_electronic_new"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "dos_electronic",
+                    "title": "Density of states",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 3,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": ["results.properties.electronic.band_gap"]
+                },
+                "children": [
+                  {
+                    "type": "table",
+                    "title": "Band gap",
+                    "property": "results/properties/electronic/band_gap",
+                    "columns": [
+                      {
+                        "label": "Channel",
+                        "type": "quantity",
+                        "property": "index"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "type"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "value",
+                        "displayUnit": "eV"
+                      },
+                      {
+                        "label": "Label",
+                        "type": "quantity",
+                        "property": "provenance/label"
+                      }
+                    ],
+                    "md": "grow",
+                    "sx": {"height": "348px"}
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": [
+            "results.properties.vibrational.band_structure_phonon",
+            "results.properties.vibrational.dos_phonon",
+            "results.properties.vibrational.heat_capacity_constant_volume",
+            "results.properties.vibrational.energy_free_helmholtz"
+          ]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Vibrational properties",
+            "md": 12,
+            "children": [
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.vibrational.band_structure_phonon"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "band_structure_vibrational",
+                    "title": "Phonon Band structure",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 6,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.vibrational.band_structure_phonon.reciprocal_cell"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "brillouin_zone_vibrational",
+                    "title": "Brillouin zone",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 3,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.vibrational.dos_phonon"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "dos_vibrational",
+                    "title": "Phonon Density of States",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 3,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.vibrational.heat_capacity_constant_volume"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "heat_capacity",
+                    "title": "Heat Capacity at Constant Volume",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 6,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.vibrational.energy_free_helmholtz"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "helmholtz_free_energy",
+                    "title": "Helmholtz Free Energy",
+                    "md": 12,
+                    "lg": 6,
+                    "xl": 6,
+                    "sx": {"height": "450px"}
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": [
+            "results.properties.structural.radial_distribution_function",
+            "results.properties.structural.radius_of_gyration"
+          ]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Structural properties",
+            "children": [
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.structural.radial_distribution_function"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "radial_distribution_function",
+                    "title": "Radial distribution function",
+                    "sx": {"height": "500px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.structural.radius_of_gyration"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "radius_of_gyration",
+                    "title": "Radius of Gyration",
+                    "sx": {"height": "500px"}
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": [
+            "results.properties.geometry_optimization.energies"
+          ]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Geometry Optimization",
+            "children": [
+              {
+                "type": "geometry_optimization",
+                "title": "Energy convergence",
+                "sx": {"height": "500px"}
+              },
+              {
+                "type": "container",
+                "title": "Convergence results",
+                "children": [
+                  {
+                    "type": "quantity",
+                    "property": "results/properties/geometry_optimization/final_energy_difference",
+                    "sm": 4,
+                    "displayUnit": "eV"
+                  },
+                  {
+                    "type": "quantity",
+                    "property": "results/properties/geometry_optimization/final_displacement_maximum",
+                    "sm": 4,
+                    "displayUnit": "angstrom"
+                  },
+                  {
+                    "type": "quantity",
+                    "property": "results/properties/geometry_optimization/final_force_maximum",
+                    "sm": 4,
+                    "displayUnit": "a_u_force"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["results.properties.thermodynamic.trajectory"]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Thermodynamic properties",
+            "children": [
+              {
+                "type": "trajectories",
+                "title": "Trajectory",
+                "sx": {"height": "600px"}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": [
+            "results.properties.mechanical.energy_volume_curve",
+            "results.properties.mechanical.bulk_modulus",
+            "results.properties.mechanical.shear_modulus"
+          ]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Mechanical properties",
+            "children": [
+              {
+                "type": "energy_volume_curve",
+                "title": "Energy volume curve",
+                "lg": 12,
+                "sx": {"height": "610px"}
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.mechanical.bulk_modulus"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "table",
+                    "title": "Bulk modulus",
+                    "property": "results/properties/mechanical/bulk_modulus",
+                    "columns": [
+                      {
+                        "type": "quantity",
+                        "property": "type"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "value",
+                        "displayUnit": "GPa"
+                      }
+                    ],
+                    "md": 12,
+                    "lg": "grow",
+                    "sx": {"height": "610px"}
+                  }
+                ]
+              },
+              {
+                "type": "condition",
+                "query": {
+                  "quantities:any": [
+                    "results.properties.mechanical.shear_modulus"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "table",
+                    "title": "Shear modulus",
+                    "property": "results/properties/mechanical/shear_modulus",
+                    "columns": [
+                      {
+                        "type": "quantity",
+                        "property": "type"
+                      },
+                      {
+                        "type": "quantity",
+                        "property": "value",
+                        "displayUnit": "GPa"
+                      }
+                    ],
+                    "md": 12,
+                    "lg": "grow",
+                    "sx": {"height": "610px"}
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": ["workflow2"]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Workflow",
+            "children": [
+              {
+                "type": "workflow",
+                "md": 12,
+                "sx": {"height": "600px"}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

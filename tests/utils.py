@@ -42,7 +42,7 @@ class ListWithSortKey(list):
 
 def assert_log(
     log_output, level: str, event_part: str, negate: bool = False
-) -> LogRecord:
+) -> LogRecord | None:
     """
     Assert whether a log message exists in the logs of the tests at a certain level.
 
@@ -125,11 +125,11 @@ def set_upload_entry_metadata(upload, metadata: dict[str, Any]):
 
 def create_template_upload_file(
     tmp,
-    mainfiles: str | list[str] = None,
+    mainfiles: str | list[str] | None = None,
     auxfiles: int = 4,
     directory: str = 'examples_template',
     name: str = 'examples_template.zip',
-    more_files: str | list[str] = None,
+    more_files: str | list[str] | None = None,
 ):
     """
     Creates a temporary upload.zip file based on template.json (for the artificial test

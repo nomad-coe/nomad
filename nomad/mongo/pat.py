@@ -16,10 +16,11 @@
 # limitations under the License.
 #
 
-from mongoengine import BooleanField, DateTimeField, Document, ListField, StringField
+from mongoengine import BooleanField, Document, ListField, StringField
 
 from nomad.common import now
 from nomad.config import config
+from nomad.mongo.fields import UTCDateTimeField
 
 
 class PAT(Document):
@@ -38,11 +39,11 @@ class PAT(Document):
 
     # Lifecycle
     revoked = BooleanField(default=False)
-    revoked_at = DateTimeField()
-    expired_at = DateTimeField()
-    created_at = DateTimeField(default=now)
-    updated_at = DateTimeField(default=now)
-    last_used_at = DateTimeField()
+    revoked_at = UTCDateTimeField()
+    expired_at = UTCDateTimeField()
+    created_at = UTCDateTimeField(default=now)
+    updated_at = UTCDateTimeField(default=now)
+    last_used_at = UTCDateTimeField()
 
     meta = {
         'collection': 'personal_access_tokens',

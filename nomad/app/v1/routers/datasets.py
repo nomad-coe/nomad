@@ -23,6 +23,7 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 from fastapi import Query as FastApiQuery
+from mongoengine.errors import MongoEngineException
 from pydantic import BaseModel, Field, field_validator
 
 from nomad import datamodel, processing, utils
@@ -61,7 +62,7 @@ class APITag(str, Enum):
 logger = utils.get_logger(__name__)
 
 
-_bad_id_response = (
+_bad_id = (
     status.HTTP_404_NOT_FOUND,
     {
         'model': HTTPExceptionModel,
@@ -72,7 +73,7 @@ _bad_id_response = (
     },
 )
 
-_forbidden_user_response = (
+_forbidden_user = (
     status.HTTP_403_FORBIDDEN,
     {
         'model': HTTPExceptionModel,
@@ -83,21 +84,7 @@ _forbidden_user_response = (
     },
 )
 
-_bad_owned_dataset_response = (
-    status.HTTP_400_BAD_REQUEST,
-    {
-        'model': HTTPExceptionModel,
-        'description': strip(
-            """
-        The requested action cannot be performed for this type of dataset.
-        Owned datasets can only have entries that where uploaded by the user that
-        creates the dataset.
-    """
-        ),
-    },
-)
-
-_existing_name_response = (
+_existing_name = (
     status.HTTP_400_BAD_REQUEST,
     {
         'model': HTTPExceptionModel,
@@ -110,7 +97,7 @@ _existing_name_response = (
     },
 )
 
-_dataset_is_fixed_response = (
+_dataset_is_fixed = (
     status.HTTP_400_BAD_REQUEST,
     {
         'model': HTTPExceptionModel,
@@ -148,35 +135,95 @@ _dataset_is_empty = (
     },
 )
 
-_datacite_did_not_resolve = (
-    status.HTTP_500_INTERNAL_SERVER_ERROR,
-    {
-        'model': HTTPExceptionModel,
-        'description': strip(
-            """
-        Datacite server couldn't resolve the request. Please try again later.
-    """
-        ),
-    },
-)
-
-_existing_dataset_with_findable_state = (
-    status.HTTP_400_BAD_REQUEST,
-    {
-        'model': HTTPExceptionModel,
-        'description': strip(
-            """
-        The dataset was failed to to be submitted previously. It is removed now.
-    """
-        ),
-    },
-)
-
 _datacite_not_enabled = (
     status.HTTP_403_FORBIDDEN,
     {
         'model': HTTPExceptionModel,
         'description': 'The DataCite DOI service is not enabled on this deployment.',
+    },
+)
+
+_dataset_doi_no_document = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The dataset has a DOI assigned but the corresponding DOI document could not be found.
+    """
+        ),
+    },
+)
+
+_dataset_doi_unpublished = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The dataset has a DOI assigned but the DOI is unpublished.
+    """
+        ),
+    },
+)
+
+_datacite_draft_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while creating the DOI draft at DataCite. Please try again later or contact the administrator if the problem persists.
+    """
+        ),
+    },
+)
+
+_db_set_doi_draft_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while saving the DOI draft to the database. Please try again later or contact the administrator if the problem persists.
+    """
+        ),
+    },
+)
+
+_db_set_dataset_doi_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while saving the dataset with the assigned DOI to the database. Please contact the administrator.
+    """
+        ),
+    },
+)
+
+_datacite_publish_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while publishing the DOI at DataCite. Please contact the administrator.
+    """
+        ),
+    },
+)
+
+_db_publish_dataset_doi_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while saving the published DOI state to the database. Please contact the administrator.
+    """
+        ),
     },
 )
 
@@ -341,7 +388,7 @@ def get_datasets(
     tags=[APITag.DEFAULT],
     summary='Get a list of datasets',
     response_model=DatasetResponse,
-    responses=create_responses(_bad_id_response),
+    responses=create_responses(_bad_id),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
@@ -374,7 +421,7 @@ def get_dataset(
     tags=[APITag.DEFAULT],
     summary='Create a new dataset',
     response_model=DatasetResponse,
-    responses=create_responses(_existing_name_response),
+    responses=create_responses(_existing_name),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
@@ -400,8 +447,8 @@ def post_datasets(
     ).first()
     if existing_dataset is not None:
         raise HTTPException(
-            status_code=_existing_name_response[0],
-            detail=_existing_name_response[1]['description'],
+            status_code=_existing_name[0],
+            detail=_existing_name[1]['description'],
         )
 
     # create dataset
@@ -470,9 +517,7 @@ def post_datasets(
     tags=[APITag.DEFAULT],
     summary='Delete a dataset',
     response_model=DatasetResponse,
-    responses=create_responses(
-        _bad_id_response, _dataset_is_fixed_response, _forbidden_user_response
-    ),
+    responses=create_responses(_bad_id, _dataset_is_fixed, _forbidden_user),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
@@ -491,20 +536,18 @@ def delete_dataset(
 
     dataset = DatasetDefinitionCls.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     if dataset is None:
-        raise HTTPException(
-            status_code=_bad_id_response[0], detail=_bad_id_response[1]['description']
-        )
+        raise HTTPException(status_code=_bad_id[0], detail=_bad_id[1]['description'])
 
     if dataset.doi is not None and not user.is_admin:
         raise HTTPException(
-            status_code=_existing_name_response[0],
-            detail=_dataset_is_fixed_response[1]['description'],
+            status_code=_existing_name[0],
+            detail=_dataset_is_fixed[1]['description'],
         )
 
     if dataset.user_id != user.user_id:
         raise HTTPException(
-            status_code=_forbidden_user_response[0],
-            detail=_forbidden_user_response[1]['description'],
+            status_code=_forbidden_user[0],
+            detail=_forbidden_user[1]['description'],
         )
 
     # delete dataset from entries in mongo and elastic
@@ -521,11 +564,16 @@ def delete_dataset(
     response_model=DatasetResponse,
     responses=create_responses(
         _datacite_not_enabled,
-        _bad_id_response,
-        _dataset_is_fixed_response,
+        _bad_id,
+        _dataset_is_fixed,
         _dataset_has_unpublished_contents,
-        _forbidden_user_response,
+        _forbidden_user,
         _dataset_is_empty,
+        _datacite_draft_failed,
+        _db_set_doi_draft_failed,
+        _db_set_dataset_doi_failed,
+        _datacite_publish_failed,
+        _db_publish_dataset_doi_failed,
     ),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
@@ -554,15 +602,22 @@ def assign_doi(
     # Check if dataset exists
     dataset = DatasetDefinitionCls.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     if dataset is None:
-        raise _create_exception(*_bad_id_response)
-
-    # Check if dataset already has a DOI
-    if dataset.doi is not None:
-        raise _create_exception(*_dataset_is_fixed_response)
+        raise _create_exception(*_bad_id)
 
     # Check if current user is owner of the dataset
     if dataset.user_id != user.user_id:
-        raise _create_exception(*_forbidden_user_response)
+        raise _create_exception(*_forbidden_user)
+
+    # Check if dataset already has a DOI
+    if dataset.doi is not None:
+        doi = DOI.objects(doi=dataset.doi).first()
+        if doi is None:
+            raise _create_exception(*_dataset_doi_no_document)
+
+        if doi.state != 'findable':
+            raise _create_exception(*_dataset_doi_unpublished)
+
+        raise _create_exception(*_dataset_is_fixed)
 
     # Check if dataset is empty
     response = search(
@@ -585,23 +640,30 @@ def assign_doi(
     if response.pagination.total > 0:
         raise _create_exception(*_dataset_has_unpublished_contents)
 
-    doi = DOI.create()
+    doi = DOI.create()  # does not save DOI document
 
     try:
         doi.create_draft(
             title=f'NOMAD dataset: {dataset.dataset_name}',
             publicationYear=datetime.now(timezone.utc).year,
             user=user,
-        )
+        )  # saves DOI document
+    except DataCiteException:
+        raise _create_exception(*_datacite_draft_failed)
+    except MongoEngineException:
+        raise _create_exception(*_db_set_doi_draft_failed)
+
+    try:
+        dataset.doi = doi.doi
+        dataset.save()
+    except MongoEngineException:
+        raise _create_exception(*_db_set_dataset_doi_failed)
+
+    try:
         doi.make_findable()
     except DataCiteException:
-        if doi.doi:
-            dataset.doi = doi.doi
-            dataset.save()
-
-        raise _create_exception(*_datacite_did_not_resolve)
-
-    dataset.doi = doi.doi
-    dataset.save()
+        raise _create_exception(*_datacite_publish_failed)
+    except MongoEngineException:
+        raise _create_exception(*_db_publish_dataset_doi_failed)
 
     return {'dataset_id': dataset.dataset_id, 'data': dataset}

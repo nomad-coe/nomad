@@ -26,6 +26,8 @@ import sys
 import warnings
 from collections.abc import Callable as TypingCallable
 from collections.abc import Iterable
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import copy, deepcopy
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
@@ -92,6 +94,19 @@ MSectionBound = TypeVar('MSectionBound', bound='MSection')
 
 _UNSET_ = '__UNSET__'
 _HASH_OBJ = type['hashlib._Hash']  # type: ignore
+_suspended_change_tracking_sections: ContextVar[tuple[MSection, ...]] = ContextVar(
+    '_suspended_change_tracking_sections', default=()
+)
+
+
+@contextmanager
+def _without_change_tracking(section: MSection):
+    suspended_sections = _suspended_change_tracking_sections.get()
+    token = _suspended_change_tracking_sections.set((*suspended_sections, section))
+    try:
+        yield
+    finally:
+        _suspended_change_tracking_sections.reset(token)
 
 
 # Metainfo errors
@@ -704,7 +719,14 @@ def constraint(warning):
 
 
 def _track_changes(section: MSection | None):
+    suspended_sections = _suspended_change_tracking_sections.get()
+
     while section is not None:
+        if any(
+            section is suspended_section for suspended_section in suspended_sections
+        ):
+            return
+
         section.m_mod_count += 1
         section = section.m_parent
 
@@ -2149,11 +2171,10 @@ class MSection(metaclass=MObjectMeta):
     def m_from_dict(
         cls: type[MSectionBound], data: dict[str, Any], **kwargs
     ) -> MSectionBound:
-        """Creates a section from the given serializable data dictionary.
+        """Creates a Section from the given serializable data dictionary.
 
         This is the 'opposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g.
-        loaded from JSON, and turns it into a proper section, i.e. instance of the given
-        section class.
+        loaded from JSON, and turns it into an instance of the given Section class.
         """
         return MSection.from_dict(data, cls=cls, **kwargs)
 
@@ -2226,7 +2247,13 @@ class MSection(metaclass=MObjectMeta):
 
         section = cls(**kwargs)
         section.m_parent = m_parent
-        section.m_update_from_dict(dct, treat_none_as_nan=treat_none_as_nan)
+
+        with _without_change_tracking(section):
+            section.m_update_from_dict(dct, treat_none_as_nan=treat_none_as_nan)
+
+        # Advance the version once after bulk hydration so any cached values
+        # potentially touched during load are considered stale afterwards.
+        section.m_mod_count += 1
 
         return section
 
@@ -2880,13 +2907,23 @@ class Definition(MSection):
 
         return streamable_dict(nested())
 
-    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
+    def m_to_json_schema(
+        self,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+    ) -> dict[str, Any]:
         """
         Generate JSON Schema for this Section, referencing each
         property (Quantity or SubSection) via `$defs`.
         """
         return metainfo_to_json_schema(
-            m_def=self, add_unit_value=add_unit_value, exclude=exclude
+            m_def=self,
+            add_unit_value=add_unit_value,
+            add_section_subtypes=add_section_subtypes,
+            add_property_subtypes=add_property_subtypes,
+            exclude=exclude,
         )
 
     def _hash_seed(self) -> str:
@@ -3375,11 +3412,21 @@ class Quantity(Property):
             + ('T' if self.virtual else 'F')
         )
 
-    def m_to_json_schema(self, add_unit_value=False, exclude=None) -> dict[str, Any]:
+    def m_to_json_schema(
+        self,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+    ) -> dict[str, Any]:
         """
         Generate a JSON Schema (Draft 2020-12) for this Quantity.
         """
-        return quantity_to_json_schema(self, add_unit_value=add_unit_value)
+        return quantity_to_json_schema(
+            self,
+            add_unit_value=add_unit_value,
+            add_property_subtypes=add_property_subtypes,
+        )
 
 
 class DirectQuantity(Quantity):
@@ -3732,17 +3779,21 @@ class Section(Definition):
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
+        # Regular inheritance: register as a normal child
         if not self.extends_base_section:
             for base_section in self.base_sections:
                 if self not in base_section.inheriting_sections:
                     base_section.inheriting_sections += [self]  # cannot use append here
+
+        # Extension: register as an extender of its single base section
         elif len(self.base_sections) == 1:
             base_section = self.base_sections[0]
             for name, attr in self.section_cls.__dict__.items():
                 if isinstance(attr, Property):
                     setattr(base_section.section_cls, name, attr)
-            if self not in base_section.inheriting_sections:
+            if self not in base_section.extending_sections:
                 base_section.extending_sections += [self]  # cannot use append here
+
         else:
             raise MetainfoError(
                 f'Section {self} extend the base section, but has no or more than one base section.'
@@ -3951,6 +4002,7 @@ class Package(Definition):
 
     @property
     def m_is_custom_package(self) -> bool:
+        """Whether this package is backed by an uploaded schema entry."""
         return self.upload_id is not None and self.entry_id is not None
 
     def __init_metainfo__(self):
@@ -4232,7 +4284,10 @@ def all_base_sections(self) -> list[Section]:
 
 @derived(cached=True)
 def all_inheriting_sections(self) -> list[Section]:
-    result: set[Section] = set()
+    # dict as ordered set: a plain set iterates in identity-hash order, which
+    # varies between processes and makes polymorphic section resolution
+    # (and thus parser output ordering) non-deterministic
+    result: dict[Section, None] = {}
     for inheriting_section in self.inheriting_sections:
         if isinstance(inheriting_section, SectionProxy):
             # In some reference resolution contexts, it is important to reevaluate later
@@ -4243,8 +4298,8 @@ def all_inheriting_sections(self) -> list[Section]:
                 # In some reference resolution contexts, it is important to reevaluate later
                 _track_changes(self)
                 continue
-            result.add(inheriting_inheriting_section)
-        result.add(inheriting_section)
+            result[inheriting_inheriting_section] = None
+        result[inheriting_section] = None
     return list(result)
 
 
@@ -4399,7 +4454,7 @@ def all_definitions(self):
 @derived(cached=True)
 def dependencies(self):
     """
-    All packages which have definitions that definitions from this package need. Being
+    All packages that provide definitions needed by this package. Being
     'needed' includes categories, base sections, and referenced definitions.
     """
     to_add = set()

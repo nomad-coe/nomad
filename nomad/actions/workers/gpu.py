@@ -14,12 +14,19 @@ from nomad.actions.action_logging import (
     WorkflowRoutingHandler,
 )
 from nomad.actions.activities.utils import get_all_activities
-from nomad.actions.client import get_client
+from nomad.actions.client import close_client, get_client
+from nomad.actions.nexus import get_all_nexus_service_handlers
+from nomad.actions.workers.health_check import (
+    should_start_health_server,
+    start_health_server,
+)
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
-from nomad.infrastructure import init_async_mongo, setup
+from nomad.infrastructure import init_async_mongo
 from nomad.utils.structlogging import get_logger
+
+from .utils import worker_process_initializer
 
 
 async def run_worker(worker_config: WorkerConfig):
@@ -44,6 +51,10 @@ async def run_worker(worker_config: WorkerConfig):
     if not any(isinstance(h, WorkflowRoutingHandler) for h in root_logger.handlers):
         root_logger.addHandler(WorkflowRoutingHandler())
 
+    # Pre-warm parser imports so first workflow execution does not pay import cost.
+    worker_process_initializer()
+    await init_async_mongo()
+
     client = await get_client()
     with ThreadPoolExecutor(max_workers=worker_config.pool_size) as executor:
         worker_kwargs: dict[str, Any] = {
@@ -51,6 +62,7 @@ async def run_worker(worker_config: WorkerConfig):
             'task_queue': TaskQueue.GPU.value,
             'workflows': get_all_workflows(TaskQueue.GPU),
             'activities': get_all_activities(TaskQueue.GPU),
+            'nexus_service_handlers': get_all_nexus_service_handlers(TaskQueue.GPU),
             'activity_executor': executor,
             'interceptors': [WorkflowLoggingInterceptor()],
             'graceful_shutdown_timeout': timedelta(
@@ -81,12 +93,22 @@ async def run_worker(worker_config: WorkerConfig):
             )
 
         worker = Worker(**worker_kwargs)
-        setup()
-        await init_async_mongo()
+        health_runner = None
+
+        if should_start_health_server(worker_config):
+            health_runner = await start_health_server(
+                host=worker_config.healthcheck_host,
+                port=worker_config.healthcheck_port,
+            )
         # Run the worker until SIGTERM
         logger.info('Starting GPU worker.')
         worker_task = asyncio.create_task(worker.run())
-        await stop_event.wait()
+
+        try:
+            await stop_event.wait()
+        finally:
+            if health_runner is not None:
+                await health_runner.cleanup()
 
         logger.info('Stopping worker.')
         worker_task.cancel()
@@ -94,3 +116,5 @@ async def run_worker(worker_config: WorkerConfig):
             await worker_task
         except asyncio.CancelledError:
             logger.info('Worker shut down cleanly.')
+        finally:
+            await close_client()

@@ -22,6 +22,18 @@ import pytest
 from nomad.auth.scopes import Scope, _resolve_scopes
 
 
+def test_scope_metadata():
+    # Check backwards compatibility as StrEnum
+    assert Scope.DATASETS_READ == 'datasets:read'
+    assert isinstance(Scope.DATASETS_READ, str)
+
+    assert Scope.DATASETS_READ.value == 'datasets:read'
+    assert Scope.DATASETS_READ.name == 'DATASETS_READ'
+    assert Scope.DATASETS_READ.resource == 'datasets'
+    assert Scope.DATASETS_READ.action == 'read'
+    assert Scope.DATASETS_READ.description == 'Read datasets.'
+
+
 @pytest.mark.parametrize(
     'scopes, expected',
     [

@@ -24,6 +24,7 @@ import pytest
 from nomad import processing
 from nomad.app.v1.models import Any_, Query
 from nomad.datamodel import Dataset
+from nomad.mongo.doi import DOI
 from nomad.search import search
 from nomad.utils.exampledata import ExampleData
 from tests.fixtures.infrastructure import DataciteMock
@@ -43,6 +44,12 @@ to assert for certain aspects in the responses.
 
 
 def create_dataset(**kwargs):
+    doi_id = kwargs.get('doi')
+    if doi_id is not None:
+        doi = DOI.create(doi_id)
+        doi.state = 'findable'
+        doi.save()
+
     dataset = Dataset(
         dataset_create_time=datetime.now(),
         dataset_modified_time=datetime.now(),
@@ -126,8 +133,8 @@ def assert_pagination(pagination):
 
 def assert_dataset(
     dataset,
-    query: Query = None,
-    entries: list[str] = None,
+    query: Query | None = None,
+    entries: list[str] | None = None,
     n_entries: int = -1,
     **kwargs,
 ):
@@ -417,6 +424,7 @@ def test_assign_doi_dataset(
     datacite_enabled,
     status_code,
 ):
+    assert DOI.objects().count() == 1  # one DOI from fixture 'data'
     datacite_mock.set_enabled(datacite_enabled)
 
     headers = auth_headers[user]
@@ -426,9 +434,50 @@ def test_assign_doi_dataset(
     if not datacite_enabled:
         assert 'not enabled' in response.json()['detail']
     if status_code != 200:
+        assert DOI.objects().count() == 1
         return
 
     json_response = response.json()
     dataset = json_response['data']
     assert_dataset(dataset, user_id=user1.user_id)
     assert dataset['doi'] is not None
+    assert DOI.objects().count() == 2
+
+
+def test_assign_doi_dataset_datacite_error(
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    data,
+):
+    assert DOI.objects().count() == 1  # one DOI from fixture 'data'
+    datacite_mock.set_requests(401, False, 'Bad credentials.')
+
+    headers = auth_headers['user1']
+    response = client.post(f'datasets/dataset_1/action/doi', headers=headers)
+
+    assert_response(response, status_code=500)
+    msg = response.json()['detail']
+    assert 'An error occurred while creating the DOI draft at DataCite.' in msg
+    assert Dataset.m_def.a_mongo.objects(dataset_id='dataset_1').first().doi is None
+    assert DOI.objects().count() == 1
+
+
+def test_assign_doi_dataset_mongo_error(
+    mock_mongo_fail_save,
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    data,
+):
+    mock_mongo_fail_save(DOI)
+    assert DOI.objects().count() == 1  # one DOI from fixture 'data'
+
+    headers = auth_headers['user1']
+    response = client.post(f'datasets/dataset_1/action/doi', headers=headers)
+
+    assert_response(response, status_code=500)
+    msg = response.json()['detail']
+    assert 'An error occurred while saving the DOI draft to the database.' in msg
+    assert Dataset.m_def.a_mongo.objects(dataset_id='dataset_1').first().doi is None
+    assert DOI.objects().count() == 1

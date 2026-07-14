@@ -181,14 +181,28 @@ class User(Author):
 
     is_oasis_admin = Quantity(type=bool, default=False)
 
-    _user_cache = TTLCache(maxsize=2048, ttl=24 * 3600)
+    _user_cache: TTLCache = TTLCache(maxsize=2048, ttl=24 * 3600)
     _user_cache_lock = threading.Lock()
 
     @staticmethod
-    def get(*args, **kwargs) -> 'User | None':
+    def get(
+        *args: Any,
+        user_id: str | None = None,
+        username: str | None = None,
+        email: str | None = None,
+        **kwargs: Any,
+    ) -> 'User | None':
         from nomad.auth import user_management
 
-        key = cachetools.keys.hashkey(*args, **kwargs)
+        if args:
+            raise TypeError(
+                'User.get only accepts keyword arguments: user_id, username, email.'
+            )
+        if kwargs:
+            unknown = ', '.join(sorted(kwargs.keys()))
+            raise TypeError(f'Unknown keyword argument(s) for User.get: {unknown}')
+
+        key = cachetools.keys.hashkey(user_id=user_id, username=username, email=email)
 
         # Fast lock-free path for cache hits (99% of requests)
         if key in User._user_cache:
@@ -200,7 +214,9 @@ class User(Author):
             if key in User._user_cache:
                 return User._user_cache[key]
 
-            user = user_management.user_management.get_user(*args, **kwargs)
+            user = user_management.user_management.get_user(
+                user_id=user_id, username=username, email=email
+            )
             User._user_cache[key] = user
             return user
 
@@ -225,8 +241,8 @@ class UserReference(Reference):
 
         if isinstance(value, str):
             try:
-                return User.get(value)
-            except Exception as _exc:  # noqa
+                return User.get(user_id=value)
+            except Exception:
                 return value
 
         raise ValueError(f'Cannot normalize {value}.')
@@ -256,8 +272,8 @@ class AuthorReference(Reference):
 
         if isinstance(value, str):
             try:
-                return User.get(value)
-            except Exception as _exc:  # noqa
+                return User.get(user_id=value)
+            except Exception:
                 return value
 
         raise ValueError(f'Cannot normalize {value}.')

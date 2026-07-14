@@ -930,12 +930,52 @@ def _api_to_es_query(
             query, doc_type=doc_type, owner_query=owner_query, prefix=prefix
         )
 
+    def any_query(name: str, values: list[Any]) -> EsQuery:
+        """
+        Creates an ES query for the 'any' operator.
+        A terms query is used for exact scalar mappings (e.g. keyword, boolean, date, etc.),
+        otherwise a bool for non-exact/full-text mappings.
+        Terms query is generally faster as it does not need to score the individual matches,
+        but it only works for exact matches and non-array values.
+        For other cases we need to use a bool query with multiple match queries.
+        Furthermore, a terms query can handle up to 65536 terms compared to 1024 maximum
+        clauses for a bool query.
+        """
+        if prefix is not None:
+            full_name = f'{prefix}.{name}'
+        else:
+            full_name = name
+
+        quantity = validate_quantity(full_name, doc_type=doc_type)
+        mapping = quantity.annotation.mapping or {}
+        mapping_type = mapping.get('type') if isinstance(mapping, dict) else None
+        supports_terms = mapping_type in {
+            'keyword',
+            'boolean',
+            'date',
+            'long',
+            'integer',
+            'short',
+            'byte',
+            'float',
+            'half_float',
+            'double',
+            'scaled_float',
+        }
+
+        if supports_terms and all(
+            value is not None and not isinstance(value, list | dict) for value in values
+        ):
+            return quantity.get_query(values, 'terms')
+
+        return Q('bool', should=[match(name, item) for item in values])
+
     def validate_criteria(name: str, value: Any):
         if isinstance(value, models.All):
             return Q('bool', must=[match(name, item) for item in value.op])
 
         elif isinstance(value, models.Any_):
-            return Q('bool', should=[match(name, item) for item in value.op])
+            return any_query(name, value.op)
 
         elif isinstance(value, models.None_):
             return Q('bool', must_not=[match(name, item) for item in value.op])
@@ -944,7 +984,7 @@ def _api_to_es_query(
             if prefix is not None:
                 name = f'{prefix}.{name}'
             quantity = validate_quantity(name, doc_type=doc_type)
-            return quantity.get_range_query(value)
+            return quantity.get_query(value.model_dump(exclude_unset=True), 'range')
 
         elif isinstance(value, models.And | models.Or | models.Not):
             return validate_query(value)
@@ -1745,7 +1785,7 @@ def _and_clauses(query: Query) -> Generator[Query, None, None]:
 
 
 def _buckets_to_interval(
-    owner: str = 'public',
+    owner: str | None = 'public',
     query: Query | EsQuery | None = None,
     aggregations: dict[str, Aggregation] = {},
     user_id: str | None = None,
@@ -1855,7 +1895,7 @@ def _buckets_to_interval(
 
 
 def search(
-    owner: str = 'public',
+    owner: str | None = 'public',
     query: Query | EsQuery | None = None,
     pagination: MetadataPagination | None = None,
     required: MetadataRequired | None = None,

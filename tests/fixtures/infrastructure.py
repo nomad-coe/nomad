@@ -5,6 +5,7 @@ import time
 from collections.abc import AsyncGenerator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from pathlib import Path
 from typing import TypeAlias
 from unittest.mock import MagicMock
 
@@ -12,6 +13,7 @@ import elasticsearch
 import elasticsearch.exceptions
 import pytest
 import pytest_asyncio
+from mongoengine import OperationError
 from pymongo import AsyncMongoClient
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
@@ -72,7 +74,7 @@ class CustomScheduler(LoadScopeScheduling):
     integration_tests = [
         'tests/app/v1/routers/test_apps.py',
         'tests/app/v1/routers/test_federation.py',
-        'tests/app/v1/routers/uploads/test_basic_uploads_legacy.py',
+        'tests/app/v1/routers/uploads/test_uploads_non_xdist.py',
         'tests/app/v1/routers/uploads/test_transfer_bundle.py',
         'tests/archive/test_archive.py',
         'tests/logtransfer/test_logtransfer.py',
@@ -129,21 +131,30 @@ def pytest_xdist_make_scheduler(config, log):
 
 
 @pytest.fixture(scope='session', autouse=True)
-def raw_files_infra():
-    parent_directory = '.volumes'
+def raw_files_infra(request):
+    parent_directory = Path('.volumes')
     if not os.path.isdir(parent_directory):
         os.makedirs(parent_directory, exist_ok=True)
     directory = tempfile.TemporaryDirectory(dir=parent_directory, prefix='test_fs')
     config.fs.tmp = tempfile.TemporaryDirectory(dir=directory.name, prefix='tmp').name
-    config.fs.staging = tempfile.TemporaryDirectory(
-        dir=directory.name, prefix='staging'
-    ).name
-    config.fs.public = tempfile.TemporaryDirectory(
-        dir=directory.name, prefix='public'
-    ).name
+    config.fs.staging = os.path.relpath(
+        tempfile.TemporaryDirectory(dir=directory.name, prefix='staging').name,
+        start=parent_directory.parent,
+    )
+    config.fs.public = os.path.relpath(
+        tempfile.TemporaryDirectory(dir=directory.name, prefix='public').name,
+        start=parent_directory.parent,
+    )
     config.fs.staging_external = os.path.abspath(config.fs.staging)
     config.fs.public_external = os.path.abspath(config.fs.public)
     config.fs.prefix_size = 2
+    if request.config.getoption('--s3-storage'):
+        config.fs.public_fs.protocol = 's3'
+    config.fs.public_fs.extra = {
+        'endpoint_url': 'http://localhost:8333',
+        'key': 'nomad_test',
+        'secret': 'nomad_test',
+    }
     clear_raw_files()
     yield
     directory.cleanup()
@@ -419,3 +430,14 @@ def datacite_mock(monkeypatch):
     # external response is always ok; fail cases should not request datacite at all
     datacite_mock.set_requests(200, True, 'Success')
     return datacite_mock
+
+
+@pytest.fixture(scope='function')
+def mock_mongo_fail_save(monkeypatch):
+    def failing_save(*args, **kwargs):
+        raise OperationError('Enforced mongo error')
+
+    def setup_mock(target):
+        monkeypatch.setattr(target, 'save', failing_save, raising=True)
+
+    return setup_mock

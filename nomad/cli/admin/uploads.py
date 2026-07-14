@@ -143,6 +143,7 @@ def _run_processing(
         elif upload.process_running:
             upload.reset(force=True, process_status=proc.ProcessStatus.FAILURE)
 
+        upload.reload()
         process(upload)
         if wait_until_complete:
             upload.block_until_complete(interval=0.5)
@@ -537,16 +538,20 @@ def ls(ctx, uploads, entries, ids, json, size):
 @click.pass_context
 def chown(ctx, username, uploads):
     from nomad import datamodel
+    from nomad.config import config
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     print(f'{uploads.count()} uploads selected, changing owner ...')
 
+    admin_user_id = config.services.admin_user_id
+    if not admin_user_id:
+        raise click.ClickException('No admin user configured for ownership transfer.')
+
     user = datamodel.User.get(username=username)
     for upload in uploads:
-        upload.edit_upload_metadata(
-            edit_request_json=dict(metadata={'main_author': user.user_id}),
-            user_id=config.services.admin_user_id,
+        upload.start_edit_upload_metadata(
+            {'metadata': {'main_author': user.user_id}}, admin_user_id
         )
 
 
@@ -950,8 +955,9 @@ def integrity(
     not_preferred_suffix,
     check_all_entries,
 ):
+    from msglc import LazyWriter
+
     from nomad.app.v1.models import MetadataPagination, MetadataRequired
-    from nomad.archive.storage_v2 import ArchiveWriter
     from nomad.files import PublicUploadFiles, StagingUploadFiles
     from nomad.processing import Entry, Upload
     from nomad.search import search
@@ -1101,7 +1107,7 @@ def integrity(
 
         def _check_magic(path) -> bool:
             with open(path, 'rb') as f:
-                return ArchiveWriter.magic != f.read(ArchiveWriter.magic_len)
+                return LazyWriter.magic != f.read(LazyWriter.magic_len())
 
         if upload.published:
             upload_files = PublicUploadFiles(upload.upload_id)

@@ -33,6 +33,7 @@ from nomad.config.models.north import NORTHTool
 from nomad.config.models.plugins import NORTHToolEntryPoint
 from nomad.mongo.groups import MongoUserGroup
 from nomad.processing import Upload
+from nomad.tracing import traced
 from nomad.utils import get_logger, slugify, strip
 
 from ..models import HTTPExceptionModel, User
@@ -226,6 +227,7 @@ def _check_uploadid_is_mounted(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='north.start_tool')
 async def start_tool(
     tool: Annotated[ToolModel, Depends(tool)],
     user: Annotated[
@@ -404,6 +406,7 @@ async def start_tool(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='north.stop_tool')
 async def stop_tool(
     tool: Annotated[ToolModel, Depends(tool)],
     user: Annotated[

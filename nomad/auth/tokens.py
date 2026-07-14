@@ -395,6 +395,87 @@ def revoke_pat(*, user_id: str, pat_id: str) -> bool:
     return True
 
 
+@dataclass
+class PATPruneResult:
+    """Summary of an admin PAT prune operation."""
+
+    matched: int
+    deleted: int
+    expired_matched: int
+    revoked_matched: int
+    cutoff: datetime.datetime
+    dry_run: bool
+    user_id: str | None
+
+
+def prune_pat(
+    *,
+    dry_run: bool = True,
+    inactive_for: datetime.timedelta | None = None,
+    inactive_before: datetime.datetime | None = None,
+    expired: bool = False,
+    revoked: bool = False,
+    user_id: str | None = None,
+) -> PATPruneResult:
+    """
+    [Admin only] Prune inactive PATs from the database.
+
+    This is mainly a catch-up tool. Normally cleanup should
+    happen automatically via the `Auth.pat_pruning_time` config.
+    """
+    if not expired and not revoked:
+        raise ValueError('At least one of expired or revoked must be True.')
+
+    # Check and calculate cutoff date
+    if inactive_before is not None and inactive_for is not None:
+        raise ValueError('inactive_before and inactive_for are mutually exclusive.')
+
+    if inactive_before is None:
+        if inactive_for is None:
+            raise ValueError('Either inactive_before or inactive_for must be provided.')
+        if inactive_for.total_seconds() < 0:
+            raise ValueError('inactive_for must be non-negative.')
+
+        cutoff = now() - inactive_for
+    else:
+        cutoff = inactive_before
+
+    # Construct queries
+    base_query = Q(user_id=user_id) if user_id is not None else Q()
+
+    expired_query = base_query & Q(expired_at__ne=None) & Q(expired_at__lte=cutoff)
+
+    revoked_query = (
+        base_query
+        & Q(revoked=True)
+        & Q(revoked_at__ne=None)
+        & Q(revoked_at__lte=cutoff)
+    )
+
+    if expired and revoked:
+        queryset = PAT.objects(expired_query | revoked_query)
+    elif expired:
+        queryset = PAT.objects(expired_query)
+    else:  # revoked only
+        queryset = PAT.objects(revoked_query)
+
+    # Get stats and prune
+    matched: int = queryset.count()
+    expired_matched: int = PAT.objects(expired_query).count() if expired else 0
+    revoked_matched: int = PAT.objects(revoked_query).count() if revoked else 0
+    deleted: int = 0 if dry_run else queryset.delete()
+
+    return PATPruneResult(
+        matched=matched,
+        deleted=deleted,
+        expired_matched=expired_matched,
+        revoked_matched=revoked_matched,
+        cutoff=cutoff,
+        dry_run=dry_run,
+        user_id=user_id,
+    )
+
+
 def authenticate_pat(raw_token: str) -> PAT | None:
     """
     Validates a raw token string.
@@ -536,7 +617,9 @@ def get_user_from_upload_token(upload_token: str | None) -> AuthResult | None:
             raise ValueError('Invalid HMAC signature')
 
         user_id = str(uuid.UUID(bytes=payload_bytes))
-        user = cast(datamodel.User, user_management.user_management.get_user(user_id))
+        user = cast(
+            datamodel.User, user_management.user_management.get_user(user_id=user_id)
+        )
         return AuthResult(user, _resolve_scopes(['uploads:*']))
 
     except Exception:

@@ -129,7 +129,7 @@ class KeycloakMock:
             user_id=user.user_id,
         )
 
-    def get_user(self, user_id=None, username=None, email=None):
+    def get_user(self, *, user_id=None, username=None, email=None):
         if user_id is not None:
             return User(**self.users[user_id])
 
@@ -193,11 +193,11 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def with_oasis_user_management(monkeypatch):
-    from nomad.auth.user_management import OasisUserManagement
+def with_central_user_management(monkeypatch):
+    from nomad.auth.user_management import CentralUserManagement
 
     monkeypatch.setattr(
-        'nomad.auth.user_management.user_management', OasisUserManagement()
+        'nomad.auth.user_management.user_management', CentralUserManagement()
     )
     yield
     monkeypatch.setattr('nomad.auth.user_management.user_management', _user_management)

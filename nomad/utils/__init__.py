@@ -51,7 +51,7 @@ import uuid
 import time
 import hashlib
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import collections
 import logging
 import inspect
@@ -78,6 +78,30 @@ def dump_json(data):
     return orjson.dumps(
         data, default=default, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS
     )
+
+
+@overload
+def normalize_datetime_utc(value: None) -> None: ...
+
+
+@overload
+def normalize_datetime_utc(value: datetime) -> datetime: ...
+
+
+def normalize_datetime_utc(value: datetime | None) -> datetime | None:
+    """
+    Normalize a datetime value to UTC.
+
+    - naive datetime -> assume UTC
+    - aware datetime -> convert to UTC
+    - None -> None
+    """
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    return value
 
 
 # Length of hashes and hash-based ids (e.g. entry_id) in nomad.

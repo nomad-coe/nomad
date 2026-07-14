@@ -6,12 +6,13 @@ from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
+from fsspec.implementations.local import LocalFileSystem
 
 from nomad import bundles, datamodel, processing, utils
 from nomad.archive import read_archive, to_json, write_archive
-from nomad.config import config
 from nomad.datamodel import EntryArchive, OptimadeEntry, User
 from nomad.datamodel.datamodel import SearchableQuantity
+from nomad.files import FSUtility, UploadFiles
 from nomad.metainfo.elasticsearch_extension import schema_separator
 from nomad.processing import ProcessStatus
 from nomad.processing.data import Upload
@@ -160,7 +161,7 @@ def oasis_publishable_upload(
         for file_name in os.listdir(archive_path):
             if file_name.endswith('.msg'):
                 full_path = os.path.join(archive_path, file_name)
-                new_data = []
+                new_data: dict = {}
                 with read_archive(full_path) as data:
                     for entry_id in data.keys():
                         archive_dict = to_json(data[entry_id])
@@ -172,8 +173,8 @@ def oasis_publishable_upload(
                             section_metadata.get('mainfile_key'),
                         )
                         section_metadata['entry_id'] = new_entry_id
-                        new_data.append((new_entry_id, archive_dict))
-                write_archive(full_path, len(new_data), new_data)
+                        new_data[new_entry_id] = archive_dict
+                write_archive(full_path, new_data)
 
     monkeypatch.setattr('nomad.bundles.BundleImporter.open', new_bundle_importer_open)
     monkeypatch.setattr(
@@ -236,7 +237,6 @@ async def processeds(
     return results
 
 
-@pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def non_empty_processed(
     non_empty_uploaded: tuple[str, str], user1: User, proc_infra
@@ -254,7 +254,7 @@ async def non_empty_processed_with_temporal(
     temporal_worker: TemporalWorkerContext,
 ) -> processing.Upload:
     """
-    Provides a processed upload. Upload was uploaded with user1.
+    Provides a processed upload that was uploaded by user1.
     """
     uploaded_id, uploaded_path = non_empty_uploaded
     upload = Upload.create(upload_id=uploaded_id, main_author=user1)
@@ -322,6 +322,7 @@ def example_data(
     user1,
     user2,
     normalized,
+    request,
 ):
     """
     Provides a couple of uploads and entries including metadata, raw-data, and
@@ -432,6 +433,14 @@ def example_data(
     data.save(with_files=False)
     del data.archives['id_02']
     data.save(with_files=True, with_es=False, with_mongo=False)
+
+    if request.config.getoption('--s3-storage'):
+        upload_files = UploadFiles.get('id_published')
+        archive_path = upload_files.msg_fp(upload_files.access, fallback=True).os_path
+        upath = FSUtility.upath(archive_path)
+        assert not isinstance(upath.fs, LocalFileSystem)
+        assert not os.path.exists(archive_path)
+        assert upath.exists()
 
     # yield
 

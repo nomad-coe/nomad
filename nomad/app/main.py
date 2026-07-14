@@ -23,16 +23,16 @@ from fastapi.exception_handlers import (
     http_exception_handler as default_http_exception_handler,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi_cache import FastAPICache
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from temporalio.client import Client
 
-from nomad.actions.client import get_client
+from nomad.actions.client import close_client, get_client
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import check_api_secret
 from nomad.config import config
-from nomad.config.models.plugins import APIEntryPoint
+from nomad.config.models.plugins import APIEntryPoint, DashboardEntryPoint
 from nomad.mongo.cache import MongoBackend
 from nomad.utils.structlogging import get_logger
 
@@ -40,6 +40,29 @@ from .static import GuiFiles
 from .static import app as static_files_app
 from .v1.main import app as v1_app
 from .v1.routers import apps as apps_router
+
+
+def mount_with_trailing_slash_redirect(
+    parent_app: FastAPI, mount_path: str, mounted_app: FastAPI
+):
+    normalized_path = mount_path.rstrip('/')
+
+    @parent_app.api_route(
+        normalized_path, methods=['GET', 'HEAD'], include_in_schema=False
+    )
+    async def redirect_to_trailing_slash(request: Request):
+        path_with_slash = (
+            request.url.path
+            if request.url.path.endswith('/')
+            else f'{request.url.path}/'
+        )
+        query = f'?{request.url.query}' if request.url.query else ''
+        return RedirectResponse(
+            url=f'{path_with_slash}{query}',
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        )
+
+    parent_app.mount(normalized_path, mounted_app)
 
 
 @asynccontextmanager
@@ -85,14 +108,22 @@ async def lifespan(app: FastAPI):
         logger.error(f'Failed to connect to temporal', exc_info=e)
         raise
     finally:
+        await close_client()
         if infrastructure.async_mongo_client is not None:
             await infrastructure.async_mongo_client.close()
             infrastructure.async_mongo_client = None
+            infrastructure.async_mongo_loop = None
         if os.path.exists(GuiFiles.gui_artifacts_path):
             os.remove(GuiFiles.gui_artifacts_path)
 
 
 app = FastAPI(lifespan=lifespan)
+
+from nomad.metrics import setup_prometheus
+from nomad.tracing import setup_tracing
+
+setup_tracing(app)
+setup_prometheus(app)
 
 app_base = config.services.api_base_path
 
@@ -191,14 +222,47 @@ if config.services.h5grove_enabled:
     app.mount(f'{app_base}/h5grove', h5grove_app)
 
 
-# Add API plugins
+@app.middleware('http')
+async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith(f'{app_base}/dashboards/'):
+        sources = ' '.join(config.services.dashboard_frame_ancestors)
+        response.headers['Content-Security-Policy'] = f'frame-ancestors {sources}'
+    return response
+
+
+# Mount API and dashboard plugin apps
 for entry_point in config.plugins.entry_points.filtered_values():
     if isinstance(entry_point, APIEntryPoint):
         api_app = entry_point.load()
         assert isinstance(api_app, FastAPI), (
             f'Error loading entry point "{entry_point.id}": The load method of an API entry point must return a FastAPI instance'
         )
-        app.mount(f'{app_base}/{entry_point.prefix}', api_app)
+        mount_with_trailing_slash_redirect(
+            app,
+            f'{app_base}/{entry_point.prefix}',
+            api_app,
+        )
+    elif isinstance(entry_point, DashboardEntryPoint):
+        if entry_point.external_url is not None:
+            continue
+        try:
+            dashboard_app = entry_point.load()
+            if not isinstance(dashboard_app, FastAPI):
+                raise TypeError(
+                    'load() must return a FastAPI instance when external_url is not set'
+                )
+            mount_with_trailing_slash_redirect(
+                app,
+                f'{app_base}/dashboards/{entry_point.id_url_safe}',
+                dashboard_app,
+            )
+        except Exception as exc:
+            get_logger(__name__).error(
+                'failed to mount dashboard entry point; skipping',
+                entry_point_id=entry_point.id,
+                exc_info=exc,
+            )
 
 # Make sure to mount this last, as it is a catch-all routes that are not yet mounted.
 app.mount(app_base, static_files_app)

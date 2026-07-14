@@ -616,6 +616,9 @@ function hashRequest(req) {
   // Query parameters are sorted before serialization. Otherwise they may appear
   // in random order which breaks the hashing.
   const params = req.url.searchParams
+  if (params.get('wait_for_processing') === 'false') {
+    params.delete('wait_for_processing')
+  }
   params.sort()
 
   let url = req.url.toString()

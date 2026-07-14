@@ -62,10 +62,11 @@ def reset(remove, i_am_really_sure):
     '--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.'
 )
 def reset_processing(zero_complete_time):
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from nomad import infrastructure
     from nomad import processing as proc
+    from nomad.common import now
 
     infrastructure.setup_mongo()
 
@@ -83,9 +84,9 @@ def reset_processing(zero_complete_time):
             celery_task_id=None,
             errors=[],
             warnings=[],
-            complete_time=datetime.fromtimestamp(0)
+            complete_time=datetime.fromtimestamp(0, tz=timezone.utc)
             if zero_complete_time
-            else datetime.now(),
+            else now(),
         )
 
     reset_collection(proc.Entry)
@@ -105,12 +106,11 @@ def reset_processing(zero_complete_time):
     help='Use the given amount of parallel processes. Default is 1.',
 )
 def lift_embargo(dry, parallel):
-    from datetime import datetime
-
     from dateutil.relativedelta import relativedelta
 
     from nomad import infrastructure
     from nomad import processing as proc
+    from nomad.common import now
     from nomad.search import quantity_values
 
     infrastructure.setup_mongo()
@@ -122,7 +122,7 @@ def lift_embargo(dry, parallel):
         upload = proc.Upload.get(upload_id)
         embargo_length = upload.embargo_length
 
-        if upload.publish_time + relativedelta(months=embargo_length) < datetime.now():
+        if upload.publish_time + relativedelta(months=embargo_length) < now():
             print(
                 f'need to lift the embargo of {upload.upload_id} (publish_time={upload.publish_time}, embargo={embargo_length})'
             )
@@ -131,6 +131,110 @@ def lift_embargo(dry, parallel):
                     edit_request_json=dict(metadata={'embargo_length': 0}),
                     user_id=config.services.admin_user_id,
                 )
+
+
+@admin.group(help='Personal access token (PAT) management.')
+def pats():
+    pass
+
+
+@pats.command(
+    name='prune',
+    help='Prune expired/revoked personal access tokens (PAT).',
+)
+@click.option(
+    '--inactive-for',
+    type=str,
+    default=None,
+    show_default=False,
+    help='Prune PATs inactive for this duration, e.g. 12h, 7d, 1month. Exactly one of --inactive-for or --inactive-before must be provided.',
+)
+@click.option(
+    '--inactive-before',
+    type=click.DateTime(),
+    default=None,
+    help='Absolute inactivity cutoff timestamp (ISO-8601), e.g. 2026-01-01T09:00:00. Exactly one of --inactive-for or --inactive-before must be provided. Timezone-aware values are supported; if timezone is omitted, UTC is assumed.',
+)
+@click.option(
+    '--expired',
+    is_flag=True,
+    help='Select expired PATs for pruning. At least one of --expired or --revoked is required.',
+)
+@click.option(
+    '--revoked',
+    is_flag=True,
+    help='Select revoked PATs for pruning. At least one of --expired or --revoked is required.',
+)
+@click.option(
+    '--dry-run',
+    '--dry',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Show matched PATs without deleting them.',
+)
+@click.option(
+    '--user-id',
+    type=str,
+    default=None,
+    help='Restrict pruning to a single user.',
+)
+def prune_pats(
+    dry_run,
+    inactive_for,
+    inactive_before,
+    expired,
+    revoked,
+    user_id,
+):
+    import datetime
+    import warnings
+
+    from nomad import infrastructure
+    from nomad.auth.tokens import prune_pat
+    from nomad.common import parse_timedelta
+
+    infrastructure.setup_mongo()
+
+    parsed_inactive_for = None
+    if inactive_for is not None:
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter('always', UserWarning)
+                parsed_inactive_for = parse_timedelta(inactive_for)
+            for warning in caught:
+                click.echo(f'Warning: {warning.message}', err=True)
+        except ValueError as e:
+            raise click.ClickException(str(e)) from e
+
+    try:
+        result = prune_pat(
+            dry_run=dry_run,
+            inactive_for=parsed_inactive_for,
+            inactive_before=inactive_before,
+            expired=expired,
+            revoked=revoked,
+            user_id=user_id,
+        )
+    except ValueError as e:
+        raise click.ClickException(str(e)) from e
+
+    cutoff_utc = result.cutoff
+    if cutoff_utc.tzinfo is None:
+        cutoff_utc = cutoff_utc.replace(tzinfo=datetime.timezone.utc)
+    cutoff_local = cutoff_utc.astimezone()
+
+    click.echo('PAT prune summary')
+    click.echo(f'  cutoff_local: {cutoff_local.isoformat(timespec="seconds")}')
+    click.echo(
+        f'  cutoff_utc: {cutoff_utc.astimezone(datetime.timezone.utc).isoformat(timespec="seconds")}'
+    )
+    click.echo(f'  user_id: {result.user_id or "all"}')
+    click.echo(f'  expired_matched: {result.expired_matched}')
+    click.echo(f'  revoked_matched: {result.revoked_matched}')
+    click.echo(f'  total_matched: {result.matched}')
+    click.echo(f'  deleted: {result.deleted}')
+    click.echo(f'  dry_run: {result.dry_run}')
 
 
 @admin.group(help='Generate scripts and commands for nomad operation.')
@@ -146,9 +250,9 @@ def ops():
 @ops.command(help=('Dump the mongo db.'))
 @click.option('--restore', is_flag=True, help='Do not dump, but restore.')
 def dump(restore: bool):
-    from datetime import datetime, timezone
+    from nomad.common import now
 
-    date_str = datetime.now(timezone.utc).strftime('%Y_%m_%d')
+    date_str = now().strftime('%Y_%m_%d')
     print(
         f'mongodump --host {config.mongo.host} --port {config.mongo.port} --db {config.mongo.db_name} -o /backup/fairdi/mongo/{date_str}'
     )

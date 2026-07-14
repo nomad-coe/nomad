@@ -25,12 +25,11 @@ from collections.abc import Callable, Iterable
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import Manager
 
-from nomad.archive import read_archive, to_json
-from nomad.archive.storage_v2 import ArchiveWriter as ArchiveWriterNew
-from nomad.config import config
 from nomad.files import PublicUploadFiles, StagingUploadFiles
 from nomad.infrastructure import setup
 from nomad.processing import Upload
+
+from .utils import check_archive_version, read_archive, to_json, write_archive
 
 
 def flush(*args, **kwargs):
@@ -99,10 +98,7 @@ def convert_archive(
     original_path = os.path.abspath(original_path)
 
     if not force_repack:
-        with open(original_path, 'rb') as f:
-            magic_bytes = f.read(ArchiveWriterNew.magic_len)
-
-        if magic_bytes == ArchiveWriterNew.magic:
+        if check_archive_version(original_path) == 3:
             flush(
                 f'{prefix} [INFO] Skipping as already in the new format: {original_path}'
             )
@@ -128,19 +124,15 @@ def convert_archive(
         except OSError:
             pass
 
+    tmp_path = ''
     try:
-        tmp_path = ''
         with read_archive(original_path) as reader:
             flush(f'{prefix} [INFO] Converting: {original_path}')
             tmp_path = (
                 f'{original_path}.{hashlib.md5(original_path.encode()).hexdigest()}'
             )
 
-            with ArchiveWriterNew(
-                tmp_path, len(reader), config.archive.toc_depth
-            ) as writer:
-                for uuid, entry in reader.items():
-                    writer.add(uuid, to_json(entry))
+            write_archive(tmp_path, to_json(reader))
     except Exception as e:
         flush(f'{prefix} [ERROR] Failed to convert {original_path}: {e}')
         safe_remove(tmp_path)
@@ -289,11 +281,11 @@ def convert_upload(
         assert isinstance(upload, Upload)
         upload_class = PublicUploadFiles if upload.published else StagingUploadFiles
         base_folder = upload_class.base_folder_for(upload.upload_id)
-        if not os.path.exists(base_folder):
+        if not base_folder.exists():
             flush(f'[ERROR] Base folder not found for upload: {upload.upload_id}')
             continue
 
-        all_folders.append(os.path.abspath(base_folder))
+        all_folders.append(base_folder.absolute().as_posix())
 
     convert_folder(
         all_folders,

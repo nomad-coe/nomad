@@ -171,7 +171,7 @@ class Mapping:
         if person is not None:
             return person
 
-        user = User.get(user_id)
+        user = User.get(user_id=user_id)
         person = BNode()
 
         self.g.add((person, RDF.type, FOAF.Person))
@@ -189,7 +189,7 @@ class Mapping:
         if person is None:
             person = self.map_user(user_id)
 
-        user = User.get(user_id)
+        user = User.get(user_id=user_id)
         self.g.add((person, RDF.type, VCARD.Individual))
         self.g.add((person, VCARD.givenName, Literal(user.first_name)))
         self.g.add((person, VCARD.familyName, Literal(user.last_name)))

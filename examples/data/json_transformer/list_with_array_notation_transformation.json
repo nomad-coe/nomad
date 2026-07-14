@@ -1,0 +1,17 @@
+{
+  "data": {
+    "e": [
+      {"b": 1},
+      {"b": 2},
+      {"b": 3}
+    ]
+  },
+  "schema": {
+    "rules": {
+      "rule_e": {
+        "source": "e[n1].b",
+        "target": "a.b[n1].e"
+      }
+    }
+  }
+}

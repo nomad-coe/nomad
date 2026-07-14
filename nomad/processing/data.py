@@ -48,7 +48,6 @@ import validators
 from fastapi.exceptions import RequestValidationError
 from mongoengine import (
     BooleanField,
-    DateTimeField,
     DictField,
     EmbeddedDocument,
     EmbeddedDocumentField,
@@ -61,7 +60,7 @@ from structlog import wrap_logger
 from structlog.processors import StackInfoRenderer, TimeStamper, format_exc_info
 from temporalio import activity
 from temporalio.common import RetryPolicy
-from temporalio.service import RPCError
+from temporalio.service import RPCError, RPCStatusCode
 
 from nomad import client, datamodel, infrastructure, metainfo, parsing, search, utils
 from nomad.actions import TaskQueue
@@ -100,6 +99,7 @@ from nomad.files import (
 )
 from nomad.metainfo.data_type import Datatype, Datetime
 from nomad.mongo.doi import EmbeddedDOI
+from nomad.mongo.fields import UTCDateTimeField
 from nomad.mongo.groups import MongoUserGroup, user_group_exists
 from nomad.mongo.package import PackageDefinition
 from nomad.normalizing import normalizers
@@ -113,6 +113,7 @@ from nomad.processing.base import (
     process_local,
 )
 from nomad.search import update_metadata as es_update_metadata
+from nomad.tracing import trace_span, traced
 from nomad.utils.pydantic import CustomErrorWrapper
 from nomad.utils.structlogging import ISO8601_UTC_FORMAT
 from nomad.workflows.shared_objects import (
@@ -123,6 +124,7 @@ from nomad.workflows.shared_objects import (
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    TransferUploadOwnershipWorkflowInput,
     UploadProcessingWorkflowInput,
 )
 
@@ -156,10 +158,14 @@ class RunThread(threading.Thread):
     def __init__(self, coro: Coroutine):
         self.coro = coro
         self.result = None
+        self.exception = None
         super().__init__()
 
     def run(self):
-        self.result = asyncio.run(self.coro)
+        try:
+            self.result = asyncio.run(self.coro)
+        except Exception as e:
+            self.exception = e
 
 
 def run_async(coro: Coroutine):
@@ -172,6 +178,8 @@ def run_async(coro: Coroutine):
         thread = RunThread(coro)
         thread.start()
         thread.join()
+        if thread.exception is not None:
+            raise thread.exception
         return thread.result
     else:
         # Create our own loop
@@ -274,7 +282,12 @@ class MetadataEditRequestHandler:
 
     @classmethod
     def edit_metadata(
-        cls, edit_request_json: dict[str, Any], upload_id: str, user: datamodel.User
+        cls,
+        edit_request_json: dict[str, Any],
+        upload_id: str,
+        user: datamodel.User,
+        *,
+        wait_for_processing: bool = True,
     ) -> dict[str, Any]:
         """
         Method to verify and execute a generic request to edit metadata from a certain user.
@@ -316,7 +329,9 @@ class MetadataEditRequestHandler:
             # Looks good, try to trigger processing
             for upload in handler.affected_uploads:
                 upload.edit_upload_metadata(
-                    edit_request_json, user.user_id
+                    edit_request_json,
+                    user.user_id,
+                    wait_for_processing=wait_for_processing,
                 )  # Trigger the process
         # All went well, return a verified json as response
         verified_json = copy.deepcopy(edit_request_json)
@@ -690,6 +705,7 @@ class MetadataEditRequestHandler:
             elif definition.name == 'reviewer_groups':
                 assert_user_group_exists(value)
             return None if value == '' else value
+
         elif definition.type == metainfo.Datetime or isinstance(
             definition.type, Datetime
         ):
@@ -698,12 +714,14 @@ class MetadataEditRequestHandler:
                     value
                 )  # Throws exception if badly formatted timestamp
             return None if value == '' else value
+
         elif isinstance(definition.type, metainfo.MEnum):
             assert isinstance(value, str), 'Expected a string value'
             if value == '':
                 return None
             assert value in definition.type, f'Bad enum value {value}'
             return value
+
         elif isinstance(definition.type, metainfo.Reference):
             assert isinstance(value, str), 'Expected a string value'
             reference_type = definition.type.target_section_def.section_cls
@@ -713,6 +731,7 @@ class MetadataEditRequestHandler:
                 else:
                     # New user reference encountered, try to fetch it
                     user_id = None
+                    # TODO: should be explicit about identifier type
                     for key in ('user_id', 'username', 'email'):
                         try:
                             if (user := datamodel.User.get(**{key: value})) is None:
@@ -724,6 +743,7 @@ class MetadataEditRequestHandler:
                     self.encountered_users[value] = user_id
                 assert user_id is not None, f'User reference not found: `{value}`'
                 return user_id
+
             elif reference_type == datamodel.Dataset:
                 dataset = self._get_dataset(value)
                 assert dataset is not None, f'Dataset reference not found: `{value}`'
@@ -734,6 +754,7 @@ class MetadataEditRequestHandler:
                     f'Dataset `{value}` has a doi, can only add entries to it'
                 )
                 return dataset.dataset_id
+
         else:
             assert False, 'Unhandled value type'  # Should not happen
 
@@ -951,9 +972,9 @@ class Entry(Proc):
     upload_id = StringField(required=True)
     entry_id = StringField(primary_key=True)
     entry_hash = StringField()
-    entry_create_time = DateTimeField(required=True)
-    last_processing_time = DateTimeField()
-    last_edit_time = DateTimeField()
+    entry_create_time = UTCDateTimeField(required=True)
+    last_processing_time = UTCDateTimeField()
+    last_edit_time = UTCDateTimeField()
     mainfile = StringField()
     mainfile_key = StringField()
     parser_name = StringField()
@@ -971,6 +992,7 @@ class Entry(Proc):
 
     meta: Any = {
         'strict': False,
+        'auto_create_index': False,
         'indexes': [
             'upload_id',
             'parser_name',
@@ -1554,6 +1576,7 @@ class Entry(Proc):
     def parent(self) -> 'Upload':
         return self.upload
 
+    @traced(span_name='Entry.parsing')
     def parsing(self):
         """The process step that encapsulates all parsing related actions."""
         self.set_last_status_message('Parsing mainfile')
@@ -1584,12 +1607,14 @@ class Entry(Proc):
                     kwargs = dict(child_archives=child_archives)
                 else:
                     kwargs = {}
-                parser.parse(
-                    self.mainfile_file.os_path,
-                    self._parser_results,
-                    logger=logger,
-                    **kwargs,
-                )
+
+                with trace_span(f'parser: {parser.name}'):
+                    parser.parse(
+                        self.mainfile_file.os_path,
+                        self._parser_results,
+                        logger=logger,
+                        **kwargs,
+                    )
 
             except Exception as e:
                 raise ProcessFailure(
@@ -1605,6 +1630,7 @@ class Entry(Proc):
                     **context,
                 )
 
+    @traced(span_name='Entry.normalizing')
     def normalizing(self):
         """The process step that encapsulates all normalizing related actions."""
         self.set_last_status_message('Normalizing')
@@ -1631,7 +1657,8 @@ class Entry(Proc):
                 logger, 'normalizer executed', input_size=self.mainfile_file.size
             ):
                 try:
-                    normalizer(self._parser_results).normalize(logger=logger)
+                    with trace_span(f'normalizer: {normalizer_name}'):
+                        normalizer(self._parser_results).normalize(logger=logger)
                     logger.info('normalizer completed successfully', **context)
                 except Exception as e:
                     raise ProcessFailure(
@@ -1653,6 +1680,7 @@ class Entry(Proc):
                 **context,
             )
 
+    @traced(span_name='Entry.archiving')
     def archiving(self):
         """The process step that encapsulates all archival related actions."""
         self._temporal_heartbeat()
@@ -1764,7 +1792,7 @@ class Upload(Proc):
 
     upload_id = StringField(primary_key=True)
     upload_name: str | None = StringField(default=None)
-    upload_create_time = DateTimeField(required=True)
+    upload_create_time = UTCDateTimeField(required=True)
     description: str | None = StringField(default=None)
     external_db = StringField()
     main_author = StringField(required=True)
@@ -1772,8 +1800,8 @@ class Upload(Proc):
     coauthor_groups = ListField(StringField())
     reviewers = ListField(StringField())
     reviewer_groups = ListField(StringField())
-    last_update = DateTimeField()
-    publish_time = DateTimeField()
+    last_update = UTCDateTimeField()
+    publish_time = UTCDateTimeField()
     embargo_length = IntField(default=0, required=True)
     license = StringField(default='CC BY 4.0', required=True)
     doi = EmbeddedDocumentField(EmbeddedDOI, default=None)
@@ -1790,8 +1818,13 @@ class Upload(Proc):
 
     meta: Any = {
         'strict': False,
+        'auto_create_index': False,
         'indexes': [
             'main_author',
+            'coauthors',
+            'coauthor_groups',
+            'reviewers',
+            'reviewer_groups',
             'process_status',
             'upload_create_time',
             'publish_time',
@@ -1870,7 +1903,7 @@ class Upload(Proc):
 
     @property
     def main_author_user(self) -> datamodel.User:
-        return datamodel.User.get(self.main_author)
+        return datamodel.User.get(user_id=self.main_author)
 
     @property
     def published(self) -> bool:
@@ -1945,48 +1978,116 @@ class Upload(Proc):
 
             self.delete()
 
-    def delete_upload(self):
+    def delete_upload(self, *, wait_for_processing: bool = True):
         """
         Deletes the upload, including its processing state and
         staging files. This starts the celery process of deleting the upload.
         """
-        self.process_status = ProcessStatus.PENDING
-        self.current_process = 'delete_upload'
-        return run_async(self._start_delete_upload_workflow())
+        return run_async(
+            self._start_delete_upload_workflow(wait_for_processing=wait_for_processing)
+        )
 
-    async def _start_delete_upload_workflow(self):
+    async def _start_delete_upload_workflow(self, wait_for_processing: bool = True):
         """
         Internal method to start a temporal delete upload workflow.
         This method should be called from an async context.
         """
         client = await get_client()
-        for workflow_id in self.workflow_ids:  # type: ignore
-            try:
-                await client.get_workflow_handle(workflow_id).terminate()
-            except Exception as e:
-                # upload is already terminated
-                pass
+        (
+            previous_workflow_ids,
+            previous_process_status,
+        ) = await self._terminate_non_delete_workflows_for_delete(client)
         workflow_id = f'delete-upload-{self.upload_id}-{uuid.uuid4()}'
+        workflow_input = DeleteUploadWorkflowInput(upload_id=self.upload_id)
+        self.setup_delete_upload_workflow(
+            workflow_id, previous_workflow_ids, previous_process_status
+        )
         try:
-            await client.execute_workflow(
+            if wait_for_processing:
+                await client.execute_workflow(
+                    'DeleteUploadWorkflow',
+                    workflow_input,
+                    id=workflow_id,
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                return None
+            handle = await client.start_workflow(
                 'DeleteUploadWorkflow',
-                DeleteUploadWorkflowInput(upload_id=self.upload_id),
+                workflow_input,
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
+            return handle
         except Exception as e:
-            raise ProcessFailure(f'Failed to start temporal workflow: {e}')
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
+            action = 'execute' if wait_for_processing else 'start'
+            raise ProcessFailure(f'Failed to {action} temporal workflow: {e}')
 
-    def publish_upload(self, embargo_length: int | None = None):
-        self.process_status = ProcessStatus.PENDING
-        return run_async(self._start_publish_upload_workflow(embargo_length))
+    async def _terminate_non_delete_workflows_for_delete(
+        self, client
+    ) -> tuple[list[str], str]:
+        """
+        Terminate workflows that would otherwise block upload deletion.
 
-    async def _start_publish_upload_workflow(self, embargo_length: int | None = None):
+        Deleting an upload is allowed to preempt upload processing/edit workflows,
+        but it must not start a second delete workflow for the same upload.
+        """
+        previous_workflow_ids = list(self.workflow_ids)  # type: ignore
+        previous_process_status = str(self.process_status)
+
+        for workflow_id in previous_workflow_ids:
+            handle = client.get_workflow_handle(workflow_id)
+            try:
+                description = await handle.describe()
+                workflow_type = (
+                    description.raw_description.workflow_execution_info.type.name
+                )
+            except RPCError as e:
+                if e.status == RPCStatusCode.NOT_FOUND:
+                    continue
+                raise e
+
+            if workflow_type == 'DeleteUploadWorkflow':
+                raise ProcessAlreadyRunning('Upload is already being deleted')
+
+            try:
+                await handle.terminate()
+            except RPCError as e:
+                if e.status != RPCStatusCode.NOT_FOUND:
+                    raise e
+
+        return previous_workflow_ids, previous_process_status
+
+    def publish_upload(
+        self, embargo_length: int | None = None, *, wait_for_processing: bool = True
+    ):
+        return run_async(
+            self._start_publish_upload_workflow(
+                embargo_length, wait_for_processing=wait_for_processing
+            )
+        )
+
+    async def _start_publish_upload_workflow(
+        self, embargo_length: int | None = None, wait_for_processing: bool = True
+    ):
         client = await get_client()
         workflow_id = f'publish-upload-{self.upload_id}-{uuid.uuid4()}'
+        self.setup_upload_for_workflow(workflow_id, '_publish_upload')
         try:
-            return await client.execute_workflow(
+            if wait_for_processing:
+                return await client.execute_workflow(
+                    'PublishUploadWorkflow',
+                    PublishUploadWorkflowInput(
+                        upload_id=self.upload_id,
+                        embargo_length=embargo_length,
+                    ),
+                    id=workflow_id,
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+            handle = await client.start_workflow(
                 'PublishUploadWorkflow',
                 PublishUploadWorkflowInput(
                     upload_id=self.upload_id,
@@ -1996,7 +2097,9 @@ class Upload(Proc):
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
+            return handle
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def _publish_upload_local(self, embargo_length: int | None = None):
@@ -2071,7 +2174,6 @@ class Upload(Proc):
         target_deployment_url: str | None = None,
         auth_token: str | None = None,
     ):
-        self.process_status = ProcessStatus.PENDING
         return run_async(
             self._start_publish_externally_workflow(
                 embargo_length=embargo_length,
@@ -2088,6 +2190,7 @@ class Upload(Proc):
     ):
         client = await get_client()
         workflow_id = f'publish-externally-{self.upload_id}-{uuid.uuid4()}'
+        self.setup_upload_for_workflow(workflow_id, '_publish_externally')
         try:
             await client.execute_workflow(
                 'PublishExternallyWorkflow',
@@ -2102,6 +2205,7 @@ class Upload(Proc):
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def _publish_externally_local(
@@ -2257,6 +2361,107 @@ class Upload(Proc):
                 'error loading example upload entry point "{example_upload_entry_point_id}": error in load() function'
             ) from e
 
+    def setup_upload_for_workflow(
+        self, workflow_id: str, process_name: str
+    ) -> dict[str, Any]:
+        """
+        Atomically reserve this upload for a Temporal workflow.
+
+        The update only succeeds if the upload is still in the same
+        non-processing status that this instance was loaded with and no
+        workflow id has been registered.
+        """
+        old_record = self._get_collection().find_one_and_update(
+            {
+                '_id': self.id,
+                '$and': [
+                    {'process_status': self.process_status},
+                    {'process_status': {'$nin': ProcessStatus.STATUSES_PROCESSING}},
+                    {
+                        '$or': [
+                            {'workflow_ids': []},
+                            {'workflow_ids': {'$exists': False}},
+                        ]
+                    },
+                ],
+            },
+            {
+                '$set': {
+                    'process_status': ProcessStatus.PENDING,
+                    'current_process': process_name,
+                    'errors': [],
+                },
+                '$push': {'workflow_ids': workflow_id},
+            },
+        )
+
+        if old_record is None:
+            raise ProcessAlreadyRunning(
+                'Upload is currently blocked by another process'
+            )
+
+        self.reload()
+        return old_record
+
+    def setup_delete_upload_workflow(
+        self,
+        workflow_id: str,
+        previous_workflow_ids: list[str],
+        previous_process_status: str,
+    ) -> dict[str, Any]:
+        """
+        Atomically replace existing workflow state with a delete workflow.
+
+        Delete may preempt other workflow types. To avoid racing with a newly
+        scheduled workflow, only clear the old workflow ids/status if they still
+        match the snapshot taken before terminating those workflows.
+        """
+        workflow_ids_filter: dict[str, Any]
+        if previous_workflow_ids:
+            workflow_ids_filter = {
+                'workflow_ids': {
+                    '$all': previous_workflow_ids,
+                    '$size': len(previous_workflow_ids),
+                }
+            }
+        else:
+            workflow_ids_filter = {
+                '$or': [{'workflow_ids': []}, {'workflow_ids': {'$exists': False}}]
+            }
+
+        old_record = self._get_collection().find_one_and_update(
+            {
+                '_id': self.id,
+                '$and': [
+                    {'process_status': previous_process_status},
+                    workflow_ids_filter,
+                ],
+            },
+            {
+                '$set': {
+                    'process_status': ProcessStatus.PENDING,
+                    'current_process': 'delete_upload',
+                    'errors': [],
+                    'workflow_ids': [workflow_id],
+                }
+            },
+        )
+
+        if old_record is None:
+            raise ProcessAlreadyRunning(
+                'Upload is currently blocked by another process'
+            )
+
+        self.reload()
+        return old_record
+
+    def cleanup_upload_after_workflow_fail(self, workflow_id: str, error: Exception):
+        if workflow_id in self.workflow_ids:  # type: ignore
+            self.workflow_ids.remove(workflow_id)  # type: ignore
+        self.last_status_message = str(error)
+        self.fail(error)
+        self.save()
+
     def process_upload(
         self,
         file_operations: list[dict[str, Any]] | None = None,
@@ -2265,10 +2470,6 @@ class Upload(Proc):
         only_updated_files: bool = False,
         trigger_processing: bool = True,
     ):
-        if self.process_status == ProcessStatus.RUNNING:
-            raise ProcessAlreadyRunning
-
-        self.process_status = ProcessStatus.PENDING
         # Start temporal workflow
         return run_async(
             self._start_process_upload_workflow(
@@ -2304,6 +2505,7 @@ class Upload(Proc):
             workflow_tmp_dir=mkdtemp(f'{self.upload_id}_{workflow_id}'),
             trigger_processing=trigger_processing,
         )
+        self.setup_upload_for_workflow(workflow_id, '_process_upload')
         try:
             handle = await client.start_workflow(
                 'UpdateUploadWorkflow',
@@ -2312,10 +2514,9 @@ class Upload(Proc):
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
-            self.process_status = ProcessStatus.PENDING
-            self.save()
             return handle
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to start temporal workflow: {e}')
 
     def _process_upload_local(
@@ -2363,6 +2564,7 @@ class Upload(Proc):
         else:
             self.cleanup()
 
+    @traced(span_name='upload.put_file_and_process_local')
     def put_file_and_process_local(
         self, path, target_dir, reprocess_settings: Reprocess | None = None
     ) -> Entry:
@@ -2401,6 +2603,7 @@ class Upload(Proc):
         }
         entry_ids_to_delete = set(old_entries_dict.keys())
         main_entry: Entry = None
+        processing_failed = False
         if parser:
             metadata_handler = MetadataEditRequestHandler(
                 self.get_logger(),
@@ -2449,6 +2652,7 @@ class Upload(Proc):
             try:
                 main_entry.process_entry_local()
             except Exception:
+                processing_failed = True
                 pass  # The framework will have set entry to failed status, which is enough.
 
         # Delete existing unmatched entries
@@ -2456,6 +2660,12 @@ class Upload(Proc):
             for entry_id in entry_ids_to_delete:
                 search.delete_entry(entry_id=entry_id, update_materials=False)
                 old_entries_dict[entry_id].delete()
+
+        if processing_failed:
+            self.set_last_status_message('Process failed')
+        else:
+            self.set_last_status_message('Process completed successfully')
+
         return main_entry
 
     async def _stop_processing_workflows(self):
@@ -3283,7 +3493,13 @@ class Upload(Proc):
             for entry in Entry.objects(upload_id=self.upload_id)  # type: ignore
         ]
 
-    def edit_upload_metadata(self, edit_request_json: dict[str, Any], user_id: str):
+    def edit_upload_metadata(
+        self,
+        edit_request_json: dict[str, Any],
+        user_id: str,
+        *,
+        wait_for_processing: bool = True,
+    ):
         """
         A @process that executes a metadata edit request, restricted to a specific upload,
         on behalf of the provided user. The `edit_request_json` should be a json dict of the
@@ -3291,29 +3507,94 @@ class Upload(Proc):
         primitive data types, i.e. the json format, to be able to pass the request to a
         rabbitmq task).
         """
-        self.process_status = ProcessStatus.PENDING
         return run_async(
-            self._start_edit_upload_metadata_workflow(edit_request_json, user_id)
+            self._start_edit_upload_metadata_workflow(
+                edit_request_json, user_id, wait_for_processing=wait_for_processing
+            )
+        )
+
+    def start_edit_upload_metadata(
+        self, edit_request_json: dict[str, Any], user_id: str
+    ):
+        """
+        Starts a metadata edit workflow and returns immediately.
+
+        Use this for API operations that should not block while waiting for the
+        metadata edit workflow to finish.
+        """
+        return self.edit_upload_metadata(
+            edit_request_json, user_id, wait_for_processing=False
         )
 
     async def _start_edit_upload_metadata_workflow(
-        self, edit_request_json: dict[str, Any], user_id: str
+        self,
+        edit_request_json: dict[str, Any],
+        user_id: str,
+        *,
+        wait_for_processing: bool,
     ):
         client = await get_client()
         workflow_id = f'edit-upload-metadata-{self.upload_id}-{uuid.uuid4()}'
+        workflow_input = EditUploadMetadataWorkflowInput(
+            upload_id=self.upload_id,
+            edit_request_json=edit_request_json,
+            user_id=user_id,
+        )
+        self.setup_upload_for_workflow(workflow_id, '_edit_metadata')
+        try:
+            if wait_for_processing:
+                await client.execute_workflow(
+                    'EditUploadMetadataWorkflow',
+                    workflow_input,
+                    id=workflow_id,
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                return None
+
+            handle = await client.start_workflow(
+                'EditUploadMetadataWorkflow',
+                workflow_input,
+                id=workflow_id,
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+                retry_policy=RetryPolicy(maximum_attempts=1),
+            )
+            return handle
+        except Exception as e:
+            action = 'execute' if wait_for_processing else 'start'
+            raise ProcessFailure(f'Failed to {action} temporal workflow: {e}')
+
+    def transfer_ownership(self, new_owner_user_id: str, previous_owner_user_id: str):
+        """Run the ownership transfer workflow synchronously."""
+        return run_async(
+            self._start_transfer_ownership_workflow(
+                new_owner_user_id, previous_owner_user_id
+            )
+        )
+
+    async def _start_transfer_ownership_workflow(
+        self,
+        new_owner_user_id: str,
+        previous_owner_user_id: str,
+    ):
+        client = await get_client()
+        workflow_id = f'transfer-upload-ownership-{self.upload_id}-{uuid.uuid4()}'
+        workflow_input = TransferUploadOwnershipWorkflowInput(
+            upload_id=self.upload_id,
+            new_owner_user_id=new_owner_user_id,
+            previous_owner_user_id=previous_owner_user_id,
+        )
+        self.setup_upload_for_workflow(workflow_id, '_transfer_upload_ownership')
         try:
             await client.execute_workflow(
-                'EditUploadMetadataWorkflow',
-                EditUploadMetadataWorkflowInput(
-                    upload_id=self.upload_id,
-                    edit_request_json=edit_request_json,
-                    user_id=user_id,
-                ),
+                'TransferUploadOwnershipWorkflow',
+                workflow_input,
                 id=workflow_id,
                 task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to execute temporal workflow: {e}')
 
     def _edit_upload_metadata_local(
@@ -3393,7 +3674,6 @@ class Upload(Proc):
         have been created using the :func:`BundleImporter.create_upload_skeleton` method).
         See the :class:`BundleImporter` class for more info. Does not check permissions.
         """
-        self.process_status = ProcessStatus.PENDING
         return run_async(
             self._start_import_bundle_workflow(
                 bundle_path, import_settings, embargo_length
@@ -3408,6 +3688,7 @@ class Upload(Proc):
     ):
         client = await get_client()
         workflow_id = f'import-bundle-{self.upload_id}-{uuid.uuid4()}'
+        self.setup_upload_for_workflow(workflow_id, '_import_bundle')
         try:
             await client.execute_workflow(
                 'ImportBundleWorkflow',
@@ -3422,6 +3703,7 @@ class Upload(Proc):
                 retry_policy=RetryPolicy(maximum_attempts=1),
             )
         except Exception as e:
+            self.cleanup_upload_after_workflow_fail(workflow_id, e)
             raise ProcessFailure(f'Failed to execute temporal workflow: {e}')
 
     def _import_bundle_local(

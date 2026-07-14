@@ -20,8 +20,13 @@ import os
 import warnings
 from enum import Enum
 from importlib.metadata import entry_points, version
+from typing import Literal
 from urllib.parse import quote
 
+from fsspec import filesystem
+from fsspec.implementations.local import LocalFileSystem
+from msglc.config import config as msglc_config
+from msglc.config import configure
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -32,6 +37,7 @@ from pydantic import (
 )
 
 from nomad.auth.scopes import _resolve_scopes
+from nomad.common import is_email
 from nomad.config.models.pagination import PaginationBaseModel
 
 from .common import ConfigBaseModel, Options, OptionsGlob
@@ -156,6 +162,16 @@ class Services(ConfigBaseModel):
     )
     h5grove_enabled: bool = Field(
         True, description="""If true the app will serve the h5grove API."""
+    )
+    dashboard_frame_ancestors: list[str] = Field(
+        default_factory=lambda: ["'self'"],
+        description="""
+        CSP ``frame-ancestors`` sources permitted to embed dashboard plugin
+        entry points in an iframe. Use ``'self'`` to only allow the NOMAD
+        GUI; add explicit origins (e.g. ``https://example.com``) to allow
+        other hosts. Applied to responses from
+        ``{api_base_path}/dashboards/``.
+        """,
     )
 
     console_log_level: int | str = Field(
@@ -331,7 +347,7 @@ class Auth(ConfigBaseModel):
     authorized_users: list[str] | None = Field(
         None,
         description="""
-            A list of usernames or user account emails that are authorized to access this
+            A list of usernames that are authorized to access this
             NOMAD deployment. If not specified, all users recognized by the Keycloak
             instance are allowed.
         """,
@@ -340,10 +356,18 @@ class Auth(ConfigBaseModel):
     @field_validator('authorized_users')
     @classmethod
     def normalize_authorized_users(cls, v: list[str] | None) -> list[str] | None:
+        """Cast usernames to lowercase to avoid case-sensitivity issues."""
         if v is None:
             return None
 
-        return list(dict.fromkeys(user.lower().strip() for user in v))
+        users = list(dict.fromkeys(user.lower().strip() for user in v))
+
+        if any(is_email(user) for user in users):
+            logger.warning(
+                'whitelisting users with email is deprecated, please use username instead.'
+            )
+
+        return users
 
     unauthenticated_user_scopes: OptionsGlob = Field(
         OptionsGlob(include=['*:read']),
@@ -531,6 +555,130 @@ class Oasis(ConfigBaseModel):
     )
 
 
+class NOMADFileSystem(ConfigBaseModel):
+    protocol: Literal['s3'] | None = Field(
+        None,
+        description="""
+Protocol name of file system.
+If assigned, files will be stored in the designated file system instead of the default local one.
+The `fsspec` library will be used internally via `fsspec.filesystem(self.protocol, **self.extra)`.
+Thus, `protocol` should be the protocol supported by `fsspec`, for example, `s3`.
+
+Please note this is mainly designed to support Amazon S3 storage, but other remote file systems supported by `fsspec` should work as well.
+""",
+    )
+    extra: dict = Field(
+        default_factory=dict,
+        description="""
+Extra parameters that will be passed to `fsspec.filesystem`.
+Different protocols require different configuration parameters.
+See [documentation](https://filesystem-spec.readthedocs.io/en/latest/index.html) for more details.
+
+For `s3`, the actual implementation is provided by `s3fs`.
+See the corresponding [documentation](https://s3fs.readthedocs.io/en/latest/api.html#s3fs.core.S3FileSystem) for available parameters.
+
+For local development, spin up a `seaweedfs` container using the following command.
+
+```bash
+docker run -p 8333:8333 chrislusf/seaweedfs
+```
+
+The S3 storage created via the above command accepts anonymous access.
+The corresponding configuration will look like this:
+
+```yaml
+fs:
+  public_fs:
+    protocol: s3
+    extra:
+      anon: true
+      endpoint_url: http://localhost:8333
+```
+
+For different S3 compatible object storage services, being either provided by cloud storage providers or self-hosted, configurations may vary.
+Please consult the service provider for the specific configuration.
+It is always possible to validate the connection by creating `s3fs.S3FileSystem` objects separately.
+For example, for a default minimum local `seaweedfs` service, the following should not throw any exceptions.
+
+```python
+from s3fs import S3FileSystem
+
+S3FileSystem(anon=True, endpoint_url="http://localhost:8333").mkdirs("example_bucket_name", exist_ok=True)
+```
+""",
+    )
+    bucket: str = Field(
+        'public',
+        description='Bucket name for remote files.',
+    )
+    simplify_path: bool = Field(
+        False,
+        description="""
+The S3 storage does not have a traditional file path structure.
+It only involves different buckets with different file IDs (which may include slashes such that they resemble file paths, but do not necessarily have to).
+
+If enabled, the starting prefixes `self.staging` and `self.public` of file paths will be removed.
+This is to make S3 storage tidier and avoid unnecessary nesting, making browsing S3 easier.
+
+For instance, if the default local public storage path is `.volumes/fs/public`, a file that would normally be stored locally at
+
+```text
+.volumes/fs/public/ex/examples_template_985dc9d7/raw-public.plain.zip
+```
+
+would be stored remotely as follows.
+
+With `simplify_path=False`:
+
+```text
+public/.volumes/fs/public/ex/examples_template_985dc9d7/raw-public.plain.zip
+```
+
+With `simplify_path=True`:
+
+```text
+public/ex/examples_template_985dc9d7/raw-public.plain.zip
+```
+""",
+    )
+
+    @model_validator(mode='after')
+    @classmethod
+    def __validate(cls, values):
+        if values.protocol == 's3':
+            assert values.bucket is not None, (
+                'A valid bucket name for remote S3 storage is required.'
+            )
+        elif values.protocol is not None:
+            raise ValueError('Only support S3 for the moment.')
+
+        return values
+
+    def ensure_buffer_size(self):
+        if self.protocol == 's3':
+            if msglc_config.read_buffer_size < 5 * 2**20:
+                configure(read_buffer_size=5 * 2**20)
+            if msglc_config.write_buffer_size < 5 * 2**20:
+                configure(write_buffer_size=5 * 2**20)
+
+    @property
+    def target_fs(self):
+        if self.protocol is None:
+            return LocalFileSystem()
+
+        remote_fs = filesystem(self.protocol, **self.extra)
+        try:
+            remote_fs.makedirs(self.bucket, exist_ok=True)
+        except Exception as e:
+            raise RuntimeError(
+                'Cannot establish valid connection to the target file system.'
+            ) from e
+
+        self.ensure_buffer_size()
+
+        return remote_fs
+
+
 class FS(ConfigBaseModel):
     tmp: str = Field(
         '.volumes/fs/tmp',
@@ -606,6 +754,15 @@ class FS(ConfigBaseModel):
         None,
         description='Optional external working directory overriding working_directory for derived paths.',
     )
+    public_fs: NOMADFileSystem = Field(
+        default_factory=NOMADFileSystem,
+        description="""Advanced file system for public storage, with which one can use storage schemes other than local FS.
+For example, one can use S3 to store public files.
+
+WARNING: The current implementation is intended only for new installations using different configurations.
+Modifying the storage configuration of an existing installation would make previously stored data incompatible,
+and no migration path is currently provided.""",
+    )
 
     @model_validator(mode='after')
     @classmethod
@@ -630,6 +787,35 @@ class FS(ConfigBaseModel):
             values.actions_external = get_external_path(values.actions)
 
         return values
+
+
+class ActionAssets(ConfigBaseModel):
+    max_file_size_bytes: int = Field(
+        100 * 1024 * 1024,
+        description='Maximum allowed action asset file size in bytes.',
+    )
+    allowed_media_types: list[str] = Field(
+        [
+            'audio/*',
+            'image/*',
+            'application/pdf',
+            'application/json',
+            'text/plain',
+            'application/octet-stream',
+        ],
+        description='Allowed media types for action asset uploads.',
+    )
+    per_user_quota_bytes: int = Field(
+        10 * 1024 * 1024 * 1024,
+        description='Maximum combined size of action assets a user can upload.',
+    )
+
+
+class Actions(ConfigBaseModel):
+    action_assets: ActionAssets = Field(
+        default_factory=ActionAssets,
+        description='Action asset upload/storage configuration.',
+    )
 
 
 class Elastic(ConfigBaseModel):
@@ -778,11 +964,13 @@ class WorkerConfig(ConfigBaseModel):
             core NOMAD activities such as entry and upload processing.
         """,
     )
-    max_tasks_per_child: int = Field(
-        100,
+    max_tasks_per_child: int | None = Field(
+        None,
         description="""
             Maximum number of tasks a worker process will execute before
             it is restarted to prevent potential memory leaks.
+            Note: Bugs have been reported when using the max_tasks_per_child feature that can result in the
+            ProcessPoolExecutor hanging in some circumstances. See https://docs.python.org/3/library/concurrent.futures.html for more info.
         """,
     )
     max_concurrent_activities: int | None = Field(
@@ -833,6 +1021,74 @@ class WorkerConfig(ConfigBaseModel):
             If unset, NOMAD uses `pool_size` as the minimum.
         """,
     )
+    healthcheck_enabled: bool = Field(
+        True,
+        description="""
+            Enables a lightweight HTTP /health endpoint for worker process health checks.
+            The endpoint is intended for container orchestrators such as Docker or Kubernetes.
+            It is skipped automatically in development mode to avoid port conflicts when
+            running multiple workers on the same machine.
+        """,
+    )
+    healthcheck_host: str = Field(
+        '0.0.0.0',
+        description='Host/interface used by the worker healthcheck HTTP server.',
+    )
+    healthcheck_port: int = Field(
+        8080,
+        description='Port used by the worker healthcheck HTTP server.',
+    )
+
+
+class TemporalOIDC(ConfigBaseModel):
+    enabled: bool = Field(
+        False,
+        description='Use an OAuth 2.0 client-credentials access token to authenticate Temporal clients.',
+    )
+    token_url: str | None = Field(
+        None,
+        description='OIDC token endpoint used to obtain Temporal access tokens.',
+    )
+    client_id: str | None = Field(
+        None,
+        description='Confidential OIDC client ID representing this NOMAD deployment.',
+    )
+    client_secret: str | None = Field(
+        None,
+        description='Confidential OIDC client secret. Configure this through deployment secrets.',
+    )
+    scope: str | None = Field(
+        None,
+        description='Optional OAuth 2.0 scope sent with client-credentials token requests.',
+    )
+    refresh_margin: float = Field(
+        30,
+        ge=0,
+        description='Number of seconds before expiry at which an access token is renewed.',
+    )
+    request_timeout: float = Field(
+        10,
+        gt=0,
+        description='Timeout in seconds for requests to the OIDC token endpoint.',
+    )
+
+    @model_validator(mode='after')
+    def validate_client_credentials(self):
+        if not self.enabled:
+            return self
+
+        missing = [
+            field_name
+            for field_name in ('token_url', 'client_id', 'client_secret')
+            if not getattr(self, field_name)
+        ]
+        if missing:
+            raise ValueError(
+                'Temporal OIDC authentication requires: ' + ', '.join(missing)
+            )
+
+        self.token_url = self.token_url.rstrip('/')
+        return self
 
 
 class Temporal(ConfigBaseModel):
@@ -887,13 +1143,51 @@ class Temporal(ConfigBaseModel):
         None,
         description='The bind address for the Prometheus metrics server. If not set, the runtime will not be configured with Prometheus metrics.',
     )
+    api_key: str | None = Field(
+        None,
+        description='API Key used to connect to the Temporal server.',
+    )
+    oidc: TemporalOIDC = Field(
+        default_factory=TemporalOIDC,
+        description='OIDC client-credentials authentication for Temporal clients.',
+    )
+    payload_codec_key: str | None = Field(
+        None,
+        min_length=32,
+        description='Optional key used to encrypt Temporal payloads. When unset, services.api_secret is used by default.',
+    )
+    payload_codec_key_id: str = Field(
+        'default',
+        min_length=1,
+        description='Identifier stored with payloads encrypted using payload_codec_key.',
+    )
+    use_tls: bool = Field(
+        False,
+        description='Whether to use TLS to connect to the Temporal server. Defaults to False. If True and no certificates are provided, default system certificates are used.',
+    )
+    tls_client_cert: str | None = Field(
+        None,
+        description='Path to the client certificate (PEM format) or the raw certificate content string to use for mTLS.',
+    )
+    tls_client_key: str | None = Field(
+        None,
+        description='Path to the client private key (PEM format) or the raw key content string to use for mTLS.',
+    )
+    tls_server_root_ca_cert: str | None = Field(
+        None,
+        description='Path to the server root CA certificate (PEM format) or the raw CA certificate content string to verify the server certificate.',
+    )
+    tls_domain: str | None = Field(
+        None,
+        description='The server name / domain to verify TLS against.',
+    )
     processing_timeouts: ProcessingTimeouts = Field(
         default_factory=ProcessingTimeouts,
         description='Timeout configuration for individual processing workflows and activities.',
     )
 
     internal_worker: WorkerConfig = Field(
-        default_factory=WorkerConfig,
+        default_factory=lambda: WorkerConfig(max_concurrent_activities=1),
         description='Configuration for the internal action worker.',
     )
     cpu_worker: WorkerConfig = Field(
@@ -904,6 +1198,14 @@ class Temporal(ConfigBaseModel):
         default_factory=lambda: WorkerConfig(pool_size=12),
         description='Configuration for the GPU action worker.',
     )
+
+    @model_validator(mode='after')
+    def validate_authentication(self):
+        if self.oidc.enabled and self.api_key:
+            raise ValueError(
+                'Configure either temporal.api_key or temporal.oidc, not both.'
+            )
+        return self
 
 
 class Keycloak(ConfigBaseModel):
@@ -1484,7 +1786,7 @@ class BundleImport(ConfigBaseModel):
 class Archive(ConfigBaseModel):
     block_size: int = Field(
         1 * 2**20,
-        description='In case of using blocked TOC, this is the size of each block.',
+        description='Deprecated, not used in the latest storage. In case of using blocked TOC, this is the size of each block.',
     )
     read_buffer_size: int = Field(
         1 * 2**20,
@@ -1499,7 +1801,8 @@ class Archive(ConfigBaseModel):
         """,
     )
     toc_depth: int = Field(
-        10, description='Depths of table of contents in the archive.'
+        10,
+        description='Deprecated, not used in the latest storage. Depths of table of contents in the archive.',
     )
     small_obj_optimization_threshold: int = Field(
         1 * 2**20,
@@ -1527,6 +1830,22 @@ class Archive(ConfigBaseModel):
         To identify numerical lists.
         """,
     )
+
+    def initialize(self):
+        """
+        Pass corresponding configurations to the storage layer via msglc.
+        """
+        configure(
+            small_obj_optimization_threshold=self.small_obj_optimization_threshold,
+            write_buffer_size=self.read_buffer_size,
+            read_buffer_size=self.read_buffer_size,
+            fast_loading=self.fast_loading,
+            fast_loading_threshold=self.fast_loading_threshold,
+            trivial_size=self.trivial_size,
+            copy_chunk_size=self.copy_chunk_size,
+            # Memory may leak when set to True in concurrent scenarios.
+            disable_gc=False,
+        )
 
 
 class MolIDSourceEnum(str, Enum):
@@ -1572,6 +1891,41 @@ class Uploads(ConfigBaseModel):
         page_size=10, order_by='upload_create_time', order='desc'
     )
     entries: Entries = Entries()
+    ownership_transfer_record_ttl_seconds: int = Field(
+        90 * 24 * 3600,
+        description='TTL in seconds for persisted upload ownership transfer records.',
+    )
+
+
+class TelemetryTracing(ConfigBaseModel):
+    enabled: bool = Field(False, description='Enable OpenTelemetry tracing.')
+    service_name: str = Field(
+        'nomad-FAIR', description='Service name for OpenTelemetry.'
+    )
+    sampler_ratio: float = Field(
+        0.1, description='The ratio of traces to sample (0.0 to 1.0).'
+    )
+    otlp_endpoint: str | None = Field(
+        'http://localhost:4318/v1/traces',
+        description='OTLP exporter endpoint (e.g. grpc://localhost:4317 or http://localhost:4318/v1/traces).',
+    )
+
+
+class TelemetryMetrics(ConfigBaseModel):
+    api_prometheus_enabled: bool = Field(
+        False, description='Enable Prometheus metrics exporter for FastAPI API.'
+    )
+
+
+class Telemetry(ConfigBaseModel):
+    tracing: TelemetryTracing = Field(
+        default_factory=TelemetryTracing,
+        description='Configuration for OpenTelemetry tracing.',
+    )
+    metrics: TelemetryMetrics = Field(
+        default_factory=TelemetryMetrics,
+        description='Configuration for metrics reporting (e.g., Prometheus).',
+    )
 
 
 class Config(ConfigBaseModel):
@@ -1601,7 +1955,12 @@ class Config(ConfigBaseModel):
     )
     fs: FS = Field(
         default_factory=FS,
-        description='Filesystem paths and storage layout used by NOMAD.',
+        description="""Filesystem paths and storage layout used by NOMAD.
+WARNING: Modifying the storage configuration of an existing installation would make previously stored data incompatible.""",
+    )
+    actions: Actions = Field(
+        default_factory=Actions,
+        description='Settings related to actions features.',
     )
     elastic: Elastic = Field(
         default_factory=Elastic,
@@ -1626,6 +1985,10 @@ class Config(ConfigBaseModel):
     logtransfer: Logtransfer = Field(
         default_factory=Logtransfer,
         description='Configuration for the logtransfer/statistics service.',
+    )
+    telemetry: Telemetry = Field(
+        default_factory=Telemetry,
+        description='Configuration for NOMAD telemetry.',
     )
     tests: Tests = Field(
         default_factory=Tests,
@@ -1904,16 +2267,19 @@ class Config(ConfigBaseModel):
                     if entry_points_config.get('include') is not None:
                         entry_points_config['include'].append(key)
 
-            for key, plugin in _plugins['entry_points']['options'].items():
+            for key, plugin in list(_plugins['entry_points']['options'].items()):
                 if key not in plugin_entry_point_ids:
                     if isinstance(plugin, dict):
                         # Handle new style plugins that are declared directly in nomad.yaml
                         if plugin.get('entry_point_type') and not plugin.get('id'):
                             plugin['id'] = key
-                        # Update information for old style plugins
+                        # Config for unknown entry points should be ignored with a warning.
                         else:
-                            raise ValueError(
-                                f'Failed loading {key} plugin. Old style plugins are no longer supported.'
+                            _plugins['entry_points']['options'].pop(key, None)
+                            logger.warning(
+                                'Found configuration for non-installed plugin entry point '
+                                f'"{key}" in plugins.entry_points.options. The configuration '
+                                'will be ignored.'
                             )
 
             # Assign URL-safe identifiers to all entry points and check for collisions

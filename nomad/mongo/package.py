@@ -16,15 +16,16 @@
 # limitations under the License.
 #
 
-import datetime
 from re import fullmatch
 
 from fastapi import HTTPException
-from mongoengine import DateTimeField, DictField, Document, ListField, StringField
+from mongoengine import DictField, Document, ListField, Q, StringField
 from pymongo.errors import DocumentTooLarge
 from starlette import status
 
+from nomad.common import now
 from nomad.metainfo import Package
+from nomad.mongo.fields import UTCDateTimeField
 from nomad.utils import get_logger
 
 logger = get_logger(__name__)
@@ -34,7 +35,7 @@ class PackageDefinition(Document):
     id_pattern = r'^[a-f0-9]{40}$'
 
     snapshot_package_id = StringField(primary_key=True, regex=id_pattern, required=True)
-    date_created = DateTimeField(default=datetime.datetime.now)
+    date_created = UTCDateTimeField(default=now)
     entry_id = StringField(required=False)
     upload_id = StringField(required=False)
     qualified_name = StringField(required=True)
@@ -74,7 +75,7 @@ class PackageDefinition(Document):
                 snapshot_section_ids=[
                     section.definition_id for section in package.section_definitions
                 ],
-                date_created=datetime.datetime.now(),
+                date_created=now(),
             )
 
         target = cls.objects(snapshot_package_id=package.definition_id)
@@ -94,11 +95,13 @@ class PackageDefinition(Document):
         """
         Get the package definition that contains the given section definition ID.
         """
-        for field in ('snapshot_section_ids', 'snapshot_package_id'):
-            if (packages := cls.objects(**{field: snapshot_id})).count() > 0:
-                result = packages.first().to_mongo().to_dict()
-                result['snapshot_package_id'] = result.pop('_id')
-                return result
+        package = cls.objects(
+            Q(snapshot_section_ids=snapshot_id) | Q(snapshot_package_id=snapshot_id)
+        ).first()
+        if package:
+            result = package.to_mongo().to_dict()
+            result['snapshot_package_id'] = result.pop('_id')
+            return result
 
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,

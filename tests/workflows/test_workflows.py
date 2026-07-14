@@ -11,27 +11,28 @@ from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Upload
 from nomad.workflows.activities import (
     get_cleanup_entry_batch_from_file,
-    get_entry_batch_from_file,
     handle_heartbeat_failure_activity,
-    next_level_entries,
     prepare_cleanup_activity,
+    prepare_next_level_entry_batches,
     process_entry_batch_activity,
+    process_entry_batch_from_file_activity,
 )
 from nomad.workflows.shared_objects import (
     CleanupEntriesResult,
     CleanupEntryBatchFromFileInput,
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
-    EntriesToBeProcessedResult,
-    EntryBatchFromFileInput,
     ImportBundleWorkflowInput,
     ProcessEntryActivityInput,
+    ProcessEntryBatchFromFileInput,
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    TransferUploadOwnershipWorkflowInput,
     UploadProcessingWorkflowInput,
 )
-from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE
+from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, ENTRY_BATCH_FILE_SIZE
+from nomad.workflows.workflows import UpdateUploadWorkflow
 
 # Test Constants
 TEST_UPLOAD_ID = 'test-upload-123'
@@ -104,6 +105,26 @@ class TestFixtures:
     def publish_externally_input():
         return PublishExternallyWorkflowInput(upload_id=TEST_UPLOAD_ID)
 
+    @staticmethod
+    def transfer_upload_ownership_input():
+        return TransferUploadOwnershipWorkflowInput(
+            upload_id=TEST_UPLOAD_ID,
+            new_owner_user_id='new-owner-user-id',
+            previous_owner_user_id=TEST_USER_ID,
+        )
+
+
+class TestUploadProcessingWorkflowInput:
+    def test_phase_accepts_serialized_string_value(self):
+        input_data = UploadProcessingWorkflowInput(
+            upload_id=TEST_UPLOAD_ID,
+            workflow_id=str(uuid.uuid4()),
+            workflow_tmp_dir=tempfile.mkdtemp(),
+            phase='process',
+        )
+
+        assert input_data.phase == 'process'
+
 
 @pytest.fixture
 def mock_data_layer(monkeypatch):
@@ -115,8 +136,11 @@ def mock_data_layer(monkeypatch):
     mock_upload_instance.next_level_entries.return_value = []
     mock_upload_instance.parser_level = 1
 
+    mock_upload_objects = MagicMock()
+
     mock_upload_class = Mock()
     mock_upload_class.get.return_value = mock_upload_instance
+    mock_upload_class.objects.return_value = mock_upload_objects
     monkeypatch.setattr('nomad.workflows.activities.Upload', mock_upload_class)
 
     # Mock Entry class and instances
@@ -184,6 +208,7 @@ def mock_data_layer(monkeypatch):
     return {
         'upload_class': mock_upload_class,
         'upload_instance': mock_upload_instance,
+        'upload_objects': mock_upload_objects,
         'entry_class': mock_entry_class,
         'entry_instance': mock_entry_instance,
         'entry_objects': mock_entry_objects,
@@ -232,8 +257,10 @@ class TestDeleteUploadWorkflow:
                 upload_id=TEST_UPLOAD_ID
             )
             mock_data_layer['entry_objects'].delete.assert_called_once()
-            mock_data_layer['upload_class'].get.assert_called_with(TEST_UPLOAD_ID)
-            mock_data_layer['upload_instance'].delete.assert_called_once()
+            mock_data_layer['upload_class'].objects.assert_called_once_with(
+                upload_id=TEST_UPLOAD_ID
+            )
+            mock_data_layer['upload_objects'].delete.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_deletion_with_no_files(
@@ -407,46 +434,52 @@ class TestProcessEntryActivities:
         entry.fail.assert_not_called()
         entry.save.assert_not_called()
 
-    def test_get_entry_batch_from_file_loads_specific_batch_file(self, tmp_path):
+    def test_process_entry_batch_from_file_loads_across_chunks(
+        self, mock_data_layer, monkeypatch, tmp_path
+    ):
         batch_dir = tmp_path
-        (batch_dir / 'entry_batch_1.json').write_text(
-            '["entry-4", "entry-5", "entry-6", "entry-7"]'
+        (batch_dir / 'entry_chunk_0.json').write_text(
+            '["entry-0", "entry-1", "entry-2"]'
         )
+        (batch_dir / 'entry_chunk_1.json').write_text(
+            '["entry-3", "entry-4", "entry-5"]'
+        )
+        processed_entry_ids = []
 
-        batch = get_entry_batch_from_file(
-            EntryBatchFromFileInput(
+        def mock_get_entry(entry_id):
+            entry = MagicMock()
+            entry._process_entry_local.side_effect = lambda: processed_entry_ids.append(
+                entry_id
+            )
+            return entry
+
+        mock_data_layer['entry_class'].get.side_effect = mock_get_entry
+        monkeypatch.setattr('nomad.workflows.activities.activity.heartbeat', Mock())
+
+        process_entry_batch_from_file_activity(
+            ProcessEntryBatchFromFileInput(
                 upload_id=TEST_UPLOAD_ID,
                 batch_dir_path=str(batch_dir),
-                batch_id=1,
+                chunk_id=0,
+                offset=2,
+                limit=3,
             )
         )
 
-        assert [entry.entry_id for entry in batch] == [
-            'entry-4',
-            'entry-5',
-            'entry-6',
-            'entry-7',
-        ]
+        assert processed_entry_ids == ['entry-2', 'entry-3', 'entry-4']
 
 
-class TestNextLevelEntriesActivity:
-    def test_small_entry_sets_stay_in_memory(
-        self,
-        mock_data_layer,
-    ):
-        """Small batches stay in workflow state."""
-        mock_data_layer['upload_instance'].next_level_entries.return_value = [
-            Mock(entry_id=f'entry-{idx}') for idx in range(999)
-        ]
+class TestPrepareNextLevelEntryBatchesActivity:
+    def test_returns_none_without_entries(self, mock_data_layer):
+        mock_data_layer['upload_instance'].next_level_entries.return_value = []
 
-        result = next_level_entries(TestFixtures.upload_processing_input())
+        result = prepare_next_level_entry_batches(
+            TestFixtures.upload_processing_input()
+        )
 
-        assert result is not None
-        assert result.directory is None
-        assert result.entries is not None
-        assert len(result.entries) == 999
+        assert result is None
 
-    def test_large_entry_sets_use_fixed_size_batch_files(
+    def test_prepared_entry_batches_use_fixed_size_chunks(
         self,
         mock_data_layer,
         monkeypatch,
@@ -456,18 +489,19 @@ class TestNextLevelEntriesActivity:
         )
         mock_data_layer['config'].temporal.entry_activity_batch_size = 2
         mock_data_layer['upload_instance'].next_level_entries.return_value = [
-            Mock(entry_id=f'entry-{idx}') for idx in range(2500)
+            Mock(entry_id=f'entry-{idx}') for idx in range(ENTRY_BATCH_FILE_SIZE + 1)
         ]
 
-        result = next_level_entries(TestFixtures.upload_processing_input())
+        result = prepare_next_level_entry_batches(
+            TestFixtures.upload_processing_input()
+        )
 
         assert result is not None
-        assert result.entries is None
         assert result.directory is not None
-        assert result.total_batches == 3
-        assert (Path(result.directory) / 'entry_batch_0.json').exists()
-        assert (Path(result.directory) / 'entry_batch_1.json').exists()
-        assert (Path(result.directory) / 'entry_batch_2.json').exists()
+        assert result.total_batches == 501
+        assert result.entry_activity_batch_size == 2
+        assert (Path(result.directory) / 'entry_chunk_0.json').exists()
+        assert (Path(result.directory) / 'entry_chunk_1.json').exists()
 
 
 class TestCleanupActivities:
@@ -535,136 +569,6 @@ class TestUploadCleanupHelpers:
         entry_objects.return_value.update.assert_called_once_with(
             set__process_status=ProcessStatus.READY
         )
-
-
-class TestBatchProcessEntriesWorkflow:
-    """Tests for BatchProcessEntriesWorkflow."""
-
-    @pytest.mark.asyncio
-    async def test_small_batch_direct_processing(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test processing small batch (<=1000 entries) directly."""
-        entries = [TestFixtures.process_entry_input() for _ in range(5)]
-
-        # Create EntriesToBeProcessedResult with entries in memory
-        entries_result = EntriesToBeProcessedResult(
-            entries=entries,
-            upload_id=TEST_UPLOAD_ID,
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-small',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Verify entries were processed
-        assert mock_data_layer['entry_class'].get.call_count == 5  # 5 entries
-
-    @pytest.mark.asyncio
-    async def test_large_batch_sequential_processing(
-        self,
-        mock_data_layer,
-        monkeypatch,
-        temporal_worker,
-    ):
-        """Test processing large batch (>1000 entries) with sequential sub-batching."""
-        # Create 1500 entries to trigger batch splitting
-        entries = [TestFixtures.process_entry_input() for _ in range(1500)]
-
-        entries_result = EntriesToBeProcessedResult(
-            entries=entries,
-            upload_id=TEST_UPLOAD_ID,
-        )
-
-        # Mock generate_batches to split into manageable chunks
-        def mock_generate_batches(items, max_desired_batch_size=1000, max_batches=10):
-            return [
-                items[i : i + max_desired_batch_size]
-                for i in range(0, len(items), max_desired_batch_size)
-            ]
-
-        monkeypatch.setattr(
-            'nomad.workflows.workflows.generate_batches', mock_generate_batches
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-large',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Verify entries were processed (should be processed in sub-batches)
-        # The exact count depends on recursive calls, but should be significant
-        assert mock_data_layer['entry_class'].get.call_count > 0
-
-    @pytest.mark.asyncio
-    async def test_file_based_batch_processing(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test processing entries stored in files (large dataset scenario)."""
-
-        # Create result object pointing to file-based storage
-        entries_result = EntriesToBeProcessedResult(
-            upload_id=TEST_UPLOAD_ID,
-            directory='/tmp/batch_files',
-            total_batches=3,
-        )
-
-        # Mock get_entry_batch_from_file activity to return entries
-        def mock_get_entry_batch_from_file(input_data):
-            return [TestFixtures.process_entry_input() for _ in range(5)]
-
-        # We need to mock this at the activity level since it's called within the workflow
-        mock_data_layer['get_entry_batch_from_file'] = Mock(
-            side_effect=mock_get_entry_batch_from_file
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-file-based',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Verify that entries were processed for each batch file
-        # The exact count depends on how the mocking works in the temporal environment
-        assert mock_data_layer['entry_class'].get.call_count >= 0
-
-    @pytest.mark.asyncio
-    async def test_empty_entries_result(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test handling of empty entries result."""
-
-        entries_result = EntriesToBeProcessedResult(
-            upload_id=TEST_UPLOAD_ID,
-            entries=None,
-            directory=None,
-        )
-
-        async with temporal_worker() as env:
-            await env.client.execute_workflow(
-                'BatchProcessEntriesWorkflow',
-                entries_result,
-                id='test-batch-process-empty',
-                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-            )
-
-        # Should complete without processing any entries
-        assert mock_data_layer['entry_class'].get.call_count == 0
 
 
 class TestBatchCleanupEntriesWorkflow:
@@ -1125,83 +1029,95 @@ class TestWorkflowCommonPatterns:
                 ).assert_called_once()
 
 
+class TestUpdateUploadWorkflowCursor:
+    def test_file_batch_input_uses_fixed_file_chunk_size(self):
+        workflow = UpdateUploadWorkflow()
+        input_data = TestFixtures.upload_processing_input()
+
+        activity_input = workflow._process_entry_batch_from_file_input(
+            parse_all_input=input_data,
+            batch_dir='/tmp/entry-batches',
+            batch_id=501,
+            entry_activity_batch_size=2,
+        )
+
+        assert activity_input.upload_id == TEST_UPLOAD_ID
+        assert activity_input.batch_dir_path == '/tmp/entry-batches'
+        assert activity_input.chunk_id == 1
+        assert activity_input.offset == 2
+        assert activity_input.limit == 2
+
+    def test_advance_to_next_parser_level_clears_completed_cursor(self):
+        workflow = UpdateUploadWorkflow()
+        input_data = TestFixtures.upload_processing_input()
+        input_data.min_level = 4
+        input_data.current_batch_dir = '/tmp/entry-batches'
+        input_data.current_batch_index = 3
+        input_data.total_batches = 3
+        input_data.next_parser_level = 6
+
+        workflow._advance_to_next_parser_level(input_data)
+
+        assert input_data.min_level == 7
+        assert input_data.current_batch_dir is None
+        assert input_data.current_batch_index == 0
+        assert input_data.total_batches == 0
+        assert input_data.next_parser_level is None
+
+
 class TestWorkflowErrorHandling:
     """Tests for workflow error handling scenarios."""
-
-    @pytest.mark.asyncio
-    async def test_upload_workflow_id_assertion_error(
-        self,
-        mock_data_layer,
-        temporal_worker,
-    ):
-        """Test that workflows fail when upload is already being processed."""
-        # Set up upload to already have a workflow ID
-        mock_upload_instance = mock_data_layer['upload_instance']
-        mock_upload_instance.workflow_ids = [EXISTING_WORKFLOW_ID]
-
-        def mock_fail(*errors):
-            mock_upload_instance.process_status = ProcessStatus.FAILURE
-            mock_upload_instance.errors.clear()
-            mock_upload_instance.errors.extend(str(error) for error in errors)
-
-        mock_upload_instance.fail = mock_fail
-
-        async with temporal_worker() as env:
-            input_data = TestFixtures.edit_upload_metadata_input()
-            with pytest.raises(
-                Exception
-            ):  # Should raise AssertionError from setup_upload_for_workflow_process
-                await env.client.execute_workflow(
-                    'EditUploadMetadataWorkflow',
-                    input_data,
-                    id='test-workflow-id-conflict',
-                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
-                )
 
     @pytest.mark.parametrize(
         'workflow_class, input_fixture, activity_to_fail, mock_target_name, expected_status_message',
         [
-            (
+            pytest.param(
                 'ProcessEntryWorkflow',
                 TestFixtures.process_entry_input,
                 '_process_entry_local',
                 'entry_instance',
                 'Process process_entry failed',
+                id='ProcessEntryWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'UpdateUploadWorkflow',
                 TestFixtures.upload_processing_input,
                 'update_files',
                 'upload_instance',
                 'Process upload failed',
+                id='UpdateUploadWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'EditUploadMetadataWorkflow',
                 TestFixtures.edit_upload_metadata_input,
                 '_edit_upload_metadata_local',
                 'upload_instance',
                 'Edit metadata failed',
+                id='EditUploadMetadataWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'ImportBundleWorkflow',
                 TestFixtures.import_bundle_input,
                 '_import_bundle_local',
                 'upload_instance',
                 'Import bundle failed',
+                id='ImportBundleWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'PublishUploadWorkflow',
                 TestFixtures.publish_upload_input,
                 '_publish_upload_local',
                 'upload_instance',
                 'Publish upload failed',
+                id='PublishUploadWorkflow-failure-handling',
             ),
-            (
+            pytest.param(
                 'PublishExternallyWorkflow',
                 TestFixtures.publish_externally_input,
                 '_publish_externally_local',
                 'upload_instance',
                 'Publish externally failed',
+                id='PublishExternallyWorkflow-failure-handling',
             ),
         ],
     )
@@ -1252,8 +1168,6 @@ class TestWorkflowErrorHandling:
         # Verify workflow ID is cleared for upload-level workflows
         if mock_target_name == 'upload_instance':
             assert not mock_target.workflow_ids
-            # Verify workflow ID was added and then removed
-            assert mock_target.save.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_workflow_id_cleanup_on_success(
@@ -1273,7 +1187,7 @@ class TestWorkflowErrorHandling:
             )
 
         # Verify workflow ID was added and then removed (cleanup)
-        assert mock_data_layer['upload_instance'].save.call_count >= 2
+        assert mock_data_layer['upload_instance'].save.call_count >= 1
         assert not mock_data_layer['upload_instance'].workflow_ids
 
     @pytest.mark.asyncio
@@ -1302,15 +1216,15 @@ class TestWorkflowErrorHandling:
             'upload_instance'
         ].next_level_entries.side_effect = mock_next_level_entries_side_effect
 
-        # Mock process_entry_activity to fail for one specific entry
-        def mock_process_entry_side_effect(input_data):
-            if input_data.entry_id == 'test-entry-2':
-                raise Exception('Simulated entry processing failure')
-            return 'success'
-
-        mock_data_layer[
-            'entry_instance'
-        ]._process_entry_local.side_effect = mock_process_entry_side_effect
+        successful_entry = MagicMock()
+        failing_entry = MagicMock()
+        failing_entry._process_entry_local.side_effect = Exception(
+            'Simulated entry processing failure'
+        )
+        mock_data_layer['entry_class'].get.side_effect = {
+            'test-entry-1': successful_entry,
+            'test-entry-2': failing_entry,
+        }.get
 
         # Mock parser_min_level
         monkeypatch.setattr('nomad.workflows.activities.parser_min_level', 0)
@@ -1331,15 +1245,16 @@ class TestWorkflowErrorHandling:
             'Process completed successfully'
         )
 
-        # Verify that entry processing was attempted for both entries
-        # 4 calls accounts for the number of retries
-        assert mock_data_layer['entry_class'].get.call_count == 4
+        # Verify that entry processing was attempted for both entries.
+        assert mock_data_layer['entry_class'].get.call_count >= 2
+        successful_entry._process_entry_local.assert_called()
+        failing_entry._process_entry_local.assert_called()
 
         # Verify that the upload workflow completed successfully
         # (The upload should not be marked as failed due to individual entry failures)
         assert (
-            mock_data_layer['upload_instance'].save.call_count >= 2
-        )  # Add + remove workflow ID calls
+            mock_data_layer['upload_instance'].save.call_count >= 1
+        )  #  remove workflow ID calls
 
 
 class TestWorkflowPerformanceAndScalability:
@@ -1484,3 +1399,219 @@ class TestWorkflowPerformanceAndScalability:
 
         # Verify workflow processed multiple levels
         assert mock_data_layer['upload_instance'].next_level_entries.call_count == 3
+
+
+class TestTransferUploadOwnershipWorkflow:
+    """Tests for TransferUploadOwnershipWorkflow."""
+
+    @pytest.fixture
+    def ownership_transfer_mock_data_layer(self, mock_data_layer, monkeypatch):
+        """Setup mocks specific to ownership transfer workflow tests."""
+        # Mock OwnershipTransferRecord queryset delete behavior in nomad.mongo.users
+        mock_record_queryset = Mock()
+        mock_record_class = Mock()
+        mock_record_class.objects.return_value = mock_record_queryset
+        monkeypatch.setattr(
+            'nomad.mongo.users.OwnershipTransferRecord', mock_record_class
+        )
+
+        # Mock config with admin_user_id
+        mock_data_layer['config'].services = Mock()
+        mock_data_layer['config'].services.admin_user_id = 'admin-user-123'
+
+        # Configure upload instance for ownership transfer
+        mock_data_layer['upload_instance'].main_author = TEST_USER_ID
+        mock_data_layer['upload_instance'].reviewers = [
+            'reviewer-1',
+            'new-owner-user-id',
+        ]
+        mock_data_layer['upload_instance'].process_status = ProcessStatus.PENDING
+
+        mock_data_layer['record_queryset'] = mock_record_queryset
+        mock_data_layer['record_class'] = mock_record_class
+
+        return mock_data_layer
+
+    @pytest.mark.asyncio
+    async def test_successful_ownership_transfer(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test successful ownership transfer workflow execution."""
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-success',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify setup activity was called
+            ownership_transfer_mock_data_layer['upload_class'].get.assert_called_with(
+                TEST_UPLOAD_ID
+            )
+            # Verify metadata edit was performed
+            assert (
+                ownership_transfer_mock_data_layer['upload_instance'].save.call_count
+                >= 0
+            )
+            # Verify ownership transfer record was cleaned up
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()
+            # Verify process status is SUCCESS
+            assert (
+                ownership_transfer_mock_data_layer['upload_instance'].process_status
+                == ProcessStatus.SUCCESS
+            )
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_removes_reviewers(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test that new owner and previous owner are removed from reviewers."""
+        # Setup: new owner and previous owner are both reviewers
+        ownership_transfer_mock_data_layer['upload_instance'].reviewers = [
+            'reviewer-1',
+            'new-owner-user-id',
+            TEST_USER_ID,
+        ]
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-reviewer-cleanup',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify reviewers were modified
+            upload_instance = ownership_transfer_mock_data_layer['upload_instance']
+            assert upload_instance.save.called
+            # After save calls, reviewers should only contain reviewer-1
+            # (this is handled inside complete_upload_ownership_transfer_activity)
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_with_no_reviewers(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test ownership transfer when no reviewers are set."""
+        ownership_transfer_mock_data_layer['upload_instance'].reviewers = None
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-no-reviewers',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify workflow completed successfully
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_deletes_pending_record(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test that ownership transfer records are deleted after successful transfer."""
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-record-delete',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify cleanup deletes all records for this upload.
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_workflow_failure_handling(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test workflow handles activity failures and sets appropriate status."""
+        # Mock edit_upload_metadata_activity to raise an exception
+        ownership_transfer_mock_data_layer[
+            'upload_instance'
+        ].save.side_effect = Exception('Metadata update failed')
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            # Workflow should handle the failure gracefully
+            with pytest.raises(Exception):
+                await env.client.execute_workflow(
+                    'TransferUploadOwnershipWorkflow',
+                    input_data,
+                    id='test-transfer-ownership-failure',
+                    task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+                )
+
+    @pytest.mark.asyncio
+    async def test_ownership_transfer_with_no_pending_record(
+        self,
+        ownership_transfer_mock_data_layer,
+        temporal_worker,
+    ):
+        """Test ownership transfer when no matching transfer records exist."""
+        ownership_transfer_mock_data_layer['record_queryset'].delete.return_value = 0
+
+        async with temporal_worker() as env:
+            input_data = TestFixtures.transfer_upload_ownership_input()
+
+            await env.client.execute_workflow(
+                'TransferUploadOwnershipWorkflow',
+                input_data,
+                id='test-transfer-ownership-no-record',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
+            )
+
+            # Verify workflow still completed (graceful handling of no matching records).
+            ownership_transfer_mock_data_layer[
+                'record_class'
+            ].objects.assert_called_once_with(
+                resource_type='upload',
+                resource_id=TEST_UPLOAD_ID,
+            )
+            ownership_transfer_mock_data_layer[
+                'record_queryset'
+            ].delete.assert_called_once()

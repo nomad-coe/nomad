@@ -113,7 +113,7 @@ def test_rfc3161ng_processing(
     # 1. old timestamp deleted, published, skip published, expect no timestamp
     os.remove(file_path)
     del archive['metadata']['entry_timestamp']
-    write_archive(file_path, 1, data=[(entry_id, archive)])
+    write_archive(file_path, {entry_id: archive})
     monkeypatch.setattr('nomad.config.process.rfc3161_skip_published', True)
     Entry.objects(entry_id=entry_id).first().update(unset__entry_timestamp=1)
     archive = _re_process()

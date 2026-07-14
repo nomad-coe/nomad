@@ -9,7 +9,7 @@ readme = "README.md"
 authors = [
   { name = "NOMAD Laboratory", email = "markus.scheidgen@physik.hu-berlin.de" },
 ]
-version = '1.4.2'
+version = '1.4.3'
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 
@@ -31,8 +31,7 @@ dependencies = [
   "lxml>=5.2",
   "matid>=2.1.3",
   'molid>=0.8.5',
-  "msgpack>=1",
-  "msgspec",
+  "msglc[msgspec,s3fs]>=260423",
   "numpy>=1.22.4",
   "openpyxl",
   "orjson>=1.0",
@@ -66,24 +65,34 @@ infrastructure = [
   "beautifulsoup4>=4,<=4.12.3", # 4.13 introduced breaking changes
   "blinker", # mongoengine needs this for signals
   "dockerspawner",
-  "fastapi>=0.99.0",
-  "starlette>=1.0",
+  # TODO: fastapi upper pin: https://github.com/Materials-Consortia/optimade-python-tools/issues/2383
+  "fastapi>=0.99.0,<0.137.0",
+  "starlette>=1.3.1",
   "fastapi-cache2",
   "gunicorn",
   "h5grove[fastapi]>=3", # interface change in 3
   "jupyterhub<5.0.0", # Connection issues with newer versions
   "beanie>=2.0.0",
   "mongoengine",
-  "oauthenticator<16.0.0", # Connection issues with newer versions
+  "oauthenticator>=16.3.1",
   "optimade[mongo]>=1.2.0,<1.4.0", # `optimade.server.config.CONFIG` removed
-  "pyjwt[crypto]",
+  "pyjwt[crypto]>=2.13.0",
   "python-logstash",
-  "python-multipart",
+  "python-multipart>=0.0.27",
   "rdflib==5", # breaking changes in DCT.dataset in later versions
   "structlog",
   "tabulate",
-  "temporalio>=1.23.0",
+  "temporalio>=1.27.2",
   "cryptography",
+  "opentelemetry-api",
+  "opentelemetry-sdk",
+  "opentelemetry-instrumentation-fastapi",
+  "opentelemetry-exporter-otlp",
+  "opentelemetry-instrumentation-asgi==0.63b1",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
+  "opentelemetry-instrumentation-pymongo==0.63b1",
+  "opentelemetry-instrumentation-elasticsearch==0.63b1",
+  "prometheus-client",
   "uvicorn[standard]",
   "validators",
   "zipstream-ng",
@@ -93,6 +102,7 @@ dev = [
   "essential_generators",
   "mypy>=1.15",
   "pip-audit",
+  "pip>=26.1.2", # (required by pip-audit) CVE in lower version
   "pytest-asyncio",
   "pytest-cov",
   "pytest-socket",

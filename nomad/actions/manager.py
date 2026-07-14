@@ -10,71 +10,110 @@ It includes functions for:
 
 import asyncio
 import base64
+import inspect
 import os
 import threading
 import uuid
+import warnings
 from collections.abc import Coroutine
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
-from pydantic import BaseModel, Field, SecretBytes, SecretStr, TypeAdapter
-from pymongo import ReturnDocument
+from pydantic import BaseModel, SecretBytes, SecretStr, TypeAdapter
 from temporalio import activity, workflow
 from temporalio.client import WorkflowExecutionStatus
-from temporalio.common import RetryPolicy
+from temporalio.common import Priority, RetryPolicy
 from temporalio.service import RPCError, RPCStatusCode
 
 from nomad import infrastructure
 from nomad.actions.action import get_actions
+from nomad.actions.assets.models import ActionAssetPurpose
+from nomad.actions.assets.service import (
+    consume_staged_assets,
+    extract_action_asset_refs,
+    rollback_consumed_assets,
+)
 from nomad.actions.client import get_client
+from nomad.actions.models import (
+    ActionRecord,
+    ActionRecordPage,
+    ActionSchemaInfo,
+    ActionStreamEvent,
+    ActionStreamEventSeverity,
+    ActionStreamEventType,
+    ActionStreamItem,
+    ActionSummaryRecord,
+    RequestSignalInputActivityInput,
+)
+from nomad.actions.repositories import AsyncActionRepository, SyncActionRepository
+from nomad.actions.streams import (
+    ACTION_STREAM_TOPIC,
+    PROCESSING_STREAM_TOPIC,
+    ActionStreamUnavailable,
+    action_event_publisher,
+    publish_action_event,
+    stream_action_events_for_user_async,
+    stream_processing_events_for_user_async,
+)
 from nomad.config import config
-from nomad.files import StagingUploadFiles
 from nomad.metainfo.metainfo import Callable
-from nomad.mongo.action import ActionDocument
-from nomad.processing.data import Upload
 from nomad.utils.structlogging import get_logger
 
+if TYPE_CHECKING:
+    from nomad.files import PublicUploadFiles, StagingUploadFiles
 
-class ActionModel(BaseModel):
-    action_id: str
-    action_instance_id: str
-    upload_id: str | None = None
-    status: str
-    input_data: dict[str, Any] = Field(default_factory=dict)
-    signal_input_requests: list[dict[str, str | None]] = Field(default_factory=list)
-    signal_inputs_submitted: list[dict[str, Any]] = Field(default_factory=list)
-    results: Any = Field(default_factory=dict)
-    created_at: datetime
-    updated_at: datetime
+__all__ = [
+    'ActionRecord',
+    'ActionSummaryRecord',
+    'ActionRecordPage',
+    'ActionSchemaInfo',
+    'ActionStreamEvent',
+    'ActionStreamEventSeverity',
+    'ActionStreamEventType',
+    'ActionStreamItem',
+    'RequestSignalInputActivityInput',
+    'ACTION_STREAM_TOPIC',
+    'PROCESSING_STREAM_TOPIC',
+    'action_artifacts_dir',
+    'action_instance_assets_dir',
+    'action_instance_artifacts_dir',
+    'action_log_file_path',
+    'get_action_result',
+    'get_action_result_async',
+    'get_action_status',
+    'get_action_status_async',
+    'get_all_action_schemas',
+    'get_upload_files',
+    'get_user_action',
+    'list_user_actions',
+    'ActionStreamUnavailable',
+    'action_event_publisher',
+    'publish_action_event',
+    'request_signal_input',
+    'request_signal_input_activity',
+    'start_action',
+    'start_action_async',
+    'stop_action',
+    'stop_action_async',
+    'stream_processing_events_for_user_async',
+    'stream_action_events_for_user_async',
+    'submit_signal_input',
+    'validate_action_arg',
+]
+
+ACTION_INSTANCE_ASSETS_DIRNAME = 'assets'
+ACTION_INSTANCE_ARTIFACTS_DIRNAME = 'artifacts'
+ACTION_INSTANCE_NOMAD_SYSTEM_DIRNAME = 'nomad_system'
 
 
-class ActionModelSummary(BaseModel):
-    action_id: str
-    action_instance_id: str
-    upload_id: str | None = None
-    signal_input_requests: list[dict[str, str | None]] = Field(default_factory=list)
-    status: str
-    created_at: datetime
-    updated_at: datetime
+def _ensure_dir(path: str) -> str:
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
-class ActionPage(BaseModel):
-    """Paginated response for action list queries."""
-
-    items: list[ActionModelSummary]
-    next_cursor: str | None = None  # None means no further pages
-    total: int  # total number of actions for the user (across all pages)
-
-
-class ActionSchemaInfo(BaseModel):
-    action_id: str
-    json_schema: dict[str, Any]
-    name: str | None = None
-    plugin_package: str | None = None
-    description: str | None = None
-    task_queue: str | None = None
-    signals: list[dict[str, Any]] | None = None
+def _action_instance_dir(action_instance_id: str, *parts: str) -> str:
+    return _ensure_dir(os.path.join(config.fs.actions, action_instance_id, *parts))
 
 
 class RunThread(threading.Thread):
@@ -91,6 +130,10 @@ class RunThread(threading.Thread):
             self.error = exc
 
 
+_async_action_repository = AsyncActionRepository()
+_sync_action_repository = SyncActionRepository()
+
+
 def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
     async def _run_with_action_infra():
         await infrastructure.init_async_mongo()
@@ -101,47 +144,81 @@ def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
     except RuntimeError:
         loop = None
     if loop and loop.is_running():
-        # In jupyter/fastapi there is already a loop running.
-        thread = RunThread(_run_with_action_infra())
+        raise RuntimeError(
+            'Synchronous action APIs cannot be called from an active event loop. '
+            'Use the corresponding *_async function and await it.'
+        )
+
+    # If async mongo has already been initialized on a running app loop,
+    # execute this coroutine on that same loop to avoid loop-bound client issues.
+    target_loop = infrastructure.async_mongo_loop
+    if target_loop is not None and target_loop.is_running():
+        future = asyncio.run_coroutine_threadsafe(_run_with_action_infra(), target_loop)
+        return future.result()
+
+    # Create our own loop when no shared app loop is available.
+    return asyncio.run(_run_with_action_infra())
+
+
+def _run_temporal_sync(coro: Coroutine[Any, Any, Any]) -> Any:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        thread = RunThread(coro)
         thread.start()
         thread.join()
         if thread.error is not None:
             raise thread.error
         return thread.result
-    else:
-        # Create our own loop.
-        return asyncio.run(_run_with_action_infra())
-
-
-def _run_async_or_return(coro: Coroutine[Any, Any, Any]) -> Any:
-    """
-    Run a coroutine and return its concrete result.
-
-    This powers synchronous compatibility facades and never returns a coroutine.
-    Async call sites must use explicit ``*_async`` functions.
-    """
-    return run_async(coro)
+    return asyncio.run(coro)
 
 
 def _to_dict(data: Any) -> dict:
-    if isinstance(data, BaseModel):  # pydantic
-        secret_types = (SecretStr, SecretBytes)
-        secret_fields = {
-            field_name
-            for field_name, field_info in type(data).model_fields.items()
-            if field_info.annotation in secret_types
-            or (
-                get_origin(field_info.annotation)
-                and any(arg in secret_types for arg in get_args(field_info.annotation))
+    """Convert data to dictionary and remove all secret fields"""
+
+    def _internal_to_dict(data: Any) -> dict:
+        "Convert input to dictionary"
+        if isinstance(data, BaseModel):  # pydantic
+            return data.model_dump(by_alias=True)
+        elif is_dataclass(data) and not isinstance(data, type):
+            return asdict(data)
+        elif isinstance(data, dict):  # already a dict
+            return data
+        else:
+            raise TypeError(f'Unsupported type: {type(data)}')
+
+    def _remove_secrets(val: Any) -> Any:
+        """Recursively remove all secrets in the generated dictionary/lists"""
+        if isinstance(val, dict):
+            new_data = {}
+            for k, v in val.items():
+                if isinstance(v, (SecretStr, SecretBytes)):
+                    continue
+                new_data[k] = _remove_secrets(v)
+            return new_data
+        elif isinstance(val, list):
+            return [
+                _remove_secrets(item)
+                for item in val
+                if not isinstance(item, (SecretStr, SecretBytes))
+            ]
+        elif isinstance(val, tuple):
+            return tuple(
+                _remove_secrets(item)
+                for item in val
+                if not isinstance(item, (SecretStr, SecretBytes))
             )
-        }
-        return data.model_dump(exclude=secret_fields)
-    elif is_dataclass(data) and not isinstance(data, type):
-        return asdict(data)
-    elif isinstance(data, dict):  # already a dict
-        return data
-    else:
-        raise TypeError(f'Unsupported type: {type(data)}')
+        elif isinstance(val, set):
+            return {
+                _remove_secrets(item)
+                for item in val
+                if not isinstance(item, (SecretStr, SecretBytes))
+            }
+        return val
+
+    return _remove_secrets(_internal_to_dict(data))
 
 
 def _validate_with_pydantic(func: Callable, arg):
@@ -164,6 +241,13 @@ def _validate_with_pydantic(func: Callable, arg):
     return adapter.validate_python(arg)
 
 
+def _get_non_self_params(func: Callable) -> list[inspect.Parameter]:
+    """Return callable parameters excluding a leading ``self`` parameter."""
+
+    sig = inspect.signature(func)  # type: ignore[arg-type]
+    return [param for param in sig.parameters.values() if param.name != 'self']
+
+
 def _get_param_schema(func: Callable) -> dict[str, Any]:
     """
     Generate a JSON Schema for the single argument of a function.
@@ -182,7 +266,7 @@ def _get_param_schema(func: Callable) -> dict[str, Any]:
     [(_, param_type)] = [(n, t) for n, t in hints.items() if n != 'return']
 
     if isinstance(param_type, type) and issubclass(param_type, BaseModel):
-        schema = param_type.model_json_schema()
+        schema = param_type.model_json_schema(by_alias=True)
     else:
         adapter = TypeAdapter(param_type)
         schema = adapter.json_schema()
@@ -201,14 +285,7 @@ def _get_signal_schema(signal_fn: Callable) -> dict[str, Any]:
     Generate a JSON Schema for the single argument of a signal function.
     Raises ValueError if there is more than one argument (excluding 'self').
     """
-    import inspect
-
-    sig = inspect.signature(signal_fn)  # type: ignore
-    params = list(sig.parameters.values())
-
-    # Exclude 'self'
-    if params and params[0].name == 'self':
-        params = params[1:]
+    params = _get_non_self_params(signal_fn)
 
     if len(params) > 1:
         name_str = getattr(signal_fn, '__name__', str(signal_fn))
@@ -223,7 +300,7 @@ def _get_signal_schema(signal_fn: Callable) -> dict[str, Any]:
     param_type = hints.get(params[0].name, Any)
 
     if isinstance(param_type, type) and issubclass(param_type, BaseModel):
-        return param_type.model_json_schema()
+        return param_type.model_json_schema(by_alias=True)
     else:
         adapter = TypeAdapter(param_type)
         return adapter.json_schema()
@@ -272,6 +349,8 @@ def get_all_action_schemas() -> list[ActionSchemaInfo]:
                 json_schema=_get_param_schema(workflow_cls.run),
                 description=action.description,
                 task_queue=action.task_queue,
+                groups=action.groups,
+                users=action.users,
                 name=action.name,
                 plugin_package=action.plugin_package,
                 signals=signals,
@@ -329,33 +408,6 @@ async def _get_workflow_result_safe(action_instance_id: str) -> dict[str, Any] |
         raise
 
 
-async def _validate_action_ownership(
-    action_instance_id: str, user_id: str
-) -> ActionDocument:
-    """
-    Validates that an action exists and belongs to the specified user.
-
-    Args:
-        action_instance_id: The unique ID of the action instance.
-        user_id: The user ID to validate ownership against.
-
-    Returns:
-        The action document if found and owned by user.
-
-    Raises:
-        Exception: If action not found or owned by different user.
-    """
-    action = await ActionDocument.find_one(
-        ActionDocument.action_instance_id == action_instance_id,
-        ActionDocument.user_id == user_id,
-    )
-    if not action:
-        raise Exception(
-            'The action was not registered in the DB or was registered under a different user.'
-        )
-    return action
-
-
 async def _get_action_status_async(
     action_instance_id: str, user_id: str
 ) -> WorkflowExecutionStatus:
@@ -370,7 +422,9 @@ async def _get_action_status_async(
         The current status of the action. If workflow is not found, returns
         TERMINATED.
     """
-    action = await _validate_action_ownership(action_instance_id, user_id)
+    action = await _async_action_repository.require_for_user(
+        action_instance_id, user_id
+    )
     logger = get_logger(__name__)
 
     status = await _get_workflow_status_safe(action_instance_id)
@@ -380,12 +434,14 @@ async def _get_action_status_async(
             f'Workflow {action_instance_id} could not be found for user {user_id}. '
             f'Setting status to TERMINATED.'
         )
-        action.status = str(WorkflowExecutionStatus.TERMINATED.name)
-        await action.save()
+        await _async_action_repository.set_status_for_user(
+            action_instance_id, user_id, WorkflowExecutionStatus.TERMINATED.name
+        )
         return WorkflowExecutionStatus.TERMINATED
 
-    action.status = str(status.name)
-    await action.save()
+    await _async_action_repository.set_status_for_user(
+        action_instance_id, user_id, status.name
+    )
     return status
 
 
@@ -396,7 +452,24 @@ def get_action_status(action_instance_id: str, user_id: str) -> WorkflowExecutio
     Synchronous callers can call this function directly.
     Asynchronous callers should use ``await get_action_status_async(...)``.
     """
-    return _run_async_or_return(_get_action_status_async(action_instance_id, user_id))
+    _sync_action_repository.require_for_user(action_instance_id, user_id)
+
+    logger = get_logger(__name__)
+    status = _run_temporal_sync(_get_workflow_status_safe(action_instance_id))
+    if status is None:
+        logger.warning(
+            f'Workflow {action_instance_id} could not be found for user {user_id}. '
+            f'Setting status to TERMINATED.'
+        )
+        _sync_action_repository.set_status_for_user(
+            action_instance_id, user_id, WorkflowExecutionStatus.TERMINATED.name
+        )
+        return WorkflowExecutionStatus.TERMINATED
+
+    _sync_action_repository.set_status_for_user(
+        action_instance_id, user_id, status.name
+    )
+    return status
 
 
 async def get_action_status_async(
@@ -415,7 +488,24 @@ def get_action_result(action_instance_id: str, user_id: str) -> dict[str, Any] |
     Synchronous callers can call this function directly.
     Asynchronous callers should use ``await get_action_result_async(...)``.
     """
-    return _run_async_or_return(get_action_result_async(action_instance_id, user_id))
+    _sync_action_repository.require_for_user(action_instance_id, user_id)
+
+    logger = get_logger(__name__)
+    results = _run_temporal_sync(_get_workflow_result_safe(action_instance_id))
+    if results is None:
+        logger.warning(
+            f'Workflow {action_instance_id} could not be found for user {user_id}. '
+            f'Result could not be retrieved.'
+        )
+        return None
+
+    _sync_action_repository.save_result_for_user(
+        action_instance_id,
+        user_id,
+        WorkflowExecutionStatus.COMPLETED.name,
+        _to_dict(results),
+    )
+    return results
 
 
 async def get_action_result_async(
@@ -425,7 +515,7 @@ async def get_action_result_async(
     Retrieves the result of a completed action.
     """
     logger = get_logger(__name__)
-    action = await _validate_action_ownership(action_instance_id, user_id)
+    await _async_action_repository.require_for_user(action_instance_id, user_id)
 
     results = await _get_workflow_result_safe(action_instance_id)
 
@@ -436,13 +526,16 @@ async def get_action_result_async(
         )
         return None
 
-    action.results = _to_dict(results)
-    action.status = str(WorkflowExecutionStatus.COMPLETED.name)
-    await action.save()
+    await _async_action_repository.save_result_for_user(
+        action_instance_id,
+        user_id,
+        WorkflowExecutionStatus.COMPLETED.name,
+        _to_dict(results),
+    )
     return results
 
 
-async def _update_status(action: ActionDocument):
+async def _refresh_action_status(action: ActionRecord):
     """
     Update the status of an action in the database.
     Silently handles workflow not found errors by setting status to UNKNOWN.
@@ -459,21 +552,24 @@ async def _update_status(action: ActionDocument):
             f'Workflow {action.action_instance_id} could not be found. '
             f'Setting status to UNKNOWN.'
         )
-        action.status = 'UNKNOWN'
-        await action.save()
+        await _async_action_repository.set_status_for_user(
+            action.action_instance_id, action.user_id, 'UNKNOWN'
+        )
         return
 
-    action.status = str(status.name)
+    updates: dict[str, Any] = {'status': str(status.name)}
 
     if status.name == 'COMPLETED':
         results = await _get_workflow_result_safe(action.action_instance_id)
         if results:
             try:
-                action.results = _to_dict(results)
+                updates['results'] = _to_dict(results)
             except TypeError:
-                action.results = results
+                updates['results'] = results
 
-    await action.save()
+    await _async_action_repository.patch_for_user(
+        action.action_instance_id, action.user_id, **updates
+    )
 
 
 _CURSOR_DT_FMT = '%Y-%m-%dT%H:%M:%S.%f+00:00'
@@ -518,7 +614,7 @@ async def list_user_actions(
     page_size: int = 20,
     cursor: str | None = None,
     upload_id: str | None = None,
-) -> 'ActionPage':
+) -> 'ActionRecordPage':
     """
     Get a page of actions for a given user, ordered by ``created_at`` descending
     (newest first).
@@ -535,28 +631,22 @@ async def list_user_actions(
         upload_id: Optional upload ID to filter actions by.
 
     Returns:
-        An :class:`ActionPage` containing the items, an optional
+        An :class:`ActionRecordPage` containing the items, an optional
         ``next_cursor`` for the following page, and the ``total`` count of
         all documents belonging to this user.
     """
-    query_filters = [ActionDocument.user_id == user_id]
-    if upload_id is not None:
-        query_filters.append(ActionDocument.upload_id == upload_id)
-
     # Decode cursor and narrow the query to documents strictly older than it.
-    cursor_filter = None
+    cursor_dt = None
     if cursor is not None:
         cursor_dt = _decode_cursor(cursor)
-        cursor_filter = ActionDocument.created_at < cursor_dt
 
     # Fetch one extra document to detect whether a next page exists.
     fetch_limit = page_size + 1
-    if cursor_filter is not None:
-        action_query = ActionDocument.find(*query_filters, cursor_filter)
-    else:
-        action_query = ActionDocument.find(*query_filters)
-    action_documents = (
-        await action_query.sort('-created_at').limit(fetch_limit).to_list()
+    action_documents, _ = await _async_action_repository.list_for_user(
+        user_id=user_id,
+        page_size=fetch_limit,
+        upload_id=upload_id,
+        created_before=cursor_dt,
     )
 
     has_next = len(action_documents) == fetch_limit
@@ -565,25 +655,25 @@ async def list_user_actions(
     # Update status only for PENDING/RUNNING items in this page.
     active_actions = [a for a in page_docs if a.status in ('PENDING', 'RUNNING')]
     if active_actions:
-        await asyncio.gather(*(_update_status(a) for a in active_actions))
+        await asyncio.gather(*(_refresh_action_status(a) for a in active_actions))
 
     next_cursor: str | None = None
     if has_next and page_docs:
         next_cursor = _encode_cursor(page_docs[-1].created_at)
 
     # Cheap total count (uses the (user_id, created_at) compound index).
-    total = await ActionDocument.find(*query_filters).count()
+    total = await _async_action_repository.count_for_user(user_id, upload_id)
 
-    return ActionPage(
+    return ActionRecordPage(
         items=[
-            ActionModelSummary.model_construct(**doc.model_dump()) for doc in page_docs
+            ActionSummaryRecord.model_construct(**doc.model_dump()) for doc in page_docs
         ],
         next_cursor=next_cursor,
         total=total,
     )
 
 
-async def get_user_action(action_instance_id: str, user_id: str) -> ActionModel | None:
+async def get_user_action(action_instance_id: str, user_id: str) -> ActionRecord | None:
     """
     Get a specific action for a given user.
 
@@ -596,16 +686,15 @@ async def get_user_action(action_instance_id: str, user_id: str) -> ActionModel 
     Returns:
         The action if found, otherwise None.
     """
-    action_document = await ActionDocument.find_one(
-        ActionDocument.action_instance_id == action_instance_id,
-        ActionDocument.user_id == user_id,
+    action_document = await _async_action_repository.get_for_user(
+        action_instance_id, user_id
     )
 
     if not action_document:
         return None
 
     if action_document.status in ('PENDING', 'RUNNING'):
-        await _update_status(action_document)
+        await _refresh_action_status(action_document)
     elif action_document.status == 'COMPLETED' and not action_document.results:
         # Backfill results for completed rows where results were not persisted yet.
         results = await _get_workflow_result_safe(action_instance_id)
@@ -614,22 +703,23 @@ async def get_user_action(action_instance_id: str, user_id: str) -> ActionModel 
                 serialized_results = _to_dict(results)
             except TypeError:
                 serialized_results = results
-            action_document.results = serialized_results
-            await ActionDocument.get_pymongo_collection().update_one(
-                {'_id': action_document.id},
-                {
-                    '$set': {
-                        'results': serialized_results,
-                        'updated_at': datetime.now(),
-                    }
-                },
+            action_document = await _async_action_repository.save_result_for_user(
+                action_instance_id,
+                user_id,
+                action_document.status,
+                serialized_results,
             )
 
-    return ActionModel.model_construct(**action_document.model_dump())
+    return ActionRecord.model_validate(action_document)
 
 
-def get_upload_files(upload_id: str, user_id: str) -> StagingUploadFiles | None:
+def get_upload_files(
+    upload_id: str, user_id: str
+) -> 'StagingUploadFiles | PublicUploadFiles':
     """
+    NOTE: This function is deprecated. Import `get_upload_files` from nomad.uploads
+    instead.
+
     Retrieves files for an upload after verifying user authorization.
 
     Checks if the user is the main author or a coauthor.
@@ -639,35 +729,20 @@ def get_upload_files(upload_id: str, user_id: str) -> StagingUploadFiles | None:
         user_id: The unique identifier for the user.
 
     Returns:
-        The UploadFiles object if found and authorized, otherwise None
-        (if the upload doesn't exist or the associated files aren't found).
-
-    Raises:
-        PermissionError: If the upload exists but the user is not authorized.
+        The UploadFiles object if found and authorized.
     """
-    if infrastructure.mongo_client is None:
-        infrastructure.setup_mongo()
+    warnings.warn(
+        '`nomad.actions.manager.get_upload_files` is deprecated; '
+        'import `get_upload_files` from `nomad.uploads` instead.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    upload = Upload.get(upload_id)
+    from nomad.uploads import get_upload_files as nomad_get_upload_files
 
-    if upload is None:
-        return None
+    upload_files = nomad_get_upload_files(upload_id, user_id)
 
-    # Determine if user is authorized to get the upload.
-    is_coauthor = isinstance(upload.coauthors, list) and user_id in upload.coauthors
-    is_authorized = upload.main_author == user_id or is_coauthor
-
-    # Raise error if not authorized
-    if not is_authorized:
-        raise PermissionError(
-            f'User {user_id} is not authorized to access upload {upload_id}.'
-        )
-
-    # User is authorized, retrieve and return files
-    if StagingUploadFiles.exists_for(upload_id):
-        return StagingUploadFiles(upload_id)
-
-    return None
+    return upload_files
 
 
 def action_artifacts_dir() -> str:
@@ -679,37 +754,49 @@ def action_artifacts_dir() -> str:
     or reference datasets.
     """
 
-    path = os.path.join(config.fs.actions, 'artifacts')
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
-    return path
+    return _ensure_dir(os.path.join(config.fs.actions, 'artifacts'))
+
+
+def action_instance_assets_dir(action_instance_id: str) -> str:
+    """
+    Returns the path to user-uploaded assets for a specific instance.
+    """
+    return _action_instance_dir(action_instance_id, ACTION_INSTANCE_ASSETS_DIRNAME)
 
 
 def action_instance_artifacts_dir(action_instance_id: str) -> str:
     """
-    Returns the path to the artifacts directory for a specific instance.
-
-    Activities can use this directory to store artifacts that are generated
-    by a given instance, for example a classification_result for a given input.
+    Returns the path to generated outputs for a specific instance.
     """
-    action_instance_dir = os.path.join(config.fs.actions, action_instance_id)
-    if not os.path.exists(action_instance_dir):
-        os.makedirs(action_instance_dir, exist_ok=True)
-    return action_instance_dir
+    return _action_instance_dir(action_instance_id, ACTION_INSTANCE_ARTIFACTS_DIRNAME)
 
 
 def action_log_file_path(action_instance_id: str) -> str:
     """
     Returns the file path for the logs of a given action instance.
-    Logs are stored in config.fs.action/logs/<action_instance_id>.log.
+    Logs are stored in
+    config.fs.actions/<action_instance_id>/nomad_system/logs/<action_instance_id>.log.
+    For backwards compatibility, when the new file does not exist yet but the
+    legacy config.fs.actions/logs/<action_instance_id>.log exists, the legacy
+    path is returned.
     """
-    log_dir = os.path.join(config.fs.actions, 'logs')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f'{action_instance_id}.log')
+    log_filename = f'{action_instance_id}.log'
+
+    new_log_dir = _action_instance_dir(
+        action_instance_id, ACTION_INSTANCE_NOMAD_SYSTEM_DIRNAME, 'logs'
+    )
+    new_log_path = os.path.join(new_log_dir, log_filename)
+
+    legacy_log_dir = _ensure_dir(os.path.join(config.fs.actions, 'logs'))
+    legacy_log_path = os.path.join(legacy_log_dir, log_filename)
+
+    if not os.path.exists(new_log_path) and os.path.exists(legacy_log_path):
+        return legacy_log_path
+
+    return new_log_path
 
 
-async def _async_start_workflow(action, data, workflow_id) -> str:
+async def _async_start_workflow(action, data, workflow_id, priority) -> str:
     """
     Asynchronously starts a workflow.
 
@@ -717,6 +804,7 @@ async def _async_start_workflow(action, data, workflow_id) -> str:
         action: The action to start.
         data: The input data for the workflow.
         workflow_id: The ID of the workflow to start.
+        priority: The priority of the workflow to start.
 
     Returns:
         The ID of the started workflow.
@@ -727,6 +815,7 @@ async def _async_start_workflow(action, data, workflow_id) -> str:
         data,
         id=workflow_id,
         task_queue=action.task_queue,
+        priority=priority,
     )
     return workflow_id
 
@@ -800,19 +889,46 @@ async def _start_action_async(action_id: str, data: Any) -> str:
     action_entry_point = get_actions().get(action_id)
     assert action_entry_point, f'No action data for the given {action_id} ID'
     action = action_entry_point.load()
-
-    upload_id = getattr(data, 'upload_id', None)
-    new_action = ActionDocument(
-        action_id=action_id,
-        action_instance_id=workflow_id,
-        user_id=user_id,
-        upload_id=upload_id,
-        status='PENDING',
-        input_data=_to_dict(data),
+    priority = Priority(
+        priority_key=action_entry_point.priority_key,
+        fairness_key=user_id
+        if action_entry_point.priority_fairness_key == 'user_id'
+        else None,
     )
-    await new_action.insert()
 
-    await _async_start_workflow(action, data, workflow_id)
+    rollback_items = []
+    try:
+        asset_refs = extract_action_asset_refs(data)
+        if asset_refs:
+            rollback_items = await consume_staged_assets(
+                refs=asset_refs,
+                user_id=user_id,
+                purpose=ActionAssetPurpose.ACTION_START,
+                target_action_instance_id=workflow_id,
+                action_id=action_id,
+            )
+
+        upload_id = getattr(data, 'upload_id', None)
+        new_action = ActionRecord(
+            action_id=action_id,
+            action_instance_id=workflow_id,
+            user_id=user_id,
+            upload_id=upload_id,
+            status='PENDING',
+            input_data=_to_dict(data),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+            priority_fairness_key=action_entry_point.priority_fairness_key,
+            priority_key=action_entry_point.priority_key,
+        )
+        await _async_action_repository.create(new_action)
+        await _async_start_workflow(
+            action=action, data=data, workflow_id=workflow_id, priority=priority
+        )
+    except Exception:
+        if rollback_items:
+            await rollback_consumed_assets(rollback_items)
+        raise
     return workflow_id
 
 
@@ -823,7 +939,40 @@ def start_action(action_id: str, data: Any) -> str:
     Synchronous callers can call this function directly.
     Asynchronous callers should use ``await start_action_async(...)``.
     """
-    return _run_async_or_return(_start_action_async(action_id, data))
+    assert hasattr(data, 'user_id')
+    user_id = data.user_id
+    workflow_id = f'{action_id}-{user_id}-{uuid.uuid4()}'
+    action_entry_point = get_actions().get(action_id)
+    assert action_entry_point, f'No action data for the given {action_id} ID'
+    action = action_entry_point.load()
+    if extract_action_asset_refs(data):
+        raise ValueError(
+            'ActionAssetRef inputs are not supported from ELNs. '
+            'Use the new Action form in the GUI to create an action.'
+        )
+
+    priority = Priority(
+        priority_key=action_entry_point.priority_key,
+        fairness_key=user_id
+        if action_entry_point.priority_fairness_key == 'user_id'
+        else None,
+    )
+
+    record = ActionRecord(
+        action_id=action_id,
+        action_instance_id=workflow_id,
+        user_id=user_id,
+        upload_id=getattr(data, 'upload_id', None),
+        status='PENDING',
+        input_data=_to_dict(data),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        priority_fairness_key=action_entry_point.priority_fairness_key,
+        priority_key=action_entry_point.priority_key,
+    )
+    _sync_action_repository.create(record)
+    _run_temporal_sync(_async_start_workflow(action, data, workflow_id, priority))
+    return workflow_id
 
 
 async def start_action_async(action_id: str, data: Any) -> str:
@@ -841,22 +990,18 @@ async def _stop_action_async(action_instance_id: str, user_id: str):
         action_instance_id: The unique ID of the action instance to stop.
         user_id: The user who initiated the action.
     """
-    action = await ActionDocument.find_one(
-        ActionDocument.action_instance_id == action_instance_id,
-        ActionDocument.user_id == user_id,
+    action = await _async_action_repository.require_for_user(
+        action_instance_id, user_id
     )
-    if not action:
-        raise Exception(
-            'The action was not registered in the DB or was registered under a different user.'
-        )
 
     if action.status not in ('PENDING', 'RUNNING'):
         raise Exception('Action is not running.')
 
     await _async_stop_workflow(action_instance_id)
 
-    action.status = str(WorkflowExecutionStatus.CANCELED.name)
-    await action.save()
+    await _async_action_repository.set_status_for_user(
+        action_instance_id, user_id, WorkflowExecutionStatus.CANCELED.name
+    )
 
 
 def stop_action(action_instance_id: str, user_id: str):
@@ -866,7 +1011,15 @@ def stop_action(action_instance_id: str, user_id: str):
     Synchronous callers can call this function directly.
     Asynchronous callers should use ``await stop_action_async(...)``.
     """
-    return _run_async_or_return(_stop_action_async(action_instance_id, user_id))
+    action = _sync_action_repository.require_for_user(action_instance_id, user_id)
+
+    if action.status not in ('PENDING', 'RUNNING'):
+        raise Exception('Action is not running.')
+
+    _run_temporal_sync(_async_stop_workflow(action_instance_id))
+    _sync_action_repository.set_status_for_user(
+        action_instance_id, user_id, WorkflowExecutionStatus.CANCELED.name
+    )
 
 
 async def stop_action_async(action_instance_id: str, user_id: str):
@@ -874,30 +1027,6 @@ async def stop_action_async(action_instance_id: str, user_id: str):
     Async-only variant of ``stop_action`` for typed async call sites.
     """
     return await _stop_action_async(action_instance_id, user_id)
-
-
-class RequestSignalInputActivityInput(BaseModel):
-    """Input parameters for the activity that delegates to the manager's request_signal_input."""
-
-    action_instance_id: str = Field(
-        ..., description='The ID of the action instance/workflow.'
-    )
-    user_id: str = Field(..., description='The ID of the user who owns the action.')
-    signal_fn_name: str = Field(
-        ..., description='The Temporal signal name to add to pending requests.'
-    )
-    title: str | None = Field(
-        default=None, description='Optional title to use for the signal input form.'
-    )
-    description: str | None = Field(
-        default=None, description='Optional description for the signal input form.'
-    )
-    content: str | None = Field(
-        default=None, description='Optional markdown content for the signal input form.'
-    )
-    initial_data: dict[str, Any] | None = Field(
-        default=None, description='Optional initial data for the signal input form.'
-    )
 
 
 @activity.defn
@@ -918,30 +1047,18 @@ async def request_signal_input_activity(data: RequestSignalInputActivityInput):
     if data.initial_data is not None:
         request_info['initial_data'] = data.initial_data
 
-    collection = ActionDocument.get_pymongo_collection()
-    result = await collection.update_one(
-        {
-            'action_instance_id': data.action_instance_id,
-            'user_id': data.user_id,
-            'status': {'$in': ['PENDING', 'RUNNING']},
-            'signal_input_requests.signal_fn_name': {'$ne': data.signal_fn_name},
-        },
-        {
-            '$push': {'signal_input_requests': request_info},
-            '$set': {'updated_at': datetime.now(timezone.utc)},
-        },
+    created = await _async_action_repository.add_pending_signal_input(
+        action_instance_id=data.action_instance_id,
+        user_id=data.user_id,
+        signal_fn_name=data.signal_fn_name,
+        request_info=request_info,
     )
-    if result.modified_count == 1:
+    if created:
         return {'status': 'signal_input_requested'}
 
-    action = await ActionDocument.find_one(
-        ActionDocument.action_instance_id == data.action_instance_id,
-        ActionDocument.user_id == data.user_id,
+    action = await _async_action_repository.require_for_user(
+        data.action_instance_id, data.user_id
     )
-    if not action:
-        raise Exception(
-            'The action was not registered in the DB or was registered under a different user.'
-        )
     if action.status not in ('PENDING', 'RUNNING'):
         raise Exception('Action is not running.')
     raise Exception(
@@ -956,6 +1073,7 @@ async def request_signal_input(
     title: str | None = None,
     description: str | None = None,
     content: str | None = None,
+    initial_data: dict[str, Any] | None = None,
     timeout: timedelta = timedelta(hours=1),
 ):
     """
@@ -975,6 +1093,7 @@ async def request_signal_input(
         title: Optional title to display in the frontend form.
         description: Optional description to display in the frontend form.
         content: Optional markdown content to display in the frontend form.
+        initial_data: Optional initial data to pre-fill the signal input form.
         timeout: Optional timeout for the signal input activity. Defaults to 1 hour.
 
     Raises:
@@ -989,6 +1108,7 @@ async def request_signal_input(
             title=title,
             description=description,
             content=content,
+            initial_data=initial_data,
         ),
         start_to_close_timeout=timeout,
         retry_policy=RetryPolicy(maximum_attempts=3),
@@ -1018,29 +1138,15 @@ async def submit_signal_input(
         AssertionError: If no workflow entry point is registered for the action.
         temporalio.exceptions.TemporalError: If signaling the workflow fails.
     """
-    collection = ActionDocument.get_pymongo_collection()
-    action_data = await collection.find_one_and_update(
-        {
-            'action_instance_id': action_instance_id,
-            'user_id': user_id,
-            'status': {'$in': ['PENDING', 'RUNNING']},
-            'signal_input_requests.signal_fn_name': signal_fn_name,
-        },
-        {
-            '$pull': {'signal_input_requests': {'signal_fn_name': signal_fn_name}},
-            '$set': {'updated_at': datetime.now(timezone.utc)},
-        },
-        return_document=ReturnDocument.BEFORE,
+    action_data = await _async_action_repository.consume_pending_signal_input(
+        action_instance_id=action_instance_id,
+        user_id=user_id,
+        signal_fn_name=signal_fn_name,
     )
     if not action_data:
-        action = await ActionDocument.find_one(
-            ActionDocument.action_instance_id == action_instance_id,
-            ActionDocument.user_id == user_id,
+        action = await _async_action_repository.require_for_user(
+            action_instance_id, user_id
         )
-        if not action:
-            raise Exception(
-                'The action was not registered in the DB or was registered under a different user.'
-            )
         if action.status not in ('PENDING', 'RUNNING'):
             raise Exception('Action is not running.')
         raise Exception(
@@ -1061,15 +1167,25 @@ async def submit_signal_input(
             f"No pending signal input request found for signal '{signal_fn_name}'."
         )
 
-    action_id = action_data.get('action_id')
-    if action_id is None:
-        raise Exception(
-            'The action was not registered in the DB or was registered under a different user.'
-        )
-    action_entry_point = get_actions().get(action_id)
-    assert action_entry_point, f'No action data for the given {action_id} ID'
-    workflow_cls = action_entry_point.load().workflow
+    rollback_items = []
     try:
+        action_id = action_data.get('action_id')
+        if action_id is None:
+            raise Exception(
+                'The action was not registered in the DB or was registered under a different user.'
+            )
+        action_entry_point = get_actions().get(action_id)
+        assert action_entry_point, f'No action data for the given {action_id} ID'
+        workflow_cls = action_entry_point.load().workflow
+        asset_refs = extract_action_asset_refs(data)
+        if asset_refs:
+            rollback_items = await consume_staged_assets(
+                refs=asset_refs,
+                user_id=user_id,
+                purpose=ActionAssetPurpose.ACTION_SIGNAL,
+                target_action_instance_id=action_instance_id,
+                signal_fn_name=signal_fn_name,
+            )
         await _async_signal_workflow(
             workflow_cls,
             workflow_id=action_instance_id,
@@ -1077,17 +1193,15 @@ async def submit_signal_input(
             data=data,
         )
     except Exception:
-        # Best-effort rollback of the pending request if signaling fails.
-        await collection.update_one(
-            {
-                'action_instance_id': action_instance_id,
-                'user_id': user_id,
-                'signal_input_requests.signal_fn_name': {'$ne': signal_fn_name},
-            },
-            {
-                '$push': {'signal_input_requests': matching_request},
-                '$set': {'updated_at': datetime.now(timezone.utc)},
-            },
+        if rollback_items:
+            await rollback_consumed_assets(rollback_items)
+        # Best-effort rollback of the pending request if asset handling or
+        # signaling fails.
+        await _async_action_repository.restore_pending_signal_input(
+            action_instance_id=action_instance_id,
+            user_id=user_id,
+            signal_fn_name=signal_fn_name,
+            request_info=matching_request,
         )
         raise
 
@@ -1114,13 +1228,8 @@ async def submit_signal_input(
     if matching_request.get('content') is not None:
         submitted_entry['content'] = matching_request.get('content')
 
-    await collection.update_one(
-        {
-            'action_instance_id': action_instance_id,
-            'user_id': user_id,
-        },
-        {
-            '$push': {'signal_inputs_submitted': submitted_entry},
-            '$set': {'updated_at': datetime.now(timezone.utc)},
-        },
+    await _async_action_repository.append_submitted_signal_input(
+        action_instance_id=action_instance_id,
+        user_id=user_id,
+        submitted_entry=submitted_entry,
     )

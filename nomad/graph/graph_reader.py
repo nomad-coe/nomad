@@ -26,12 +26,13 @@ import re
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import contextmanager
 from threading import Lock
-from typing import Any
+from typing import Any, TypeAlias
 
 import orjson
 from cachetools import TTLCache
 from fastapi import HTTPException
 from mongoengine import Q
+from msglc.reader import LazyDict, LazyList
 
 from nomad import utils
 from nomad.app.v1.models import (
@@ -78,6 +79,11 @@ from nomad.graph.model import (
     RequestConfig,
     ResolveType,
 )
+from nomad.layouts import (
+    build_layout_context,
+    create_layout_plan,
+    get_layout_query_intent,
+)
 from nomad.metainfo import (
     Definition,
     MSectionReference,
@@ -93,12 +99,48 @@ from nomad.metainfo.data_type import Any as AnyType
 from nomad.metainfo.util import MSubSectionList, split_python_definition
 from nomad.mongo.groups import MongoUserGroup, get_mongo_user_group
 from nomad.mongo.package import PackageDefinition
-from nomad.processing import Entry, ProcessStatus, Upload
+from nomad.mongo.search import MongoQueryError, create_mongo_query
+from nomad.processing import Entry, Upload
 
 logger = utils.get_logger(__name__)
 
-GenericList = list | ArchiveList | ArchiveListNew
-GenericDict = dict | ArchiveDict | ArchiveDictNew
+
+GenericList: TypeAlias = list | ArchiveList | ArchiveListNew | LazyList
+GenericDict: TypeAlias = dict | ArchiveDict | ArchiveDictNew | LazyDict
+
+
+@dataclasses.dataclass(frozen=True)
+class _LayoutArchiveRequest:
+    raw: dict[str, Any]
+    normalized: dict | RequestConfig
+
+
+@dataclasses.dataclass(frozen=True)
+class _EntryLayoutReadPlan:
+    """Precomputed entry/response/archive updates for layout-aware reads."""
+
+    entry_updates: dict[str, Any] = dataclasses.field(default_factory=dict)
+    response_updates: dict[str, Any] = dataclasses.field(default_factory=dict)
+    archive_request: _LayoutArchiveRequest | None = None
+
+
+@dataclasses.dataclass
+class _ReaderCache:
+    """State shared by readers participating in one graph request."""
+
+    server_contexts: dict[str | None, ServerContext] = dataclasses.field(
+        default_factory=dict
+    )
+    definitions: dict[tuple[str | None, str | None, str | None, str | None], Any] = (
+        dataclasses.field(default_factory=dict)
+    )
+
+
+def _normalize_layout_archive_request(
+    raw_request: dict[str, Any],
+) -> _LayoutArchiveRequest:
+    normalized_request, _ = _parse_required(raw_request, ArchiveReader)
+    return _LayoutArchiveRequest(raw=raw_request, normalized=normalized_request)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -309,29 +351,31 @@ class GraphNode:
             raise ArchiveError(f'Circular reference detected: {reference_url}.')
 
         # get the archive
-        other_archive_root = self.reader.load_archive(other_upload_id, other_entry_id)
-        if other_archive_root is None:
-            raise ArchiveError(
-                f'Could not load archive for {other_upload_id}/{other_entry_id}.'
+        with self.reader.load_archive(
+            other_upload_id, other_entry_id
+        ) as other_archive_root:
+            if other_archive_root is None:
+                raise ArchiveError(
+                    f'Could not load archive for {other_upload_id}/{other_entry_id}.'
+                )
+
+            try:
+                # now go to the target path
+                other_target = await _goto_path(other_archive_root, path_stack)
+            except (KeyError, IndexError):
+                raise ArchiveError(f'Archive {other_entry_id} does not contain {path}.')
+
+            return await self._switch_root(
+                self.replace(
+                    upload_id=other_upload_id,
+                    entry_id=other_entry_id,
+                    visited_path=self.visited_path.union({reference_url}),
+                    archive=other_target,
+                    archive_root=other_archive_root,
+                ),
+                resolve_inplace,
+                reference_url,
             )
-
-        try:
-            # now go to the target path
-            other_target = await _goto_path(other_archive_root, path_stack)
-        except (KeyError, IndexError):
-            raise ArchiveError(f'Archive {other_entry_id} does not contain {path}.')
-
-        return await self._switch_root(
-            self.replace(
-                upload_id=other_upload_id,
-                entry_id=other_entry_id,
-                visited_path=self.visited_path.union({reference_url}),
-                archive=other_target,
-                archive_root=other_archive_root,
-            ),
-            resolve_inplace,
-            reference_url,
-        )
 
     async def _switch_root(
         self, node: GraphNode, resolve_inplace: bool, reference_url: str
@@ -500,8 +544,10 @@ async def _populate_result(
         return container[k_or_i]
 
     if len(path) == 0:
-        assert isinstance(container_root, dict) and isinstance(value, dict)
-        _merge_dict(container_root, value)
+        assert isinstance(container_root, dict) and isinstance(
+            new_value := to_json(value), dict
+        )
+        _merge_dict(container_root, new_value)
         return
 
     target_container: dict | list = container_root
@@ -775,6 +821,37 @@ def _unwrap_subsection(target):
     return target.sub_section.m_resolved() if isinstance(target, SubSection) else target
 
 
+def _get_property_definition(node: GraphNode, name: str):
+    """
+    Resolve a property definition for the current node, falling back to the
+    archive object's runtime definition when the carried graph definition is
+    missing inherited properties.
+    """
+
+    candidates = [
+        getattr(node, 'definition', None),
+        getattr(node.archive, 'm_def', None),
+    ]
+
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        if isinstance(candidate, SubSection):
+            candidate = candidate.sub_section
+        if hasattr(candidate, 'm_resolved'):
+            candidate = candidate.m_resolved()
+
+        all_properties = getattr(candidate, 'all_properties', None)
+        if all_properties is None:
+            continue
+
+        child_definition = all_properties.get(name, None)
+        if child_definition is not None:
+            return child_definition
+
+    return None
+
+
 class GeneralReader:
     # controls the name of configuration
     # it will be extracted from the query dict to generate the configuration object
@@ -814,6 +891,7 @@ class GeneralReader:
         init: bool = True,
         config: RequestConfig | None = None,
         global_root: dict | None = None,
+        reader_cache: _ReaderCache | None = None,
     ):
         """
         Supports two modes of initialisation:
@@ -838,6 +916,7 @@ class GeneralReader:
         # use to provide a link to the final response dict
         # so that some data can be populated in different places
         self.global_root: dict = global_root
+        self._reader_cache = reader_cache or _ReaderCache()
 
         # for cacheing
         # can only store uploads in the reader
@@ -878,6 +957,18 @@ class GeneralReader:
     def close(self):
         for upload in self.upload_pool.values():
             upload.close()
+
+    def _get_server_context(self, upload_id: str | None) -> ServerContext:
+        """Return one authorized server context per upload and graph request."""
+        if upload_id not in self._reader_cache.server_contexts:
+            upload = (
+                get_upload_with_read_access(upload_id, self.user, include_others=True)
+                if upload_id
+                else None
+            )
+            self._reader_cache.server_contexts[upload_id] = ServerContext(upload)
+
+        return self._reader_cache.server_contexts[upload_id]
 
     @property
     def auth_user_id(self) -> str:
@@ -1041,25 +1132,45 @@ class GeneralReader:
 
         return plain_dict
 
-    async def retrieve_entry(self, entry_id: str) -> str | dict:
-        def _search():
-            return perform_search(
-                owner='all',
-                query={'entry_id': entry_id},
-                user_id=self.auth_user_id or None,
+    def _retrieve_entry_if_visible(self, entry_id: str) -> Entry | None:
+        entry = Entry.objects(entry_id=entry_id).first()  # type: ignore
+        if entry is None:
+            return None
+
+        # Build a mongo query equivalent to search owner='all' visibility.
+        # owner='all' semantics:
+        # - visible if published
+        # - or visible to viewers (user viewers and viewer groups)
+        user_id = self.auth_user_id
+        group_ids = MongoUserGroup.get_ids_by_user_id(user_id)
+
+        query = (
+            Q(publish_time__ne=None)
+            | Q(coauthor_groups__in=group_ids)
+            | Q(reviewer_groups__in=group_ids)
+        )
+        if user_id is not None:
+            query |= (
+                Q(main_author=user_id) | Q(coauthors=user_id) | Q(reviewers=user_id)
             )
 
-        if (await asyncio.to_thread(_search)).pagination.total == 0:
+        upload_visible = Upload.objects(Q(upload_id=entry.upload_id) & query).first()  # type: ignore
+        if upload_visible is None:
+            return None
+
+        return entry
+
+    async def retrieve_entry(self, entry_id: str) -> str | dict:
+        if (
+            entry := await asyncio.to_thread(self._retrieve_entry_if_visible, entry_id)
+        ) is None:
             self._log(
                 f'The value {entry_id} is not a valid entry id or not visible to current user.',
                 error_type=QueryError.NOACCESS,
             )
             return entry_id
 
-        def _retrieve():
-            return Entry.objects(entry_id=entry_id).first()  # type: ignore
-
-        return self._overwrite_entry(await asyncio.to_thread(_retrieve))
+        return self._overwrite_entry(entry)
 
     async def retrieve_dataset(self, dataset_id: str) -> str | dict:
         def _retrieve():
@@ -1080,7 +1191,8 @@ class GeneralReader:
 
         return dataset.to_mongo().to_dict()
 
-    def load_archive(self, upload_id: str, entry_id: str) -> ArchiveDict:
+    @contextmanager
+    def load_archive(self, upload_id: str, entry_id: str) -> Iterator[GenericDict]:
         if upload_id not in self.upload_pool:
             # get the archive
             # does the current user have access to the target archive?
@@ -1097,10 +1209,11 @@ class GeneralReader:
                 raise ArchiveError(f'Upload {upload_id} does not exist.')
 
             self.upload_pool[upload_id] = upload.upload_files
+            self._reader_cache.server_contexts[upload_id] = ServerContext(upload)
 
         try:
             with self.upload_pool[upload_id].read_archive(entry_id) as reader:
-                return reader[entry_id]
+                yield reader[entry_id]
         except KeyError:
             raise ArchiveError(
                 f'Archive {entry_id} does not exist in upload {entry_id}.'
@@ -1209,7 +1322,7 @@ class GeneralReader:
 
 # module level TTL cache for caching packages
 __lock_pool = Lock()
-__package_pool = TTLCache(maxsize=128, ttl=300)
+__package_pool: TTLCache = TTLCache(maxsize=128, ttl=300)
 
 
 def _fetch_package(key: str) -> Package | None:
@@ -1245,12 +1358,21 @@ class ArchiveLikeReader(GeneralReader):
         todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
         """
 
+        cache_key = (
+            node.upload_id if node else None,
+            node.entry_id if node else None,
+            m_def,
+            m_def_id,
+        )
+        if cache_key in self._reader_cache.definitions:
+            return self._reader_cache.definitions[cache_key]
+
+        def cache(definition):
+            self._reader_cache.definitions[cache_key] = definition
+            return definition
+
         def new_context(_id):
-            return ServerContext(
-                get_upload_with_read_access(_id, self.user, include_others=True)
-                if _id
-                else None
-            )
+            return self._get_server_context(_id)
 
         async def __resolve_definition_in_archive(
             _root,
@@ -1288,16 +1410,22 @@ class ArchiveLikeReader(GeneralReader):
             if new_def := new_context(node.upload_id if node else None).fetch_section(
                 m_def, m_def_id
             ):
-                return new_def
+                return cache(new_def)
 
         if m_def is not None:
             if m_def.startswith(('#/', '/')):
                 # appears to be a local definition
-                return await __resolve_definition_in_archive(
-                    node.archive_root,
-                    [v for v in m_def.split('/') if v not in ('', '#', 'definitions')],
-                    await goto_child(node.archive_root, ['metadata', 'upload_id']),
-                    await goto_child(node.archive_root, ['metadata', 'entry_id']),
+                return cache(
+                    await __resolve_definition_in_archive(
+                        node.archive_root,
+                        [
+                            v
+                            for v in m_def.split('/')
+                            if v not in ('', '#', 'definitions')
+                        ],
+                        await goto_child(node.archive_root, ['metadata', 'upload_id']),
+                        await goto_child(node.archive_root, ['metadata', 'entry_id']),
+                    )
                 )
             # todo: !!!need to unify different formats!!!
             # check if m_def matches the pattern 'entry_id:example_id.example_section.example_quantity'
@@ -1309,17 +1437,19 @@ class ArchiveLikeReader(GeneralReader):
                 if (
                     cached_package := _fetch_package(f'{upload_id}:{entry_id}')
                 ) is not None:  # early fetch to avoid loading archive from disk
-                    return cached_package.m_resolve_path(tokens)
-                archive = self.load_archive(upload_id, entry_id)
-                return await __resolve_definition_in_archive(
-                    archive, tokens, upload_id, entry_id
-                )
+                    return cache(cached_package.m_resolve_path(tokens))
+                with self.load_archive(upload_id, entry_id) as archive:
+                    return cache(
+                        await __resolve_definition_in_archive(
+                            archive, tokens, upload_id, entry_id
+                        )
+                    )
 
         # use the conventional approach
         proxy = MSectionReference().normalize(
             m_def, context=new_context(node.upload_id)
         )
-        return proxy.section_cls.m_def
+        return cache(proxy.section_cls.m_def)
 
 
 class MongoReader(GeneralReader):
@@ -1421,30 +1551,13 @@ class MongoReader(GeneralReader):
 
         assert isinstance(config.query, UploadProcDataQuery)
 
-        mongo_query = Q()
-
-        if config.query.upload_id:
-            mongo_query &= Q(upload_id__in=config.query.upload_id)
-
-        if config.query.upload_name:
-            mongo_query &= Q(upload_name__in=config.query.upload_name)
-
-        if config.query.process_status is not None:
-            mongo_query &= Q(process_status=config.query.process_status)
-        elif config.query.is_processing is True:
-            mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
-        elif config.query.is_processing is False:
-            mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
-
-        if config.query.is_published is True:
-            mongo_query &= Q(publish_time__ne=None)
-        elif config.query.is_published is False:
-            mongo_query &= Q(publish_time=None)
-
-        if config.query.is_owned is True:
-            mongo_query &= Q(main_author=self.auth_user_id)
-        elif config.query.is_owned is False:
-            mongo_query &= Q(main_author__ne=self.auth_user_id)
+        try:
+            mongo_query = create_mongo_query(
+                config.query,
+                auth_user_id=self.auth_user_id,
+            )
+        except MongoQueryError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
         return config.query.model_dump(exclude_unset=True), self.uploads.filter(
             mongo_query
@@ -1645,6 +1758,7 @@ class MongoReader(GeneralReader):
             'init': False,
             'config': current_config,
             'global_root': self.global_root,
+            'reader_cache': self._reader_cache,
         }
 
         for key, value in required.items():
@@ -1663,6 +1777,8 @@ class MongoReader(GeneralReader):
                             if read_list
                             else await reader.read(*args),
                         )
+                except ConfigError:
+                    raise
                 except Exception as exc:
                     self._log(str(exc))
 
@@ -1672,8 +1788,29 @@ class MongoReader(GeneralReader):
                 continue
 
             if key == Token.METADATA and self.__class__ is EntryReader:
-                # hitting the bottom of the current scope
-                await offload_read(ElasticSearchReader, node.entry_id)
+                preloaded_metadata = node.archive.get(Token.METADATA)
+                if isinstance(preloaded_metadata, dict):
+                    # Layout-aware reads already loaded archive metadata. Walk that
+                    # snapshot from an isolated root so the literal ``metadata`` path
+                    # does not trigger searchable-edge offloading for every child.
+                    metadata_result: dict[str, Any] = {}
+                    await self._walk(
+                        node.replace(
+                            archive=preloaded_metadata,
+                            current_path=[],
+                            result_root=metadata_result,
+                        ),
+                        value,
+                        current_config,
+                    )
+                    await _populate_result(
+                        node.result_root,
+                        node.current_path + [key],
+                        metadata_result,
+                    )
+                else:
+                    # Regular entry reads continue to resolve metadata through ES.
+                    await offload_read(ElasticSearchReader, node.entry_id)
                 continue
 
             if key in (Token.UPLOAD, Token.UPLOADS) and self.__class__ is EntryReader:
@@ -2109,13 +2246,104 @@ class EntryReader(MongoReader):
     def datasets(self):
         return Dataset.m_def.a_mongo.objects(entries=self.target_entry_id)
 
+    async def _build_layout_read_plan(
+        self, target_entry: dict[str, Any], archive: GenericDict
+    ) -> _EntryLayoutReadPlan:
+        """
+        Resolve layout state before the normal graph walk.
+
+        Search metadata comes from Mongo where possible, while archive metadata
+        supplies the quantities/sections/results needed by layout matching and
+        request derivation.
+        """
+        intent = get_layout_query_intent(self.required_query)
+        if not (intent.requires_search_metadata or intent.requires_layout_resolution):
+            return _EntryLayoutReadPlan()
+
+        archive_metadata = await goto_child(archive, 'metadata')
+        metadata_dict = await async_to_json(archive_metadata)
+        layout_context = build_layout_context(target_entry, metadata_dict)
+        plan = create_layout_plan(
+            layout_context,
+            requested_layout_id=intent.requested_layout_id,
+        )
+        archive_request = _normalize_layout_archive_request(plan.archive_request)
+
+        entry_updates = {
+            'metadata': metadata_dict,
+            'default_layout_id': plan.default_layout_id,
+            'matching_layouts': plan.matching_layouts,
+            'resolved_layout_id': plan.resolved_layout_id,
+        }
+        response_updates = {
+            'resolved_layout_id': plan.resolved_layout_id,
+            'resolved_archive_request': archive_request.raw,
+        }
+
+        return _EntryLayoutReadPlan(
+            entry_updates=entry_updates,
+            response_updates=response_updates,
+            archive_request=archive_request,
+        )
+
+    async def _read_layout_archive(
+        self, archive: GenericDict, request: _LayoutArchiveRequest
+    ) -> dict[str, Any]:
+        with ArchiveReader(
+            request.normalized,
+            user=self.user,
+            init=False,
+            config=self.global_config,
+            global_root=self.global_root,
+            reader_cache=self._reader_cache,
+        ) as reader:
+            return await reader.read(archive)
+
     # noinspection PyMethodOverriding
     async def read(self, entry_id: str) -> dict:  # type: ignore
+        """Read one entry and resolve a server-selected layout when requested."""
         with self._prepare_reading() as response:
-            # if it is a string, no access
+            # Entry process data establishes access and supplies the upload needed to
+            # open the archive. A string result denotes a missing or inaccessible entry.
             if isinstance(target_entry := await self.retrieve_entry(entry_id), dict):
                 self.target_entry_id = entry_id
+                required_query = self.required_query
+                intent = get_layout_query_intent(required_query)
 
+                if intent.auto_from_layout:
+                    layout_plan = _EntryLayoutReadPlan()
+                    try:
+                        # Keep one archive reader open while metadata selects and compiles
+                        # the layout and ArchiveReader materializes its derived payload.
+                        with self.load_archive(
+                            target_entry['upload_id'], entry_id
+                        ) as archive:
+                            layout_plan = await self._build_layout_read_plan(
+                                target_entry, archive
+                            )
+                            assert layout_plan.archive_request is not None
+                            response[Token.ARCHIVE] = await self._read_layout_archive(
+                                archive, layout_plan.archive_request
+                            )
+                    except ValueError as exc:
+                        raise ConfigError(str(exc)) from exc
+
+                    # Expose compiled layout state and preloaded metadata to the normal
+                    # graph walk. The archive was already written above, so remove that
+                    # edge to prevent a second archive open.
+                    target_entry.update(layout_plan.entry_updates)
+                    # These fields describe how the server satisfied auto_from_layout and
+                    # are returned even though they are not part of the archive itself.
+                    response.update(layout_plan.response_updates)
+                    if isinstance(required_query, dict):
+                        required_query = {
+                            key: value
+                            for key, value in required_query.items()
+                            if key != Token.ARCHIVE
+                        }
+
+                # Resolve all remaining requested entry fields with the standard graph
+                # machinery, preserving the legacy path when layouts are client-driven.
                 await self._walk(
                     GraphNode(
                         upload_id=target_entry['upload_id'],
@@ -2130,7 +2358,7 @@ class EntryReader(MongoReader):
                         current_depth=0,
                         reader=self,
                     ),
-                    self.required_query,
+                    required_query,
                     self.global_config,
                 )
 
@@ -2153,8 +2381,11 @@ class EntryReader(MongoReader):
 
 class ElasticSearchReader(EntryReader):
     async def retrieve_entry(self, entry_id: str) -> str | dict:
-        search_response = perform_search(
-            owner='all', query={'entry_id': entry_id}, user_id=self.auth_user_id or None
+        search_response = await asyncio.to_thread(
+            perform_search,
+            owner='all',
+            query={'entry_id': entry_id},
+            user_id=self.auth_user_id or None,
         )
 
         if search_response.pagination.total == 0:
@@ -2545,6 +2776,7 @@ class FileSystemReader(GeneralReader):
                 init=False,
                 config=parent_config,
                 global_root=self.global_root,
+                reader_cache=self._reader_cache,
             ) as reader:
                 return await reader.read(entry.entry_id)
         return {}
@@ -2658,30 +2890,36 @@ class ArchiveReader(ArchiveLikeReader):
             1. archive: dict | ArchiveDict
             2. upload_id: str, entry_id: str
         """
-        archive = args[0] if len(args) == 1 else self.load_archive(*args)
 
-        metadata = await goto_child(archive, 'metadata')
+        async def _task(_archive):
+            metadata = await goto_child(_archive, 'metadata')
 
-        with self._prepare_reading() as response:
-            await self._walk(
-                GraphNode(
-                    upload_id=await goto_child(metadata, 'upload_id'),
-                    entry_id=await goto_child(metadata, 'entry_id'),
-                    current_path=[],
-                    result_root=response,
-                    ref_result_root=self.global_root,
-                    archive=archive,
-                    archive_root=archive,
-                    definition=EntryArchive.m_def,
-                    visited_path=set(),
-                    current_depth=0,
-                    reader=self,
-                ),
-                self.required_query,
-                self.global_config,
-            )
+            with self._prepare_reading() as response:
+                await self._walk(
+                    GraphNode(
+                        upload_id=await goto_child(metadata, 'upload_id'),
+                        entry_id=await goto_child(metadata, 'entry_id'),
+                        current_path=[],
+                        result_root=response,
+                        ref_result_root=self.global_root,
+                        archive=_archive,
+                        archive_root=_archive,
+                        definition=EntryArchive.m_def,
+                        visited_path=set(),
+                        current_depth=0,
+                        reader=self,
+                    ),
+                    self.required_query,
+                    self.global_config,
+                )
 
-            return response
+                return response
+
+        if len(args) == 1:
+            return await _task(args[0])
+
+        with self.load_archive(*args) as archive:
+            return await _task(archive)
 
     async def _walk(
         self,
@@ -2747,6 +2985,7 @@ class ArchiveReader(ArchiveLikeReader):
                     init=False,
                     config=current_config,
                     global_root=self.global_root,
+                    reader_cache=self._reader_cache,
                 ) as reader:
                     await _populate_result(
                         node.result_root,
@@ -2774,12 +3013,11 @@ class ArchiveReader(ArchiveLikeReader):
                 continue
 
             # could just be a quantity
-            child_definition = getattr(node.definition, 'all_properties', {}).get(
-                name, None
-            )
+            child_definition = _get_property_definition(node, name)
             if child_definition is None:
                 self._log(
-                    f'Definition {name} is not found.', error_type=QueryError.NOTFOUND
+                    f'Definition {name} is not found.',
+                    error_type=QueryError.NOTFOUND,
                 )
                 continue
 
@@ -2959,7 +3197,7 @@ class ArchiveReader(ArchiveLikeReader):
             if config.if_include(key) and (
                 omit_keys is None or all(not k.startswith(key) for k in omit_keys)
             ):
-                child_definition = node.definition.all_properties.get(key, None)
+                child_definition = _get_property_definition(node, key)
 
                 if child_definition is None:
                     self._log(f'Definition {key} is not found.')
@@ -3029,11 +3267,15 @@ class ArchiveReader(ArchiveLikeReader):
                     )
                 else:
                     with DefinitionReader(
-                        RequestConfig(directive=DirectiveType.plain),
+                        RequestConfig(
+                            directive=DirectiveType.plain,
+                            export_whole_package=config.export_whole_package,
+                        ),
                         user=self.user,
                         init=False,
                         config=config,
                         global_root=self.global_root,
+                        reader_cache=self._reader_cache,
                     ) as reader:
                         await _populate_result(
                             node.result_root,
@@ -3058,11 +3300,15 @@ class ArchiveReader(ArchiveLikeReader):
             )
         elif config.include_definition is not DefinitionType.none:
             with DefinitionReader(
-                RequestConfig(directive=DirectiveType.plain),
+                RequestConfig(
+                    directive=DirectiveType.plain,
+                    export_whole_package=config.export_whole_package,
+                ),
                 user=self.user,
                 init=False,
                 config=config,
                 global_root=self.global_root,
+                reader_cache=self._reader_cache,
             ) as reader:
                 await _populate_result(
                     node.result_root,

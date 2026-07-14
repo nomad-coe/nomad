@@ -123,6 +123,62 @@ def test_search_quantities_nested():
     ]
 
 
+def test_section_defs_inclusion():
+    """section_defs should content:
+    - The actually instantiated sections with `used_directly=True`
+    - The sections used through inheritance with `used_directly=False`
+    - Should not contain sibling etc. sections that are not used
+    """
+
+    class Base(MSection):
+        base_value = Quantity(type=str)
+
+    class SiblingSection(Base):
+        sibling_value = Quantity(type=str)
+
+    class UsedChild(MSection):
+        child_value = Quantity(type=str)
+
+    class UsedSection(Base):
+        used_value = Quantity(type=str)
+        used_child = SubSection(section=UsedChild)
+
+    class UnusedChild(MSection):
+        unused_value = Quantity(type=str)
+
+    class ContainerSchema(EntryData):
+        used = SubSection(section=UsedSection)
+        unused_child = SubSection(section=UnusedChild)
+
+    archive = EntryArchive(metadata=EntryMetadata())
+    archive.data = ContainerSchema()
+    archive.data.used = UsedSection(
+        base_value='base',
+        used_value='used',
+        used_child=UsedChild(child_value='child'),
+    )
+
+    archive.metadata.apply_archive_metadata(archive)
+
+    section_defs = {
+        section_def.definition_qualified_name: section_def.used_directly
+        for section_def in archive.metadata.section_defs
+    }
+    expected_section_defs = {
+        ContainerSchema.m_def.qualified_name(): True,
+        UsedSection.m_def.qualified_name(): True,
+        UsedChild.m_def.qualified_name(): True,
+        Base.m_def.qualified_name(): False,
+        EntryArchive.m_def.qualified_name(): True,
+        EntryMetadata.m_def.qualified_name(): True,
+        EntryData.m_def.qualified_name(): False,
+        EntryData.m_def.all_base_sections[0].qualified_name(): False,
+    }
+
+    assert len(section_defs) == len(expected_section_defs)
+    assert section_defs == expected_section_defs
+
+
 def populate_child(data):
     from nomadschemaexample.schema import MySection
 

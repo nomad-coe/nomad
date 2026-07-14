@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 import re
+from copy import deepcopy
 from typing import Any
 
 import jmespath
@@ -132,6 +133,194 @@ class Transformer:
                         )
                     current = current[part]
 
+    @staticmethod
+    def get_array_regex(path):
+        """
+        Converts a path with array indexes given as [*]/[n] to a regex pattern that matches and captures paths with any index.
+        """
+        re_pattern = re.escape(path)
+        re_pattern = (
+            '^' + re.sub(r'\\\[((n|\\\*)\d*?)\\\]', r'\[(\\d+)\]', re_pattern) + '$'
+        )
+        return re.compile(re_pattern)
+
+    @staticmethod
+    def get_all_paths(data, current_path=''):
+        paths = [current_path] if current_path else []
+        if isinstance(data, dict):
+            for k, v in data.items():
+                new_path = f'{current_path}.{k}' if current_path else k
+                paths.extend(Transformer.get_all_paths(v, new_path))
+        elif isinstance(data, list):
+            for i, v in enumerate(data):
+                new_path = f'{current_path}[{i}]'
+                paths.extend(Transformer.get_all_paths(v, new_path))
+        return paths
+
+    @staticmethod
+    def get_new_path(match, path, sections):
+        """
+        Constructs a new path by replacing the array index placeholders with actual index values from the matched path.
+        """
+        new_path = ''
+        start = 0
+        for ngroup, group in enumerate(match.groups()):
+            new_path += path[start : sections[ngroup].span()[0]] + f'[{group}]'
+            start = sections[ngroup].span()[1]
+        new_path += path[start:]
+        return new_path
+
+    @staticmethod
+    def get_array_match_path(path, sections):
+        sections_to_remove = [
+            i.group() for i in sections if i.group('filter') or i.group('multi_select')
+        ]
+        for i in sections_to_remove:
+            path = path.replace(i, '')
+        return path
+
+    @staticmethod
+    def get_path_sections(path):
+        capture_pattern = re.compile(
+            r'(?P<index>\[(?:n\d*)\])|'
+            r'(?P<filter>\[(?:\*\]|\?.*?\]|\]))|'
+            # r'(?P<multi_select>\.\[(?!\?)[^\]]*?,[^\]]*?\])'
+            r'(?P<multi_select>\.?(?:\[(?!\?)[^\]]*\]|\{[^\}]*\}))'
+        )
+        sections = [x for x in capture_pattern.finditer(path)]
+        index_sections = [i for i in sections if i.group('index')]
+        return sections, index_sections
+
+    @staticmethod
+    def _resolve_array_rule(data_paths, rule, name):
+        """
+        Resolves a single rule with array indexes of type [n<number>] and generates new rules for all matching paths in the source data.
+        """
+        c = 0
+        resolved_rules = {}
+
+        source_path = rule.source
+        target_path = rule.target
+
+        source_sections, source_index_sections = Transformer.get_path_sections(
+            source_path
+        )
+
+        target_sections, target_index_sections = Transformer.get_path_sections(
+            target_path
+        )
+        if not source_index_sections and not target_index_sections:
+            return {name: Rules(name=name, rules={name: rule})}
+        if len(source_index_sections) != len(target_index_sections):
+            raise ValueError(
+                'Different number of array index placeholders between source and target'
+            )
+        if [i.group() for i in source_index_sections] != [
+            i.group() for i in target_index_sections
+        ]:
+            raise ValueError(
+                'Mismatch between source and target array index placeholders'
+            )
+
+        array_match_path = Transformer.get_array_match_path(
+            source_path, source_sections
+        )
+        re_pattern = Transformer.get_array_regex(array_match_path)
+
+        for i in data_paths:
+            match = re_pattern.match(i)
+            if match:
+                new_source_path = Transformer.get_new_path(
+                    match, source_path, source_index_sections
+                )
+                new_target_path = Transformer.get_new_path(
+                    match, target_path, target_index_sections
+                )
+                resolved_rules[f'{name}_resolved_{c}'] = Rule(
+                    source=new_source_path,
+                    target=new_target_path,
+                    conditions=rule.conditions,
+                    default_value=rule.default_value,
+                    use_rule=rule.use_rule,
+                )
+                c += 1
+        return {
+            name: Rules(
+                name=name,
+                rules=resolved_rules,
+            )
+        }
+
+    @staticmethod
+    def resolve_array_rules(data_paths, rules, mapping_name=''):
+        """
+        Resolves rules with array indexes of type [n<number>] to apply the transformations to all matching paths in the source data.
+        """
+        resolved_rules = {}
+        if isinstance(rules, dict):
+            for rule_name, rule in rules.items():
+                resolved_rules.update(
+                    Transformer.resolve_array_rules(data_paths, rule, rule_name)
+                )
+        elif isinstance(rules, Rules):
+            for rule_name, rule in rules.rules.items():
+                resolved_rules.update(
+                    Transformer._resolve_array_rule(data_paths, rule, rule_name)
+                )
+        elif isinstance(rules, Rule):
+            return Transformer._resolve_array_rule(data_paths, rules, '')
+
+        if mapping_name:
+            r_rules = {
+                k: v for n, r in resolved_rules.items() for k, v in r.rules.items()
+            }
+            resolved_rules = {
+                mapping_name: Rules(
+                    name=getattr(rules, 'name', rule_name), rules=r_rules
+                )
+            }
+
+        return resolved_rules
+
+    @staticmethod
+    def delete_path(data, path):
+        parts = Transformer.parse_path(path)
+        current = data
+        for i, part in enumerate(parts):
+            if i == len(parts) - 1:
+                try:
+                    del current[part]
+                except Exception:
+                    print(f'{path} is not present in the data, skipping deletion')
+            else:
+                try:
+                    current = current[part]
+                except Exception:
+                    print(f'{path} is not present in the data, skipping deletion')
+
+    @staticmethod
+    def delete_source_paths(data, rules):
+        """
+        Deletes the source paths present in the rules from the source data.
+        """
+        if rules is None:
+            return data
+        if isinstance(rules, dict):
+            for rule_name, rule in rules.items():
+                data = Transformer.delete_source_paths(data, rule)
+        elif isinstance(rules, Rules):
+            for rule_name, rule in rules.rules.items():
+                try:
+                    Transformer.delete_path(data, rule.source)
+                except Exception as e:
+                    print(rule.source, e)
+        elif isinstance(rules, Rule):
+            try:
+                Transformer.delete_path(data, rule.source)
+            except Exception as e:
+                print(rule.source, e)
+        return data
+
     def resolve_reference(
         self, rule: 'Rule', all_rules: dict[str, 'Rules'], visited=None
     ) -> 'Rule':
@@ -177,6 +366,7 @@ class Transformer:
 
             referenced_rule = referenced_rules[rule_name]
             rule = rule.override_fields(referenced_rule)
+            rule.use_rule = referenced_rule.use_rule
 
             rule = self.resolve_reference(rule, all_rules, visited)
 
@@ -191,6 +381,7 @@ class Transformer:
         parent_source_path: str = '',
         parent_target_path: str = '',
         visited=None,
+        array_rules: bool = False,
     ) -> Any:
         """
         Transforms the source dictionary into the target based on the provided rule.
@@ -208,6 +399,25 @@ class Transformer:
             Any: The updated target data structure.
         """
         resolved_rule = self.resolve_reference(rule, all_rules, visited)
+        if array_rules:
+            source_data_paths = Transformer.get_all_paths(source)
+            resolved_array_rules = self._resolve_array_rule(
+                source_data_paths, resolved_rule, 'resolved_array_rule'
+            )
+            for rule_name, array_rule in resolved_array_rules[
+                'resolved_array_rule'
+            ].rules.items():
+                target = self.transform_dict(
+                    array_rule,
+                    source,
+                    target,
+                    all_rules,
+                    parent_source_path,
+                    parent_target_path,
+                    visited,
+                    array_rules=False,
+                )
+            return target
 
         current_source_path = resolved_rule.source or parent_source_path
         current_target_path = resolved_rule.target or parent_target_path
@@ -234,7 +444,11 @@ class Transformer:
         return target
 
     def dict_to_dict(
-        self, source: dict[str, Any], rules: 'Rules', target: Any = None
+        self,
+        source: dict[str, Any],
+        rules: 'Rules',
+        target: Any = None,
+        array_rules: bool = False,
     ) -> Any:
         """
         Applies all rules in a Rules object to transform the source dictionary into the target.
@@ -250,7 +464,9 @@ class Transformer:
         if target is None:
             target = {} if isinstance(source, dict) else []
         for rule_name, rule in rules.rules.items():
-            self.transform_dict(rule, source, target, self.mapping_dict)
+            self.transform_dict(
+                rule, source, target, self.mapping_dict, array_rules=array_rules
+            )
         return target
 
     def transform(
@@ -258,6 +474,9 @@ class Transformer:
         source_data: dict[str, Any],
         mapping_name: str | None = None,
         target_data: Any = None,
+        inplace: bool = False,
+        array_rules: bool = False,
+        delete_sources: bool = False,
     ) -> Any:
         """
         Transforms the source data into the target data based on the specified mapping.
@@ -266,6 +485,9 @@ class Transformer:
             source_data (dict[str, Any]): The source JSON data.
             mapping_name (str): The name of the mapping to use. Default is None.
             target_data (Optional[Any], optional): The initial target data structure. Defaults to None.
+            inplace (bool, optional): Whether to perform the transformation in place. Defaults to False.
+            array_rules (bool, optional): Whether to resolve array rules. Defaults to False.
+            delete_sources (bool, optional): Whether to delete source paths after transformation. Defaults to False.
 
         Raises:
             ValueError: If the specified mapping name does not exist.
@@ -273,6 +495,8 @@ class Transformer:
         Returns:
             Any: The transformed target data structure.
         """
+        if inplace:
+            target_data = deepcopy(source_data)
         if not mapping_name:
             mapping_name = list(source_data.keys())[0]
         try:
@@ -280,14 +504,17 @@ class Transformer:
                 raise ValueError(
                     f"Mapping name '{mapping_name}' not found in the transformation dictionary"
                 )
-
             mapping = self.mapping_dict[mapping_name]
 
             if target_data is None and any(
                 rule.target.startswith('[') for rule in mapping.rules.values()
             ):
                 target_data = []
-
-            return self.dict_to_dict(source_data, mapping, target_data)
+            transformed_data = self.dict_to_dict(
+                source_data, mapping, target_data, array_rules=array_rules
+            )
+            if delete_sources:
+                transformed_data = self.delete_source_paths(transformed_data, mapping)
+            return transformed_data
         except Exception as e:
             raise e

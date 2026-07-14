@@ -252,7 +252,7 @@ const EditMembersDialog = ({open, setOpen}) => {
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
-  const {uploadId, upload, updateUpload} = useUploadPageContext()
+  const {uploadId, upload, updateUpload, requestRefreshUpload} = useUploadPageContext()
   const [members, setMembers] = useState([])
   const [areMembersLoading, setAreMembersLoading] = useState(false)
   const [isChanged, setIsChanged] = useState(false)
@@ -344,7 +344,12 @@ const EditMembersDialog = ({open, setOpen}) => {
         updateUpload({upload: results.data})
         setOpen(false)
       })
-      .catch(raiseError)
+      .catch(error => {
+        if (error.status === 504) {
+          requestRefreshUpload()
+        }
+        raiseError(error)
+      })
   }
 
   const handleCancel = () => {

@@ -22,6 +22,7 @@ import re
 import time
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
+from urllib.parse import quote
 
 import h5py
 import numpy as np
@@ -29,6 +30,7 @@ import requests
 from ase.data import atomic_masses, atomic_numbers, chemical_symbols
 from unidecode import unidecode
 
+from nomad.common import now
 from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 from nomad.metainfo import SchemaPackage
 from nomad.metainfo.data_type import m_str
@@ -119,8 +121,16 @@ def pub_chem_api_search(path: str, search: str) -> requests.Response:
         requests.Response: The response as returned from the PubChem PUG API.
     """
     throttle_wait()
+    # encode all special characters, for ex., encode URL-unsafe "#" in smiles C=CC#N
+    safe_search_str = quote(search, safe='')
+    if path in ['smiles', 'inchi']:
+        # for at least these paths, URL with CGI parameter should always work
+        return requests.get(
+            url=f'{PUB_CHEM_PUG_PATH}/{path}/cids/JSON?{path}={safe_search_str}',
+            timeout=EXTERNAL_API_TIMEOUT,
+        )
     return requests.get(
-        url=f'{PUB_CHEM_PUG_PATH}/{path}/{search}/cids/JSON',
+        url=f'{PUB_CHEM_PUG_PATH}/{path}/{safe_search_str}/cids/JSON',
         timeout=EXTERNAL_API_TIMEOUT,
     )
 
@@ -252,7 +262,7 @@ class BaseSection(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.datetime is None:
-            self.datetime = datetime.datetime.now()
+            self.datetime = now()
 
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
@@ -1440,7 +1450,10 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             cid=self.pub_chem_cid, properties=properties
         )
         if not response.ok:
-            msg = f'Property request to PubChem responded with: {response}'
+            msg = (
+                f'Property request to PubChem failed with '
+                f'{response.status_code} {response.reason}: {response.url}'
+            )
             logger.warn(pub_chem_add_throttle_header(response, msg))
             return
         self.pub_chem_link = (
@@ -1473,7 +1486,10 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
         if self.cas_number is None:
             response = pub_chem_api_get_synonyms(cid=self.pub_chem_cid)
             if not response.ok:
-                msg = f'Synonyms request to PubChem responded with: {response}'
+                msg = (
+                    f'Synonyms request to PubChem failed with '
+                    f'{response.status_code} {response.reason}: {response.url}'
+                )
                 logger.warn(pub_chem_add_throttle_header(response, msg))
                 return
             response_dict = response.json()
@@ -1506,7 +1522,10 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             logger.info(f'No results for PubChem search for {path}="{search}".')
             return False
         elif not response.ok:
-            msg = f'PubChem search for {path}="{search}" responded with: {response}'
+            msg = (
+                f'PubChem search for {path}="{search}" failed with '
+                f'{response.status_code} {response.reason}: {response.url}'
+            )
             logger.warn(pub_chem_add_throttle_header(response, msg))
             return False
         try:
@@ -1937,7 +1956,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = datetime.datetime.now()
+                self.datetime = now()
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):
@@ -2032,7 +2051,6 @@ class PublicationReference(ArchiveSection):
         - Updates the archive's metadata references with the DOI number if it is not already present.
         """
         super().normalize(archive, logger)
-        import dateutil.parser
         import requests
 
         from nomad.datamodel.datamodel import EntryMetadata
@@ -2054,9 +2072,28 @@ class PublicationReference(ArchiveSection):
                     ]
                     self.journal = temp_dict['message']['container-title'][0]
                     self.publication_title = temp_dict['message']['title'][0]
-                    self.publication_date = dateutil.parser.parse(
-                        temp_dict['message']['created']['date-time']
-                    )
+
+                    # Get publication date in order of preference
+                    date_parts = None
+                    if 'published' in temp_dict['message']:
+                        date_parts = temp_dict['message']['published']['date-parts']
+                    elif 'published-print' in temp_dict['message']:
+                        date_parts = temp_dict['message']['published-print'][
+                            'date-parts'
+                        ]
+                    elif 'published-online' in temp_dict['message']:
+                        date_parts = temp_dict['message']['published-online'][
+                            'date-parts'
+                        ]
+                    if date_parts and date_parts[0]:
+                        if len(date_parts[0]) == 1:
+                            date_parts[0].extend(
+                                [1, 1]
+                            )  # add month (January) and day (1) if missing
+                        elif len(date_parts[0]) == 2:
+                            date_parts[0].append(1)  # add day (1) if missing
+                        self.publication_date = datetime.datetime(*date_parts[0])
+
                     if not archive.metadata:
                         archive.metadata = EntryMetadata()
                     if not archive.metadata.references:

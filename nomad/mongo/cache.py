@@ -3,9 +3,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Final
 
 from fastapi_cache import Backend
-from mongoengine import BinaryField, DateTimeField, Document, DoesNotExist, StringField
+from mongoengine import BinaryField, Document, DoesNotExist, StringField
 
 from nomad.common import now
+from nomad.mongo.fields import UTCDateTimeField
 
 MONGO_CACHE_DEFAULT_TTL: Final[timedelta] = timedelta(hours=1)
 
@@ -18,8 +19,8 @@ class MongoCache(Document):
     DoesNotExist = DoesNotExist()
     key = StringField(required=True, unique=True)
     value = BinaryField()
-    create_time = DateTimeField(default=now)
-    expire_time = DateTimeField(required=True)
+    create_time = UTCDateTimeField(default=now)
+    expire_time = UTCDateTimeField(required=True)
 
     meta = {
         'collection': 'cache',

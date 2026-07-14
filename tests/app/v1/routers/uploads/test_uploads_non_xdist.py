@@ -30,7 +30,7 @@ from tests.app.v1.routers.common import (
     assert_response,
     perform_get,
 )
-from tests.app.v1.routers.uploads.test_basic_uploads import (
+from tests.app.v1.routers.uploads.test_uploads import (
     assert_file_upload_and_processing,
     assert_pagination,
 )
@@ -44,8 +44,7 @@ from .common import assert_entry
     'mode, user, expected_status_code',
     [pytest.param('multipart', 'user1', 409, id='conflict_in_concurrent_editing')],
 )
-# Flaky when run concurrently via pytest-xdist
-@pytest.mark.xfail()
+@pytest.mark.xfail(reason='Flaky when run concurrently via pytest-xdist')
 def test_editing_raw_file(
     proc_infra,
     auth_headers,
@@ -857,6 +856,74 @@ def test_get_upload_rawdir_path(
                 expected_upload_ids=['id_embargo', 'id_published'],
             ),
             id='filter-upload_name-multiple',
+        ),
+        pytest.param(
+            dict(
+                query_params={
+                    'upload_name': '{"value":"name_published","type":"exact"}',
+                },
+                expected_upload_ids=['id_published'],
+            ),
+            id='filter-upload_name-explicit-exact-single',
+        ),
+        pytest.param(
+            dict(
+                query_params={
+                    'upload_name': '{"value":"published","type":"fuzzy"}',
+                },
+                expected_upload_ids=['id_published'],
+            ),
+            id='filter-upload_name-fuzzy-single',
+        ),
+        pytest.param(
+            dict(
+                query_params={
+                    'upload_name': '{"value":"name_","type":"fuzzy"}',
+                },
+                expected_upload_ids=[
+                    'id_embargo',
+                    'id_embargo_w_coauthor',
+                    'id_embargo_w_reviewer',
+                    'id_published',
+                    'id_child_entries',
+                ],
+            ),
+            id='filter-upload_name-fuzzy-multiple',
+        ),
+        pytest.param(
+            dict(
+                query_params={
+                    'upload_name': [
+                        '{"value":"published","type":"fuzzy"}',
+                        '{"value":"embargo","type":"fuzzy"}',
+                    ],
+                },
+                expected_upload_ids=[
+                    'id_embargo',
+                    'id_embargo_w_coauthor',
+                    'id_embargo_w_reviewer',
+                    'id_published',
+                ],
+            ),
+            id='filter-upload_name-fuzzy-two-terms',
+        ),
+        pytest.param(
+            dict(
+                query_params={
+                    'upload_name': '{"value":"does-not-exist","type":"fuzzy"}',
+                },
+                expected_upload_ids=[],
+            ),
+            id='filter-upload_name-fuzzy-no-match',
+        ),
+        pytest.param(
+            dict(
+                query_params={
+                    'upload_name': '{"value":"   ","type":"fuzzy"}',
+                },
+                expected_status_code=400,
+            ),
+            id='filter-upload_name-fuzzy-empty',
         ),
         pytest.param(
             dict(

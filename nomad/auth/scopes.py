@@ -39,80 +39,114 @@ class Scope(str, Enum):
       (e.g. `read`, `write`, `delete`, `run`).
     """
 
+    def __new__(cls, value: str, description: str):
+        """Unpack value and description from tuple."""
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.description = description
+        return obj
+
     # actions
-    ACTIONS_READ = 'actions:read'
-    ACTIONS_RUN = 'actions:run'
+    ACTIONS_READ = ('actions:read', 'Read action definitions and action metadata.')
+    ACTIONS_RUN = ('actions:run', 'Execute actions.')
 
     # apps
-    APPS_READ = 'apps:read'
+    APPS_READ = ('apps:read', 'Read app definitions and app content.')
 
     # Personal access tokens (PAT) and custom NOMAD tokens
-    TOKENS_CREATE = 'tokens:create'
-    TOKENS_READ = 'tokens:read'
-    TOKENS_DELETE = 'tokens:delete'
+    TOKENS_CREATE = (
+        'tokens:create',
+        'Create personal access tokens and other NOMAD tokens.',
+    )
+    TOKENS_READ = ('tokens:read', 'Read personal access tokens and other NOMAD tokens.')
+    TOKENS_DELETE = (
+        'tokens:delete',
+        'Delete or revoke personal access tokens and other NOMAD tokens.',
+    )
 
     # datasets
-    DATASETS_READ = 'datasets:read'
-    DATASETS_WRITE = 'datasets:write'
-    DATASETS_DELETE = 'datasets:delete'
-    DATASETS_ASSIGN_DOI = 'datasets:assign_doi'
+    DATASETS_READ = ('datasets:read', 'Read datasets.')
+    DATASETS_WRITE = ('datasets:write', 'Create or update datasets.')
+    DATASETS_DELETE = ('datasets:delete', 'Delete datasets.')
+    DATASETS_ASSIGN_DOI = ('datasets:assign_doi', 'Assign DOIs to datasets.')
 
     # entries
-    ENTRIES_READ = 'entries:read'
-    ENTRIES_WRITE = 'entries:write'
+    ENTRIES_READ = ('entries:read', 'Read entries.')
+    ENTRIES_WRITE = ('entries:write', 'Create or update entries.')
 
     # federation
-    FEDERATION_WRITE = 'federation:write'
+    FEDERATION_WRITE = (
+        'federation:write',
+        'Write federation-related configuration or state.',
+    )
 
     # graph
-    GRAPH_READ = 'graph:read'
+    GRAPH_READ = ('graph:read', 'Read graph API data.')
 
     # groups
-    GROUPS_READ = 'groups:read'
-    GROUPS_WRITE = 'groups:write'
-    GROUPS_DELETE = 'groups:delete'
+    GROUPS_READ = ('groups:read', 'Read groups.')
+    GROUPS_WRITE = ('groups:write', 'Create or update groups.')
+    GROUPS_DELETE = ('groups:delete', 'Delete groups.')
 
     # info
-    INFO_READ = 'info:read'
+    INFO_READ = ('info:read', 'Read instance and service information.')
 
     # materials
-    MATERIALS_READ = 'materials:read'
+    MATERIALS_READ = ('materials:read', 'Read materials data.')
 
     # metainfo
-    METAINFO_READ = 'metainfo:read'
+    METAINFO_READ = ('metainfo:read', 'Read metainfo definitions.')
 
     # north
-    NORTH_READ = 'north:read'
-    NORTH_RUN = 'north:run'
+    NORTH_READ = ('north:read', 'Read NOMAD Remote Tools Hub resources.')
+    NORTH_RUN = ('north:run', 'Run NOMAD Remote Tools Hub tools or jobs.')
 
     # schemas
-    SCHEMAS_READ = 'schemas:read'
+    SCHEMAS_READ = ('schemas:read', 'Read schema definitions.')
 
     # suggestions
-    SUGGESTIONS_READ = 'suggestions:read'
+    SUGGESTIONS_READ = ('suggestions:read', 'Read suggestion data.')
 
     # systems
-    SYSTEMS_READ = 'systems:read'
+    SYSTEMS_READ = ('systems:read', 'Read systems data.')
 
     # uploads
-    UPLOADS_READ = 'uploads:read'
-    UPLOADS_WRITE = 'uploads:write'
-    UPLOADS_PUBLISH = 'uploads:publish'
-    UPLOADS_PROCESS = 'uploads:process'
-    UPLOADS_ASSIGN_DOI = 'uploads:assign_doi'
+    UPLOADS_READ = ('uploads:read', 'Read uploads.')
+    UPLOADS_WRITE = ('uploads:write', 'Create or update uploads and upload contents.')
+    UPLOADS_PUBLISH = ('uploads:publish', 'Publish uploads.')
+    UPLOADS_PROCESS = ('uploads:process', 'Process uploads.')
+    UPLOADS_ASSIGN_DOI = ('uploads:assign_doi', 'Assign DOIs to uploads.')
 
     # uploads bundle
-    UPLOADS_BUNDLE_READ = 'uploads_bundle:read'
-    UPLOADS_BUNDLE_WRITE = 'uploads_bundle:write'
+    UPLOADS_BUNDLE_READ = ('uploads_bundle:read', 'Read upload bundles.')
+    UPLOADS_BUNDLE_WRITE = ('uploads_bundle:write', 'Create or update upload bundles.')
 
     # users
-    USERS_READ = 'users:read'
-    USERS_INVITE = 'users:invite'
+    USERS_READ = ('users:read', 'Read user information.')
+    USERS_INVITE = ('users:invite', 'Invite users.')
 
     # external apps
-    EXTERNAL_OPTIMADE_READ = 'external_optimade:read'
-    EXTERNAL_DCAT_READ = 'external_dcat:read'
-    EXTERNAL_H5GROVE_READ = 'external_h5grove:read'
+    EXTERNAL_OPTIMADE_READ = (
+        'external_optimade:read',
+        'Access the external OPTIMADE API.',
+    )
+    EXTERNAL_DCAT_READ = ('external_dcat:read', 'Access the external DCAT API.')
+    EXTERNAL_H5GROVE_READ = (
+        'external_h5grove:read',
+        'Access the external H5Grove API.',
+    )
+
+    description: str
+
+    @property
+    def resource(self) -> str:
+        """Return the resource segment of the scope string."""
+        return self.value.split(':', maxsplit=1)[0]
+
+    @property
+    def action(self) -> str:
+        """Return the action segment of the scope string."""
+        return self.value.rsplit(':', maxsplit=1)[-1]
 
     @classmethod
     def all_values(cls) -> set[str]:

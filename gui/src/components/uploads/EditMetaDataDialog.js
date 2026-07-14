@@ -308,7 +308,7 @@ function EditMetaDataDialog({...props}) {
   const classes = useEditMetaDataDialogStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
-  const {uploadId, upload, entries, updateUpload} = useUploadPageContext()
+  const {uploadId, upload, entries, updateUpload, requestRefreshUpload} = useUploadPageContext()
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const isProcessing = upload?.process_running
@@ -376,11 +376,11 @@ function EditMetaDataDialog({...props}) {
       try {
         const requestBody = {metadata: metadata, verify_only: verify_only, owner: 'user'}
         if (selectedEntriesIDs) requestBody.query = selectedEntries
-          api.post(`uploads/${uploadId}/edit`, requestBody)
-            .then(() => resolve(''))
-            .catch(error => reject(error.apiMessage))
+        api.post(`uploads/${uploadId}/edit`, requestBody)
+          .then(resolve)
+          .catch(reject)
       } catch (error) {
-        reject(error.apiMessage)
+        reject(error)
       }
     })
   }, [api, uploadId, selectedEntries, selectedEntriesIDs])
@@ -392,17 +392,26 @@ function EditMetaDataDialog({...props}) {
           .then(results => {
             setActions([])
             updateUpload({upload: results.data})
+            setOpen(false)
           }).catch(err => {
+            if (err.status === 504) {
+              requestRefreshUpload()
+            }
             raiseError(err)
           })
       })
-      .catch(errors => {
-        errors.forEach(error => {
-          if (error.loc.includes('references')) setActions(oldActions => [...oldActions, {'error_reference': error.msg}])
-          if (error.loc.includes('datasets')) setActions(oldActions => [...oldActions, {'error_dataset': error.msg}])
-        })
+      .catch(err => {
+        const errors = err.apiMessage
+        if (Array.isArray(errors)) {
+          errors.forEach(error => {
+            if (error.loc.includes('references')) setActions(oldActions => [...oldActions, {'error_reference': error.msg}])
+            if (error.loc.includes('datasets')) setActions(oldActions => [...oldActions, {'error_dataset': error.msg}])
+          })
+        } else {
+          raiseError(err)
+        }
       })
-  }, [edit, updateUpload, raiseError])
+  }, [edit, updateUpload, requestRefreshUpload, raiseError])
 
   const isCommentChanged = useMemo(() => !!actions.find(action => 'set_comment' in action), [actions])
   const isReferencesChanged = useMemo(() => !!actions.find(action => 'add_reference' in action || 'remove_reference' in action), [actions])

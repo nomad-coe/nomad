@@ -24,7 +24,7 @@ from nomad.archive import to_json
 def read_archive(entries):
     try:
         upload_id = entries[0]['upload_id']
-        upload_files = files.UploadFiles.get(upload_id, lambda *args: True)
+        upload_files = files.UploadFiles.get(upload_id)
         assert upload_files is not None
         for entry in entries:
             entry_id = entry['entry_id']

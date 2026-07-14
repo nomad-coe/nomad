@@ -18,7 +18,6 @@
 
 import urllib
 from collections.abc import Callable, Collection
-from datetime import datetime
 from enum import Enum
 from inspect import Parameter, Signature
 from typing import Annotated
@@ -51,6 +50,7 @@ from nomad.auth.tokens import (
 )
 from nomad.config import config
 from nomad.config.models.config import ModeEnum
+from nomad.models.common import UTCDateTime
 from nomad.utils import get_logger
 
 from ..common import root_path
@@ -124,7 +124,7 @@ def _resolve_user_with_scopes(
         pat = authenticate_pat(personal_access_token)
 
         if pat is not None:
-            user = datamodel.User.get(pat.user_id)
+            user = datamodel.User.get(user_id=pat.user_id)
             if user:
                 auth_result = AuthResult(user=user, scopes=pat.scopes)
             else:
@@ -163,14 +163,26 @@ def _resolve_user_with_scopes(
     else:
         # Validate user against Keycloak
         try:
-            if datamodel.User.get(user.user_id) is None:
-                raise ValueError('User not found in database')
+            existing_user = datamodel.User.get(user_id=user.user_id)
         except Exception as e:
-            logger.error('API usage by unknown user.', exc_info=e)
+            logger.error(
+                'Failed to lookup authenticated user in Keycloak.',
+                exc_info=e,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Failed to verify authenticated user',
+            ) from e
+
+        if existing_user is None:
+            logger.warning(
+                'API usage by unknown user.',
+                extra={'user_id': user.user_id},
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='You are logged in with an unknown user',
-            ) from e
+            )
 
         # Check user whitelist (via `authorized_users`)
         if (
@@ -360,9 +372,9 @@ class PATResponse(BaseModel):
     description: str | None = None
     revoked: bool
 
-    created_at: datetime
-    expired_at: datetime | None = None
-    last_used_at: datetime | None = None
+    created_at: UTCDateTime
+    expired_at: UTCDateTime | None = None
+    last_used_at: UTCDateTime | None = None
 
     class Config:
         from_attributes = True
@@ -381,12 +393,30 @@ class PATCreationResponse(BaseModel):
     raw_token: str
 
 
+_pat_bad_request_response = (
+    status.HTTP_400_BAD_REQUEST,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'Bad request. Invalid personal access token request.',
+    },
+)
+
+_pat_not_found_response = (
+    status.HTTP_404_NOT_FOUND,
+    {
+        'model': HTTPExceptionModel,
+        'description': 'Not found. Token does not exist or is not owned by the user.',
+    },
+)
+
+
 @router.post(
     '/pats',
     response_model=PATCreationResponse,
     status_code=status.HTTP_201_CREATED,
     summary='Create a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_bad_request_response),
 )
 def create_pat_endpoint(
     request: PATCreateRequest,
@@ -425,6 +455,7 @@ def create_pat_endpoint(
     response_model=PATCreationResponse,
     summary='Rotate a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_bad_request_response, _pat_not_found_response),
 )
 def rotate_pat_endpoint(
     pat_id: str,
@@ -531,6 +562,7 @@ def list_pat_endpoint(
     response_model=PATResponse,
     summary='Retrieve metadata for a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_bad_request_response, _pat_not_found_response),
 )
 def get_pat_endpoint(
     pat_id: str,
@@ -563,6 +595,7 @@ def get_pat_endpoint(
     status_code=status.HTTP_204_NO_CONTENT,
     summary='Revoke a personal access token',
     tags=[APITag.PAT],
+    responses=create_responses(_pat_not_found_response),
 )
 def revoke_pat_endpoint(
     pat_id: str,

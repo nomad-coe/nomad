@@ -4,15 +4,14 @@ from nomad.actions import TaskQueue
 from nomad.actions.action import get_actions
 from nomad.workflows.workflows import (
     BatchCleanupEntriesWorkflow,
-    BatchProcessEntriesWorkflow,
     DeleteUploadWorkflow,
     EditUploadMetadataWorkflow,
     ImportBundleWorkflow,
     ProcessEntryWorkflow,
     ProcessExampleUploadWorkflow,
-    ProcessUploadWorkflow,
     PublishExternallyWorkflow,
     PublishUploadWorkflow,
+    TransferUploadOwnershipWorkflow,
     UpdateUploadWorkflow,
 )
 
@@ -20,16 +19,15 @@ from nomad.workflows.workflows import (
 def get_nomad_internal_workflows() -> list:
     return [
         BatchCleanupEntriesWorkflow,
-        BatchProcessEntriesWorkflow,
         DeleteUploadWorkflow,
         UpdateUploadWorkflow,
-        ProcessUploadWorkflow,
         ProcessEntryWorkflow,
         ProcessExampleUploadWorkflow,
         EditUploadMetadataWorkflow,
         ImportBundleWorkflow,
         PublishUploadWorkflow,
         PublishExternallyWorkflow,
+        TransferUploadOwnershipWorkflow,
     ]
 
 

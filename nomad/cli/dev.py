@@ -363,6 +363,7 @@ def get_gui_config() -> str:
     data = {
         'appBase': config.ui.app_base,
         'northBase': config.ui.north_base,
+        'enableNewHubApi': config.north.enable_new_hub_api,
         'keycloakBase': config.keycloak.public_server_url,
         'keycloakRealm': config.keycloak.realm_name,
         'keycloakClientId': config.keycloak.client_id,

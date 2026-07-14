@@ -17,15 +17,17 @@
 #
 
 import csv
+import functools
 import io
 import json
 import os.path
 import tempfile
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Annotated, Any
 
+import anyio
 import orjson
 import yaml
 from fastapi import (
@@ -66,6 +68,7 @@ from nomad.search import (
     search,
 )
 from nomad.search import update_metadata as es_update_metadata
+from nomad.tracing import traced
 from nomad.utils import strip
 
 from ..models import (
@@ -1234,7 +1237,7 @@ def export_entries_metadata(
             ),
         )
 
-    async def json_stream() -> AsyncIterator[bytes]:
+    def json_stream() -> Iterator[bytes]:
         """Stream metadata in JSON format."""
         first_item: bool = True
         yield b'['  # Start of JSON array
@@ -1253,7 +1256,7 @@ def export_entries_metadata(
 
         yield b']'  # End of JSON array
 
-    async def csv_stream() -> AsyncIterator[bytes]:
+    def csv_stream() -> Iterator[bytes]:
         """Stream metadata in CSV format."""
         first_row: bool = True
         buffer: io.StringIO = io.StringIO()
@@ -1300,6 +1303,7 @@ def export_entries_metadata(
         )
 
 
+@traced(span_name='entries.read_archive')
 def _read_archive(entry_metadata, uploads, required_reader: RequiredReader):
     entry_id = entry_metadata['entry_id']
     upload_id = entry_metadata['upload_id']
@@ -1326,6 +1330,7 @@ def _validate_required(required: ArchiveRequired, user) -> RequiredReader:
         )
 
 
+@traced(span_name='entries.read_entry_from_archive')
 def _read_entry_from_archive(entry: dict, uploads, required_reader: RequiredReader):
     entry_id, upload_id = entry['entry_id'], entry['upload_id']
 
@@ -1344,7 +1349,8 @@ def _read_entry_from_archive(entry: dict, uploads, required_reader: RequiredRead
         return None
 
 
-async def _answer_entries_archive_request(
+@traced(span_name='entries.answer_entries_archive_request')
+def _answer_entries_archive_request(
     request: Request,
     owner: Owner,
     query: Query,
@@ -1389,7 +1395,7 @@ async def _answer_entries_archive_request(
 
     with _Uploads() as uploads:
         for entry in entries:
-            disconnected = await request.is_disconnected()
+            disconnected = anyio.from_thread.run(request.is_disconnected)
             if disconnected:
                 logger.info('client disconnected', endpoint='entries/archive')
                 break
@@ -1435,7 +1441,7 @@ _entries_archive_docstring = strip(
         _bad_owner_response_unauthorized, _bad_archive_required_response
     ),
 )
-async def post_entries_archive_query(
+def post_entries_archive_query(
     request: Request,
     data: EntriesArchive,
     user: Annotated[
@@ -1443,7 +1449,7 @@ async def post_entries_archive_query(
         Depends(get_current_user([Scope.ENTRIES_READ])),
     ],
 ):
-    res = await _answer_entries_archive_request(
+    res = _answer_entries_archive_request(
         request=request,
         owner=data.owner if data.owner is not None else Owner.public,
         query=data.query,
@@ -1476,7 +1482,7 @@ async def post_entries_archive_query(
         _bad_owner_response_unauthorized, _bad_archive_required_response
     ),
 )
-async def get_entries_archive_query(
+def get_entries_archive_query(
     request: Request,
     with_query: Annotated[WithQuery, Depends(query_parameters)],
     pagination: Annotated[MetadataPagination, Depends(metadata_pagination_parameters)],
@@ -1485,7 +1491,7 @@ async def get_entries_archive_query(
         Depends(get_current_user([Scope.ENTRIES_READ])),
     ],
 ):
-    return await _answer_entries_archive_request(
+    return _answer_entries_archive_request(
         request=request,
         owner=with_query.owner if with_query.owner is not None else Owner.public,
         query=with_query.query,
@@ -1496,6 +1502,7 @@ async def get_entries_archive_query(
     )
 
 
+@traced(span_name='entries.answer_entries_archive_download_request')
 def _answer_entries_archive_download_request(
     owner: Owner, query: Query, required: ArchiveRequired, files: Files, user: User
 ):
@@ -1881,6 +1888,7 @@ def get_entry_raw_file(
     )
 
 
+@traced(span_name='entries.answer_entry_archive_request')
 def answer_entry_archive_request(
     query: dict, required: ArchiveRequired, user: User, entry_metadata=None
 ):
@@ -1939,6 +1947,7 @@ def answer_entry_archive_request(
         _bad_edit_request_unauthorized,
     ),
 )
+@traced(span_name='entries.post_entry_edit')
 def post_entry_edit(
     data: EntryEdit,
     entry_id: Annotated[
@@ -2428,8 +2437,13 @@ async def post_entries_edit(
     """
     edit_request_json = await request.json()
     try:
-        verified_json = proc.MetadataEditRequestHandler.edit_metadata(
-            edit_request_json, upload_id=None, user=user
+        verified_json = await anyio.to_thread.run_sync(
+            functools.partial(
+                proc.MetadataEditRequestHandler.edit_metadata,
+                edit_request_json,
+                None,
+                user,
+            )
         )
         return verified_json
     except RequestValidationError:

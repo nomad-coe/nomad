@@ -20,10 +20,11 @@ import asyncio
 import json
 import os.path
 import re
-import shutil
 import uuid
 import zipfile
 from collections.abc import Generator
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 import yaml
@@ -32,12 +33,12 @@ from nomad import infrastructure, utils
 from nomad.archive import to_json
 from nomad.datamodel import ServerContext
 from nomad.datamodel.datamodel import ArchiveSection, EntryArchive, EntryData
-from nomad.files import PublicUploadFiles, StagingUploadFiles, UploadFiles
+from nomad.files import FSUtility, PublicUploadFiles, StagingUploadFiles, UploadFiles
 from nomad.metainfo import Package, Quantity, Reference, SubSection
 from nomad.parsing import parsers
 from nomad.parsing.parser import Parser
 from nomad.processing import Entry, ProcessStatus, Upload
-from nomad.processing.base import ProcessFailure
+from nomad.processing.base import ProcessAlreadyRunning, ProcessFailure
 from nomad.search import refresh as search_refresh
 from nomad.search import search
 from nomad.utils.exampledata import ExampleData
@@ -129,6 +130,111 @@ def test_send_mail(mails, monkeypatch):
 
     for message in mails.messages:
         assert re.search(r'test message', message.data.decode('utf-8')) is not None
+
+
+def test_put_file_and_process_local_sets_success_message_on_success(
+    tmp_path, monkeypatch
+):
+    raw_file = tmp_path / 'mainfile.txt'
+    raw_file.write_text('content')
+
+    status_messages: list[str] = []
+    main_entry = MagicMock()
+    main_entry.process_entry_local = MagicMock()
+    main_entry.save = MagicMock()
+
+    upload = SimpleNamespace(
+        published=False,
+        upload_id='upload-id',
+        main_author_user=MagicMock(),
+        reprocess_settings=None,
+        set_last_status_message=status_messages.append,
+        get_logger=MagicMock,
+        staging_upload_files=SimpleNamespace(
+            raw_exists=lambda _path: False,
+            add_rawfiles=lambda _path, _target_dir: None,
+            raw_file_object=lambda _path: SimpleNamespace(os_path=str(raw_file)),
+        ),
+    )
+
+    monkeypatch.setattr(
+        'nomad.processing.data.match_parser',
+        lambda _path: (SimpleNamespace(name='dummy-parser'), None),
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.MetadataEditRequestHandler',
+        lambda *args, **kwargs: SimpleNamespace(
+            get_entry_mongo_metadata=lambda _upload, _entry: {}
+        ),
+    )
+    monkeypatch.setattr('nomad.processing.data.Entry.objects', lambda **kwargs: [])
+    monkeypatch.setattr(
+        'nomad.processing.data.Entry.create', lambda **kwargs: main_entry
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.utils.generate_entry_id',
+        lambda _upload_id, _path, _key: 'entry-id',
+    )
+
+    result = Upload.put_file_and_process_local(upload, str(raw_file), '')
+
+    assert result is main_entry
+    assert status_messages[-1] == 'Process completed successfully'
+    main_entry.process_entry_local.assert_called_once()
+
+
+def test_put_file_and_process_local_does_not_set_success_message_on_failure(
+    tmp_path, monkeypatch
+):
+    raw_file = tmp_path / 'mainfile.txt'
+    raw_file.write_text('content')
+
+    status_messages: list[str] = []
+    main_entry = MagicMock()
+    main_entry.process_entry_local = MagicMock(
+        side_effect=Exception('processing failed')
+    )
+    main_entry.save = MagicMock()
+
+    upload = SimpleNamespace(
+        published=False,
+        upload_id='upload-id',
+        main_author_user=MagicMock(),
+        reprocess_settings=None,
+        set_last_status_message=status_messages.append,
+        get_logger=MagicMock,
+        staging_upload_files=SimpleNamespace(
+            raw_exists=lambda _path: False,
+            add_rawfiles=lambda _path, _target_dir: None,
+            raw_file_object=lambda _path: SimpleNamespace(os_path=str(raw_file)),
+        ),
+    )
+
+    monkeypatch.setattr(
+        'nomad.processing.data.match_parser',
+        lambda _path: (SimpleNamespace(name='dummy-parser'), None),
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.MetadataEditRequestHandler',
+        lambda *args, **kwargs: SimpleNamespace(
+            get_entry_mongo_metadata=lambda _upload, _entry: {}
+        ),
+    )
+    monkeypatch.setattr('nomad.processing.data.Entry.objects', lambda **kwargs: [])
+    monkeypatch.setattr(
+        'nomad.processing.data.Entry.create', lambda **kwargs: main_entry
+    )
+    monkeypatch.setattr(
+        'nomad.processing.data.utils.generate_entry_id',
+        lambda _upload_id, _path, _key: 'entry-id',
+    )
+
+    result = Upload.put_file_and_process_local(upload, str(raw_file), '')
+
+    assert result is main_entry
+    assert status_messages[-1] == 'Process failed'
+    assert 'Process completed successfully' not in status_messages
+    main_entry.process_entry_local.assert_called_once()
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -515,9 +621,11 @@ async def test_re_processing(
             tmp, 'tests/data/proc/templates/different_atoms/template.json'
         )
 
-    shutil.copyfile(
-        raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path
+    upath = FSUtility.upath(
+        published.upload_files.join_file('raw-restricted.plain.zip')
     )
+    fs, location = upath.fs, upath.path
+    fs.put_file(raw_files, location)
 
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
@@ -530,6 +638,10 @@ async def test_re_processing(
 
     # assert new process time
     if with_failure != 'not-matched':
+        assert published.last_update is not None
+        assert old_upload_time is not None
+        assert first_entry.last_processing_time is not None
+        assert old_entry_time is not None
         assert published.last_update > old_upload_time
         assert first_entry.last_processing_time > old_entry_time
 
@@ -624,16 +736,17 @@ async def test_re_process_match(
 
     assert upload.total_entries_count == 1, upload.total_entries_count
 
-    if published:
-        import zipfile
+    upload_files = UploadFiles.get(upload.upload_id)
 
-        upload_files = UploadFiles.get(upload.upload_id)
-        zip_path = upload_files.raw_zip_file_object().os_path  # type: ignore
-        with zipfile.ZipFile(zip_path, mode='a') as zf:
-            zf.write('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
+    assert not upload_files.raw_exists('vasp.xml')
+
+    if published:
+        with upload_files._zip_fs('a') as zip_fs:
+            zip_fs.put_file('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
     else:
-        upload_files = UploadFiles.get(upload.upload_id).to_staging()
-        upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
+        upload_files.to_staging().add_rawfiles('tests/data/parsers/vasp/vasp.xml')
+
+    assert upload_files.raw_exists('vasp.xml')
 
     async with temporal_worker():
         await asyncio.to_thread(upload.process_upload)
@@ -842,11 +955,14 @@ async def test_process_partial(
     assert new_timestamps.keys() == expected_result.keys()
     for key, expect_updated in expected_result.items():
         if expect_updated:
-            assert key not in old_timestamps or (
-                old_timestamps[key]
-                and new_timestamps[key]
-                and old_timestamps[key] < new_timestamps[key]
-            )
+            if key not in old_timestamps:
+                continue
+
+            old_timestamp = old_timestamps[key]
+            new_timestamp = new_timestamps[key]
+            assert old_timestamp is not None
+            assert new_timestamp is not None
+            assert old_timestamp < new_timestamp
 
 
 def test_re_pack(published: Upload):
@@ -974,7 +1090,7 @@ async def test_parent_child_parser(temporal_worker, user1, tmp):
             mime: str,
             buffer: bytes,
             decoded_buffer: str,
-            compression: str = None,
+            compression: str | None = None,
         ):
             if decoded_buffer.startswith('parentchild\n'):
                 return set(
@@ -991,9 +1107,11 @@ async def test_parent_child_parser(temporal_worker, user1, tmp):
             mainfile: str,
             archive: EntryArchive,
             logger=None,
-            child_archives: dict[str, EntryArchive] = None,
+            child_archives: dict[str, EntryArchive] | None = None,
         ):
             archive.metadata.comment = 'parent'
+            if child_archives is None:
+                return
             for mainfile_key, child_archive in child_archives.items():
                 child_archive.metadata.comment = mainfile_key
 
@@ -1288,3 +1406,242 @@ async def test_exclude_potcar(user1, temporal_worker, monkeypatch, exclude_potca
             assert 'Removing POTCAR file from upload.' in upload.warnings
         else:
             assert potcar_exists
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'wait_for_processing, should_fail, expected_error_message',
+    [
+        pytest.param(True, False, None, id='wait-for-result-success'),
+        pytest.param(
+            True,
+            True,
+            'Failed to execute temporal workflow: boom',
+            id='wait-for-result-error',
+        ),
+        pytest.param(False, False, None, id='background-success'),
+        pytest.param(
+            False,
+            True,
+            'Failed to start temporal workflow: boom',
+            id='background-error',
+        ),
+    ],
+)
+async def test_start_edit_upload_metadata_workflow(
+    monkeypatch, wait_for_processing, should_fail, expected_error_message
+):
+    upload = Upload(upload_id='test-upload', main_author='test-author')
+    handle = object()
+    execute_workflow = AsyncMock()
+    start_workflow = AsyncMock(return_value=handle)
+    if should_fail:
+        execute_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+        start_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+
+    client = SimpleNamespace(
+        execute_workflow=execute_workflow,
+        start_workflow=start_workflow,
+    )
+    save = Mock()
+
+    async def mock_get_client():
+        return client
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+    monkeypatch.setattr(upload, 'save', save)
+
+    def mock_setup_upload_for_workflow(workflow_id, process_name):
+        upload.process_status = ProcessStatus.PENDING
+        upload.current_process = process_name
+        return {}
+
+    monkeypatch.setattr(
+        upload, 'setup_upload_for_workflow', mock_setup_upload_for_workflow
+    )
+
+    if should_fail:
+        with pytest.raises(ProcessFailure) as exc:
+            await upload._start_edit_upload_metadata_workflow(
+                {'metadata': {'embargo_length': 0}},
+                'test-user',
+                wait_for_processing=wait_for_processing,
+            )
+        assert str(exc.value) == expected_error_message
+    else:
+        result = await upload._start_edit_upload_metadata_workflow(
+            {'metadata': {'embargo_length': 0}},
+            'test-user',
+            wait_for_processing=wait_for_processing,
+        )
+        if wait_for_processing:
+            assert result is None
+            save.assert_not_called()
+        else:
+            assert result is handle
+            assert upload.process_status == ProcessStatus.PENDING
+            save.assert_not_called()
+
+    if wait_for_processing:
+        client.execute_workflow.assert_awaited_once()
+        client.start_workflow.assert_not_called()
+    else:
+        client.execute_workflow.assert_not_called()
+        client.start_workflow.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'wait_for_processing, should_fail, expected_error_message',
+    [
+        pytest.param(True, False, None, id='wait-for-result-success'),
+        pytest.param(
+            True,
+            True,
+            'Failed to execute temporal workflow: boom',
+            id='wait-for-result-error',
+        ),
+        pytest.param(False, False, None, id='background-success'),
+        pytest.param(
+            False,
+            True,
+            'Failed to start temporal workflow: boom',
+            id='background-error',
+        ),
+    ],
+)
+async def test_start_delete_upload_workflow(
+    monkeypatch, wait_for_processing, should_fail, expected_error_message
+):
+    upload = Upload(upload_id='test-upload', main_author='test-author')
+    handle = object()
+    execute_workflow = AsyncMock()
+    start_workflow = AsyncMock(return_value=handle)
+    if should_fail:
+        execute_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+        start_workflow = AsyncMock(side_effect=RuntimeError('boom'))
+
+    client = SimpleNamespace(
+        execute_workflow=execute_workflow,
+        start_workflow=start_workflow,
+    )
+    setup_delete_upload_workflow = Mock()
+    cleanup_upload_after_workflow_fail = Mock()
+
+    async def mock_get_client():
+        return client
+
+    def mock_setup_delete_upload_workflow(
+        workflow_id, previous_workflow_ids, previous_process_status
+    ):
+        upload.process_status = ProcessStatus.PENDING
+        upload.current_process = 'delete_upload'
+        upload.workflow_ids = [workflow_id]
+        setup_delete_upload_workflow(
+            workflow_id, previous_workflow_ids, previous_process_status
+        )
+        return {}
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+    monkeypatch.setattr(
+        upload, 'setup_delete_upload_workflow', mock_setup_delete_upload_workflow
+    )
+    monkeypatch.setattr(
+        upload,
+        'cleanup_upload_after_workflow_fail',
+        cleanup_upload_after_workflow_fail,
+    )
+
+    if should_fail:
+        with pytest.raises(ProcessFailure) as exc:
+            await upload._start_delete_upload_workflow(
+                wait_for_processing=wait_for_processing
+            )
+        assert str(exc.value) == expected_error_message
+        cleanup_upload_after_workflow_fail.assert_called_once()
+    else:
+        result = await upload._start_delete_upload_workflow(
+            wait_for_processing=wait_for_processing
+        )
+        if wait_for_processing:
+            assert result is None
+        else:
+            assert result is handle
+        assert upload.process_status == ProcessStatus.PENDING
+        assert upload.current_process == 'delete_upload'
+        cleanup_upload_after_workflow_fail.assert_not_called()
+
+    setup_delete_upload_workflow.assert_called_once_with(
+        setup_delete_upload_workflow.call_args.args[0], [], ProcessStatus.READY
+    )
+    if wait_for_processing:
+        client.execute_workflow.assert_awaited_once()
+        client.start_workflow.assert_not_called()
+        workflow_input = client.execute_workflow.await_args.args[1]
+    else:
+        client.execute_workflow.assert_not_called()
+        client.start_workflow.assert_awaited_once()
+        workflow_input = client.start_workflow.await_args.args[1]
+    assert workflow_input.upload_id == 'test-upload'
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_terminates_non_delete_workflows_before_setup():
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-author',
+        process_status=ProcessStatus.RUNNING,
+        workflow_ids=['process-workflow'],
+    )
+    terminate = AsyncMock()
+    handle = SimpleNamespace(
+        describe=AsyncMock(
+            return_value=SimpleNamespace(
+                raw_description=SimpleNamespace(
+                    workflow_execution_info=SimpleNamespace(
+                        type=SimpleNamespace(name='UpdateUploadWorkflow')
+                    )
+                )
+            )
+        ),
+        terminate=terminate,
+    )
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+
+    (
+        workflow_ids,
+        process_status,
+    ) = await upload._terminate_non_delete_workflows_for_delete(client)
+
+    assert workflow_ids == ['process-workflow']
+    assert process_status == ProcessStatus.RUNNING
+    client.get_workflow_handle.assert_called_once_with('process-workflow')
+    terminate.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_does_not_preempt_existing_delete_workflow():
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-author',
+        process_status=ProcessStatus.PENDING,
+        workflow_ids=['delete-workflow'],
+    )
+    handle = SimpleNamespace(
+        describe=AsyncMock(
+            return_value=SimpleNamespace(
+                raw_description=SimpleNamespace(
+                    workflow_execution_info=SimpleNamespace(
+                        type=SimpleNamespace(name='DeleteUploadWorkflow')
+                    )
+                )
+            )
+        ),
+        terminate=AsyncMock(),
+    )
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+
+    with pytest.raises(ProcessAlreadyRunning):
+        await upload._terminate_non_delete_workflows_for_delete(client)
+
+    handle.terminate.assert_not_called()

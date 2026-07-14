@@ -51,7 +51,9 @@ import json
 import os
 import shutil
 import stat
+import tarfile
 import tempfile
+import warnings
 import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Iterator
@@ -59,19 +61,20 @@ from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
-from pathlib import Path
 from typing import IO, Any, Literal, NamedTuple
 
 import magic
 import yaml
 import zipstream
-from deprecation import deprecated
-from fsspec import AbstractFileSystem
+from fsspec import AbstractFileSystem, filesystem
+from fsspec.implementations.cached import SimpleCacheFileSystem
 from fsspec.implementations.local import LocalFileSystem
 from fsspec.implementations.tar import TarFileSystem
 from fsspec.implementations.zip import ZipFileSystem
+from h5py import File
 from pathvalidate import sanitize_filename, sanitize_filepath
 from pydantic import BaseModel
+from upath import UPath
 
 from nomad import datamodel, utils
 from nomad.archive import (
@@ -91,7 +94,117 @@ empty_zip_file_size = 22
 empty_archive_file_size = 32
 empty_hdf5_file_size = 96
 
-UPath = Path
+
+class FSUtility:
+    @staticmethod
+    def upath(path: str | UPath | PathObject) -> UPath:
+        """
+        The `path` could be either relative or absolute.
+
+        Returns the `UPath` object with filesystem information embedded.
+        """
+        # falls back to default local file system
+        if isinstance(path, UPath):
+            path = path.path
+        elif isinstance(path, PathObject):
+            path = path.os_path
+
+        public_fs = config.fs.public_fs
+        if config.fs.public not in path or public_fs.protocol is None:
+            return UPath(path)
+
+        segment = path
+        if public_fs.simplify_path:
+            segment = path.split(config.fs.public, 1)[-1]
+        segment = f'{public_fs.bucket}/{segment.removeprefix("/")}'
+
+        public_fs.ensure_buffer_size()
+
+        return UPath(segment, protocol=public_fs.protocol, **public_fs.extra)
+
+    @staticmethod
+    def is_local(path: str) -> bool:
+        return isinstance(FSUtility.upath(path).fs, LocalFileSystem)
+
+    @staticmethod
+    @contextmanager
+    def open(path: str, mode: Literal['r', 'w', 'a'] = 'r'):
+        """
+        Open the target as plain IO object.
+        """
+        upath = FSUtility.upath(path)
+        fs, location = upath.fs, upath.path
+        if isinstance(fs, LocalFileSystem) or mode == 'r':
+            cached_fs = fs
+        else:
+            # remote file system may not support random access write
+            # thus needs a local cache for writing and appending
+            cached_fs = SimpleCacheFileSystem(fs=fs)
+
+        with cached_fs.open(location, f'{mode}b') as file:
+            yield file
+
+    @staticmethod
+    @contextmanager
+    def open_h5(path: str, mode: Literal['r', 'w', 'a'] = 'r', **kwargs):
+        """
+        Open the target as HDF5 file object.
+        """
+        with FSUtility.open(path, mode) as file, File(file, mode, **kwargs) as h5_file:
+            yield h5_file
+
+    @staticmethod
+    @contextmanager
+    def _open_archive_fs(
+        path: str, mode: Literal['a', 'w', 'r'], protocol=None, extra=None
+    ):
+        if path.lower().endswith('.zip'):
+            fs_class = ZipFileSystem
+            fs_options = [mode]
+            if protocol:
+                fs_options.extend((protocol, extra))
+        elif path.lower().endswith(('.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')):
+            fs_class = TarFileSystem
+            fs_options = [None]
+            if protocol:
+                fs_options.extend((extra, protocol))
+        else:
+            raise ValueError(f'Unrecognized archive format: {path}')
+
+        def _wrap(_fs):
+            yield _fs
+            if hasattr(_fs, 'close'):
+                _fs.close()
+
+        if mode == 'r' or not protocol:
+            yield from _wrap(fs_class(path, *fs_options))
+        else:
+            # remote write or append
+            remote_fs: AbstractFileSystem = filesystem(protocol, **extra)
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                _, tmp_path = tempfile.mkstemp(None, None, dir=tmp_dir)
+                if mode == 'a':
+                    remote_fs.get_file(path, tmp_path)
+                yield from _wrap(fs_class(tmp_path, fs_options[0]))
+                remote_fs.put_file(tmp_path, path)
+
+    @staticmethod
+    @contextmanager
+    def open_archive(path: str, mode: Literal['a', 'w', 'r'] = 'r'):
+        """
+        Open the target as `ZipFileSystem` or `TarFileSystem`.
+        """
+        if config.fs.public in path:
+            with FSUtility._open_archive_fs(
+                FSUtility.upath(path).path,
+                mode,
+                config.fs.public_fs.protocol,
+                config.fs.public_fs.extra,
+            ) as archive_fs:
+                yield archive_fs
+        else:
+            with FSUtility._open_archive_fs(path, mode) as archive_fs:
+                yield archive_fs
 
 
 @dataclass(slots=True)
@@ -118,23 +231,40 @@ class PathObject:
         os_path: The full os path of the object.
     """
 
-    def __init__(self, os_path: str, *, fs: AbstractFileSystem | None = None):
-        self.os_path = os_path
+    def __init__(self, os_path: str | UPath, *, fs: AbstractFileSystem | None = None):
+        self.os_path = os_path if isinstance(os_path, str) else os_path.as_posix()
         self._fs = fs or LocalFileSystem()
+
+    @property
+    def location(self):
+        """
+        The actual location on the file system.
+        For local file system, it is `os_path`.
+        For other file systems, it is the location stored in `FSUtility.upath`.
+        """
+        if isinstance(self._fs, LocalFileSystem):
+            return self.os_path
+
+        return FSUtility.upath(self).path
 
     def delete(self):
         if self.exists():
-            self._fs.rm(self.os_path, recursive=True)
+            self._fs.rm(self.location, recursive=True)
 
     def exists(self):
-        return self._fs.exists(self.os_path)
+        return self._fs.exists(self.location)
+
+    def move_to(self, dest: PathObject):
+        assert type(self._fs) is type(dest._fs)
+        if self.exists():
+            self._fs.mv(self.location, dest.location)
 
     @property
     def size(self):
-        return self._fs.size(self.os_path)
+        return self._fs.size(self.location)
 
     def __repr__(self) -> str:
-        return self.os_path
+        return self.location
 
 
 class DirectoryObject(PathObject):
@@ -144,7 +274,7 @@ class DirectoryObject(PathObject):
 
     def __init__(
         self,
-        os_path: str,
+        os_path: str | UPath,
         create: bool = False,
         *,
         fs: AbstractFileSystem | None = None,
@@ -156,22 +286,14 @@ class DirectoryObject(PathObject):
     def join_dir(self, path, create: bool = False) -> DirectoryObject:
         return DirectoryObject(os.path.join(self.os_path, path), create, fs=self._fs)
 
-    def join_file(self, path, create_dir: bool = False) -> PathObject:
-        target_path = os.path.join(self.os_path, path)
-
-        if create_dir and (target_folder := os.path.dirname(target_path)):
-            self._fs.mkdirs(target_folder, exist_ok=True)
-
-        return PathObject(target_path, fs=self._fs)
+    def join_file(self, path, *, fs: AbstractFileSystem | None = None) -> PathObject:
+        return PathObject(os.path.join(self.os_path, path), fs=fs or self._fs)
 
     def exists(self) -> bool:
         return self._fs.isdir(self.os_path)
 
-    def zip_fp(self, access: str):
-        """
-        Utilities
-        """
-        return self.join_file(f'raw-{access}.plain.zip')
+    def zip_fp(self, access: str, *, fs: AbstractFileSystem | None = None):
+        return self.join_file(f'raw-{access}.plain.zip', fs=fs)
 
     def msg_fp(self, access: str, fallback: bool = False):
         def versioned_file_name(version_suffix):
@@ -179,8 +301,8 @@ class DirectoryObject(PathObject):
 
         return _versioned_archive_file_object(self, versioned_file_name, fallback)
 
-    def h5_fp(self, access: str):
-        return self.join_file(f'archive-{access}.h5')
+    def h5_fp(self, access: str, *, fs: AbstractFileSystem | None = None):
+        return self.join_file(f'archive-{access}.h5', fs=fs)
 
 
 class RawPathInfo(NamedTuple):
@@ -258,16 +380,35 @@ class FileSource(ABC):
         """
         dest_path = UPath(destination_dir)
         self._fs.mkdirs(dest_path, exist_ok=True)
+
+        is_remote = not FSUtility.is_local(dest_path.as_posix())
+
         for streamed_file in self.to_streamed_files():
-            full_path = dest_path / streamed_file.path
-            if full_path.exists():
-                assert overwrite, 'Target already exists and `overwrite` is False'
-            self._fs.mkdirs(full_path.parent, exist_ok=True)
-            with (
-                self._fs.open(full_path.as_posix(), 'wb') as output_file,
-                streamed_file.src,
+            file_path = streamed_file.path
+            full_path = dest_path / file_path
+            if is_remote and (
+                (
+                    file_path.startswith('archive-')
+                    and file_path.endswith(('.msg', '.h5'))
+                )
+                or (file_path.startswith('raw-') and file_path.endswith('.zip'))
             ):
-                shutil.copyfileobj(streamed_file.src, output_file)
+                # this method is used in both importing and exporting
+                # only select the importing case when the target is a public upload
+                if (upath := FSUtility.upath(full_path)).exists():
+                    assert overwrite, 'Target already exists and `overwrite` is False'
+                with upath.open('wb') as f, streamed_file.src as src:
+                    while chunk := src.read(config.archive.copy_chunk_size):
+                        f.write(chunk)
+            else:
+                if full_path.exists():
+                    assert overwrite, 'Target already exists and `overwrite` is False'
+                self._fs.mkdirs(full_path.parent, exist_ok=True)
+                with (
+                    self._fs.open(full_path.as_posix(), 'wb') as output_file,
+                    streamed_file.src,
+                ):
+                    shutil.copyfileobj(streamed_file.src, output_file)
 
     def close(self):
         """Perform "closing" of the source, if applicable."""
@@ -517,21 +658,24 @@ def _versioned_archive_file_object(
     """
     suffixes = config.fs.archive_version_suffix
 
+    fs = FSUtility.upath(target_dir).fs
+    actual_dir = DirectoryObject(target_dir.os_path, fs=fs)
+
     if not isinstance(suffixes, list):
         suffixes = [suffixes]
 
     if len(suffixes) <= 1:
-        return target_dir.join_file(file_name(f'-{suffixes[0]}' if suffixes[0] else ''))
+        return actual_dir.join_file(file_name(f'-{suffixes[0]}' if suffixes[0] else ''))
 
     if not fallback:
-        return target_dir.join_file(file_name(f'-{suffixes[0]}'))
+        return actual_dir.join_file(file_name(f'-{suffixes[0]}'))
 
     for suffix in suffixes:
-        current_file = target_dir.join_file(file_name(f'-{suffix}'))
-        if os.path.exists(current_file.os_path):
+        current_file = actual_dir.join_file(file_name(f'-{suffix}'))
+        if current_file.exists():
             return current_file
 
-    return target_dir.join_file(file_name(f'-{suffixes[0]}'))
+    return actual_dir.join_file(file_name(f'-{suffixes[0]}'))
 
 
 class UploadFiles(DirectoryObject):
@@ -579,34 +723,33 @@ class UploadFiles(DirectoryObject):
         raise NotImplementedError()
 
     @classmethod
-    def base_folder_for(cls, upload_id: str) -> str:
+    def base_folder_for(cls, upload_id: str) -> UPath:
         """
         Full path to the base folder for the upload files (of this class) for the
         specified upload_id.
         """
-        full_path = cls._file_area() / upload_id[: config.fs.prefix_size] / upload_id
-        return full_path.as_posix()
+        return cls._file_area() / upload_id[: config.fs.prefix_size] / upload_id
 
     @classmethod
     def exists_for(cls, upload_id: str) -> bool:
         """
         If an UploadFiles object (of this class) has been created for this upload_id.
         """
-        return os.path.exists(cls.base_folder_for(upload_id))
+        return cls.base_folder_for(upload_id).exists()
+
+    @staticmethod
+    def get(upload_id: str) -> UploadFiles:
+        for class_type in (PublicUploadFiles, StagingUploadFiles):
+            if class_type.exists_for(upload_id):
+                return class_type(upload_id)
+
+        return None  # type: ignore
 
     def to_staging(
         self, create: bool = False, include_archive: bool = False
     ) -> StagingUploadFiles | None:
         """Casts to or creates corresponding staging upload files or returns None."""
         raise NotImplementedError()
-
-    @staticmethod
-    def get(upload_id: str, create: bool = False) -> UploadFiles | None:
-        for class_type in (PublicUploadFiles, StagingUploadFiles):
-            if class_type.exists_for(upload_id):
-                return class_type(upload_id, create)
-
-        return None
 
     def is_empty(self) -> bool:
         """If this upload has no content yet."""
@@ -627,8 +770,8 @@ class UploadFiles(DirectoryObject):
     def raw_listdir(
         self,
         path: str = '',
-        recursive=False,
-        files_only=False,
+        recursive: bool = False,
+        files_only: bool = False,
         depth: int = -1,
     ) -> Iterable[RawPathInfo]:
         """
@@ -650,8 +793,8 @@ class UploadFiles(DirectoryObject):
         *,
         start: int = 0,
         end: int | None = None,
-        recursive=False,
-        files_only=False,
+        recursive: bool = False,
+        files_only: bool = False,
         depth: int = -1,
         order: Literal['asc', 'desc'] = 'asc',
         group_directories_first: bool = False,
@@ -678,15 +821,22 @@ class UploadFiles(DirectoryObject):
 
         return RawDirPage(content=ordered[start:end], total=len(items))
 
-    @deprecated(details='Use raw_exists() instead.')
     def raw_path_exists(self, path: str) -> bool:
+        warnings.warn(
+            'raw_path_exists() is deprecated; use raw_exists() instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.raw_exists(path)
 
-    @deprecated(details='Use raw_isfile() instead.')
     def raw_path_is_file(self, path: str) -> bool:
+        warnings.warn(
+            'raw_path_is_file() is deprecated; use raw_isfile() instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.raw_isfile(path)
 
-    @deprecated(details='Use raw_listdir() instead.')
     def raw_directory_list(
         self,
         path: str = '',
@@ -694,6 +844,11 @@ class UploadFiles(DirectoryObject):
         files_only=False,
         depth: int = -1,
     ) -> Iterable[RawPathInfo]:
+        warnings.warn(
+            'raw_directory_list() is deprecated; use raw_listdir() instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.raw_listdir(path, recursive, files_only, depth)
 
     @contextmanager
@@ -784,8 +939,6 @@ class StagingUploadFiles(UploadFiles):
         self._raw_dir = self.join_dir('raw', create)
         self._archive_dir = self.join_dir('archive', create)
 
-        self._size = 0
-
     @classmethod
     def _file_area(cls):
         return UPath(config.fs.staging)
@@ -817,14 +970,10 @@ class StagingUploadFiles(UploadFiles):
         return not self._fs.ls(self._raw_dir.os_path, False)
 
     def raw_exists(self, path: str) -> bool:
-        if not is_safe_relative_path(path):
-            return False
-        return self._fs.exists(self._full_path(path))
+        return is_safe_relative_path(path) and self._fs.exists(self._full_path(path))
 
     def raw_isfile(self, path: str) -> bool:
-        if not is_safe_relative_path(path):
-            return False
-        return self._fs.isfile(self._full_path(path))
+        return is_safe_relative_path(path) and self._fs.isfile(self._full_path(path))
 
     def raw_create_directory(self, path: str):
         assert path and is_safe_relative_path(path), 'Bad path provided'
@@ -833,8 +982,8 @@ class StagingUploadFiles(UploadFiles):
     def raw_listdir(
         self,
         path: str = '',
-        recursive=False,
-        files_only=False,
+        recursive: bool = False,
+        files_only: bool = False,
         depth: int = -1,
     ) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path) or depth == 0:
@@ -909,7 +1058,7 @@ class StagingUploadFiles(UploadFiles):
             )
 
         # Phase 2 onwards is filesystem-agnostic: sort, slice, and materialize.
-        self._sort_raw_entries(
+        entries = self._sort_raw_entries(
             entries,
             order=order,
             group_directories_first=group_directories_first,
@@ -1018,8 +1167,8 @@ class StagingUploadFiles(UploadFiles):
                 depth=depth,
             )
 
+    @staticmethod
     def _collect_local_raw_entries(
-        self,
         os_path: str,
         relative_path: str,
         entries: list[_RawEntry],
@@ -1186,13 +1335,13 @@ class StagingUploadFiles(UploadFiles):
 
         _walk(os_path, relative_path, remaining_depth)
 
+    @staticmethod
     def _sort_raw_entries(
-        self,
         entries: list[_RawEntry],
         *,
         order: Literal['asc', 'desc'],
         group_directories_first: bool,
-    ) -> None:
+    ):
         """Sort entries according to requested ordering.
 
         When ``group_directories_first`` is enabled, directories and files are
@@ -1202,8 +1351,7 @@ class StagingUploadFiles(UploadFiles):
         reverse = order == 'desc'
 
         if not group_directories_first:
-            entries.sort(key=lambda e: e.path, reverse=reverse)
-            return
+            return sorted(entries, key=lambda e: e.path, reverse=reverse)
 
         dirs = [e for e in entries if not e.is_file]
         files = [e for e in entries if e.is_file]
@@ -1211,7 +1359,7 @@ class StagingUploadFiles(UploadFiles):
         dirs.sort(key=lambda e: e.path, reverse=reverse)
         files.sort(key=lambda e: e.path, reverse=reverse)
 
-        entries[:] = dirs + files
+        return dirs + files
 
     @contextmanager
     def raw_file(self, file_path: str, *args, **kwargs):
@@ -1240,7 +1388,7 @@ class StagingUploadFiles(UploadFiles):
         """Writes the data as archive file and returns the archive file size."""
         archive_file_object = self._archive_file_object(entry_id)
         try:
-            write_archive(archive_file_object.os_path, 1, data=[(entry_id, data)])
+            write_archive(archive_file_object.os_path, {entry_id: data})
         except Exception:
             # in case of failure, remove the possible corrupted archive file
             archive_file_object.delete()
@@ -1269,7 +1417,7 @@ class StagingUploadFiles(UploadFiles):
 
     def add_rawfiles(
         self,
-        path: str,
+        target_path: str | PathObject,
         target_dir: str = '',
         cleanup_source_file_and_dir: bool = False,
         updated_files: set[str] | None = None,
@@ -1281,7 +1429,7 @@ class StagingUploadFiles(UploadFiles):
         the archive is extracted before merging. Otherwise, archives are treated as single files.
 
         Args:
-            path (str): Path to the file or directory to add.
+            target_path (str): Path to the file or directory to add.
             target_dir (str, optional): Relative path within the upload's raw directory.
                 Defaults to "".
             cleanup_source_file_and_dir (bool, optional): If True, deletes the source path
@@ -1294,64 +1442,112 @@ class StagingUploadFiles(UploadFiles):
             AssertionError: If file format is unrecognized or merge conflicts occur.
         """
         assert not self.is_frozen
-        assert self._fs.exists(path), f'{path} does not exist'
+        if isinstance(target_path, str):
+            assert self._fs.exists(target_path), f'{target_path} does not exist'
+            path = target_path
+            target_fs = self._fs
+        else:
+            assert target_path.exists(), f'{target_path} does not exist'
+            path = target_path.os_path
+            target_fs = target_path._fs
         assert is_safe_relative_path(target_dir)
 
         archive_format = get_compression_format(path) if auto_decompress else None
         if archive_format == 'error':
             raise ValueError('Bad archive.')
 
-        src_fs: AbstractFileSystem
-        if archive_format == 'zip':
-            src_fs = ZipFileSystem(path)
-            src_root = src_parent = ''
-        elif archive_format == 'tar':
-            src_fs = TarFileSystem(path)
-            src_root = src_parent = ''
-        else:
-            src_fs = self._fs
-            src_root = path
-            src_parent = os.path.dirname(path) if self._fs.isfile(path) else path
-
         dst_root = os.path.join(self._raw_dir.os_path, target_dir)
 
         try:
-            for item, info in src_fs.find(src_root, None, True, True).items():
-                rel_path = os.path.relpath(item, src_parent)
-                dst_path = os.path.join(dst_root, rel_path)
-                if info['type'] == 'file':
-                    if self._fs.exists(dst_path) and not self._fs.isfile(dst_path):
-                        raise ValueError(
-                            f'Cannot merge a file with a directory or vice versa: {rel_path}.'
-                        )
-                    if src_fs is not self._fs or item != dst_path:
-                        self._fs.mkdirs(os.path.dirname(dst_path), exist_ok=True)
-                        with (
-                            src_fs.open(item) as src_f,
-                            self._fs.open(dst_path, 'wb') as dst_f,
-                        ):
-                            shutil.copyfileobj(src_f, dst_f)
+            if archive_format == 'tar':
+                with target_fs.open(path, 'rb') as f:
+                    with tarfile.open(fileobj=f, mode='r|*') as tar:
+                        for member in tar:
+                            rel_path = member.name
+                            if not is_safe_relative_path(rel_path):
+                                continue
+                            dst_path = os.path.join(dst_root, rel_path)
+                            if member.isfile():
+                                if self._fs.exists(dst_path) and not self._fs.isfile(
+                                    dst_path
+                                ):
+                                    raise ValueError(
+                                        f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                    )
+                                self._fs.mkdirs(
+                                    os.path.dirname(dst_path), exist_ok=True
+                                )
+                                with (
+                                    tar.extractfile(member) as src_f,
+                                    self._fs.open(dst_path, 'wb') as dst_f,
+                                ):
+                                    shutil.copyfileobj(src_f, dst_f)
 
-                    if updated_files is not None:
-                        updated_files.add(os.path.join(target_dir, rel_path))
-                elif info['type'] == 'directory':
-                    if self._fs.exists(dst_path) and not self._fs.isdir(dst_path):
-                        raise ValueError(
-                            f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                if updated_files is not None:
+                                    updated_files.add(
+                                        os.path.join(target_dir, rel_path)
+                                    )
+                            elif member.isdir():
+                                if self._fs.exists(dst_path) and not self._fs.isdir(
+                                    dst_path
+                                ):
+                                    raise ValueError(
+                                        f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                    )
+                                self._fs.mkdirs(dst_path, True)
+            else:
+
+                @contextmanager
+                def open_archive() -> Iterator[tuple[str, str, AbstractFileSystem]]:
+                    if archive_format == 'zip':
+                        with FSUtility.open_archive(path) as _fs:
+                            yield '', '', _fs
+                    else:
+                        yield (
+                            path,
+                            os.path.dirname(path) if self._fs.isfile(path) else path,
+                            self._fs,
                         )
-                    self._fs.mkdirs(dst_path, True)
+
+                with open_archive() as pack:
+                    src_root, src_parent, src_fs = pack
+                    for item, info in src_fs.find(src_root, None, True, True).items():
+                        rel_path = os.path.relpath(item, src_parent)
+                        dst_path = os.path.join(dst_root, rel_path)
+                        if info['type'] == 'file':
+                            if self._fs.exists(dst_path) and not self._fs.isfile(
+                                dst_path
+                            ):
+                                raise ValueError(
+                                    f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                )
+                            if src_fs is not self._fs or item != dst_path:
+                                self._fs.mkdirs(
+                                    os.path.dirname(dst_path), exist_ok=True
+                                )
+                                with (
+                                    src_fs.open(item) as src_f,
+                                    self._fs.open(dst_path, 'wb') as dst_f,
+                                ):
+                                    shutil.copyfileobj(src_f, dst_f)
+
+                            if updated_files is not None:
+                                updated_files.add(os.path.join(target_dir, rel_path))
+                        elif info['type'] == 'directory':
+                            if self._fs.exists(dst_path) and not self._fs.isdir(
+                                dst_path
+                            ):
+                                raise ValueError(
+                                    f'Cannot merge a file with a directory or vice versa: {rel_path}.'
+                                )
+                            self._fs.mkdirs(dst_path, True)
         finally:
-            if hasattr(src_fs, 'close'):
-                src_fs.close()
-
             if cleanup_source_file_and_dir:
                 self._fs.rm(path, recursive=True)
                 if self._fs.exists(parent := os.path.dirname(path)) and not self._fs.ls(
                     parent, False
                 ):
                     self._fs.rm(parent, recursive=True)
-
-            self._size = self._fs.du(dst_root)
 
     def delete_rawfiles(self, path, updated_files: set[str] | None = None):
         assert is_safe_relative_path(path)
@@ -1361,7 +1557,7 @@ class StagingUploadFiles(UploadFiles):
             return
         if updated_files is not None:
             updated_files.update(
-                os.path.relpath(target, raw_os_path)
+                os.path.relpath(target, raw_os_path.as_posix())
                 for target in self._fs.find(os_path)
             )
         self._fs.rm(os_path, recursive=True)
@@ -1370,7 +1566,11 @@ class StagingUploadFiles(UploadFiles):
             self._fs.makedirs(os_path)
 
     def copy_or_move_rawfile(
-        self, src: str, dest: str, copy_or_move, updated_files: set[str] | None = None
+        self,
+        src: str,
+        dest: str,
+        copy_or_move: str,
+        updated_files: set[str] | None = None,
     ):
         assert is_safe_relative_path(src)
         assert is_safe_relative_path(dest)
@@ -1486,6 +1686,8 @@ class StagingUploadFiles(UploadFiles):
                 'Inconsistent access'
             )
 
+        fs = FSUtility.upath(target_dir).fs
+
         # zip archives
         if include_archive:
             with utils.timer(self.logger, 'packed msgpack archive') as log_data:
@@ -1494,51 +1696,54 @@ class StagingUploadFiles(UploadFiles):
                         target_dir, list(entry.entry_id for entry in entries), access
                     )
                 )
-                target_dir.msg_fp(other_access).delete()
-                target_dir.h5_fp(other_access).delete()
+                PathObject(target_dir.msg_fp(other_access).os_path, fs=fs).delete()
+                target_dir.h5_fp(other_access, fs=fs).delete()
 
         # zip raw files
         if include_raw:
             with utils.timer(self.logger, 'packed raw files'):
                 self._pack_raw_files(target_dir, access)
-                target_dir.zip_fp(other_access).delete()
+                target_dir.zip_fp(other_access, fs=fs).delete()
 
     def _pack_archive_files(
         self, target_dir: DirectoryObject, entries: list[str], access: str
     ):
-        number_of_entries = len(entries)
-
         def create_iterator():
             for item in entries:
                 fo = self._archive_file_object(item)
-                yield item, fo.os_path if fo.exists() else None
+                yield item, fo if fo.exists() else None
 
         try:
-            combine_archive(
-                target_dir.msg_fp(access).os_path, number_of_entries, create_iterator()
+            combine_archive(target_dir.msg_fp(access), create_iterator())
+
+            write_h5 = any(
+                [
+                    self.join_dir('archive').join_file(f'{entry_id}.h5').exists()
+                    for entry_id in entries
+                ]
             )
-
-            import h5py
-
-            with h5py.File(target_dir.h5_fp(access).os_path, 'w') as hdf5_target:
-                for entry_id in entries:
-                    with h5py.File(
-                        self.archive_hdf5_location(entry_id), 'a'
-                    ) as hdf5_source:
-                        group = hdf5_target.create_group(entry_id)
-                        for key in hdf5_source.keys():
-                            hdf5_source.copy(key, group)
+            if write_h5:
+                with FSUtility.open_h5(
+                    target_dir.h5_fp(access).os_path, 'w'
+                ) as hdf5_target:
+                    for entry_id in entries:
+                        with File(
+                            self.archive_hdf5_location(entry_id), 'a'
+                        ) as hdf5_source:
+                            group = hdf5_target.create_group(entry_id)
+                            for key in hdf5_source.keys():
+                                hdf5_source.copy(key, group)
         except Exception as e:
             self.logger.error('exception during packing archives', exc_info=e)
             raise
 
-        return number_of_entries
+        return len(entries)
 
     def _pack_raw_files(self, target_dir: DirectoryObject, access: str):
         try:
-            with zipfile.ZipFile(
-                target_dir.zip_fp(access).os_path, mode='w'
-            ) as raw_zip:
+            with FSUtility.open_archive(
+                target_dir.zip_fp(access).os_path, 'w'
+            ) as zip_fs:
                 for path_info in self.raw_listdir(recursive=True):
                     basename = os.path.basename(path_info.path)
                     # TODO remove extra handling of POTCAR files once processed uploads are published.
@@ -1547,7 +1752,7 @@ class StagingUploadFiles(UploadFiles):
                             continue  # Skip the unstripped POTCAR files when publishing
                         if basename.endswith('.stripped.stripped'):
                             continue  # Skip redundantly stripped POTCAR files (created due to bug #979) when publishing
-                    raw_zip.write(
+                    zip_fs.put_file(
                         self._raw_dir.join_file(path_info.path).os_path, path_info.path
                     )
         except Exception as e:
@@ -1670,9 +1875,9 @@ class PublicUploadFiles(UploadFiles):
         """
         # Determine access by inspecting the files
         files_found = False
-        sole_access = None
+        sole_access = ''
         for access in ('public', 'restricted'):
-            raw_zip_file_object = self.zip_fp(access)
+            raw_zip_file_object = self.raw_zip_file_object(access)
             archive_msg_file_object = self.msg_fp(access)
             archive_hdf5_file_object = self.h5_fp(access)
             found = (
@@ -1702,39 +1907,32 @@ class PublicUploadFiles(UploadFiles):
 
         return sole_access
 
-    def raw_zip_file_object(self) -> PathObject:
+    def raw_zip_file_object(self, access: str = None) -> PathObject:
         """
         Gets the raw zip file, either public or restricted, depending on which one is used.
         If both public and restricted files exist, or if none of them exist, a KeyError will
         be thrown.
         """
-        return self.zip_fp(self.access)
+        return self.zip_fp(access or self.access, fs=FSUtility.upath(self).fs)
+
+    def h5_fp(self, access: str, *, fs: AbstractFileSystem | None = None):
+        return super().h5_fp(access, fs=config.fs.public_fs.target_fs)
 
     @contextmanager
-    def _zip_fs(self):
-        zip_fs = ZipFileSystem(self.raw_zip_file_object().os_path)
-        yield zip_fs
-        zip_fs.close()
+    def _zip_fs(self, mode: Literal['a', 'w', 'r'] = 'r'):
+        with FSUtility.open_archive(self.raw_zip_file_object().os_path, mode) as zip_fs:
+            yield zip_fs
 
     def archive_hdf5_location(self, entry_id: str) -> str:
-        hdf5_file_object = self.h5_fp(self.access)
-        if not hdf5_file_object.exists():
+        fp = self.h5_fp(self.access)
+        if not fp.exists():
             raise FileNotFoundError()
 
-        return hdf5_file_object.os_path
-
-    @property
-    def _missing_raw_files(self):
-        return not self._fs.exists(self.raw_zip_file_object().os_path)
+        return fp.os_path
 
     @contextmanager
     def _open_msg_file(self) -> Iterator[ArchiveReader]:
-        msg_file_object = self.msg_fp(self.access, fallback=True)
-
-        if not msg_file_object.exists():
-            raise FileNotFoundError()
-
-        with read_archive(msg_file_object.os_path) as archive:
+        with read_archive(self.msg_fp(self.access, fallback=True).os_path) as archive:
             yield archive
 
     def to_staging(
@@ -1750,7 +1948,7 @@ class PublicUploadFiles(UploadFiles):
 
         staging_upload_files = StagingUploadFiles(self.upload_id, create=True)
         if (raw_zip_file := self.raw_zip_file_object()).exists():
-            staging_upload_files.add_rawfiles(raw_zip_file.os_path)
+            staging_upload_files.add_rawfiles(raw_zip_file)
 
         if include_archive:
             with suppress(FileNotFoundError):
@@ -1760,11 +1958,9 @@ class PublicUploadFiles(UploadFiles):
                             entry_id.strip(), to_json(data)
                         )
 
-                import h5py
-
-                with h5py.File(self.archive_hdf5_location('')) as hdf5_source:
+                with FSUtility.open_h5(self.archive_hdf5_location('')) as hdf5_source:
                     for entry_id, data in hdf5_source.items():
-                        with h5py.File(
+                        with File(
                             staging_upload_files.archive_hdf5_location(entry_id), 'w'
                         ) as hdf5_target:
                             for key in data.keys():
@@ -1776,17 +1972,21 @@ class PublicUploadFiles(UploadFiles):
         with self._zip_fs() as zip_fs:
             return not zip_fs.ls('', False)
 
+    def delete(self) -> None:
+        FSUtility.upath(self).rmdir(True)
+        super().delete()
+
     def raw_exists(self, path: str) -> bool:
         if not is_safe_relative_path(path):
             return False
-        if self._missing_raw_files:
+        if not self.raw_zip_file_object().exists():
             # We consider the empty path (i.e. root) to always "exists".
             return not path
         with self._zip_fs() as zip_fs:
             return zip_fs.exists(path)
 
     def raw_isfile(self, path: str) -> bool:
-        if not is_safe_relative_path(path) or self._missing_raw_files:
+        if not is_safe_relative_path(path) or not self.raw_zip_file_object().exists():
             return False
         with self._zip_fs() as zip_fs:
             return zip_fs.isfile(path)
@@ -1794,13 +1994,13 @@ class PublicUploadFiles(UploadFiles):
     def raw_listdir(
         self,
         path: str = '',
-        recursive=False,
-        files_only=False,
+        recursive: bool = False,
+        files_only: bool = False,
         depth: int = -1,
     ) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path) or depth == 0:
             return
-        if not path and self._missing_raw_files:
+        if not path and not self.raw_zip_file_object().exists():
             return
 
         with self._zip_fs() as zip_fs:
@@ -1871,29 +2071,32 @@ class PublicUploadFiles(UploadFiles):
 
         new_access = 'restricted' if with_embargo else 'public'
 
-        def _move_to(src, dest):
-            if src.exists():
-                dest.delete()
-                os.rename(src.os_path, dest.os_path)
-
-        _move_to(self.msg_fp(self.access), self.msg_fp(new_access))
-        _move_to(self.raw_zip_file_object(), self.zip_fp(new_access))
-        _move_to(self.h5_fp(self.access), self.h5_fp(new_access))
+        self.msg_fp(self.access).move_to(self.msg_fp(new_access))
+        self.raw_zip_file_object().move_to(self.raw_zip_file_object(new_access))
+        self.h5_fp(self.access).move_to(self.h5_fp(new_access))
 
         self.__dict__.pop('access', None)  # clear cached_property
 
     def files_to_bundle(
         self, export_settings: BundleExportSettings
     ) -> Iterable[FileSource]:
-        # Defines files for upload bundles of published uploads.
-        for filename in sorted(os.listdir(self.os_path)):
-            if filename.startswith('raw-') and export_settings.include_raw_files:
-                yield DiskFileSource(self.os_path, filename)
-            if (
-                filename.startswith('archive-')
-                and export_settings.include_archive_files
-            ):
-                yield DiskFileSource(self.os_path, filename)
+        upath = FSUtility.upath(self.raw_zip_file_object())
+        fs, location = upath.fs, upath.path
+        if export_settings.include_raw_files:
+            yield DiskFileSource(
+                os.path.dirname(location), os.path.basename(location), fs
+            )
+
+        for nominal_path in (
+            self.msg_fp(self.access).os_path,
+            self.h5_fp(self.access).os_path,
+        ):
+            upath = FSUtility.upath(nominal_path)
+            fs, location = upath.fs, upath.path
+            if export_settings.include_archive_files and fs.exists(location):
+                yield DiskFileSource(
+                    os.path.dirname(location), os.path.basename(location), fs
+                )
 
     @classmethod
     def files_from_bundle(

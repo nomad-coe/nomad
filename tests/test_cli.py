@@ -28,8 +28,10 @@ import pytest
 
 from nomad import files
 from nomad import processing as proc
+from nomad.auth.tokens import PATPruneResult
 from nomad.cli import cli
 from nomad.cli.cli import POPO
+from nomad.common import now
 from nomad.config import config
 from nomad.processing import Entry, ProcessStatus, Upload
 from nomad.search import search
@@ -40,6 +42,22 @@ from nomad.utils.exampledata import ExampleData
 
 def invoke_cli(*args, **kwargs):
     return click.testing.CliRunner().invoke(*args, obj=POPO(), **kwargs)
+
+
+@pytest.fixture
+def mock_prune_pat(monkeypatch):
+    captured = {}
+
+    def _install(result: PATPruneResult):
+        def _mock(**kwargs):
+            captured.clear()
+            captured.update(kwargs)
+            return result
+
+        monkeypatch.setattr('nomad.auth.tokens.prune_pat', _mock)
+        return captured
+
+    return _install
 
 
 @pytest.mark.usefixtures('reset_config', 'nomad_logging')
@@ -119,9 +137,21 @@ class TestAdmin:
     @pytest.mark.parametrize(
         'publish_time,dry,lifted',
         [
-            (datetime.datetime.now(), False, False),
-            (datetime.datetime(year=2012, month=1, day=1), True, False),
-            (datetime.datetime(year=2012, month=1, day=1), False, True),
+            (now(), False, False),
+            (
+                datetime.datetime(
+                    year=2012, month=1, day=1, tzinfo=datetime.timezone.utc
+                ),
+                True,
+                False,
+            ),
+            (
+                datetime.datetime(
+                    year=2012, month=1, day=1, tzinfo=datetime.timezone.utc
+                ),
+                False,
+                True,
+            ),
         ],
     )
     @pytest.mark.asyncio
@@ -167,13 +197,187 @@ class TestAdmin:
         entry = Entry.objects(upload_id=upload_id).first()
 
         result = invoke_cli(
-            cli, ['admin', 'entries', 'rm', entry.entry_id], catch_exceptions=False
+            cli,
+            ['admin', 'entries', 'rm', '--', entry.entry_id],
+            catch_exceptions=False,
         )
 
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
         assert Entry.objects(entry_id=entry.entry_id).first() is None
+
+    @pytest.mark.parametrize(
+        'args, expected_call, expected_summary, expected_warning',
+        [
+            # Test `inactive_for`
+            (
+                [
+                    'admin',
+                    'pats',
+                    'prune',
+                    '--dry-run',
+                    '--inactive-for',
+                    '12h',
+                    '--expired',
+                    '--revoked',
+                    '--user-id',
+                    'u1',
+                ],
+                {
+                    'dry_run': True,
+                    'inactive_for': datetime.timedelta(hours=12),
+                    'inactive_before': None,
+                    'expired': True,
+                    'revoked': True,
+                    'user_id': 'u1',
+                },
+                {
+                    'matched': 2,
+                    'deleted': 0,
+                    'expired_matched': 1,
+                    'revoked_matched': 1,
+                    'dry_run': True,
+                },
+                None,
+            ),
+            # Test `inactive_before`
+            (
+                [
+                    'admin',
+                    'pats',
+                    'prune',
+                    '--inactive-before',
+                    '2026-04-21T09:30:00',
+                    '--expired',
+                    '--user-id',
+                    'u2',
+                ],
+                {
+                    'dry_run': False,
+                    'inactive_for': None,
+                    'inactive_before': datetime.datetime(2026, 4, 21, 9, 30, 0),
+                    'expired': True,
+                    'revoked': False,
+                    'user_id': 'u2',
+                },
+                {
+                    'matched': 1,
+                    'deleted': 1,
+                    'expired_matched': 1,
+                    'revoked_matched': 0,
+                    'dry_run': False,
+                },
+                None,
+            ),
+            # Test warning on missing unit
+            (
+                [
+                    'admin',
+                    'pats',
+                    'prune',
+                    '--dry-run',
+                    '--inactive-for',
+                    '90',
+                    '--expired',
+                    '--user-id',
+                    'u3',
+                ],
+                {
+                    'dry_run': True,
+                    'inactive_for': datetime.timedelta(days=90),
+                    'inactive_before': None,
+                    'expired': True,
+                    'revoked': False,
+                    'user_id': 'u3',
+                },
+                {
+                    'matched': 0,
+                    'deleted': 0,
+                    'expired_matched': 0,
+                    'revoked_matched': 0,
+                    'dry_run': True,
+                },
+                'Warning: No unit specified in duration "90", assuming "d".',
+            ),
+        ],
+    )
+    def test_prune_pats_success(
+        self,
+        monkeypatch,
+        mock_prune_pat,
+        args,
+        expected_call,
+        expected_summary,
+        expected_warning,
+    ):
+        monkeypatch.setattr('nomad.infrastructure.setup_mongo', lambda: None)
+        cutoff = now() - datetime.timedelta(days=7)
+        captured = mock_prune_pat(
+            PATPruneResult(
+                matched=expected_summary['matched'],
+                deleted=expected_summary['deleted'],
+                expired_matched=expected_summary['expired_matched'],
+                revoked_matched=expected_summary['revoked_matched'],
+                cutoff=cutoff,
+                dry_run=expected_summary['dry_run'],
+                user_id=expected_call['user_id'],
+            )
+        )
+
+        result = invoke_cli(cli, args, catch_exceptions=False)
+        assert result.exit_code == 0
+        assert captured == expected_call
+        assert f'total_matched: {expected_summary["matched"]}' in result.stdout
+        assert (
+            f'expired_matched: {expected_summary["expired_matched"]}' in result.stdout
+        )
+        assert (
+            f'revoked_matched: {expected_summary["revoked_matched"]}' in result.stdout
+        )
+        assert f'deleted: {expected_summary["deleted"]}' in result.stdout
+        assert f'dry_run: {expected_summary["dry_run"]}' in result.stdout
+        assert 'cutoff_local:' in result.stdout
+        assert 'cutoff_utc:' in result.stdout
+        if expected_warning:
+            assert expected_warning in result.output
+        else:
+            assert 'Warning: No unit specified' not in result.output
+
+    @pytest.mark.parametrize(
+        'args, expected_message',
+        [
+            (
+                [
+                    'admin',
+                    'pats',
+                    'prune',
+                    '--expired',
+                    '--inactive-before',
+                    '2026-04-21T09:30:00',
+                    '--inactive-for',
+                    '90d',
+                ],
+                'inactive_before and inactive_for are mutually exclusive.',
+            ),
+            (
+                [
+                    'admin',
+                    'pats',
+                    'prune',
+                    '--expired',
+                    '--inactive-for',
+                    '-1d',
+                ],
+                'Duration must be non-negative.',
+            ),
+        ],
+    )
+    def test_prune_pats_invalid_arguments(self, monkeypatch, args, expected_message):
+        monkeypatch.setattr('nomad.infrastructure.setup_mongo', lambda: None)
+        result = invoke_cli(cli, args, catch_exceptions=False)
+        assert result.exit_code != 0
+        assert expected_message in result.output
 
 
 def transform_for_index_test(entry):
@@ -645,6 +849,7 @@ class TestClient:
             [
                 'client',
                 'local',
+                '--',
                 published_wo_user_metadata.successful_entries[0].entry_id,
             ],
             catch_exceptions=True,

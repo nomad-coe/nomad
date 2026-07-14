@@ -1094,7 +1094,8 @@ class Rule(BaseModel):
         """
         overridden_rule = self.copy()
         # Update non-empty fields from the referenced rule, excluding 'use_rule' to prevent circular references
-        for field_name, field_value in referenced_rule.model_dump().items():
+        for field_name in type(referenced_rule).model_fields:
+            field_value = getattr(referenced_rule, field_name)
             if field_value and field_name != 'use_rule':
                 setattr(overridden_rule, field_name, field_value)
         return overridden_rule
@@ -1245,6 +1246,27 @@ class Mapper(BaseModel):
         """ indices to include in data""",
     )
     search: str | None = Field(None, description="""Path to search on value.""")
+    update_mode: str = Field(
+        'merge',
+        description="""
+        Mode to update the section with new data during subsequent parsing.
+
+        Available modes:
+            - 'merge' (default): Recursively merge dictionaries, align list elements
+            - 'append': Keep existing data, add incoming only if existing is None
+            - 'replace': Completely replace existing data
+            - 'merge@start': Align list[0] with existing[0]
+            - 'merge@last': Align list[-1] with existing[-1]
+            - 'merge@N': Align list[N] with existing[0]
+
+        In annotation hierarchies, each mapper can specify its own update_mode. Child
+        mappers' modes apply to their respective subsections, enabling per-subsection
+        control during multi-pass parsing.
+
+        Example:
+            add_mapping_annotation(Section.field, 'key', '.path', update_mode='append')
+        """,
+    )
 
 
 class MappingAnnotation(AnnotationModel):

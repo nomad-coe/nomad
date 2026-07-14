@@ -78,6 +78,10 @@ temporal:
   namespace: default
   port: 7233
   graceful_shutdown_timeout: 1
+  oidc:
+    enabled: false
+  payload_codec_key: null
+  payload_codec_key_id: default
   processing_timeouts:
     internal_processing_heartbeat_timeout: 600
     delete_upload_timeout: 7200
@@ -88,6 +92,17 @@ temporal:
     publish_upload_timeout: 7200
     publish_externally_timeout: 7200
     process_example_upload_timeout: 7200
+actions:
+  action_assets:
+    max_file_size_bytes: 104857600
+    allowed_media_types:
+      - audio/*
+      - image/*
+      - application/pdf
+      - application/json
+      - text/plain
+      - application/octet-stream
+    per_user_quota_bytes: 10737418240
 fs:
   local_tmp: /tmp
   north_home: .volumes/fs/north/users

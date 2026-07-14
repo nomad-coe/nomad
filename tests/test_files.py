@@ -33,6 +33,7 @@ from nomad.archive import to_json
 from nomad.config import config
 from nomad.files import (
     DirectoryObject,
+    FSUtility,
     PathObject,
     PublicUploadFiles,
     StagingUploadFiles,
@@ -121,16 +122,6 @@ class TestObjects:
         assert directory.exists() == join_create
         assert os.path.isdir(directory.os_path) == join_create
 
-    @pytest.mark.parametrize('filepath', ['test', 'sub/test'])
-    @pytest.mark.parametrize('create', [True, False])
-    def test_directory_join_file_dir_create(
-        self, test_area: str, filepath: str, create: bool
-    ):
-        directory = DirectoryObject(os.path.join(test_area, 'parent'), create=create)
-        file = directory.join_file(filepath, create_dir=create)
-        assert os.path.exists(directory.os_path) == create
-        assert os.path.exists(os.path.dirname(file.os_path)) == create
-
 
 example_entry: dict[str, Any] = {
     'entry_id': '0',
@@ -141,7 +132,7 @@ example_entry_id = example_entry['entry_id']
 
 
 def generate_example_entry(
-    entry_id: int, with_mainfile_prefix: bool, subdirectory: str = None, **kwargs
+    entry_id: int, with_mainfile_prefix: bool, subdirectory: str | None = None, **kwargs
 ) -> EntryWithFiles:
     """Generate an example entry with :class:`EntryMetadata` and rawfile."""
 
@@ -301,7 +292,7 @@ class UploadFilesContract(UploadFilesFixtures):
 
     def test_archive_hdf5_file(self, test_upload: UploadWithFiles):
         _, _, upload_files = test_upload
-        with open(upload_files.archive_hdf5_location(example_entry_id), 'rb') as f:
+        with FSUtility.open(upload_files.archive_hdf5_location(example_entry_id)) as f:
             assert len(f.read()) > 0
 
 
@@ -320,7 +311,6 @@ def create_staging_upload(
             First entry is at top level, following entries will be put under 1/, 2/, etc.
             All entries with capital `P`/`R` will be put in the same directory under multi/.
     """
-    import h5py
 
     upload_files = StagingUploadFiles(upload_id, create=True)
     entries = []
@@ -344,7 +334,9 @@ def create_staging_upload(
 
         upload_files.add_rawfiles(entry_file)
         upload_files.write_archive(entry.entry_id, example_archive_contents)
-        with h5py.File(upload_files.archive_hdf5_location(entry.entry_id), 'a') as f:
+        with FSUtility.open_h5(
+            upload_files.archive_hdf5_location(entry.entry_id), 'w'
+        ) as f:
             f.create_dataset('value', data=1.0)
 
         entries.append(entry)
@@ -387,6 +379,30 @@ class TestStagingUploadFiles(UploadFilesContract):
             test_upload.external_os_path, 'raw', target_dir, 'examples_template.zip'
         )
         assert os.path.isfile(filepath)
+
+    @pytest.fixture(scope='function')
+    def example_tar_gz_file(self, tmp_path):
+        import tarfile
+
+        tar_path = tmp_path / 'examples_template.tar.gz'
+        with tarfile.open(tar_path, 'w:gz') as tar:
+            for filepath in example_file_contents:
+                local_path = os.path.join(
+                    example_directory, filepath.removeprefix('examples_template/')
+                )
+                tar.add(local_path, arcname=filepath)
+        return str(tar_path)
+
+    @pytest.mark.parametrize('target_dir', ['', 'subdir'])
+    def test_add_rawfiles_tar(self, test_upload_id, target_dir, example_tar_gz_file):
+        test_upload = StagingUploadFiles(test_upload_id, create=True)
+        test_upload.add_rawfiles(example_tar_gz_file, target_dir=target_dir)
+        for filepath in example_file_contents:
+            filepath = os.path.join(target_dir, filepath) if target_dir else filepath
+            with test_upload.raw_file(filepath) as f:
+                content = f.read()
+                if filepath == example_mainfile_raw_path:
+                    assert len(content) > 0
 
     def test_pack(self, test_upload: StagingUploadWithFiles):
         _, entries, upload_files = test_upload
@@ -588,7 +604,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             if not os.path.exists(file_name):
                 assert access not in os.path.basename(file_name)
             elif access in os.path.basename(file_name):
-                if 'archive' in file_name:
+                if file_name.endswith('.msg.msg'):
                     assert os.path.getsize(file_name) > 100, (
                         'Archive files should have been packed'
                     )
@@ -603,6 +619,36 @@ class TestPublicUploadFiles(UploadFilesContract):
                 )
 
         assert upload_files.to_staging() is None
+
+    @pytest.mark.parametrize(
+        'with_source_h5',
+        [True, False],
+        ids=['with-source-h5', 'without-source-h5'],
+    )
+    def test_to_staging_upload_files_include_archive_h5(
+        self, test_upload_id, with_source_h5
+    ):
+        _, entries, public_upload_files = create_public_upload(
+            test_upload_id, entry_specs='p', with_upload=False
+        )
+        if not with_source_h5:
+            public_upload_files.h5_fp(public_upload_files.access).delete()
+
+        restored_staging_upload_files = public_upload_files.to_staging(
+            create=True, include_archive=True
+        )
+        assert restored_staging_upload_files is not None
+
+        for entry in entries:
+            with restored_staging_upload_files.read_archive(entry.entry_id) as archive:
+                assert entry.entry_id in archive
+
+            archive_h5 = PathObject(
+                restored_staging_upload_files.archive_hdf5_location(entry.entry_id)
+            )
+            assert archive_h5.exists() == with_source_h5
+
+        restored_staging_upload_files.delete()
 
     def test_repack(self, test_upload):
         upload_id, entries, upload_files = test_upload
@@ -623,7 +669,7 @@ class TestPublicUploadFiles(UploadFilesContract):
         ],
     )
     def test_archive_version_suffix(
-        self, monkeypatch, test_upload_id, suffixes, suffix
+        self, monkeypatch, test_upload_id, suffixes, suffix, mongo_function, request
     ):
         monkeypatch.setattr('nomad.config.fs.archive_version_suffix', suffixes)
         _, entries, upload_files = create_staging_upload(
@@ -634,12 +680,14 @@ class TestPublicUploadFiles(UploadFilesContract):
 
         public_upload_files = PublicUploadFiles(test_upload_id)
 
-        assert os.path.exists(
-            public_upload_files.join_file('raw-public.plain.zip').os_path
-        )
-        assert os.path.exists(
-            public_upload_files.join_file(f'archive-public{suffix}.msg.msg').os_path
-        )
+        assert public_upload_files.raw_zip_file_object().exists()
+        if (
+            not request.config.getoption('--s3-storage')
+            and not config.fs.public_fs.protocol
+        ):
+            assert public_upload_files.join_file(
+                f'archive-public{suffix}.msg.msg'
+            ).exists()
 
         assert_upload_files(test_upload_id, entries, PublicUploadFiles)
 
@@ -714,10 +762,10 @@ def create_test_upload_files(
     archives: list[datamodel.EntryArchive] | None = None,
     published: bool = True,
     embargo_length: int = 0,
-    raw_files: str = None,
+    raw_files: str | None = None,
     template_files: str = example_file,
     template_mainfile: str = example_mainfile_raw_path,
-    additional_files_path: str = None,
+    additional_files_path: str | None = None,
 ) -> UploadFiles:
     """
     Creates an upload_files object and the underlying files for test/mock purposes.
@@ -807,9 +855,10 @@ def append_raw_files(upload_id: str, path_source: str, path_in_upload: str):
     """
     upload_files = UploadFiles.get(upload_id)
     if isinstance(upload_files, PublicUploadFiles):
-        zip_path = upload_files.raw_zip_file_object().os_path
-        with zipfile.ZipFile(zip_path, 'a') as zf:
-            zf.write(path_source, path_in_upload)
+        with FSUtility.open_archive(
+            upload_files.raw_zip_file_object().os_path, 'a'
+        ) as zip_fs:
+            zip_fs.put_file(path_source, path_in_upload)
     else:
         path = upload_files._raw_dir.os_path  # type: ignore
         shutil.copy(path_source, os.path.join(path, path_in_upload))

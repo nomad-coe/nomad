@@ -1,6 +1,6 @@
 import functools
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from nomad.actions import TaskQueue
 
@@ -21,6 +21,8 @@ class Action:
     activities: list[Callable]
     workflow: _HasRun
     child_workflows: list
+    task_queue_activities: dict[TaskQueue | str, list[Callable]]
+    nexus_service_handlers: list[Any]
 
     def __init__(
         self,
@@ -28,6 +30,8 @@ class Action:
         activities: list[Callable],
         workflow: _HasRun,
         child_workflows: list | None = None,
+        task_queue_activities: dict[TaskQueue | str, list[Callable]] | None = None,
+        nexus_service_handlers: list[Any] | None = None,
     ):
         """
         Initializes the Action with a task queue and a list of activities and a workflow, and child workflows.
@@ -38,6 +42,10 @@ class Action:
                         this handler can perform.
             workflow: The main workflow for this Action.
             child_workflows: Optionally, any child workflows of of the main workflow.
+            task_queue_activities: Additional activities that should be registered
+                                   on other task queues for this action.
+            nexus_service_handlers: Nexus service handler instances that should be
+                                    registered on this action's task queue.
         Raises:
             TypeError: If task_queue is not a TaskQueue or activities is not a list
                        of callables.
@@ -49,10 +57,30 @@ class Action:
         child_workflows = child_workflows if child_workflows is not None else []
         if not isinstance(child_workflows, list):
             raise TypeError('child_workflow must be a list')
+        task_queue_activities = (
+            task_queue_activities if task_queue_activities is not None else {}
+        )
+        if not isinstance(task_queue_activities, dict):
+            raise TypeError('task_queue_activities must be a dict')
+        if not all(
+            isinstance(queue_activities, list)
+            and all(callable(activity) for activity in queue_activities)
+            for queue_activities in task_queue_activities.values()
+        ):
+            raise TypeError(
+                'task_queue_activities values must be lists of callable functions'
+            )
+        nexus_service_handlers = (
+            nexus_service_handlers if nexus_service_handlers is not None else []
+        )
+        if not isinstance(nexus_service_handlers, list):
+            raise TypeError('nexus_service_handlers must be a list')
         self.task_queue = task_queue  # type: ignore
         self.activities = activities
         self.workflow = workflow
         self.child_workflows = child_workflows
+        self.task_queue_activities = task_queue_activities
+        self.nexus_service_handlers = nexus_service_handlers
 
 
 @functools.lru_cache

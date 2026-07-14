@@ -7,10 +7,10 @@ been defined in this *old MetaInfo*. The experience with this system revealed th
 
 - The Python libraries that allow to use the MetaInfo are non pythonic and incomplete.
 - The MetaInfo is only used for the archive, not for the encyclopedia and repository data.
-- There is no direct support to map MetaInfo definitions to DI technologies (databases, search indices, APIs).
+- There is no direct support to map MetaInfo definitions to data infrastructure (DI) technologies (databases, search indices, APIs).
 - There is no support for namespaces. MetaInfo names are cumbersome. This will not scale to expected levels of FAIRmat metadata.
 - MetaInfo packages are not version controlled. They are part of the same git and do not belong to the independently evolving parsers. This does not allow for "external" parser development and makes it hard to keep versions consistent.
-- The MetaInfo is defined in JSON. The syntax is inadequate, checks are not immediate.
+- The MetaInfo is defined in JSON. The syntax is inadequate, and checks are not immediate.
 - Attempts to revise the MetaInfo have failed in the past.
 
 ## Goals
@@ -19,18 +19,18 @@ been defined in this *old MetaInfo*. The experience with this system revealed th
 
 The *physics quantities* part includes
 - each quantity MAY have a physics *unit*
-- each quantity MUST have a *shape* that precisely define vectors, matrices, tensors, and their dimensions
+- each quantity MUST have a *shape* that precisely defines vectors, matrices, tensors, and their dimensions
 - each quantity MAY have a numpy dtype that allows to map physics data to numpy arrays
 
-The *relationship* parts entails:
+The *relationship* part entails:
 - hierarchies for quantity *values* (e.g. *sections*)
-- hierarchies for quantity *definition* (e.g. *categories*, former *abstract types*)
+- hierarchies for quantity *definitions* (e.g. *categories*, formerly *abstract types*)
 - *derived* quantities that can be computed from other quantities
 - *synonyms* as a special trivial case for derived quantities
 - *shapes* might also define a type of relationship through one quantity being the dimension of another
 - *references* between sections, via quantities that have a section definition as type
 
-In addition there are the *typical* data-type definition (schema, ontology, ...) features:
+In addition, there are the *typical* data-type definition (schema, ontology, ...) features:
 - names/namespaces
 - modularization (i.e. Metainfo packages)
 - extensions: section inheritance, sections that add to other sections after definition
@@ -43,20 +43,20 @@ In addition there are the *typical* data-type definition (schema, ontology, ...)
 
 There are a lot of quantities, and they need to be organized. There are three mechanisms
 to organize quantities:
-- *Packages* (a.k.a modules) allow to modularize large sets of quantities, e.g. one package per code
-- *Sections* allow to organize quantity values into containment (a.k.a whole-part, parent-child) hierarchies, e.g. `system` *contains* all quantity values that describe the simulated system.
-- *Categories* allow to organize quantity definitions via generalization (a.k.a specialization, inheritance) relationships, e.g. `atom_labels` and `formula_hill` (*special*) both express `chemical_composition` (*general*)
+- *Packages* (a.k.a. modules) allow modularization of large sets of quantities, e.g. one package per code
+- *Sections* organize quantity values into containment (a.k.a. whole-part, parent-child) hierarchies, e.g. `system` *contains* all quantity values that describe the simulated system.
+- *Categories* organize quantity definitions via generalization (a.k.a. specialization, inheritance) relationships, e.g. `atom_labels` and `formula_hill` (*special*) both express `chemical_composition` (*general*)
 
-Quantities and their relationships change over time. This requires (at least) a versioning mechanism to track changes and reason whether a pieces of data adheres to a certain version of the MetaInfo or not.
+Quantities and their relationships change over time. This requires (at least) a versioning mechanism to track changes and reason whether a piece of data adheres to a certain version of the MetaInfo or not.
 
-The MetaInfo needs to be extendable. It must be possible to add *packages*, quantities in new *packages* must be addable to existing sections and categories. Existing sections must be extendable. It must be possible to develop and version packages independently.
+The MetaInfo needs to be extendable. It must be possible to add *packages*, and quantities in new *packages* must be addable to existing sections and categories. Existing sections must be extendable. It must be possible to develop and version packages independently.
 
 ### Mappings to DI technologies
 
-The core of the MetaInfo is about defining data and their physics. But in the end, the data needs to be managed with DI components, such as file formats, databases, search indices, onotology tools, APIs, GUIs, programming languages, etc. While all these tools come with their own ways of defining data, it can be cumbersome to manually map the MetaInfo to the corresponding DI technology. Furthermore, this usually comprises both mapping definitions and transforming values.
+The core of the MetaInfo is about defining data and its physics. But in the end, the data needs to be managed with DI components, such as file formats, databases, search indices, ontology tools, APIs, GUIs, programming languages, etc. While all these tools come with their own ways of defining data, it can be cumbersome to manually map the MetaInfo to the corresponding DI technology. Furthermore, this usually comprises both mapping definitions and transforming values.
 
-The MetaInfo will allow for quantity *annotations*. Annotations allow to add additional
-information to quantity definitions that carry the necessary information to automatically map/transform definitions and their values to underlying DI components. Annotations can be easily stripped/filtered to present the MetaInfo either clean or under technology specific lenses.
+The MetaInfo will allow quantity *annotations*. Annotations allow adding additional
+information to quantity definitions that carry the necessary information to automatically map/transform definitions and their values to underlying DI components. Annotations can be easily stripped/filtered to present the MetaInfo either cleanly or through technology-specific lenses.
 
 ### Intuitive programming interface to create, access, and use (meta-)data defined with the NOMAD MetaInfo
 
@@ -64,7 +64,7 @@ While MetaInfo definitions and MetaInfo values should have a *native* serializat
 
 As a programming language, Python has a far richer set of syntax to define and use data
 than JSON has. We should use this. It was not used for definitions in the NOMAD CoE, and
-the *backend*s for data were designed for creating data only and not very *pythonic*.
+the *backends* for data were designed for creating data only and not very *pythonic*.
 
 ## Concepts for a new NOMAD MetaInfo
 
@@ -73,16 +73,16 @@ adhere to the schema and what not. We also say that we validate data against a s
 check if the data follows all the rules. In this sense, a schema defines an unlimited
 set of possible data that can be expressed in this schema.
 
-The definitions a schema can possibly contain is also govern by rules and these rules are also
-defined in a schema and this schema would be the schema of the schema. To be even
+The definitions a schema can possibly contain are also governed by rules, and these rules are also
+defined in a schema; this schema would be the schema of the schema. To be even
 more confusing, a schema can be the schema of itself. Meaning we can use the same set of
-definitions to formally define the definitions themselves. But lets start with an
-informal definition of schema elements.
+definitions to formally define the definitions themselves. But let's start with
+informal definitions of schema elements.
 
 ### Conventions
 
-When mapping the following concepts to python implementations, we use the prefix `m_` on
-all methods and attributes that might conflict with user given names for meta info
+When mapping the following concepts to Python implementations, we use the prefix `m_` on
+all methods and attributes that might conflict with user-given names for meta-info
 definitions.
 
 ### Definition
@@ -91,8 +91,8 @@ in the sense that you cannot define definitions directly. The abstract definitio
 barely defines a set of properties that is then shared by other elements.
 
 These properties include:
-- the elements *name* in the sense of a python compatible identifier (only a-bA-Z0-9_ and conventionally in camel case)
-- a human readable description, potentially in markdown format
+- the element's *name* in the sense of a Python-compatible identifier (only a-bA-Z0-9_ and conventionally in camel case)
+- a human-readable description, potentially in markdown format
 - a list of categories
 - annotations that attach possible metainfo extensions (db, search support, etc.) to the definition
 
@@ -106,7 +106,6 @@ These properties include:
 
 - *derived*: `qualified_name`
 
-
 ### Property
 
 `Property` is a special `Definition` and an abstract base for section properties.
@@ -115,38 +114,36 @@ Properties define what data a section instance can hold. Properties are mapped t
 
 - `section` specialized `parent` relation with the containing `Section`
 
-
 #### SubSections
 
 `SubSection` is a special `Property` that defines that a section instance can **contain**
-the instances of a sub section.
+the instances of a subsection.
 
 - `sub_section` reference to the `Section` definition for the children
-- `repeats` is a boolean that determines if this sub section can be contain only once of multiple times
+- `repeats` is a boolean that determines if this subsection can be contained only once or multiple times
 
-- *constraint*: sub sections are not circular
-
+- *constraint*: subsections are not circular
 
 ### Quantities (incl. dimensions, incl. references)
 
 A Quantity definition is a special definition. A quantity can be contained in a
 section and a quantity has a value. The type of the quantity values is determined by its quantity
-definition. Quantity value can be scalar, vectors, matrices, or higher-dimensional matrices.
+definition. Quantity values can be scalars, vectors, matrices, or higher-dimensional matrices.
 Each possible dimension can contain *primitive values*. Possible primitive value types are
 numerical types (int, float, int32, ...), bool, str, or references to other sections. Types
 of references are defined by referencing the respective section definition.
 
 A quantity definition has all definition quantities (name, description, ...) and has the following properties
-- *type* the data type that determine the possible values that the various dimensions can contain
-- a *shape* that determines how many primitive values each dimension of the quantities value can contain. This can be a fix integer,
-a *wildcard* like 1..n or 0..n, or a references to another property with one dimension with a single int.
+- *type* the data type that determines the possible values that the various dimensions can contain
+- a *shape* that determines how many primitive values each dimension of the quantity value can contain. This can be a fixed integer,
+a *wildcard* like 1..n or 0..n, or a reference to another property with one dimension with a single int.
 - *units* is a list of strings that determines the physical unit of the various dimensions.
 
 A `Quantity` definition is a special and concrete `Property` definition:
 
 - `shape`, a list of either `int`, references to a dimension (quantity definition), or limits definitions (e.g. `'1..n'`, `'0..n'`.)
 - `type`, a primitive or MEnum type
-- `unit`, a (computed) units, e.g. `units.F * units.m`
+- `unit`, a (computed) unit, e.g. `units.F * units.m`
 - `derived_from`, a list of references to other quantity definitions
 - `synonym`, a reference to another quantity definition
 
@@ -154,26 +151,25 @@ A `Quantity` definition is a special and concrete `Property` definition:
 
 - *constraint*: `synonym`, `derived_from`, and dimensions come from the same section
 
-
 ### Sections (incl. references)
 
 A section definition is a special definition. Sections will be used to create
-hierarchical structures of data. A section can contain other section and a set of properties.
+hierarchical structures of data. A section can contain other sections and a set of properties.
 A section definition has the following properties: name, description, (parent) section (as all element definitions have), plus
-- a boolean *abstract* that determine if this section definition can be instantiated
+- a boolean *abstract* that determines if this section definition can be instantiated
 - a boolean *repeats* that determines if instances of this section can appear multiple times in their respective parent section
-- a references to another section definition called *extends* that denotes that instance of this definition can
+- a reference to another section definition called *extends* that denotes that instances of this definition can
 contain instances of all the element definitions that state the extended section definition as their (parent) section.
 
 A `Section` is a special and concrete `Definition`.
 
 - `adds_to`, a reference to another section definition. All quantities of this *pseudo* section are added to the given section. (Might not be necessary)
 - `repeats`, a boolean
-- `extends`, list of reference to other section definitions. This section automatically inherits all quantities of the other sections. (Might not be necessary)
+- `extends`, list of references to other section definitions. This section automatically inherits all quantities of the other sections. (Might not be necessary)
 
-- *derived*: `all_sub_sections`, all sub sections, included added and inherited ones, by name
-- *derived*: `all_quantities`, all quantities, included added and inherited ones, by name
-- *derived*: `all_properties`, all properties, included added and inherited ones, by name
+- *derived*: `all_sub_sections`, all subsections, including added and inherited ones, by name
+- *derived*: `all_quantities`, all quantities, including added and inherited ones, by name
+- *derived*: `all_properties`, all properties, including added and inherited ones, by name
 
 - *constraint*: `extends` is not circular
 - *constraint*: `adds_to` is not circular
@@ -181,13 +177,11 @@ A `Section` is a special and concrete `Definition`.
 
 `Section`s are mapped to Python classes/objects. `extends` is mapped to Python inheritance.
 
-
 ### Categories
 
 A `Category` is a special `Definition`.
 
 - *constraint:* `Category` definition and its `categories` attribute do not form circles
-
 
 ### Packages
 Packages are special definitions. Packages can contain section definitions
@@ -200,27 +194,26 @@ to Python modules.
 - *derived*: `sections`, all sections in this package
 - *derived*: `categories`, all categories in this package
 
-
 ### Annotations
 
 Arbitrary objects that can be attached to all definitions and contain additional information.
 
-
 ### Resources
 
 A *resource* refers to anything that can be used to *hold* data. This can be basic
-in python memory, a JSON file, an HDF5 file, a search index, a mongodb, or a remote
+in Python memory, a JSON file, an HDF5 file, a search index, a mongodb, or a remote
 resource that is accessible via REST API. Respective *resource* classes and their objects
 are used to parameterize access to the data. For example, to access a JSON file a
 file path is required, to store something in mongodb a connection to mongo and a collection
-is necessary, to read from an API an endpoint and possible parameters have to be configured.
+is necessary, and to read from an API an endpoint and possible parameters have to be configured.
 
 Beyond parameterized data access, all resources offer the same interface to navigate,
-enter, or modify data. The only exception are readonly resources that do not allow
+enter, or modify data. The only exceptions are read-only resources that do not allow
 to add or modify data.
 
 The creation of resources could be allowed directly from a `nomad` package to create a
 very simple interface:
+
 ```python
 nomad.parse('vasp_out.xml')
 nomad.open('archive.json')
@@ -230,7 +223,7 @@ nomad.connect('https://nomad.fairdi.eu/archive/3892r478323/23892347')
 ```
 
 The various resource implementations should offer the same interface. Necessary methods are
-- `close(save: bool = True)` to close a open file or connection
+- `close(save: bool = True)` to close an open file or connection
 - `save()` to save changes
 
 ### Data Objects
@@ -239,21 +232,21 @@ When navigating the contents of a resource (e.g. via `nomad.open('archive.json')
 we start from a resource object (`nomad.open('archive.json')`) and pass various *data objects* (`.run.system.atom_labels`).
 There are obviously different types of data objects, i.e. *sections* (like `run`, `system`) and
 *properties* (like `atom_labels`). Sections and properties have to offer different interfaces.
-Sections need to allow to access and create subsections and properties. Properties have to allow to
+Sections need to allow access to and creation of subsections and properties. Properties have to allow
 access, set, or modify the stored data.
 
 Independent of the object type, all data objects should allow to navigate to the definition (e.g. `run.m_definition`, `run.system.atom_labels.definition`).
 
 Navigation uses the user defined names of meta-info definitions for sections and properties.
 
-Section object need to support:
-- access to subsection via subsection name
-- access of properties via property name
+Section objects need to support:
+- access to subsections via subsection name
+- access to properties via property name
 - array access for repeatable sections
 - navigation to its containing section: `.m_def`
 - allow to create/(re-)open subsections via calling the subsection name as a method: `.system()`
 - close a section so that the underlying resource implementation can potentially remove the section from memory and write it to a database/.hdf5 file
-- the *GraphQL* like access methods with dictionary to specify multiple sub-sections
+- *GraphQL*-like access methods with dictionaries to specify multiple subsections
 
 Property objects
 - access to values, depending on the shape and desired representation: `.value`, `.values`, `.np_array`
@@ -281,12 +274,13 @@ URLs only contain the path, remote URLs also contain a part that identifies the 
 The local reference in the previous example would be `/run/system/0`, referring to the first
 system in the run.
 
-If we create two different resource:
+If we create two different resources:
+
 ```python
 systems = nomad.open('systems.json')
 calcs = nomad.open('calc.json')
-system_1 systems.system()
-system_2 systems.system()
+system_1 = systems.system()
+system_2 = systems.system()
 calc = calcs.run().single_configuration_calculation()
 calc.system = system_2
 systems.close()
@@ -295,30 +289,30 @@ calcs.close()
 
 the reference in the `calc.json` would be `file://systems.json/system/1`.
 
-When accessing a resource, other resources will be accessed on demand, when ever a reference
+When accessing a resource, other resources will be accessed on demand, whenever a reference
 needs to be resolved. The library can keep track of all accessed (and therefore open)
-resources through a global resource set. In more involved use-cases, it might be desirable
-that users can control resource sets via python.
+resources through a global resource set. In more involved use cases, it might be desirable
+that users can control resource sets via Python.
 
 ### MSection
 
-`MSection` is a Python base-class for all sections and provides additional reflection.
+`MSection` is a Python base class for all sections and provides additional reflection.
 
 - `m_def`: Python variable with the definition of this section
 - `m_data`: container for all the section data
 - `m_parent`: Python variable with the parent section instance
-- `m_parent_index`: Python variable with the index in the parent's repeatable sub section
-- `m_contents()`: all sub section instances
-- `m_all_contents()`: traverse all sub and sub sub section instances
+- `m_parent_index`: Python variable with the index in the parent's repeatable subsection
+- `m_contents()`: all subsection instances
+- `m_all_contents()`: traverse all nested subsection instances
 - `m_to_dict()`: serializable dict form
 - `m_to_json()`
-
 
 ## Examples (of the Python interface)
 
 ### Definitions
 
-This could be code, from a python module that represents the NOMAD *common* package `nomad.metainfo.common`:
+This could be code, from a Python module that represents the NOMAD *common* package `nomad.metainfo.common`:
+
 ```python
 class System(MSection):
     '''
@@ -348,8 +342,8 @@ class System(MSection):
 
     # Not sure if this should be part of the definition. It will not serialize to
     # JSON. It might get complex for more involved cases. In many cases, we would
-    # need both directions anyways. On the other hand, it allows to formally define
-    # the derive semantics.
+    # need both directions anyway. On the other hand, it allows us to formally define
+    # the derived semantics.
     def m_derive_atom_species(self) -> List[int]:
         return [ase.data.atomic_numbers[label] for label in self.atom_labels]
 
@@ -363,6 +357,7 @@ class Run(MSection):
 ```
 
 This could be part of the VASP source code:
+
 ```python
 class Method(MSection):
     m_definition = Section(adds_to=nomad.metainfo.common.Method)
@@ -392,9 +387,9 @@ print(run.m_to_json(indent=2))
 
 ## Example use cases
 
-We'll try to explain/design the system through a serious of use cases first. The
-respective examples are centered around a hypothetical python library that works as
-the meta-info systems interface.
+We'll try to explain/design the system through a series of use cases first. The
+respective examples are centered around a hypothetical Python library that works as
+the meta-info system interface.
 
 ### Scientists using nomad parsers
 
@@ -406,13 +401,15 @@ import nomad
 nomad.parse('TiO3.xml').run.single_configuration_calculation.dos.dos_energies.values
 ```
 
-If she does not know what exactely `dos_energies` refers to:
+If she does not know what exactly `dos_energies` refers to:
+
 ```python
 my_calc = nomad.parse('TiO3.xml')
 my_calc.run.single_configuration_calculation.dos.dos_energies.definition
 ```
 
 It should give you something like:
+
 ```json
 {
     "description": "Array containing the set of discrete energy values for the density ...",
@@ -428,7 +425,8 @@ But the units should actually not be fixed:
 my_calc.run.system.atom_positions.convert(nomad.units.angstrom).values
 ```
 
-Values can be regular python lists or np arrays:
+Values can be regular Python lists or NumPy arrays:
+
 ```python
 my_calc.run.system.atom_positions.np_array
 ```
@@ -436,25 +434,30 @@ my_calc.run.system.atom_positions.np_array
 In the cases above, `system` is a list of systems. Therefore, the lines should return
 a list of actual values (e.g. a list of position matrices/np_arrays). To access
 a particular system:
+
 ```python
 my_calc.run.system[0].atom_positions.np_array
 ```
 
 To create more complex dict structures:
+
 ```python
 from nomad import x
 my_calc.run.system(atom_positions=x.np_array, atom_labels=x.values, lattice_vector=x.np_array)
 ```
-Should return a list of dictionaries with `atom_position`, `atom_labels`, `lattice_vector` as keys.
-The `x` acts as a surrogate for the retrived meta-info objects and everything accessed
-on `x`, will be accessed on the actual values.
 
-You can also create recursive *GraphQL* like queries:
+Should return a list of dictionaries with `atom_positions`, `atom_labels`, `lattice_vector` as keys.
+The `x` acts as a surrogate for the retrieved meta-info objects; everything accessed
+on `x` will be accessed on the actual values.
+
+You can also create recursive *GraphQL*-like queries:
+
 ```python
 my_calc.run.system(atom_labels=x.values, symmetry=x(spacegroup=x.value)))
 ```
 
-Or if another syntax is prefered:
+Or if another syntax is preferred:
+
 ```python
 my_calc.run.system({
     atom_labels: x.values,
@@ -469,28 +472,31 @@ my_calc.run.system({
 
 There needs to be support for various resources, e.g. resources on the web, like the
 nomad archive:
+
 ```python
 nomad.archive(upload_id='hh41jh4l1e91821').run.system.atom_labels.values
 ```
 
 This can also be used to extend queries for entries with queries for certain
 data points:
+
 ```python
 nomad.archive(user='me@email.org', upload_name='last_upload').run.system(
     atom_labels=x.values, atom_positions=x.convert(units.angstrom).np_array)
 ```
-In this case, it will return a generator that hides any API pagination. This this is now
-not a single run, it would generate a list (runs) or lists (systems) of dicts
+
+In this case, it will return a generator that hides any API pagination. Because this is now
+not a single run, it would generate a list (runs) or lists (systems) of dictionaries
 (with labels, and positions).
 
-
 ### A parser creating data
+
 The CoE NOMAD parsing infrastructure used the concept of a *backend* that acted as an
 abstract interface to enter new data to the nomad archive. We like to think in terms of
 *resources*, where a resource can represent various storage media
-(e.g. in-memory, hdf5 file, something remote, etc.). Lets assume that the parser gets
-such a *resource* from the infrastructure to populate it with new data. Lets call the
-*resource* `backend` for old times sake:
+(e.g. in-memory, HDF5 file, something remote, etc.). Let's assume that the parser gets
+such a *resource* from the infrastructure to populate it with new data. Let's call the
+*resource* `backend` for old times' sake:
 
 ```python
 run = backend.run()
@@ -505,12 +511,14 @@ resource.close()
 
 This basically describes the write interface. Of course parsers should also allow to read
 back all the properties they entered so far:
+
 ```python
 system.atom_labels.values = ['Ti', 'O', 'O']
 system.atom_labels.values
 ```
 
 The old backend allowed to build arrays piece by piece. This could also be possible here:
+
 ```python
 positions = system.atom_positions.create()
 positions.add(a1)
@@ -520,7 +528,7 @@ positions.add(a2)
 # Glossary
 
 A list of words with very specific and precise meaning. This meaning might not yet be
-fully expressed, but its there.
+fully expressed, but it's there.
 
 - annotation
 - category

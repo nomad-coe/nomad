@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import shutil
 import time
 import uuid
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from nomad.parsing.parsers import parsers
 from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Entry, Upload
 from nomad.search import delete_upload
+from nomad.uploads import remove_upload_reviewers
 from nomad.workflows.shared_objects import (
     CleanupEntriesBatchActivityInput,
     CleanupEntriesResult,
@@ -23,17 +25,22 @@ from nomad.workflows.shared_objects import (
     DeleteUploadWorkflowInput,
     EditUploadMetadataWorkflowInput,
     EntriesToBeProcessedResult,
-    EntryBatchFromFileInput,
+    FinalizeUploadProcessingInput,
     ImportBundleWorkflowInput,
     ProcessEntryActivityInput,
+    ProcessEntryBatchFromFileInput,
     ProcessExampleUploadWorkflowInput,
     PublishExternallyWorkflowInput,
     PublishUploadWorkflowInput,
+    TransferUploadOwnershipWorkflowInput,
     UpdatedFilesResult,
     UploadProcessingWorkflowInput,
-    UploadWorkflowIdInput,
 )
-from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, generate_batches
+from nomad.workflows.utils import (
+    CLEANUP_ENTRY_BATCH_SIZE,
+    ENTRY_BATCH_FILE_SIZE,
+    generate_batches,
+)
 
 parser_min_level = min([parser.level for parser in parsers])
 # If the heartbeat timeout is 10 mins, this would send a heartbeat every 60 seconds.
@@ -61,18 +68,11 @@ def delete_upload_files_activity(input: DeleteUploadWorkflowInput):
 
 
 @activity.defn
-def delete_upload_entries_activity(input: DeleteUploadWorkflowInput):
-    with activity_heartbeat(HEARTBEAT_FREQUENCY):
-        # Delete all entries for this upload
-        Entry.objects(upload_id=input.upload_id).delete()  # type: ignore
-
-
-@activity.defn
 def delete_upload_record_activity(input: DeleteUploadWorkflowInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
-        # Delete the upload itself
-        upload = Upload.get(input.upload_id)
-        upload.delete()
+        # Delete all entries for this upload and the upload itself
+        Entry.objects(upload_id=input.upload_id).delete()  # type: ignore
+        Upload.objects(upload_id=input.upload_id).delete()  # type: ignore
 
 
 def _process_single_entry(input: ProcessEntryActivityInput):
@@ -102,10 +102,9 @@ def process_entry_activity(input: ProcessEntryActivityInput):
         _process_single_entry(input)
 
 
-@activity.defn
-def process_entry_batch_activity(inputs: list[ProcessEntryActivityInput]):
+def _process_entry_batch(inputs: list[ProcessEntryActivityInput]):
     """
-    Process a batch of entries in one Temporal activity invocation.
+    Process a batch of entries.
 
     Non-retryable entry failures (`ProcessFailure`) are isolated to the affected
     entry and do not abort the batch. Retryable failures are raised only after
@@ -130,6 +129,12 @@ def process_entry_batch_activity(inputs: list[ProcessEntryActivityInput]):
 
 
 @activity.defn
+def process_entry_batch_activity(inputs: list[ProcessEntryActivityInput]):
+    """Process a batch of entries in one Temporal activity invocation."""
+    _process_entry_batch(inputs)
+
+
+@activity.defn
 def update_files_activity(
     input: UploadProcessingWorkflowInput,
 ) -> UpdatedFilesResult:
@@ -146,7 +151,7 @@ def update_files_activity(
         # Temporal has a 1.5MB limit on serialized activity results. For large file sets,
         # we store the data on disk and pass the file path instead of the full dataset.
         if len(updated_files) < 1000:
-            return UpdatedFilesResult(files=updated_files)
+            return UpdatedFilesResult(files=list(updated_files))
 
         # If 1000+ files, save to JSON file and return the path
         updated_files_path = os.path.join(input.workflow_tmp_dir, 'updated_files.json')
@@ -171,7 +176,7 @@ def match_all_activity(input: UploadProcessingWorkflowInput):
 
 
 @activity.defn
-def next_level_entries(
+def prepare_next_level_entry_batches(
     input: UploadProcessingWorkflowInput,
 ) -> EntriesToBeProcessedResult | None:
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
@@ -182,95 +187,87 @@ def next_level_entries(
             updated_files=input.updated_files.get_files(),
         )
 
-        # If no entries exist at this parser level, return None
-        # This signals the workflow that we're completely done (no more parser levels)
         if not next_entries:
             return None
 
-        # Split all entries into manageable batches
-        # Temporal imposes a limit of 1.5MB for the serialized result, this helps us stay within those limits.
-        entry_batches = generate_batches(next_entries)
-
-        # When dealing with multiple large batches, storing all entries in workflow state
-        # would exceed Temporal's serialization limits. Instead, we persist batches to disk
-        # and process them sequentially via file references.
-        if len(next_entries) < MAX_IN_MEMORY_ENTRIES:
-            entries_list = [
-                ProcessEntryActivityInput(
-                    upload_id=input.upload_id,
-                    entry_id=str(entry.entry_id),
-                    workflow_id=f'process-entry-workflow-child-id-{str(entry.entry_id)}-{str(upload.upload_id)}-{uuid.uuid4()}',
-                )
-                for entry in next_entries
-            ]
-            return EntriesToBeProcessedResult(
-                entries=entries_list,
-                next_parser_level=upload.parser_level,
-                upload_id=input.upload_id,
-            )
-
-        # Persist entry IDs as one file per batch to avoid large workflow payloads
-        # without introducing repeated scans through a shared file.
-        batch_dir = os.path.join(input.workflow_tmp_dir, f'level_{input.min_level}')
-        os.makedirs(batch_dir, exist_ok=True)
-        entry_batches = generate_batches(
-            next_entries,
-            max_desired_batch_size=MAX_IN_MEMORY_ENTRIES,
+        batch_dir = os.path.join(
+            input.workflow_tmp_dir, f'level_{input.min_level}_entry_batches'
         )
+        shutil.rmtree(batch_dir, ignore_errors=True)
+        os.makedirs(batch_dir, exist_ok=True)
 
-        for batch_idx, batch in enumerate(entry_batches):
-            batch_file = os.path.join(batch_dir, f'entry_batch_{batch_idx}.json')
-            with open(batch_file, 'w') as f:
-                json.dump([str(entry.entry_id) for entry in batch], f)
+        entry_batch_size = max(1, config.temporal.entry_activity_batch_size)
+        total_entries = len(next_entries)
+
+        for chunk_idx, start_idx in enumerate(
+            range(0, total_entries, ENTRY_BATCH_FILE_SIZE)
+        ):
+            chunk = next_entries[start_idx : start_idx + ENTRY_BATCH_FILE_SIZE]
+            chunk_file = os.path.join(batch_dir, f'entry_chunk_{chunk_idx}.json')
+            with open(chunk_file, 'w') as f:
+                json.dump([str(entry.entry_id) for entry in chunk], f)
 
         return EntriesToBeProcessedResult(
             directory=str(batch_dir),
-            total_batches=len(entry_batches),
+            total_batches=(total_entries + entry_batch_size - 1) // entry_batch_size,
+            entry_activity_batch_size=entry_batch_size,
             next_parser_level=upload.parser_level,
             upload_id=input.upload_id,
         )
 
 
-@activity.defn
-def get_entry_batch_from_file(
-    input: EntryBatchFromFileInput,
+def _process_entry_inputs(
+    upload_id: str, entry_ids: list[str]
 ) -> list[ProcessEntryActivityInput]:
-    """Load entries from a specific batch file."""
-    batch_file = Path(input.batch_dir_path) / f'entry_batch_{input.batch_id}.json'
-    if not batch_file.exists():
-        return []
-
-    with open(batch_file) as f:
-        batch_entry_ids = json.load(f)
-
     return [
         ProcessEntryActivityInput(
-            upload_id=input.upload_id,
+            upload_id=upload_id,
             entry_id=entry_id,
-            workflow_id=f'process-entry-workflow-child-id-{entry_id}-{input.upload_id}-{uuid.uuid4()}',
+            workflow_id=f'process-entry-workflow-child-id-{entry_id}-{upload_id}-{uuid.uuid4()}',
         )
-        for entry_id in batch_entry_ids
+        for entry_id in entry_ids
     ]
 
 
-@activity.defn
-def setup_upload_for_workflow_process(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    assert len(upload.workflow_ids) == 0, (  # type: ignore
-        'Upload is currently being processed by another workflow'
-    )
-    upload.workflow_ids.append(input.workflow_id)  # type: ignore
-    upload.errors = []
-    upload.current_process = input.process_name
-    upload.save()
+def _entry_batch_inputs_from_file(
+    input: ProcessEntryBatchFromFileInput,
+) -> list[ProcessEntryActivityInput]:
+    batch_entry_ids: list[str] = []
+    chunk_id = input.chunk_id
+    offset = input.offset
+    remaining = input.limit
+
+    while remaining > 0:
+        chunk_file = Path(input.batch_dir_path) / f'entry_chunk_{chunk_id}.json'
+        if not chunk_file.exists():
+            break
+
+        with open(chunk_file) as f:
+            chunk_entry_ids = json.load(f)
+
+        entry_ids = chunk_entry_ids[offset : offset + remaining]
+        batch_entry_ids.extend(entry_ids)
+        remaining -= len(entry_ids)
+        if len(entry_ids) == 0 or offset + len(entry_ids) < len(chunk_entry_ids):
+            break
+
+        chunk_id += 1
+        offset = 0
+
+    return _process_entry_inputs(input.upload_id, batch_entry_ids)
 
 
 @activity.defn
-def remove_workflow_id_activity(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    if input.workflow_id in upload.workflow_ids:  # type: ignore
-        upload.workflow_ids.remove(input.workflow_id)  # type: ignore
-    upload.save()
+def process_entry_batch_from_file_activity(input: ProcessEntryBatchFromFileInput):
+    inputs = _entry_batch_inputs_from_file(input)
+    if inputs:
+        _process_entry_batch(inputs)
+
+
+@activity.defn
+def handle_batch_heartbeat_failure_activity(input: ProcessEntryBatchFromFileInput):
+    for entry_input in _entry_batch_inputs_from_file(input):
+        handle_heartbeat_failure_activity(entry_input)
 
 
 @activity.defn
@@ -346,29 +343,6 @@ def finalize_cleanup_activity(input: UploadProcessingWorkflowInput):
 
 
 @activity.defn
-def process_upload_success(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    # When the processing is not triggered it means that the workflow
-    # only modified the upload files. In that case we want to set the status to READY so that the user can trigger the processing manually.
-    upload.process_status = (
-        ProcessStatus.SUCCESS if input.trigger_processing else ProcessStatus.READY
-    )
-    upload.set_last_status_message('Process completed successfully')
-
-
-@activity.defn
-def process_upload_failure_activity(input: UploadWorkflowIdInput):
-    upload = Upload.get(input.upload_id)
-    upload.last_status_message = (
-        input.failure_message if input.failure_message else 'Process upload failed'
-    )
-    errors = [input.error_details] if input.error_details else []
-    upload.workflow_ids = []  # Clear workflow IDs on failure
-    upload.fail(*errors)
-    upload.save()
-
-
-@activity.defn
 def setup_example_upload_activity(input: ProcessExampleUploadWorkflowInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
         upload = Upload.get(input.upload_id)
@@ -380,6 +354,22 @@ def edit_upload_metadata_activity(input: EditUploadMetadataWorkflowInput):
     with activity_heartbeat(HEARTBEAT_FREQUENCY):
         upload = Upload.get(input.upload_id)
         upload._edit_upload_metadata_local(input.edit_request_json, input.user_id)
+
+
+@activity.defn
+def complete_upload_ownership_transfer_activity(
+    input: TransferUploadOwnershipWorkflowInput,
+):
+    with activity_heartbeat(HEARTBEAT_FREQUENCY):
+        from nomad.mongo.users import OwnershipTransferRecord
+
+        upload = Upload.get(input.upload_id)
+        reviewers_to_remove = {input.new_owner_user_id, input.previous_owner_user_id}
+        remove_upload_reviewers(reviewers_to_remove, upload=upload)
+        OwnershipTransferRecord.objects(
+            resource_type='upload',
+            resource_id=input.upload_id,
+        ).delete()
 
 
 @activity.defn
@@ -399,12 +389,27 @@ def publish_upload_activity(input: PublishUploadWorkflowInput):
 
 
 @activity.defn
-def cleanup_workflow_tmp_dir_activity(dir_path: str):
-    """Delete the temporary directory."""
-    if os.path.exists(dir_path):
-        import shutil
+def finalize_upload_processing_activity(input: FinalizeUploadProcessingInput):
+    upload = Upload.get(input.upload_id)
+    if input.result == 'success':
+        # When processing is not triggered, set READY so processing can be started manually.
+        upload.process_status = (
+            ProcessStatus.SUCCESS if input.trigger_processing else ProcessStatus.READY
+        )
+        upload.set_last_status_message('Process completed successfully')
+    else:
+        upload.last_status_message = (
+            input.failure_message if input.failure_message else 'Process upload failed'
+        )
+        errors = [input.error_details] if input.error_details else []
+        upload.fail(*errors)
 
-        shutil.rmtree(dir_path, ignore_errors=True)
+    if input.workflow_id in upload.workflow_ids:  # type: ignore
+        upload.workflow_ids.remove(input.workflow_id)  # type: ignore
+    upload.save()
+
+    if input.workflow_tmp_dir and os.path.exists(input.workflow_tmp_dir):
+        shutil.rmtree(input.workflow_tmp_dir, ignore_errors=True)
 
 
 @activity.defn

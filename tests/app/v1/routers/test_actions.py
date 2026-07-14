@@ -41,6 +41,13 @@ async def saved_action_document(mongo_function, async_mongo_function, user1):
 async def test_action_start(
     client: AsyncClient, auth_headers, async_mongo_function, monkeypatch
 ):
+    mock_action = MagicMock()
+    mock_action.users = None
+    mock_action.groups = None
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_actions',
+        lambda: {'my-action': mock_action},
+    )
     monkeypatch.setattr(
         'nomad.app.v1.routers.actions.validate_action_arg', lambda action_id, data: data
     )
@@ -61,6 +68,68 @@ async def test_action_start(
 
     assert response.status_code == 200
     assert response.json() == {'action_instance_id': 'workflow-123'}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'allowed_users, allowed_groups, expected_status',
+    [
+        (['00000000-0000-0000-0000-000000000001'], None, 200),
+        (['00000000-0000-0000-0000-000000000002'], None, 403),
+        (None, ['group1'], 200),
+        (None, ['group2'], 403),
+        (['00000000-0000-0000-0000-000000000001'], ['group2'], 200),
+        (['00000000-0000-0000-0000-000000000002'], ['group1'], 200),
+        (['00000000-0000-0000-0000-000000000002'], ['group2'], 403),
+    ],
+)
+async def test_action_start_authorization(
+    client: AsyncClient,
+    auth_headers,
+    async_mongo_function,
+    monkeypatch,
+    user1,
+    allowed_users,
+    allowed_groups,
+    expected_status,
+):
+    mock_action = MagicMock()
+    mock_action.users = allowed_users
+    mock_action.groups = allowed_groups
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.get_actions',
+        lambda: {'protected-action': mock_action},
+    )
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.validate_action_arg',
+        lambda action_id, data: data,
+    )
+
+    async def mock_start_action(action_id, data):
+        return 'workflow-123'
+
+    monkeypatch.setattr(
+        'nomad.app.v1.routers.actions.start_action_async',
+        mock_start_action,
+    )
+    monkeypatch.setattr(
+        'nomad.mongo.groups.MongoUserGroup.get_ids_by_user_id',
+        lambda user_id: ['group1'] if user_id == user1.user_id else [],
+    )
+
+    response = await client.post(
+        '/actions/protected-action/start',
+        json={'data': {}},
+        headers=auth_headers['user1'],
+    )
+
+    assert response.status_code == expected_status
+    if expected_status == 403:
+        assert (
+            response.json()['detail']
+            == 'User is not authorized to execute this action.'
+        )
 
 
 @pytest.mark.asyncio
@@ -124,7 +193,9 @@ async def test_actions_list(
     async def mock_update_status(action):
         pass
 
-    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', mock_update_status
+    )
     response = await client.get('/actions', headers=auth_headers['user1'])
     assert response.status_code == 200
     response_json = response.json()
@@ -144,7 +215,9 @@ async def test_get_action(
     async def mock_update_status(action):
         pass
 
-    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', mock_update_status
+    )
     response = await client.get(
         f'/actions/{saved_action_document.action_instance_id}',
         headers=auth_headers['user1'],
@@ -234,7 +307,9 @@ async def test_action_logs(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch, tmp_path
 ):
     # Mock get_user_action so authorization passes (and bypasses Temporal fetching)
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     # Setup dummy log file
     log_dir = os.path.join(config.fs.actions, 'logs')
@@ -262,7 +337,9 @@ async def test_action_logs_not_found(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     # Mock get_user_action so authorization passes
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     response = await client.get(
         f'/actions/{saved_action_document.action_instance_id}/logs',
@@ -277,7 +354,9 @@ async def test_action_logs_truncate(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     # Mock get_user_action so authorization passes
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     # Setup dummy log file
     log_dir = os.path.join(config.fs.actions, 'logs')
@@ -310,7 +389,9 @@ async def test_action_logs_stream(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
     # Mock get_user_action so authorization passes
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     # Setup dummy log file
     log_dir = os.path.join(config.fs.actions, 'logs')
@@ -361,7 +442,9 @@ async def test_action_logs_stream(
 async def test_action_logs_stream_with_tail_offset(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     log_dir = os.path.join(config.fs.actions, 'logs')
     os.makedirs(log_dir, exist_ok=True)
@@ -398,7 +481,9 @@ async def test_action_logs_stream_with_tail_offset(
 async def test_action_logs_stream_with_large_positive_offset_clamped(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     log_dir = os.path.join(config.fs.actions, 'logs')
     os.makedirs(log_dir, exist_ok=True)
@@ -443,7 +528,9 @@ async def test_action_logs_stream_with_large_positive_offset_clamped(
 async def test_action_logs_stream_with_large_negative_offset_returns_full_available_log(
     client: AsyncClient, auth_headers, saved_action_document, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', _noop_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', _noop_update_status
+    )
 
     log_dir = os.path.join(config.fs.actions, 'logs')
     os.makedirs(log_dir, exist_ok=True)
@@ -579,7 +666,9 @@ async def test_actions_list_does_not_contain_other_users_actions(
     async def mock_update_status(action):
         pass
 
-    monkeypatch.setattr('nomad.actions.manager._update_status', mock_update_status)
+    monkeypatch.setattr(
+        'nomad.actions.manager._refresh_action_status', mock_update_status
+    )
 
     # user1 has one action, user2 has another
     await ActionDocument(
@@ -663,7 +752,7 @@ async def test_actions_list_pagination_pages(
     expects_next_cursor,
     expected_first_action,
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    monkeypatch.setattr('nomad.actions.manager._refresh_action_status', lambda _: None)
     await _insert_actions(user1, n=5)
 
     response = await client.get('/actions?page_size=3', headers=auth_headers['user1'])
@@ -688,7 +777,7 @@ async def test_actions_list_pagination_pages(
 async def test_actions_list_pagination_empty(
     client: AsyncClient, auth_headers, mongo_function, async_mongo_function, monkeypatch
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    monkeypatch.setattr('nomad.actions.manager._refresh_action_status', lambda _: None)
     response = await client.get('/actions?page_size=10', headers=auth_headers['user1'])
     assert response.status_code == 200
     data = response.json()
@@ -707,7 +796,7 @@ async def test_actions_list_pagination_exact_page(
     monkeypatch,
 ):
     """When total == page_size there should be no next_cursor."""
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    monkeypatch.setattr('nomad.actions.manager._refresh_action_status', lambda _: None)
     await _insert_actions(user1, n=3)
 
     response = await client.get('/actions?page_size=3', headers=auth_headers['user1'])
@@ -739,7 +828,7 @@ async def test_actions_list_filters_by_upload_id(
     user1,
     monkeypatch,
 ):
-    monkeypatch.setattr('nomad.actions.manager._update_status', lambda _: None)
+    monkeypatch.setattr('nomad.actions.manager._refresh_action_status', lambda _: None)
     await ActionDocument(
         action_id='action-1',
         action_instance_id='wf-upload-1',

@@ -2,17 +2,28 @@ import asyncio
 import functools
 import os
 from enum import Enum
-from typing import Annotated, Any, Final
+from typing import Annotated, Any, Final, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi_cache.decorator import cache
 from pydantic import BaseModel
 
+from nomad.actions.action import get_actions
+from nomad.actions.assets.models import ActionAssetPurpose, ActionAssetUploadResult
+from nomad.actions.assets.service import clone_action_asset, upload_action_asset
 from nomad.actions.manager import (
-    ActionModel,
-    ActionPage,
-    ActionSchemaInfo,
+    ActionStreamUnavailable,
     action_log_file_path,
     get_action_result_async,
     get_action_status_async,
@@ -21,12 +32,22 @@ from nomad.actions.manager import (
     list_user_actions,
     start_action_async,
     stop_action_async,
+    stream_action_events_for_user_async,
+    stream_processing_events_for_user_async,
     submit_signal_input,
     validate_action_arg,
+)
+from nomad.actions.models import (
+    ActionRecord,
+    ActionRecordPage,
+    ActionSchemaInfo,
+    ActionStreamEvent,
+    ActionStreamEventType,
 )
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
+from nomad.mongo.groups import MongoUserGroup
 from nomad.utils import strip
 
 from ..models import HTTPExceptionModel
@@ -46,6 +67,30 @@ class ActionStart(BaseModel):
 class ActionSignalInput(BaseModel):
     signal_fn_name: str
     data: Any
+
+
+class ActionAssetCloneRequest(BaseModel):
+    purpose: ActionAssetPurpose
+    action_id: str | None = None
+    action_instance_id: str | None = None
+    signal_fn_name: str | None = None
+    source_action_instance_id: str | None = None
+
+
+def _format_sse_event(
+    data: str,
+    *,
+    event: str | None = None,
+    event_id: int | None = None,
+) -> str:
+    lines: list[str] = []
+    if event_id is not None:
+        lines.append(f'id: {event_id}')
+    if event:
+        event_name = event.replace('\n', ' ').replace('\r', ' ')
+        lines.append(f'event: {event_name}')
+    lines.extend(f'data: {line}' for line in data.splitlines() or [''])
+    return '\n'.join(lines) + '\n\n'
 
 
 SCHEMA_CACHE_TTL: Final[int] = 1 * 24 * 60 * 60  # 1 day in seconds
@@ -90,6 +135,68 @@ def _count_lines_before_offset(log_file: str, offset: int) -> int:
 
 
 @router.post(
+    '/assets/upload',
+    tags=[APITag.DEFAULT],
+    summary='Upload an action asset',
+    response_model=ActionAssetUploadResult,
+)
+async def action_asset_upload(
+    file: Annotated[UploadFile, File(...)],
+    purpose: Annotated[ActionAssetPurpose, Form(...)],
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ACTIONS_RUN], allow_anonymous=False)),
+    ],
+    action_id: Annotated[str | None, Form()] = None,
+    action_instance_id: Annotated[str | None, Form()] = None,
+    signal_fn_name: Annotated[str | None, Form()] = None,
+    expected_media_type: Annotated[str | None, Form()] = None,
+    expected_sha256: Annotated[str | None, Form()] = None,
+):
+    try:
+        return await upload_action_asset(
+            user_id=user.user_id,
+            upload_file=file,
+            purpose=purpose,
+            action_id=action_id,
+            action_instance_id=action_instance_id,
+            signal_fn_name=signal_fn_name,
+            expected_media_type=expected_media_type,
+            expected_sha256=expected_sha256,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    '/assets/{filename}/clone',
+    tags=[APITag.DEFAULT],
+    summary='Clone an action asset into a new staged asset',
+    response_model=ActionAssetUploadResult,
+)
+async def action_asset_clone(
+    filename: str,
+    clone_data: ActionAssetCloneRequest,
+    user: Annotated[
+        User,
+        Depends(get_current_user([Scope.ACTIONS_RUN], allow_anonymous=False)),
+    ],
+):
+    try:
+        return await clone_action_asset(
+            user_id=user.user_id,
+            source_filename=filename,
+            purpose=clone_data.purpose,
+            action_id=clone_data.action_id,
+            action_instance_id=clone_data.action_instance_id,
+            signal_fn_name=clone_data.signal_fn_name,
+            source_action_instance_id=clone_data.source_action_instance_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
     '/{action_id}/start',
     tags=[APITag.DEFAULT],
     summary='Start an action',
@@ -114,6 +221,26 @@ async def action_start(
     Returns:
         The ID of the started action instance.
     """
+    action_entry_point = get_actions().get(action_id)
+    if not action_entry_point:
+        raise HTTPException(status_code=404, detail='Action not found.')
+
+    if action_entry_point.users or action_entry_point.groups:
+        is_authorized = False
+        if action_entry_point.users and user.user_id in action_entry_point.users:
+            is_authorized = True
+        if not is_authorized and action_entry_point.groups:
+            user_groups = await asyncio.to_thread(
+                lambda: MongoUserGroup.get_ids_by_user_id(user.user_id)
+            )
+            if any(group in action_entry_point.groups for group in user_groups):
+                is_authorized = True
+
+        if not is_authorized:
+            raise HTTPException(
+                status_code=403, detail='User is not authorized to execute this action.'
+            )
+
     start_data.data['user_id'] = user.user_id
     try:
         input_data = validate_action_arg(action_id, start_data.data)
@@ -121,10 +248,8 @@ async def action_start(
             action_id=action_id, data=input_data
         )
         return {'action_instance_id': action_instance_id}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post(
@@ -194,6 +319,8 @@ async def action_signal_input(
         return {'status': 'signal_input_submitted'}
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         detail = str(e)
         if (
@@ -235,6 +362,8 @@ async def action_status(
         status = await get_action_status_async(
             action_instance_id=action_instance_id, user_id=user.user_id
         )
+        if status is None:
+            return {'status': 'UNKNOWN'}
         return {'status': status.name}
     except HTTPException:
         raise
@@ -328,7 +457,7 @@ _not_authorized = (
     '/{action_instance_id}',
     tags=[APITag.DEFAULT],
     summary='Get a specific action of the authenticated user.',
-    response_model=ActionModel,
+    response_model=ActionRecord,
     responses=create_responses(_not_authorized),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
@@ -400,6 +529,124 @@ async def stream_logs(
                     break
 
                 await asyncio.sleep(1)
+
+
+async def stream_sse_events(
+    event_items,
+    *,
+    topic: Literal['action', 'processing'],
+    action_instance_id: str | None = None,
+    user_id: str | None = None,
+):
+    async for item in event_items:
+        yield _format_sse_event(
+            item.event.model_dump_json(),
+            event=item.event.type,
+            event_id=item.offset,
+        )
+
+    # Only action streams expose action status that we can append as a terminal event.
+    if topic != 'action' or action_instance_id is None or user_id is None:
+        return
+
+    try:
+        action_status = await get_action_status_async(
+            action_instance_id=action_instance_id,
+            user_id=user_id,
+        )
+    except Exception:
+        return
+
+    terminal_event = ActionStreamEvent(
+        type=ActionStreamEventType.STATE,
+        name='workflow_status',
+        message=f'Action workflow reached {action_status.name}.',
+        data={'status': action_status.name},
+        terminal=True,
+    )
+    yield _format_sse_event(
+        terminal_event.model_dump_json(),
+        event=terminal_event.type,
+    )
+
+
+@router.get(
+    '/{action_instance_id}/events',
+    tags=[APITag.DEFAULT],
+    summary='Stream workflow events',
+    description='Subscribes to opt-in Workflow Streams events for action or processing topics.',
+    responses=create_responses(_not_authorized),
+)
+async def action_events(
+    action_instance_id: str,
+    user: Annotated[
+        User,
+        Depends(
+            get_current_user([Scope.ACTIONS_READ], allow_anonymous=False),
+        ),
+    ],
+    from_offset: Annotated[
+        int | None,
+        Query(
+            ge=0,
+            description=(
+                'Temporal stream offset to start from. If omitted, Last-Event-ID '
+                'is used when present, otherwise streaming starts at offset 0.'
+            ),
+        ),
+    ] = None,
+    last_event_id: Annotated[str | None, Header(alias='Last-Event-ID')] = None,
+    topic: Annotated[
+        Literal['action', 'processing'],
+        Query(description='Event topic to subscribe to.'),
+    ] = 'action',
+):
+    """Streams opt-in structured workflow events as Server-Sent Events."""
+
+    start_offset = from_offset
+    if start_offset is None:
+        start_offset = 0
+        if last_event_id:
+            try:
+                start_offset = int(last_event_id) + 1
+            except ValueError:
+                raise HTTPException(
+                    status_code=400, detail='Invalid Last-Event-ID header.'
+                )
+
+    try:
+        if topic == 'action':
+            event_items = await stream_action_events_for_user_async(
+                action_instance_id=action_instance_id,
+                user_id=user.user_id,
+                from_offset=start_offset,
+            )
+        else:
+            event_items = await stream_processing_events_for_user_async(
+                upload_id=action_instance_id,
+                user=user,
+                from_offset=start_offset,
+            )
+    except HTTPException:
+        raise
+    except ActionStreamUnavailable as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        detail = str(e)
+        if 'was not registered in the DB' in detail:
+            raise HTTPException(status_code=404, detail='Action not found.')
+        raise HTTPException(status_code=500, detail=detail)
+
+    return StreamingResponse(
+        stream_sse_events(
+            event_items,
+            topic=topic,
+            action_instance_id=action_instance_id,
+            user_id=user.user_id,
+        ),
+        media_type='text/event-stream',
+        headers={'X-Workflow-Event-First-Offset': str(start_offset)},
+    )
 
 
 @router.get(
@@ -521,7 +768,7 @@ async def action_logs(
         'Pass the returned ``next_cursor`` value as the ``cursor`` query parameter to '
         'fetch the next page.'
     ),
-    response_model=ActionPage,
+    response_model=ActionRecordPage,
     responses=create_responses(_not_authorized),
     response_model_exclude_unset=True,
     response_model_exclude_none=False,
@@ -538,7 +785,7 @@ async def actions(
         Query(
             ge=1,
             le=100,
-            description='Number of action instances to return per page (1–100, default 20).',
+            description='Number of action instances to return per page (1-100, default 20).',
         ),
     ] = 20,
     cursor: Annotated[
@@ -567,7 +814,7 @@ async def actions(
         upload_id: Optional upload ID to filter actions by.
 
     Returns:
-        An ActionPage with items, optional next_cursor, and total count.
+        An ActionRecordPage with items, optional next_cursor, and total count.
     """
     try:
         result = await list_user_actions(

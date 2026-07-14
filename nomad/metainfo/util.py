@@ -18,7 +18,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import re
+from copy import deepcopy
 from typing import Any, cast
 
 import pint
@@ -501,16 +503,41 @@ def get_id_name(qualified_name: str) -> str:
     return str(qualified_name).split(':', maxsplit=1)[0]
 
 
-def get_id(m_def) -> str:
+def get_id(
+    m_def,
+    add_unit_value: bool = False,
+    add_section_subtypes: bool = False,
+    add_property_subtypes: bool = False,
+) -> str:
     name = get_id_name(m_def.qualified_name())
     definition_id = m_def.definition_id
     if name == '*':
         name = get_id_name(str(m_def.m_def))
-    return f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+    schema_id = f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+    options = []
+    if add_unit_value:
+        options.append('unit_value=true')
+    if add_section_subtypes:
+        options.append('section_subtypes=true')
+    if add_property_subtypes:
+        options.append('property_subtypes=true')
+    if options:
+        schema_id = f'{schema_id}?{"&".join(options)}'
+    return schema_id
+
+
+def add_property_subtypes_check(schema) -> bool:
+    if 'items' in schema:
+        return add_property_subtypes_check(schema['items'])
+    return 'anyOf' in schema or 'property_subtypes' in schema.get('$ref', '')
 
 
 def metainfo_to_json_schema(
-    m_def, add_unit_value: bool = False, exclude=None
+    m_def,
+    add_unit_value: bool = False,
+    add_section_subtypes: bool = False,
+    add_property_subtypes: bool = False,
+    exclude=None,
 ) -> dict[str, Any]:
     """
     Generate JSON Schema for this Section, referencing each property (BaseSections, Subsections or Quantity) via `$defs`.
@@ -520,6 +547,8 @@ def metainfo_to_json_schema(
 
     Args:
         m_def (Section): The metainfo Section definition to convert to JSON Schema.
+        add_section_subtypes (bool, optional): If True, include subtypes of the specified schema in the output. Default is False.
+        add_property_subtypes (bool, optional): If True, include subtypes of the properties of the specified schema in the output. Default is False.
         add_unit_value (bool, optional): If True, include UnitValue definition in the schema for quantities with units. Default is False.
         exclude (list, optional): A list of qualified names to exclude from the schema. Default is None.
     Returns:
@@ -535,29 +564,83 @@ def metainfo_to_json_schema(
     _defs: dict[str, Any] = {}
     _top_level: bool = True
 
-    def _child_section_to_json_schema(
-        child_section, add_unit_value=False, exclude=None, repeats=False
-    ) -> dict[str, Any]:
-        schema = {}
-        child_id_name = get_id_name(child_section.qualified_name())
-        if child_id_name in _defs:
-            child_id = _defs[child_id_name]['$id']
+    def _section_to_json_schema(
+        section,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+    ) -> tuple[str | None, dict[str, Any] | None]:
+        # Function to get the schema for a section and returning its id and reference
+        section_id_name = get_id_name(section.qualified_name())
+        if section_id_name in exclude:
+            return None, None
+        # Prevents unlimited recursion due to circular references
+        if section_id_name in _defs:
+            section_schema = _defs[section_id_name]
         else:
-            child_schema = _metainfo_to_json_schema(
-                child_section, add_unit_value, exclude, _top_level=False
+            section_schema = _metainfo_to_json_schema(
+                section,
+                add_unit_value,
+                add_section_subtypes=add_section_subtypes,
+                add_property_subtypes=add_property_subtypes,
+                exclude=exclude,
+                _top_level=False,
             )
-            child_schema.pop('$schema', None)
-            child_id = child_schema['$id']
-            _defs[child_id_name] = child_schema
+            section_schema.pop('$schema', None)
+            _defs[section_id_name] = section_schema
+        section_id = section_schema['$id']
+        description = f'{section.name} {": " + section_schema.get("description", None) if section_schema.get("description", None) is not None else ""}'
+        return section_id, {'$ref': section_id, 'description': description}
 
-        # Reference it in properties
-        if repeats:
-            schema = {
-                'type': 'array',
-                'items': {'$ref': child_id},
-            }
+    def _child_section_to_json_schema(
+        child_section,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+        repeats=False,
+    ) -> dict[str, Any]:
+        # Function to handle subsections
+        schema: dict[str, Any] = {}
+        any_of = []
+        child_id_name = get_id_name(child_section.qualified_name())
+        child_id, child_schema = _section_to_json_schema(
+            child_section,
+            add_unit_value,
+            add_section_subtypes,
+            add_property_subtypes,
+            exclude,
+        )
+        if child_schema is None:
+            return {}
+        # Add inheriting sections to anyOf
+        if add_property_subtypes:
+            for inheriting_section in getattr(
+                child_section, 'all_inheriting_sections', []
+            ):
+                inheriting_id, inheriting_schema = _section_to_json_schema(
+                    inheriting_section,
+                    add_unit_value,
+                    add_section_subtypes,
+                    add_property_subtypes,
+                    exclude,
+                )
+                if inheriting_schema is not None:
+                    any_of.append(inheriting_schema)
+            any_of.append(child_schema)
+        if add_property_subtypes and len(any_of) > 1:
+            schema = (
+                {'anyOf': any_of}
+                if not repeats
+                else {'type': 'array', 'items': {'anyOf': any_of}}
+            )
         else:
-            schema['$ref'] = child_id
+            schema = (
+                {'$ref': child_id}
+                if not repeats
+                else {'type': 'array', 'items': {'$ref': child_id}}
+            )
 
         if child_section.description is not None:
             schema['description'] = child_section.description
@@ -565,7 +648,12 @@ def metainfo_to_json_schema(
         return schema
 
     def _metainfo_to_json_schema(
-        m_def, add_unit_value=False, exclude=None, _top_level=True
+        m_def,
+        add_unit_value=False,
+        add_section_subtypes=False,
+        add_property_subtypes=False,
+        exclude=None,
+        _top_level=True,
     ) -> dict[str, Any]:
         if exclude is None:
             exclude = []
@@ -590,11 +678,15 @@ def metainfo_to_json_schema(
         definition_id = m_def.definition_id
         if name == '*':
             name = get_id_name(str(m_def.m_def))
-        schema['$id'] = f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+        schema['$id'] = get_id(
+            m_def,
+            add_unit_value=add_unit_value,
+            add_property_subtypes=add_property_subtypes,
+        )
         _defs[id_name] = schema
         properties: dict = {}
         all_of: list = []
-
+        any_of: list = []
         if add_unit_value and _top_level:
             _defs['UnitValue'] = UNIT_VALUE_SCHEMA
 
@@ -602,12 +694,14 @@ def metainfo_to_json_schema(
         for quantity in getattr(m_def, 'quantities', []):
             if get_id_name(quantity.qualified_name()) in exclude:
                 continue
-            quantity_schema = quantity_to_json_schema(quantity, add_unit_value)
+            quantity_schema = quantity_to_json_schema(
+                quantity, add_unit_value, add_property_subtypes
+            )
             quantity_schema.pop('$schema', None)
             quantity_schema.pop('$defs', None)
             properties[quantity.name] = quantity_schema
 
-        # Handle the case where the section itself is a subsection of another section
+        # Handles the case where the section itself is a subsection of another section
         if (
             getattr(m_def, 'sub_section', None) is not None
             and get_id_name(m_def.sub_section.qualified_name()) not in exclude
@@ -617,6 +711,8 @@ def metainfo_to_json_schema(
                 _child_section_to_json_schema(
                     child_section,
                     add_unit_value,
+                    add_section_subtypes=add_section_subtypes,
+                    add_property_subtypes=add_property_subtypes,
                     exclude=exclude,
                     repeats=getattr(m_def, 'repeats', False),
                 )
@@ -626,64 +722,95 @@ def metainfo_to_json_schema(
         for subsection in getattr(m_def, 'sub_sections', []):
             if get_id_name(subsection.qualified_name()) in exclude:
                 continue
-            name = subsection.name
+            prop_name = subsection.name
             child_section = subsection.sub_section
 
-            # Recursively get JSON schema
-            properties[name] = _child_section_to_json_schema(
+            properties[prop_name] = _child_section_to_json_schema(
                 child_section,
                 add_unit_value,
+                add_section_subtypes=add_section_subtypes,
+                add_property_subtypes=add_property_subtypes,
                 exclude=exclude,
                 repeats=subsection.repeats,
             )
             if subsection.description is not None:
-                properties[name]['description'] = subsection.description
-            properties[name]['$id'] = (
-                f'{SCHEMA_ENDPOINT}/{get_id_name(subsection.qualified_name())}@{subsection.definition_id}'
+                properties[prop_name]['description'] = subsection.description
+
+            properties[prop_name]['$id'] = get_id(
+                subsection,
+                add_unit_value=add_unit_value,
+                add_property_subtypes=add_property_subtypes,
             )
 
         # Add BaseSections as references in allOf
         for base_section in getattr(m_def, 'base_sections', []):
-            base_id_name = get_id_name(base_section.qualified_name())
-            if base_id_name in exclude:
-                continue
-            name = base_section.name
-
-            if base_id_name in _defs:
-                base_section_id = _defs[base_id_name]['$id']
-            else:
-                # Recursively get JSON schema
-                base_section_schema = _metainfo_to_json_schema(
-                    base_section, add_unit_value, exclude=exclude, _top_level=False
-                )
-                base_section_schema.pop('$schema', None)
-                base_section_id = base_section_schema['$id']
-                _defs[base_id_name] = base_section_schema
-            all_of.append(
-                {
-                    '$comment': f'{name} {":" + base_section.description if base_section.description is not None else ""}',
-                    '$ref': base_section_id,
-                }
+            base_section_id, base_section_schema = _section_to_json_schema(
+                base_section,
+                add_unit_value,
+                add_section_subtypes,
+                add_property_subtypes,
+                exclude,
             )
+            all_of.append(base_section_schema)
 
         if all_of:
             schema['allOf'] = all_of
 
         if properties:
             schema['properties'] = properties
+
         # Only include $defs at the top level to avoid redundancy in nested schemas
         if _top_level:
-            _defs.pop(id_name, None)
+            # Special case of the m_def having inheriting sections
+            if add_section_subtypes:
+                for inheriting_section in getattr(m_def, 'all_inheriting_sections', []):
+                    inheriting_id, inheriting_schema = _section_to_json_schema(
+                        inheriting_section,
+                        add_unit_value,
+                        add_section_subtypes,
+                        add_property_subtypes,
+                        exclude,
+                    )
+                    if inheriting_schema is not None:
+                        any_of.append(inheriting_schema)
+            if any_of:
+                _defs[id_name] = deepcopy(schema)
+                any_of.append(
+                    {
+                        'description': f'{m_def.name} {": " + m_def.description if m_def.description is not None else ""}',
+                        '$ref': schema['$id'],
+                    }
+                )
+                schema['anyOf'] = any_of
+                for k in ['properties', 'allOf', '$id']:
+                    schema.pop(k, None)
+            else:
+                _defs.pop(id_name, None)
             if _defs:
                 schema['$defs'] = _defs
+            schema['$id'] = get_id(
+                m_def,
+                add_unit_value=add_unit_value,
+                add_section_subtypes=add_section_subtypes,
+                add_property_subtypes=add_property_subtypes,
+            )
             return schema
 
         return schema
 
-    return _metainfo_to_json_schema(m_def, add_unit_value, exclude, _top_level)
+    return _metainfo_to_json_schema(
+        m_def,
+        add_unit_value,
+        add_section_subtypes,
+        add_property_subtypes,
+        exclude,
+        _top_level,
+    )
 
 
-def quantity_to_json_schema(quantity, add_unit_value: bool = False) -> dict[str, Any]:
+def quantity_to_json_schema(
+    quantity, add_unit_value: bool = False, add_property_subtypes: bool = False
+) -> dict[str, Any]:
     """
     Generate a JSON Schema (Draft 2020-12) for this Quantity.
 
@@ -783,7 +910,11 @@ def quantity_to_json_schema(quantity, add_unit_value: bool = False) -> dict[str,
     if name == '*':
         name = get_id_name(str(quantity.m_def))
         # definition_id = quantity.m_def.definition_id
-    schema['$id'] = f'{SCHEMA_ENDPOINT}/{name}@{definition_id}'
+    schema['$id'] = get_id(
+        quantity,
+        add_unit_value=add_unit_value,
+        add_property_subtypes=add_property_subtypes,
+    )
 
     value_schema: dict[str, Any] = base_schema.copy()
     if getattr(quantity, 'unit', None):
@@ -815,3 +946,51 @@ def quantity_to_json_schema(quantity, add_unit_value: bool = False) -> dict[str,
     else:
         schema.update(shape_to_json_schema(quantity.shape, base_type, value_schema))
     return schema
+
+
+class MDefNotFound(ValueError):
+    """Raised when a metainfo definition cannot be found."""
+
+
+class MDefWithoutMetainfo(ValueError):
+    """Raised when a resolved object does not expose a metainfo definition."""
+
+
+def resolve_m_def(m_def: str):
+    """
+    Resolve Section/SubSection/Quantity from qualified name (m_def) such as:
+        package_name.schema_packages.calculations.MySchema
+        package_name.schema_packages.calculations.MySection.sub_section
+        package_name.schema_packages.calculations.quantity
+
+    """
+    parts: list[str] = m_def.split('.')
+    module_path: str = '.'.join(parts[:-1])
+    class_name: str = parts[-1]
+
+    try:
+        module = importlib.import_module(module_path)
+        section = getattr(module, class_name)
+    except (ImportError, AttributeError, ValueError):
+        try:
+            module_path = '.'.join(parts[:-2])
+            class_name = parts[-2]
+            property_name = parts[-1]
+            module = importlib.import_module(module_path)
+            section = getattr(getattr(module, class_name), property_name)
+        except (ImportError, AttributeError, ValueError, IndexError) as e:
+            raise MDefNotFound(
+                f'Could not resolve {m_def} to a valid schema class or property.',
+            ) from e
+
+    if not hasattr(section, 'm_def'):
+        raise MDefWithoutMetainfo(
+            f'{section=} does not have metainfo definition.',
+        )
+
+    # otherwise circular import
+    from nomad.metainfo import Quantity, SubSection
+
+    if isinstance(section, (SubSection, Quantity)):
+        return section
+    return section.m_def

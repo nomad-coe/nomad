@@ -2,7 +2,6 @@ import asyncio
 import multiprocessing
 import signal
 import sys
-from concurrent.futures.process import ProcessPoolExecutor
 from datetime import timedelta
 from typing import Any
 
@@ -15,12 +14,25 @@ from temporalio.worker import (
 
 from nomad.actions import TaskQueue
 from nomad.actions.activities.utils import get_all_activities
-from nomad.actions.client import get_client
+from nomad.actions.client import close_client, get_client
+from nomad.actions.nexus import get_all_nexus_service_handlers
+from nomad.actions.workers.health_check import (
+    should_start_health_server,
+    start_health_server,
+)
 from nomad.actions.workflows.utils import get_all_workflows
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
-from nomad.infrastructure import setup
+from nomad.tracing import TracingProcessPoolExecutor
 from nomad.utils.structlogging import get_logger
+
+from .utils import worker_process_initializer
+
+
+def _internal_worker_process_warmup():
+    # Internal activities run in ProcessPoolExecutor children; pre-warm parser imports
+    # in each child so the first workflow task does not absorb that cold-start latency.
+    return
 
 
 async def run_worker(worker_config: WorkerConfig):
@@ -41,18 +53,33 @@ async def run_worker(worker_config: WorkerConfig):
         loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
     client = await get_client()
-    executor_kwargs = {'max_workers': worker_config.pool_size, 'initializer': setup}
-    if sys.version_info >= (3, 11):
+    executor_kwargs = {
+        'max_workers': worker_config.pool_size,
+        'initializer': worker_process_initializer,
+    }
+    if sys.version_info >= (3, 11) and worker_config.max_tasks_per_child is not None:
         executor_kwargs['max_tasks_per_child'] = worker_config.max_tasks_per_child
 
     # NOTE: internal processing is not thread safe, avoid using ThreadPoolExecutor with more than 1 worker.
     # mypy: has issues with **kwargs in this context
-    with ProcessPoolExecutor(**executor_kwargs) as executor:  # type: ignore
+    with TracingProcessPoolExecutor(**executor_kwargs) as executor:  # type: ignore
+        # ProcessPoolExecutor starts children lazily. Pre-start all children here so
+        # the first queued workflow does not pay startup/initializer latency.
+        warmup_futures = [
+            executor.submit(_internal_worker_process_warmup)
+            for _ in range(worker_config.pool_size)
+        ]
+        for future in warmup_futures:
+            future.result()
+
         worker_kwargs: dict[str, Any] = {
             'client': client,
             'task_queue': TaskQueue.NOMAD_INTERNAL_WORKFLOWS,
             'workflows': get_all_workflows(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
             'activities': get_all_activities(TaskQueue.NOMAD_INTERNAL_WORKFLOWS),
+            'nexus_service_handlers': get_all_nexus_service_handlers(
+                TaskQueue.NOMAD_INTERNAL_WORKFLOWS
+            ),
             'activity_executor': executor,
             'shared_state_manager': SharedStateManager.create_from_multiprocessing(
                 multiprocessing.Manager()
@@ -85,11 +112,23 @@ async def run_worker(worker_config: WorkerConfig):
             )
 
         worker = Worker(**worker_kwargs)
+        health_runner = None
+
+        if should_start_health_server(worker_config):
+            health_runner = await start_health_server(
+                host=worker_config.healthcheck_host,
+                port=worker_config.healthcheck_port,
+            )
 
         # Run the worker until SIGTERM
         logger.info('Starting internal processing worker.')
         worker_task = asyncio.create_task(worker.run())
-        await stop_event.wait()
+
+        try:
+            await stop_event.wait()
+        finally:
+            if health_runner is not None:
+                await health_runner.cleanup()
 
         logger.info('Stopping worker.')
         worker_task.cancel()
@@ -97,3 +136,5 @@ async def run_worker(worker_config: WorkerConfig):
             await worker_task
         except asyncio.CancelledError:
             logger.info('Worker shut down cleanly.')
+        finally:
+            await close_client()

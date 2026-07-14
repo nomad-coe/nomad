@@ -69,6 +69,8 @@ class ErrorSnacksUnstyled extends React.Component {
       } else if (error.status === 422) {
         errorStr = `Unexpected api error: ${error.apiMessage[0].msg}. Please try again and let us know, if this error keeps happening.`
         console.log(error)
+      } else if (error.status === 504) {
+        errorStr = 'The requested task is now in the queue and should finish once our task queue has more room.'
       } else if (error.message) {
         errorStr = `Unexpected error: "${error.message}". Please try again and let us know, if this error keeps happening.`
         console.log(error)

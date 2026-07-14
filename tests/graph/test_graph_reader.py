@@ -27,9 +27,11 @@ import yaml
 from nomad.datamodel import EntryArchive, ServerContext
 from nomad.datamodel.metainfo.simulation import run
 from nomad.graph.graph_reader import (
+    ArchiveReader,
     EntryReader,
     FileSystemReader,
     GeneralReader,
+    GraphNode,
     MongoReader,
     Token,
     UploadReader,
@@ -140,12 +142,69 @@ def increment():
         yield n
 
 
+@pytest.mark.asyncio
+async def test_definition_resolution_is_cached_per_graph_request(monkeypatch):
+    upload_calls = []
+    fetch_calls = []
+    definitions = {'first-id': object(), 'second-id': object()}
+
+    def get_upload(upload_id, user, include_others):
+        upload_calls.append((upload_id, user, include_others))
+        return object()
+
+    def fetch_section(context, m_def, m_def_id):
+        fetch_calls.append((m_def, m_def_id))
+        return definitions[m_def_id]
+
+    monkeypatch.setattr(
+        'nomad.graph.graph_reader.get_upload_with_read_access', get_upload
+    )
+    monkeypatch.setattr(ServerContext, 'fetch_section', fetch_section)
+
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload-id',
+            entry_id='entry-id',
+            current_path=[],
+            result_root={},
+            ref_result_root={},
+            archive={},
+            archive_root={},
+            definition=None,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+
+        assert (
+            await reader._retrieve_definition('First', 'first-id', node)
+            is definitions['first-id']
+        )
+        assert (
+            await reader._retrieve_definition('First', 'first-id', node)
+            is definitions['first-id']
+        )
+        assert (
+            await reader._retrieve_definition('Second', 'second-id', node)
+            is definitions['second-id']
+        )
+
+        with ArchiveReader({}, reader_cache=reader._reader_cache) as child_reader:
+            assert (
+                await child_reader._retrieve_definition('First', 'first-id', node)
+                is definitions['first-id']
+            )
+
+    assert upload_calls == [('upload-id', None, True)]
+    assert fetch_calls == [('First', 'first-id'), ('Second', 'second-id')]
+
+
 counter = increment()
 
 
 # noinspection SpellCheckingInspection,DuplicatedCode
 def test_remote_reference(json_dict, example_data_with_reference, user1):
-    def __user_print(msg, required, *, result: dict = None):
+    def __user_print(msg, required, *, result: dict | None = None):
         with UserReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(user1.user_id), result)
@@ -877,7 +936,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
         },
     )
 
-    def __upload_print(msg, required, *, result: dict = None):
+    def __upload_print(msg, required, *, result: dict | None = None):
         with UploadReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_published_with_ref'), result)
@@ -1295,7 +1354,9 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
         },
     )
 
-    def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __entry_print(
+        msg, required, *, to_file: bool = False, result: dict | None = None
+    ):
         with EntryReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_03'), result)
@@ -1747,7 +1808,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
         },
     )
 
-    def __fs_print(msg, required, *, result: dict = None):
+    def __fs_print(msg, required, *, result: dict | None = None):
         with FileSystemReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_published_with_ref'), result)
@@ -2217,7 +2278,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_group_reader(groups_function, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -2456,7 +2517,7 @@ def test_group_reader(groups_function, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_general_reader(json_dict, example_data_with_reference, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -2847,7 +2908,7 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_metainfo_reader(mongo_function_with_indexed_def, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -3323,7 +3384,7 @@ def test_metainfo_reader(mongo_function_with_indexed_def, user1):
 
 # noinspection DuplicatedCode,SpellCheckingInspection
 def test_general_reader_search(json_dict, example_data_with_reference, user1):
-    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict | None = None):
         with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read(), result)
@@ -3417,7 +3478,12 @@ def test_general_reader_access_via_group(
     json_dict, uploads_graph_access_via_group, user2, user3
 ):
     def __ge_print(
-        msg, required, *, to_file: bool = False, result: dict = None, user: dict = None
+        msg,
+        required,
+        *,
+        to_file: bool = False,
+        result: dict | None = None,
+        user: dict | None = None,
     ):
         with MongoReader(required, user=user) as reader:
             if result:
@@ -3563,7 +3629,9 @@ data:
 
 
 def test_custom_schema_archive_and_definition(user1, custom_data):
-    def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
+    def __entry_print(
+        msg, required, *, to_file: bool = False, result: dict | None = None
+    ):
         with EntryReader(required, user=user1) as reader:
             response = reader.sync_read('id_example')
             if result:
@@ -3987,7 +4055,7 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
         },
     )
 
-    def __fs_print(msg, required, *, result: dict = None):
+    def __fs_print(msg, required, *, result: dict | None = None):
         with FileSystemReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.sync_read('id_custom'), result)
@@ -4173,15 +4241,14 @@ def example_data_with_reference(
         },  # remote reference
     ]
 
-    del json_dict['results']
-
     for index, ref in enumerate(ref_list):
         ref['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
-        json_dict['workflow2'] = ref
+        json_copy = {k: v for k, v in json_dict.items() if k is not 'results'}
+        json_copy['workflow2'] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
             entry_id=f'id_{index + 1:02d}',
-            entry_archive=EntryArchive.m_from_dict(json_dict),
+            entry_archive=EntryArchive.m_from_dict(json_copy),
         )
 
     for archive in data.archives.values():
@@ -4248,12 +4315,21 @@ def json_dict():
 
 @pytest_asyncio.fixture(scope='function')
 async def example_data_with_figure(
-    elastic_function, raw_files_module, mongo_function, user1, temporal_worker
+    elastic_function,
+    raw_files_module,
+    mongo_function,
+    user1,
+    user2,
+    temporal_worker,
 ):
     data = ExampleData(main_author=user1)
 
     data.create_upload(
-        upload_id='id_published_with_ref', upload_name='name_published', published=False
+        upload_id='id_published_with_ref',
+        upload_name='name_published',
+        published=False,
+        coauthors=[user2.user_id],
+        reviewers=[user2.user_id],
     )
 
     directory = 'tests/data/datamodel/metainfo/plotly'
@@ -4368,6 +4444,125 @@ def test_figure_resolution(user1, example_data_with_figure, query, result):
     __entry_print(query, result=result)
 
 
+def test_auto_layout_populates_archive_payload(user1, user2, example_data_with_figure):
+    """
+    Test that auto_from_layout derives the archive payload needed by the layout.
+    """
+    from nomad.graph.graph_reader import EntryReader
+
+    required = {
+        Token.METADATA: {
+            'entry_type': '*',
+            'entry_name': '*',
+            'published': '*',
+            'with_embargo': '*',
+            'main_author': '*',
+            'coauthors': '*',
+            'reviewers': '*',
+            'coauthor_groups': '*',
+            'reviewer_groups': '*',
+            'writers': '*',
+            'writer_groups': '*',
+            'viewers': '*',
+            'viewer_groups': '*',
+        },
+        'matching_layouts': '*',
+        'default_layout_id': '*',
+        'resolved_layout_id': '*',
+        Token.ARCHIVE: {'m_request': {'directive': 'auto_from_layout'}},
+    }
+
+    with EntryReader(required, user=user1) as reader:
+        response = reader.sync_read('id_plotly')
+        assert 'resolved_layout_id' in response
+        assert response['resolved_layout_id'] == 'default'
+        assert response['default_layout_id'] == 'default'
+        assert response['matching_layouts'][0]['id'] == 'default'
+        assert response['matching_layouts'][0]['overview']['type'] == 'container'
+        archive_metadata = example_data_with_figure.archives['id_plotly'].metadata
+        metadata = response[Token.METADATA]
+        assert metadata['entry_type'] == archive_metadata.entry_type
+        assert metadata['entry_name'] == archive_metadata.entry_name
+        assert metadata['published'] is False
+        assert metadata['with_embargo'] is False
+        assert metadata['main_author'] == user1.user_id
+        assert metadata['coauthors'] == [user2.user_id]
+        assert metadata['reviewers'] == [user2.user_id]
+        assert metadata.get('coauthor_groups', []) == []
+        assert metadata.get('reviewer_groups', []) == []
+        assert metadata.get('writers', []) == []
+        assert metadata.get('writer_groups', []) == []
+        assert metadata.get('viewers', []) == []
+        assert metadata.get('viewer_groups', []) == []
+        assert 'archive' in response
+        assert 'm_def' in response['archive'], (
+            f'Root m_def is missing. Archive keys: {list(response["archive"].keys())}'
+        )
+
+        # Verify that figures (which are triggered by the layout) are present
+        data = response['archive'].get('data', {})
+        assert 'figures' in data
+        assert len(data['figures']) > 0
+
+        # Keep parity with the frontend layout request shape: compact m_def strings
+        # are resolved by the GUI against its metainfo cache.
+        data_request = response['resolved_archive_request']['data']
+        assert data_request['m_request']['m_def_format'] == 'short'
+        assert data_request['m_def']['m_request']['m_def_format'] == 'short'
+
+
+def test_auto_layout_rejects_unknown_layout(user1, example_data_with_figure):
+    from nomad.graph.graph_reader import ConfigError, EntryReader
+
+    required = {
+        Token.ARCHIVE: {
+            'm_request': {
+                'directive': 'auto_from_layout',
+                'layout_id': 'does-not-exist',
+            }
+        }
+    }
+
+    with (
+        EntryReader(required, user=user1) as reader,
+        pytest.raises(ConfigError, match='Unknown layout id'),
+    ):
+        reader.sync_read('id_plotly')
+
+
+def test_layout_like_data_request_includes_inherited_figures_without_definition_errors(
+    user1, example_data_with_figure
+):
+    required = {
+        Token.ARCHIVE: {
+            'data': {
+                'm_request': {
+                    'directive': 'plain',
+                    'include_definition': 'both',
+                    'm_def_format': 'short',
+                    'depth': 2,
+                },
+                'm_def': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'm_def_format': 'short',
+                        'export_whole_package': True,
+                    }
+                },
+                'figures': '*',
+            }
+        }
+    }
+
+    with EntryReader(required, user=user1) as reader:
+        response = reader.sync_read('id_plotly')
+        assert 'figures' in response.get('archive', {}).get('data', {})
+        messages = [error.get('message') for error in response.get('m_errors', [])]
+        assert 'Definition figures is not found.' not in messages, (
+            f'Unexpected errors in response: {response.get("m_errors")}'
+        )
+
+
 def test_mongo_reader_explicit_upload_lookup_skips_container_query(
     monkeypatch, user1, example_data_with_reference
 ):
@@ -4416,6 +4611,50 @@ def test_file_system_reader_resolved_directory_uses_batch_lookup(
 
     assert response['mainfile_for_id_01']['entry']['entry_id'] == 'id_01'
     assert response['mainfile_for_id_02']['entry']['entry_id'] == 'id_02'
+
+
+def test_entry_reader_retrieve_entry_does_not_call_perform_search(
+    monkeypatch, user1, example_data_with_reference
+):
+    def _fail_search(*args, **kwargs):
+        raise AssertionError('retrieve_entry should not call perform_search')
+
+    monkeypatch.setattr('nomad.graph.graph_reader.perform_search', _fail_search)
+
+    with EntryReader({'m_request': {'directive': 'plain'}}, user=user1) as reader:
+        response = reader.sync_read('id_03')
+
+    assert response['entry_id'] == 'id_03'
+
+
+def test_entry_reader_retrieve_entry_group_visibility(
+    uploads_graph_access_via_group, user2, user3
+):
+    required = {'m_request': {'directive': 'plain'}}
+
+    with EntryReader(required, user=user2) as reader:
+        response = reader.sync_read('id_CGg2_1')
+    assert response['entry_id'] == 'id_CGg2_1'
+
+    with EntryReader(required, user=user2) as reader:
+        response = reader.sync_read('id_RGg2_1')
+    assert response['entry_id'] == 'id_RGg2_1'
+
+    with EntryReader(required, user=user3) as reader:
+        response = reader.sync_read('id_CGg2_1')
+    assert response['m_errors'][0]['error_type'] == 'NOACCESS'
+
+
+def test_entry_reader_retrieve_entry_anonymous_all_group_visibility(uploads_get_groups):
+    required = {'m_request': {'directive': 'plain'}}
+
+    with EntryReader(required, user=None) as reader:
+        visible = reader.sync_read('id_RGall_1')
+    assert visible['entry_id'] == 'id_RGall_1'
+
+    with EntryReader(required, user=None) as reader:
+        hidden = reader.sync_read('id_CGg2_1')
+    assert hidden['m_errors'][0]['error_type'] == 'NOACCESS'
 
 
 def test_m_def_format_short(user1, custom_data):

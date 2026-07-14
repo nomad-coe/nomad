@@ -92,6 +92,7 @@ class ExampleSection(ArchiveSection):
     )
 
 
+assert ExampleSection.m_def is not None
 ExampleSection.m_def.m_annotations[MAPPING_ANNOTATION_KEY] = dict(
     xml=MapperAnnotation(mapper='a'),
     hdf5=MapperAnnotation(mapper='g'),
@@ -268,6 +269,77 @@ class TestPath:
         path.set_data(data, target)
         value = path.get_data(target)
         assert_equal(value, result)
+
+    def test_set_data_nested_update_mode_overrides_parent(self):
+        path = Path(path='items')
+        target = {
+            'items': [
+                {
+                    'entries': [
+                        {
+                            'kind': 'existing',
+                            'value': 1,
+                        }
+                    ]
+                }
+            ]
+        }
+        data = [
+            {
+                '.entries': [
+                    {
+                        '.kind': 'incoming',
+                        '.label': 'x',
+                    }
+                ]
+            }
+        ]
+
+        path.set_data(
+            data,
+            target,
+            update_mode={
+                '__update_mode': 'merge',
+                '.entries': {'__update_mode': 'append'},
+            },
+        )
+
+        item_data = target['items'][0]
+        entries = item_data.get('entries', item_data.get('.entries', []))
+        assert len(entries) == 2
+        assert any('label' in section or '.label' in section for section in entries)
+        assert any('value' in section or '.value' in section for section in entries)
+        assert {
+            section.get('kind', section.get('.kind'))
+            for section in entries
+            if 'kind' in section or '.kind' in section
+        } == {
+            'existing',
+            'incoming',
+        }
+
+    def test_set_data_merge_last_scalar_list(self):
+        path = Path(path='a.b')
+        target = {'a': {'b': [10, 20]}}
+
+        path.set_data([1, 2, 3, 4, 5], target, update_mode='merge@last')
+
+        assert target['a']['b'] == [1, 2, 3, 10, 20]
+
+    def test_set_data_merge_last_scalar_list_current_longer(self):
+        path = Path(path='a.b')
+        target = {'a': {'b': [10, 20, 30, 40, 50]}}
+
+        path.set_data([1, 2], target, update_mode='merge@last')
+
+        assert target['a']['b'] == [10, 20, 30, 40, 50]
+
+    def test_set_data_merge_invalid_index_raises(self):
+        path = Path(path='a.b')
+        target = {'a': {'b': [10, 20]}}
+
+        with pytest.raises(ValueError, match='merge index must be an integer'):
+            path.set_data([1, 2, 3], target, update_mode='merge@foo')
 
 
 class TestMapper:
@@ -529,6 +601,33 @@ class TestMapper:
 
 
 class TestMappingParser:
+    def test_set_data_nested_update_mode_per_key(self, monkeypatch):
+        parser = ExampleParser(data={})
+        update_modes: list[tuple[str, str | None]] = []
+
+        def fake_set_data(self, data, target, **kwargs):
+            update_modes.append((self.path, kwargs.get('update_mode')))
+            return data
+
+        monkeypatch.setattr(Path, 'set_data', fake_set_data)
+        parser.set_data(
+            {'a': {'b': 1, 'c': 2}},
+            {},
+            update_mode={
+                '__update_mode': 'merge',
+                'a': {
+                    '__update_mode': 'merge',
+                    '.b': {'__update_mode': 'replace'},
+                    '.c': {'__update_mode': 'append'},
+                },
+            },
+        )
+
+        mode_map = {path: mode for path, mode in update_modes}
+        assert mode_map['a']['__update_mode'] == 'merge'
+        assert mode_map['b']['__update_mode'] == 'replace'
+        assert mode_map['c']['__update_mode'] == 'append'
+
     def test_convert_xml_to_archive(self, xml_parser, archive_parser):
         archive_parser.annotation_key = 'xml'
         archive_parser.data_object = ExampleSection(b=[BSection(v=np.eye(2))])
@@ -593,3 +692,53 @@ class TestMappingParser:
         assert archive.b[0].v2 == '5.3.2'
         assert archive.b[2].v3 == -7.14173545
         text_parser.close()
+
+    def test_from_dict_polymorphic_subsections(self):
+        """Test that from_dict resolves types per-item for polymorphic subsections."""
+        from nomad.metainfo import MSection, Quantity, SubSection
+
+        # Define base section and two concrete types
+        class BaseItem(MSection):
+            name = Quantity(type=str)
+
+        class ItemTypeA(BaseItem):
+            property_a = Quantity(type=str)
+
+        class ItemTypeB(BaseItem):
+            property_b = Quantity(type=str)
+
+        class Container(MSection):
+            items = SubSection(sub_section=BaseItem, repeats=True)
+
+        # Create parser with Container
+        parser = MetainfoParser()
+        parser.data_object = Container()
+
+        # Get qualified names from the section definitions
+        type_a_qname = ItemTypeA.m_def.qualified_name()
+        type_b_qname = ItemTypeB.m_def.qualified_name()
+
+        # Test dict with heterogeneous list: both type A and type B items
+        data = {
+            'items': [
+                {
+                    'm_def': type_a_qname,
+                    'name': 'first',
+                    'property_a': 'value_a',
+                },
+                {'m_def': type_b_qname, 'name': 'second', 'property_b': 'value_b'},
+            ]
+        }
+
+        # Call from_dict
+        parser.from_dict(data)
+
+        # Verify both items were created with correct types
+        assert len(parser.data_object.items) == 2
+        assert isinstance(parser.data_object.items[0], ItemTypeA)
+        assert parser.data_object.items[0].name == 'first'
+        assert parser.data_object.items[0].property_a == 'value_a'
+
+        assert isinstance(parser.data_object.items[1], ItemTypeB)
+        assert parser.data_object.items[1].name == 'second'
+        assert parser.data_object.items[1].property_b == 'value_b'

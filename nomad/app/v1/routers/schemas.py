@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import importlib
 from enum import Enum
 from typing import Annotated
 
@@ -25,6 +24,7 @@ from fastapi.responses import JSONResponse
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
+from nomad.metainfo.util import MDefNotFound, MDefWithoutMetainfo, resolve_m_def
 
 router = APIRouter()
 
@@ -100,46 +100,57 @@ Format for the returned schema. Available formats:
 """
         ),
     ] = SerializationFormat.JSONSCHEMA,
+    unit_value: Annotated[
+        bool,
+        Query(
+            description="""Expand schema fields into a `value`/`unit` object schema.
+
+    This converts a flat schema property with an unit associated with it into an object like:
+
+    {
+        "properties": {
+            "value": <original field schema>,
+            "unit": {"type": "string", "enum": [unit]}
+        }
+    }
+    """
+        ),
+    ] = False,
+    section_subtypes: Annotated[
+        bool,
+        Query(description='Include subtypes of the specified schema in the output.'),
+    ] = False,
+    property_subtypes: Annotated[
+        bool,
+        Query(
+            description='Include subtypes of the properties of the specified schema in the output.'
+        ),
+    ] = False,
 ):
     """
     Returns the serialized schema for the given id. The returned
     schema is serialized in the format specified by the `format` query parameter.
     """
 
-    def resolve_m_def(m_def: str):
-        """
-        Resolve Section from qualified name (m_def) such as:
-            package_name.schema_packages.calculations.MySchema
-        """
-        parts: list[str] = m_def.split('.')
-        module_path: str = '.'.join(parts[:-1])
-        class_name: str = parts[-1]
-
-        try:
-            module = importlib.import_module(module_path)
-            section = getattr(module, class_name)
-        except (ImportError, AttributeError, ValueError) as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f'Class {class_name} does not exist in module {module_path}.',
-            ) from e
-
-        if not hasattr(section, 'm_def'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'{section=} does not have metainfo definition.',
-            )
-
-        return section
-
     # Split the identifier into qualified name and optional tag
     qualified_name, _, tag = schema_id.partition('@')
 
     # Resolve class
-    section = resolve_m_def(m_def=qualified_name)
+    try:
+        section = resolve_m_def(m_def=qualified_name)
+    except MDefNotFound as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Could not resolve {qualified_name} to a valid schema class or property.',
+        ) from e
+    except MDefWithoutMetainfo as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
 
     # Check the tag if provided
-    if tag and tag != section.m_def.definition_id:
+    if tag and tag != section.definition_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Tag {tag} could not be found for {qualified_name}. Note that only the tag corresponding to the most recently added definition is currently supported.',
@@ -147,10 +158,14 @@ Format for the returned schema. Available formats:
 
     if format == SerializationFormat.JSONSCHEMA:
         return JSONResponse(
-            content=section.m_def.m_to_json_schema(),
+            content=section.m_to_json_schema(
+                add_unit_value=unit_value,
+                add_section_subtypes=section_subtypes,
+                add_property_subtypes=property_subtypes,
+            ),
             media_type='application/schema+json',
         )
-    elif format == SerializationFormat.METAINFO:
+    if format == SerializationFormat.METAINFO:
         return JSONResponse(
             content=section.m_def.m_to_dict(),
             media_type='application/json',

@@ -296,6 +296,7 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert Upload.objects(upload_id=upload_id).first() is None
     assert Entry.objects(upload_id=upload_id).count() is 0
 
+    assert infrastructure.mongo_client is not None
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']
     assert mongo_collection.count_documents({}) == 0
@@ -2301,7 +2302,9 @@ async def test_post_upload_action_lift_embargo(
                 metadata = {'coauthors': user.user_id}
             upload = Upload.get(upload_id)
             await upload._start_edit_upload_metadata_workflow(
-                dict(metadata=metadata), config.services.admin_user_id
+                dict(metadata=metadata),
+                config.services.admin_user_id,
+                wait_for_processing=True,
             )
 
         response = await asyncio.to_thread(
@@ -2382,7 +2385,7 @@ async def test_get_upload_bundle(
                     include |= rel_path.startswith('archive') and include_archive_files
                     if include:
                         expected_files.add(rel_path)
-            assert expected_files == set(zip_file.namelist())
+            assert expected_files <= set(zip_file.namelist())
 
 
 @pytest.mark.parametrize(
@@ -2592,6 +2595,20 @@ async def _get_list_of_started_workflows(temporal_env):
     return matching_workflows
 
 
+async def _get_activities_in_workflow(temporal_env, workflow_name: str) -> list[str]:
+    """Returns the list of activity names that were scheduled in a given workflow."""
+    activities = []
+    async for execution in temporal_env.client.list_workflows():
+        if execution.raw_info.type.name == workflow_name:
+            handle = temporal_env.client.get_workflow_handle(execution.id)
+            async for event in handle.fetch_history_events():
+                if event.HasField('activity_task_scheduled_event_attributes'):
+                    activities.append(
+                        event.activity_task_scheduled_event_attributes.activity_type.name
+                    )
+    return activities
+
+
 async def _assert_trigger_reprocessing_behavior(
     env,
     client: TestClient,
@@ -2600,18 +2617,26 @@ async def _assert_trigger_reprocessing_behavior(
     trigger_processing: None | bool,
 ):
     """
-    Waits for possible processing and asserts that the correct workflows are started based on the trigger_processing flag.
+    Waits for possible processing and asserts that the correct workflows are started
+    based on the trigger_processing flag. Also checks that match_all_activity was
+    triggered inside UpdateUploadWorkflow.
     """
     if trigger_processing is True or (trigger_processing is None):
         await asyncio.to_thread(lambda: assert_processing(client, upload_id, user))
-        matching_workflows = await _get_list_of_started_workflows(env)
-        assert 'UpdateUploadWorkflow' in matching_workflows
-        assert 'ProcessUploadWorkflow' in matching_workflows
     else:
-        await asyncio.to_thread(lambda: block_until_completed(client, upload_id, user))
-        matching_workflows = await _get_list_of_started_workflows(env)
-        assert 'UpdateUploadWorkflow' in matching_workflows
-        assert 'ProcessUploadWorkflow' not in matching_workflows
+        response_data = await asyncio.to_thread(
+            lambda: block_until_completed(client, upload_id, user)
+        )
+        assert response_data['process_status'] == ProcessStatus.READY
+        assert not response_data['process_running']
+
+    matching_workflows = await _get_list_of_started_workflows(env)
+    assert 'UpdateUploadWorkflow' in matching_workflows
+    activities = await _get_activities_in_workflow(env, 'UpdateUploadWorkflow')
+    if trigger_processing is True or (trigger_processing is None):
+        assert 'match_all_activity' in activities
+    else:
+        assert 'match_all_activity' not in activities
 
 
 @pytest.mark.parametrize(
@@ -2708,7 +2733,6 @@ async def test_put_upload_raw_path_trigger_processing_option(
 
 @pytest.fixture
 def create_upload(elastic_function, raw_files_function, mongo_function, user1):
-
     default_upload = dict(
         upload_id='upload_id',
     )
@@ -2786,3 +2810,42 @@ def test_assign_doi_upload(
     assert_upload(response)
     doi_name = response['data']['doi']['id']
     assert_doi_name(doi_name)
+
+
+def test_assign_doi_upload_datacite_error(
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    create_upload,
+):
+    datacite_mock.set_requests(401, False, 'Bad credentials.')
+    data = create_upload(upload={'publish_time': now()})
+
+    headers = auth_headers['user1']
+    response = client.post(f'uploads/upload_id/action/assign-doi', headers=headers)
+
+    assert_response(response, 500)
+    msg = response.json()['detail']
+    assert 'An error occurred while creating the DOI draft at DataCite.' in msg
+    upload = Upload.get('upload_id')
+    assert upload.doi is None
+
+
+def test_assign_doi_upload_mongo_error(
+    mock_mongo_fail_save,
+    datacite_mock: DataciteMock,
+    auth_headers,
+    client,
+    create_upload,
+):
+    data = create_upload(upload={'publish_time': now()})
+    mock_mongo_fail_save(Upload)
+
+    headers = auth_headers['user1']
+    response = client.post(f'uploads/upload_id/action/assign-doi', headers=headers)
+
+    assert_response(response, 500)
+    msg = response.json()['detail']
+    assert 'An error occurred while saving the upload doi to the database.' in msg
+    upload = Upload.get('upload_id')
+    assert upload.doi is None

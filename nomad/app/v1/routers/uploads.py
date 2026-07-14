@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import functools
 import io
 import os
 import shutil
@@ -25,6 +26,7 @@ from enum import Enum
 from typing import Annotated, Any, cast
 from urllib.parse import unquote, urlparse
 
+import anyio
 import requests
 from fastapi import (
     APIRouter,
@@ -40,13 +42,13 @@ from fastapi import (
 from fastapi import Query as FastApiQuery
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, StreamingResponse
+from mongoengine.errors import MongoEngineException
 from mongoengine.queryset.visitor import Q
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
 from nomad import files, utils
 from nomad.app.v1.models.models import TransferBundleRequest
-from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
 from nomad.auth.tokens import generate_upload_token
 from nomad.bundles import BundleExporter, BundleImporter
@@ -56,9 +58,11 @@ from nomad.config.models.config import Reprocess
 from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.datacite import DataCiteException
 from nomad.datacite.service import create_doi_for_upload, publish_doi
-from nomad.files import PublicUploadFiles, StagingUploadFiles
+from nomad.files import FSUtility, PublicUploadFiles, StagingUploadFiles
+from nomad.models.common import UTCDateTime
 from nomad.mongo.doi import EmbeddedDOI
 from nomad.mongo.groups import MongoUserGroup
+from nomad.mongo.search import MongoQueryError, create_mongo_query
 from nomad.processing import (
     Entry,
     MetadataEditRequestHandler,
@@ -68,6 +72,7 @@ from nomad.processing import (
 )
 from nomad.search import QueryValidationError, search, search_iterator
 from nomad.search import refresh as search_refresh
+from nomad.tracing import traced
 from nomad.utils import strip
 
 from ..models import (
@@ -112,11 +117,6 @@ class APITag(str, Enum):
 logger = utils.get_logger(__name__)
 
 
-async def async_wrapper(content):
-    for x in content:
-        yield x
-
-
 class UploadRole(str, Enum):
     main_author = 'main_author'
     reviewer = 'reviewer'
@@ -151,7 +151,7 @@ class ProcData(BaseModel):
     warnings: list[str] = Field(
         description='A list of warning messages that occurred during the last processing'
     )
-    complete_time: datetime | None = Field(
+    complete_time: UTCDateTime | None = Field(
         None, description='Date and time of the completion of the last process'
     )
     model_config = ConfigDict(from_attributes=True)
@@ -164,7 +164,7 @@ class UploadProcData(ProcData):
         description='The name of the upload. This can be provided during upload '
         'using the `upload_name` query parameter.',
     )
-    upload_create_time: datetime | None = Field(
+    upload_create_time: UTCDateTime | None = Field(
         None, description='Date and time of the creation of the upload.'
     )
     description: str | None = Field(
@@ -206,7 +206,7 @@ class UploadProcData(ProcData):
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.',
     )
-    publish_time: datetime | None = Field(
+    publish_time: UTCDateTime | None = Field(
         None,
         description='Date and time of publication, if the upload has been published.',
     )
@@ -230,7 +230,7 @@ class UploadProcData(ProcData):
 
 class EntryProcData(ProcData):
     entry_id: str = Field()
-    entry_create_time: datetime = Field()
+    entry_create_time: UTCDateTime = Field()
     mainfile: str = Field()
     mainfile_key: str | None = Field(None)
     upload_id: str = Field()
@@ -366,7 +366,20 @@ class UploadProcDataQuery(BaseModel):
     )
     upload_name: list[str] | None = Field(
         None,
-        description='Search for uploads matching the given upload_name. Multiple values can be specified.',
+        description=strip(
+            """
+            Search for uploads by upload_name.
+
+            Implicit exact form:
+            - `upload_name=value`
+
+            Explicit form:
+            - `upload_name={"value":"name","type":"exact"}`
+            - `upload_name={"value":"term","type":"fuzzy"}`
+
+            Multiple values can be specified.
+            """
+        ),
     )
     is_processing: bool | None = Field(
         None,
@@ -756,18 +769,6 @@ _existing_upload_with_findable_state = (
     },
 )
 
-_datacite_did_not_resolve = (
-    status.HTTP_500_INTERNAL_SERVER_ERROR,
-    {
-        'model': HTTPExceptionModel,
-        'description': strip(
-            """
-        Datacite server couldn't resolve the request. Please try again later.
-    """
-        ),
-    },
-)
-
 _upload_already_has_doi = (
     status.HTTP_400_BAD_REQUEST,
     {
@@ -811,6 +812,42 @@ _datacite_not_enabled = (
     {
         'model': HTTPExceptionModel,
         'description': 'The DataCite DOI service is not enabled on this deployment.',
+    },
+)
+
+_datacite_draft_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while creating the DOI draft at DataCite. Please contact the administrator.
+    """
+        ),
+    },
+)
+
+_db_set_upload_doi_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while saving the upload doi to the database. Please contact the administrator.
+    """
+        ),
+    },
+)
+
+_datacite_publish_failed = (
+    status.HTTP_500_INTERNAL_SERVER_ERROR,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        An error occurred while publishing the DOI at DataCite. Please contact the administrator.
+    """
+        ),
     },
 )
 
@@ -871,7 +908,7 @@ def get_command_examples(
     tags=[APITag.METADATA],
     summary='List uploads of authenticated user.',
     response_model=UploadProcDataQueryResponse,
-    responses=create_responses(_not_authorized, _bad_pagination),
+    responses=create_responses(_not_authorized, _bad_pagination, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
@@ -900,27 +937,15 @@ def get_uploads(
     Retrieves metadata about all uploads that match the given query criteria.
     """
     # Build query
-    mongo_query = Q()
-    mongo_query &= get_role_query(roles, user, include_all=include_all)
-
-    if query.upload_id:
-        mongo_query &= Q(upload_id__in=query.upload_id)
-
-    if query.doi:
-        mongo_query &= Q(doi__in=query.doi)
-
-    if query.upload_name:
-        mongo_query &= Q(upload_name__in=query.upload_name)
-
-    if query.is_processing is True:
-        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
-    elif query.is_processing is False:
-        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
-
-    if query.is_published is True:
-        mongo_query &= Q(publish_time__ne=None)
-    elif query.is_published is False:
-        mongo_query &= Q(publish_time=None)
+    role_query = get_role_query(roles, user, include_all=include_all)
+    try:
+        mongo_query = create_mongo_query(
+            query,
+            base_query=role_query,
+            auth_user_id=str(user.user_id),
+        )
+    except MongoQueryError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Create response
     start = pagination.get_simple_index()
@@ -928,8 +953,20 @@ def get_uploads(
 
     # Fetch data from DB
     mongodb_query = pagination.order_result(Upload.objects.filter(mongo_query))  # type: ignore
+    uploads = list(mongodb_query[start:end])
+    upload_ids = [upload.upload_id for upload in uploads]
 
-    data = [upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
+    # Batch fetch entry counts
+    counts = {
+        item['_id']: item['count']
+        for item in Entry.objects(upload_id__in=upload_ids).aggregate(
+            [{'$group': {'_id': '$upload_id', 'count': {'$sum': 1}}}]
+        )
+    }
+
+    data = [upload_to_pydantic(upload, include_total_count=False) for upload in uploads]
+    for pydantic_upload in data:
+        pydantic_upload.entries = counts.get(pydantic_upload.upload_id, 0)
 
     pagination_response = PaginationResponse(
         total=mongodb_query.count(), **pagination.dict()
@@ -1095,6 +1132,7 @@ def get_upload_entry(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.get_upload_rawdir_path')
 def get_upload_rawdir_path(
     request: Request,
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
@@ -1242,9 +1280,15 @@ def get_upload_raw(
             ),
         )
 
-    # Find the .zip file and start streaming it
-    raw_zip_file_path = upload_files.raw_zip_file_object().os_path
-    return FileResponse(raw_zip_file_path, media_type='application/zip')
+    if FSUtility.is_local(file_path := upload_files.raw_zip_file_object().os_path):
+        return FileResponse(file_path, media_type='application/zip')
+
+    def file_stream():
+        with FSUtility.open(file_path) as file_obj:
+            while chunk := file_obj.read(2**20):
+                yield chunk
+
+    return StreamingResponse(file_stream(), media_type='application/zip')
 
 
 @router.get(
@@ -1261,6 +1305,7 @@ def get_upload_raw(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.get_upload_raw_path')
 def get_upload_raw_path(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     path: Annotated[str, Path(description='The path within the upload raw files.')],
@@ -1556,7 +1601,7 @@ async def put_upload_raw_path(
     transfer is made using method 2, you can specify the query argument `file_name` to name it.
     This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
     (for zip/tar files the names don't matter since they are extracted). See the POST `uploads`
-    endpoint for examples of curl commands for uploading files.
+    endpoint for examples of `curl` commands for uploading files.
 
     Also, this path can be used to copy/move a file from one directory to another. Three
     query parameters are required for a successful operation: 1) `copy_or_move` param to specify
@@ -1575,7 +1620,9 @@ async def put_upload_raw_path(
             detail='`trigger_processing` must be true when `wait_for_processing` is set.`',
         )
 
-    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+    upload = await anyio.to_thread.run_sync(
+        _get_upload_with_write_access, upload_id, user, False
+    )
 
     if local_path and not os.path.isfile(local_path):
         raise HTTPException(
@@ -1626,177 +1673,186 @@ async def put_upload_raw_path(
             detail='Either an upload file or the query parameters for moving/copying a file should be provided.',
         )
 
-    if entry_hash:
-        upload_path = upload_paths[0]
-        full_path = os.path.join(path, os.path.basename(upload_path))
-        entry_id = utils.generate_entry_id(upload_id, full_path)
-        entry = upload.get_entry(entry_id)
-        if entry and entry_hash != entry.entry_hash or not entry:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                detail='The provided hash did not match the current file.',
+    def execute_put_raw():
+        if entry_hash:
+            upload_path = upload_paths[0]
+            full_path = os.path.join(path, os.path.basename(upload_path))
+            entry_id = utils.generate_entry_id(upload_id, full_path)
+            entry = upload.get_entry(entry_id)
+            if entry and entry_hash != entry.entry_hash or not entry:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    detail='The provided hash did not match the current file.',
+                )
+
+        upload_files = StagingUploadFiles(upload_id)
+
+        compression_format = None
+        for upload_path in upload_paths:
+            compression_format = get_compression_format(upload_path)
+            if compression_format == 'error':
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail='Cannot extract file. Bad file format or file extension?',
+                )
+            if not compression_format and not overwrite_if_exists:
+                full_path = os.path.join(path, os.path.basename(upload_path))
+                if upload_files.raw_exists(full_path):
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        detail='The provided path already exists and overwrite_if_exists is set to False.',
+                    )
+
+        if not wait_for_processing:
+            # Process on worker (normal case)
+            if copy_or_move:  # the case for move/copy an existing file
+                path_to_target_file = os.path.join(path, file_name)
+                if upload_files.raw_exists(path_to_target_file):
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        detail='The provided path already exists.',
+                    )
+                if not upload_files.raw_exists(path):
+                    raise HTTPException(
+                        status.HTTP_404_NOT_FOUND,
+                        detail='No file or folder with that path found.',
+                    )
+                if not upload_files.raw_exists(copy_or_move_source_path):
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        detail=f'No file or folder with that source path: {copy_or_move_source_path}',
+                    )
+                file_operations = [
+                    dict(
+                        op=copy_or_move.upper(),
+                        path_to_existing_file=copy_or_move_source_path,
+                        path_to_target_file=path_to_target_file,
+                    )
+                ]
+            else:
+                file_operations = [
+                    dict(
+                        op='ADD',
+                        path=upload_path,
+                        target_dir=path,
+                        temporary=(method != 0),
+                        auto_decompress=auto_decompress,
+                    )
+                    for upload_path in upload_paths
+                ]
+
+            # Initiate processing
+            try:
+                upload.process_upload(
+                    file_operations=file_operations,
+                    only_updated_files=True,
+                    trigger_processing=trigger_processing,
+                )
+            except ProcessAlreadyRunning:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail='The upload is currently blocked by another process.',
+                )
+
+            # Create response
+            if request.headers.get('Accept') == 'application/json':
+                response = PutRawFileResponse(
+                    upload_id=upload_id, data=upload_to_pydantic(upload)
+                )
+                response_text = response.model_dump_json()
+                media_type = 'application/json'
+            else:
+                response_text = _thank_you_message
+                media_type = 'text/plain'
+
+            return StreamingResponse(
+                create_stream_from_string(response_text), media_type=media_type
             )
 
-    upload_files = StagingUploadFiles(upload_id)
-
-    compression_format = None
-    for upload_path in upload_paths:
-        compression_format = get_compression_format(upload_path)
-        if compression_format == 'error':
+        # Process locally
+        if copy_or_move:  # case for move/copy an existing file
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail='Cannot extract file. Bad file format or file extension?',
+                detail='Cannot move/copy the file with wait_for_processing set to true.',
             )
-        if not compression_format and not overwrite_if_exists:
-            full_path = os.path.join(path, os.path.basename(upload_path))
-            if upload_files.raw_exists(full_path):
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    detail='The provided path already exists and overwrite_if_exists is set to False.',
-                )
 
-    if not wait_for_processing:
-        # Process on worker (normal case)
-        if copy_or_move:  # the case for move/copy an existing file
-            path_to_target_file = os.path.join(path, file_name)
-            if upload_files.raw_exists(path_to_target_file):
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    detail='The provided path already exists.',
-                )
-            if not upload_files.raw_exists(path):
-                raise HTTPException(
-                    status.HTTP_404_NOT_FOUND,
-                    detail='No file or folder with that path found.',
-                )
-            if not upload_files.raw_exists(copy_or_move_source_path):
-                raise HTTPException(
-                    status.HTTP_409_CONFLICT,
-                    detail=f'No file or folder with that source path: {copy_or_move_source_path}',
-                )
-            file_operations: Any = [
-                dict(
-                    op=copy_or_move.upper(),
-                    path_to_existing_file=copy_or_move_source_path,
-                    path_to_target_file=path_to_target_file,
-                )
-            ]
-        else:
-            file_operations = [
-                dict(
-                    op='ADD',
-                    path=upload_path,
-                    target_dir=path,
-                    temporary=(method != 0),
-                    auto_decompress=auto_decompress,
-                )
-                for upload_path in upload_paths
-            ]
+        if len(upload_paths) != 1 or compression_format:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail='`wait_for_processing` can only be used with single files, and not with compressed files.',
+            )
 
-        # Initiate processing
+        upload_path = upload_paths[0]
+        full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            upload.process_upload(
-                file_operations=file_operations,
-                only_updated_files=True,
-                trigger_processing=trigger_processing,
+            entry = upload.put_file_and_process_local(
+                upload_path,
+                path,
+                reprocess_settings=Reprocess(
+                    index_individual_entries=True, reprocess_existing_entries=True
+                ),
             )
+
+            search_refresh()
+
+            archive = None
+            if (
+                entry
+                and entry.process_status == ProcessStatus.SUCCESS
+                and include_archive
+            ):
+                # NOTE: We can't rely on ES to get the metadata for the entry, since it may
+                # not have had enough time to update its index etc. For now, we will just
+                # ignore this, as we do not need it.
+                archive = answer_entry_archive_request(
+                    dict(upload_id=upload_id, mainfile=full_path),
+                    required='*',
+                    user=user,
+                    entry_metadata=dict(
+                        upload_id=upload_id,
+                        entry_id=entry.entry_id,
+                        parser_name=entry.parser_name,
+                    ),
+                )['data']['archive']
+
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=upload_to_pydantic(upload),
+                processing=ProcessingData(
+                    upload_id=upload_id,
+                    path=full_path,
+                    entry_id=entry.entry_id if entry else None,
+                    parser_name=entry.parser_name if entry else None,
+                    entry=entry_to_pydantic(entry) if entry else None,
+                    archive=archive,
+                ),
+            )
+
+            return StreamingResponse(
+                create_stream_from_string(response.model_dump_json()),
+                media_type='application/json',
+            )
+        except HTTPException:
+            raise
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail='The upload is currently blocked by another process.',
+                detail='The upload is currently being processed, operation not allowed.',
+            )
+        except Exception as e:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Unexpected exception occurred: {e}',
             )
 
-        # Create response
-        if request.headers.get('Accept') == 'application/json':
-            response = PutRawFileResponse(
-                upload_id=upload_id, data=upload_to_pydantic(upload)
-            )
-            response_text = response.model_dump_json()
-            media_type = 'application/json'
-        else:
-            response_text = _thank_you_message
-            media_type = 'text/plain'
-
-        return StreamingResponse(
-            create_stream_from_string(response_text), media_type=media_type
-        )
-
-    # Process locally
-    if copy_or_move:  # case for move/copy an existing file
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='Cannot move/copy the file with wait_for_processing set to true.',
-        )
-
-    if len(upload_paths) != 1 or compression_format:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='`wait_for_processing` can only be used with single files, and not with compressed files.',
-        )
-
-    upload_path = upload_paths[0]
-    full_path = os.path.join(path, os.path.basename(upload_path))
     try:
-        entry = upload.put_file_and_process_local(
-            upload_path,
-            path,
-            reprocess_settings=Reprocess(
-                index_individual_entries=True, reprocess_existing_entries=True
-            ),
-        )
-
-        search_refresh()
-
-        archive = None
-        if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
-            # NOTE: We can't rely on ES to get the metadata for the entry, since it may
-            # not have had enough time to update its index etc. For now, we will just
-            # ignore this, as we do not need it.
-            archive = answer_entry_archive_request(
-                dict(upload_id=upload_id, mainfile=full_path),
-                required='*',
-                user=user,
-                entry_metadata=dict(
-                    upload_id=upload_id,
-                    entry_id=entry.entry_id,
-                    parser_name=entry.parser_name,
-                ),
-            )['data']['archive']
-
-        response = PutRawFileResponse(
-            upload_id=upload_id,
-            data=upload_to_pydantic(upload),
-            processing=ProcessingData(
-                upload_id=upload_id,
-                path=full_path,
-                entry_id=entry.entry_id if entry else None,
-                parser_name=entry.parser_name if entry else None,
-                entry=entry_to_pydantic(entry) if entry else None,
-                archive=archive,
-            ),
-        )
-
-        return StreamingResponse(
-            create_stream_from_string(response.model_dump_json()),
-            media_type='application/json',
-        )
-    except HTTPException:
-        raise
-    except ProcessAlreadyRunning:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail='The upload is currently being processed, operation not allowed.',
-        )
-    except Exception as e:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail=f'Unexpected exception occurred: {e}',
-        )
+        return await anyio.to_thread.run_sync(execute_put_raw)
     finally:
-        try:
-            shutil.rmtree(os.path.dirname(upload_path))
-        except Exception:  # noqa
-            pass
+        if wait_for_processing and method != 0 and upload_paths:
+            try:
+                shutil.rmtree(os.path.dirname(upload_paths[0]))
+            except Exception:  # noqa
+                pass
 
 
 @router.delete(
@@ -2070,34 +2126,37 @@ async def post_upload(
     file data in the http body. Both are supported. Note, however, that the second method
     only allows the upload of a single file, and that it does not transfer a filename. If a
     transfer is made using method 2, you can specify the query argument `file_name` to name it.
-    This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
-    (for zip/tar files the names don't matter since they are extracted).
+    This *needs* to be specified when using method 2, unless you are uploading a zip file
+    (for zip files the names don't matter since they are extracted).
 
-    Example curl commands for creating an upload and uploading a file:
+    Example `curl` commands for creating an upload and uploading a file:
 
-    Method 1: multipart-formdata
+    Method 1: multipart/formdata
 
         curl -X 'POST' "url" -F file=@local_file
 
     Method 2: streaming data
 
-        curl -X 'POST' "url" -T local_file
+        curl -X 'POST' "url?file_name=filename" -T local_file
 
     Authentication is required. This can either be done using the regular bearer token,
     or using the simplified upload token. To use the simplified upload token, just
-    specify it as a query parameter in the url, i.e.
+    specify it as a header, i.e.
 
-        curl -X 'POST' "baseurl?token=ABC.XYZ" ...
+        curl -H 'Upload-Token: ABC.XYZ' -X 'POST' "url"  ...
 
     Note, there is a limit on how many unpublished uploads a user can have. If exceeded,
     error code 400 will be returned.
     """
     if not user.is_admin:
         # Check upload limit
-        if (
-            _query_mongodb(main_author=str(user.user_id), publish_time=None).count()
-            >= config.services.upload_limit
-        ):  # type: ignore
+        limit_exceeded = await anyio.to_thread.run_sync(
+            lambda: (
+                _query_mongodb(main_author=str(user.user_id), publish_time=None).count()
+                >= config.services.upload_limit
+            )
+        )
+        if limit_exceeded:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 detail=strip(
@@ -2137,20 +2196,6 @@ async def post_upload(
         elif len(upload_paths) == 1:
             upload_name = os.path.basename(upload_paths[0])
 
-    upload: Upload = Upload.create(
-        upload_id=upload_id,
-        main_author=user,
-        upload_name=upload_name,
-        upload_create_time=datetime.now(timezone.utc),
-        embargo_length=embargo_length,
-        publish_directly=publish_directly,
-    )
-
-    # Create staging files
-    files.StagingUploadFiles(upload_id=upload_id, create=True)
-
-    logger.info('upload created', upload_id=upload_id)
-
     file_operations = [
         dict(
             op='ADD',
@@ -2162,12 +2207,30 @@ async def post_upload(
         for i_path, upload_path in enumerate(upload_paths)
     ]
 
-    # If creating an example upload, the contents are loaded only during the
-    # first processing: they should not be loaded anymore in later reprocessing.
-    if example_upload_id is not None:
-        upload.process_example_upload(example_upload_id, file_operations)
-    elif upload_paths:
-        upload.process_upload(file_operations)
+    def create_upload_sync() -> Upload:
+        upload_obj: Upload = Upload.create(
+            upload_id=upload_id,
+            main_author=user,
+            upload_name=upload_name,
+            upload_create_time=datetime.now(timezone.utc),
+            embargo_length=embargo_length,
+            publish_directly=publish_directly,
+        )
+
+        # Create staging files
+        files.StagingUploadFiles(upload_id=upload_id, create=True)
+
+        logger.info('upload created', upload_id=upload_id)
+
+        # If creating an example upload, the contents are loaded only during the
+        # first processing: they should not be loaded anymore in later reprocessing.
+        if example_upload_id is not None:
+            upload_obj.process_example_upload(example_upload_id, file_operations)
+        elif upload_paths:
+            upload_obj.process_upload(file_operations)
+        return upload_obj
+
+    upload = await anyio.to_thread.run_sync(create_upload_sync)
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -2203,6 +2266,14 @@ async def post_upload_edit(
         User,
         Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
     ],
+    wait_for_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """Waits for the processing to complete and return information about the outcome in the response (**USE WITH CARE**)."""
+            )
+        ),
+    ] = True,
 ):
     """
     Updates the metadata of the specified upload and entries. An optional `query` can be
@@ -2223,9 +2294,18 @@ async def post_upload_edit(
     """
     edit_request_json = await request.json()
     try:
-        MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
+        await anyio.to_thread.run_sync(
+            functools.partial(
+                MetadataEditRequestHandler.edit_metadata,
+                edit_request_json,
+                upload_id,
+                user,
+                wait_for_processing=wait_for_processing,
+            )
+        )
+        upload = await anyio.to_thread.run_sync(Upload.get, upload_id)
         return UploadProcDataResponse(
-            upload_id=upload_id, data=upload_to_pydantic(Upload.get(upload_id))
+            upload_id=upload_id, data=upload_to_pydantic(upload)
         )
     except RequestValidationError:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
@@ -2253,6 +2333,14 @@ def delete_upload(
         User,
         Depends(get_current_user([Scope.UPLOADS_WRITE], allow_anonymous=False)),
     ],
+    wait_for_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """Waits for the processing to complete and return information about the outcome in the response (**USE WITH CARE**)."""
+            )
+        ),
+    ] = True,
 ):
     """
     Delete an existing upload.
@@ -2269,7 +2357,7 @@ def delete_upload(
         only_main_author=True,
     )
     try:
-        upload.delete_upload()
+        upload.delete_upload(wait_for_processing=wait_for_processing)
     except ProcessAlreadyRunning:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -2332,6 +2420,14 @@ def post_upload_action_publish(
             deprecated=True,
         ),
     ] = False,
+    wait_for_processing: Annotated[
+        bool,
+        FastApiQuery(
+            description=strip(
+                """Waits for the processing to complete and return information about the outcome in the response (**USE WITH CARE**)."""
+            )
+        ),
+    ] = True,
 ):
     """
     Publishes an upload. The upload cannot be modified after this point (except for special
@@ -2393,7 +2489,9 @@ def post_upload_action_publish(
                 detail='The upload is already published.',
             )
         try:
-            upload.publish_upload(embargo_length=embargo_length)
+            upload.publish_upload(
+                embargo_length=embargo_length, wait_for_processing=wait_for_processing
+            )
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
@@ -2582,6 +2680,7 @@ def post_upload_action_lift_embargo(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.get_upload_bundle')
 def get_upload_bundle(
     user: Annotated[
         User,
@@ -2648,7 +2747,7 @@ def get_upload_bundle(
             detail=strip(f'Could not export due to error: {e}'),
         )
 
-    return StreamingResponse(async_wrapper(stream), media_type='application/zip')
+    return StreamingResponse(stream, media_type='application/zip')
 
 
 @router.post(
@@ -2774,9 +2873,9 @@ async def post_upload_bundle(
     settings except `embargo_length` requires an admin user to change (these settings
     have default values specified by the system configuration).
 
-    There are two basic ways to upload files: in the multipart-formdata or streaming the
-    file data in the http body. Both are supported. See the POST `uploads` endpoint for
-    examples of curl commands for uploading files.
+    There are two basic ways to upload files: using multipart-formdata or streaming the
+    file data in the HTTP request body. Both are supported. See the POST `uploads` endpoint for
+    examples of `curl` commands for uploading files.
     """
     import_settings = config.bundle_import.default_settings.customize(
         dict(
@@ -2826,17 +2925,21 @@ async def post_upload_bundle(
             )
         bundle_path = bundle_paths[0]
 
-        bundle_importer.open(bundle_path)
-        upload = bundle_importer.create_upload_skeleton()
-        bundle_importer.close()
-        # Import the bundle using the unified method
-        upload.import_bundle(
-            bundle_path=bundle_path,
-            import_settings=import_settings.model_dump()
-            if import_settings is not None
-            else {},
-            embargo_length=embargo_length,
-        )
+        def do_import():
+            bundle_importer.open(bundle_path)
+            upload_obj = bundle_importer.create_upload_skeleton()
+            bundle_importer.close()
+            # Import the bundle using the unified method
+            upload_obj.import_bundle(
+                bundle_path=bundle_path,
+                import_settings=import_settings.model_dump()
+                if import_settings is not None
+                else {},
+                embargo_length=embargo_length,
+            )
+            return upload_obj
+
+        upload = await anyio.to_thread.run_sync(do_import)
 
         return UploadProcDataResponse(
             upload_id=upload.upload_id, data=upload_to_pydantic(upload)
@@ -2865,6 +2968,7 @@ async def post_upload_bundle(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
+@traced(span_name='uploads.transfer_upload_bundle')
 def transfer_upload_bundle(
     transfer_options: TransferBundleRequest,
     upload_id: Annotated[
@@ -3205,12 +3309,11 @@ def _get_upload_with_write_access(
             detail='User authentication required to access uploads.',
         )
 
-    mongodb_query = _query_mongodb(upload_id=upload_id)
-    if not mongodb_query.count():
+    upload = _query_mongodb(upload_id=upload_id).first()
+    if upload is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail='The specified upload_id was not found.'
         )
-    upload = mongodb_query.first()
 
     if not is_user_upload_writer(upload, user):
         raise HTTPException(
@@ -3379,12 +3482,14 @@ def stop_upload_processing(
         _upload_already_has_doi,
         _upload_is_empty,
         _upload_is_unpublished,
-        _datacite_did_not_resolve,
+        _datacite_draft_failed,
+        _db_set_upload_doi_failed,
+        _datacite_publish_failed,
     ),
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def assign_doi(
+def assign_doi(
     upload_id: Annotated[str, Path(description='The unique id of the upload.')],
     user: Annotated[
         User,
@@ -3424,11 +3529,18 @@ async def assign_doi(
 
     try:
         doi_id = create_doi_for_upload(upload)
+    except DataCiteException:
+        raise _create_exception(*_datacite_draft_failed)
+
+    try:
+        upload.doi = EmbeddedDOI(id=doi_id)
+        upload.save()
+    except MongoEngineException:
+        raise _create_exception(*_db_set_upload_doi_failed)
+
+    try:
         publish_doi(doi_id)
     except DataCiteException:
-        raise _create_exception(*_datacite_did_not_resolve)
-
-    upload.doi = EmbeddedDOI(id=doi_id)
-    upload.save()
+        raise _create_exception(*_datacite_publish_failed)
 
     return {'upload_id': upload.upload_id, 'data': upload}

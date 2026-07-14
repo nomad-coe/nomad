@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from nomad.config import config
 from nomad.processing import Upload
 from nomad.processing.base import ProcessStatus
-from tests.app.v1.routers.uploads.test_basic_uploads import (
+from tests.app.v1.routers.uploads.test_uploads import (
     assert_processing,
     block_until_completed,
 )

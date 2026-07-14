@@ -23,7 +23,10 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
+from nomad.auth.scopes import _resolve_scopes
 from nomad.config import load_config
+from nomad.config.models import config as config_module
+from nomad.config.models.config import Auth
 from nomad.config.models.plugins import ParserEntryPoint, SchemaPackageEntryPoint
 from nomad.utils import flatten_dict
 
@@ -356,6 +359,36 @@ def test_plugin_polymorphism(mockopen, monkeypatch):
     assert isinstance(config.plugins.entry_points.options['parser'], ParserEntryPoint)
 
 
+def test_missing_plugin_config_warns_and_is_ignored(mockopen, monkeypatch):
+    plugins = {
+        'plugins': {
+            'entry_points': {
+                'options': {
+                    'nomad_aitoolkit.apps:aitoolkit': {
+                        'label': 'configured but not installed'
+                    }
+                }
+            }
+        }
+    }
+    messages = []
+    monkeypatch.setattr(
+        'nomad.config.models.config.logger.warning',
+        messages.append,
+    )
+
+    config = load_test_config(plugins, None, mockopen, monkeypatch)
+
+    config.load_plugins()
+
+    assert 'nomad_aitoolkit.apps:aitoolkit' not in config.plugins.entry_points.options
+    assert any(
+        'Found configuration for non-installed plugin entry point '
+        '"nomad_aitoolkit.apps:aitoolkit"' in message
+        for message in messages
+    )
+
+
 @pytest.mark.parametrize(
     'conf_yaml, conf_expected',
     [
@@ -628,6 +661,56 @@ def test_normalized_url(conf_yaml, conf_expected, mockopen, monkeypatch):
 
 # Tests for `Auth`
 
+auth_scope_cases = [
+    pytest.param(
+        {},
+        _resolve_scopes({'*:*'}),
+        id='empty-dict-gives-all',
+    ),
+    pytest.param(
+        {'include': ['*:read']},
+        _resolve_scopes({'*:read'}),
+        id='include-only',
+    ),
+    pytest.param(
+        {'exclude': ['*:read']},
+        _resolve_scopes({'*:*'}) - _resolve_scopes({'*:read'}),
+        id='exclude-only',
+    ),
+    pytest.param(
+        {'include': ['*:*'], 'exclude': ['tokens:*']},
+        _resolve_scopes({'*:*'}) - _resolve_scopes({'tokens:*'}),
+        id='include-and-exclude',
+    ),
+    pytest.param(
+        {'include': ['*:*'], 'exclude': ['*:*']},
+        set(),
+        id='equal-include-exclude-all',
+    ),
+    pytest.param(
+        {'include': ['tokens:*'], 'exclude': ['tokens:*']},
+        set(),
+        id='equal-include-exclude_specific',
+    ),
+    pytest.param(
+        {'include': [], 'exclude': ['tokens:*']},
+        set(),
+        id='empty-include',
+    ),
+]
+
+
+@pytest.mark.parametrize('scopes, expected', auth_scope_cases)
+def test_unauthenticated_user_scopes_resolved(scopes, expected):
+    auth = Auth.model_validate({'unauthenticated_user_scopes': scopes})
+    assert auth.unauthenticated_user_scopes_resolved == expected
+
+
+@pytest.mark.parametrize('scopes, expected', auth_scope_cases)
+def test_unauthorized_user_scopes_resolved(scopes, expected):
+    auth = Auth.model_validate({'unauthorized_user_scopes': scopes})
+    assert auth.unauthorized_user_scopes_resolved == expected
+
 
 @pytest.mark.parametrize(
     ('conf_yaml', 'conf_expected'),
@@ -666,6 +749,21 @@ def test_normalized_url(conf_yaml, conf_expected, mockopen, monkeypatch):
 def test_authorized_users(conf_yaml, conf_expected, mockopen, monkeypatch):
     config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
     assert_config(config, conf_expected)
+
+
+def test_authorized_users_email_whitelist_logs_deprecation_warning(monkeypatch):
+    messages = []
+
+    monkeypatch.setattr(config_module.logger, 'warning', messages.append)
+
+    auth = Auth.model_validate(
+        {'authorized_users': ['alice@example.com', 'Alice', 'alice@example.com']}
+    )
+
+    assert auth.authorized_users == ['alice@example.com', 'alice']
+    assert messages == [
+        'whitelisting users with email is deprecated, please use username instead.'
+    ]
 
 
 @pytest.mark.parametrize(

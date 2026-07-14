@@ -18,7 +18,7 @@
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass
@@ -81,19 +81,22 @@ class NextLevelEntryResult:
 
 @dataclass
 class UpdatedFilesResult:
-    files: set[str] | None = None
+    files: list[str] | None = None
     file_path: str | None = None
 
     def get_files(self) -> set[str] | None:
         """Get the files, loading from file if necessary"""
         if self.files is not None:
-            return self.files
+            return set(self.files)
 
         if self.file_path is not None:
             with open(self.file_path) as f:
                 return set(json.load(f))
 
         return None
+
+
+UploadProcessingPhase = Literal['setup', 'match', 'process']
 
 
 @dataclass
@@ -109,23 +112,29 @@ class UploadProcessingWorkflowInput:
     publish_directly_after_processing: bool = False
     updated_files: UpdatedFilesResult = field(default_factory=UpdatedFilesResult)
     min_level: int = 0
+    phase: UploadProcessingPhase = 'setup'
+    current_batch_dir: str | None = None
+    current_batch_index: int = 0
+    total_batches: int = 0
+    entry_activity_batch_size: int = 1
+    next_parser_level: int | None = None
 
 
 @dataclass
-class EntryBatchFromFileInput:
+class ProcessEntryBatchFromFileInput:
     upload_id: str
     batch_dir_path: str
-    batch_id: int
+    chunk_id: int
+    offset: int
+    limit: int
 
 
 @dataclass
 class EntriesToBeProcessedResult:
     upload_id: str
-    entries: list[ProcessEntryActivityInput] | None = None
     directory: str | None = None
-    current_sub_batch_index: int = 0
-    current_batch_id: int = 0
     total_batches: int = 0
+    entry_activity_batch_size: int = 1
     next_parser_level: int | None = None
 
 
@@ -176,6 +185,13 @@ class EditUploadMetadataWorkflowInput:
 
 
 @dataclass
+class TransferUploadOwnershipWorkflowInput:
+    upload_id: str
+    new_owner_user_id: str
+    previous_owner_user_id: str
+
+
+@dataclass
 class ImportBundleWorkflowInput:
     upload_id: str
     bundle_path: str
@@ -198,3 +214,27 @@ class PublishExternallyWorkflowInput:
     embargo_length: int | None = None
     target_deployment_url: str | None = None
     auth_token: str | None = None
+
+
+@dataclass
+class FinalizeUploadProcessingSuccessInput:
+    result: Literal['success']
+    upload_id: str
+    workflow_id: str
+    workflow_tmp_dir: str | None = None
+    trigger_processing: bool = True
+
+
+@dataclass
+class FinalizeUploadProcessingFailureInput:
+    result: Literal['failure']
+    upload_id: str
+    workflow_id: str
+    workflow_tmp_dir: str | None = None
+    failure_message: str | None = None
+    error_details: str | None = None
+
+
+FinalizeUploadProcessingInput = (
+    FinalizeUploadProcessingSuccessInput | FinalizeUploadProcessingFailureInput
+)
