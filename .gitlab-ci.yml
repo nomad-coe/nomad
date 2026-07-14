@@ -332,25 +332,25 @@ build python package:
       - archive.json
       - example.out
 
-# audit python:
-#   stage: test
-#   needs: []
-#   image: $UV_IMAGE
-#   variables:
-#     UV_LINK_MODE: copy
-#   before_script:
-#     - uv venv
-#     - uv pip install ".[dev,infrastructure]" -c requirements-dev.txt
-#   script:
-#     - EXIT=0
-#     - uv audit || EXIT=1
-#     - uv run pip-audit --skip-editable || EXIT=$((EXIT+2))
-#     - exit $EXIT
-#   rules:
-#     - if: $CI_COMMIT_BRANCH == 'develop'
-#       allow_failure: true
-#     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
-#     - if: $CI_COMMIT_BRANCH == 'main'
+audit python:
+  stage: test
+  needs: []
+  image: $UV_IMAGE
+  variables:
+    UV_LINK_MODE: copy
+  before_script:
+    - uv venv
+    - uv pip install ".[dev,infrastructure]" -c requirements-dev.txt
+  script:
+    - EXIT=0
+    - uv audit || EXIT=1
+    - uv run pip-audit --skip-editable || EXIT=$((EXIT+2))
+    - exit $EXIT
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'develop'
+      allow_failure: true
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main'
 
 python package install tests:
   stage: test
