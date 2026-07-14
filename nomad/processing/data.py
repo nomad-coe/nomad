@@ -59,6 +59,7 @@ from pymongo import UpdateOne
 from structlog import wrap_logger
 from structlog.processors import StackInfoRenderer, TimeStamper, format_exc_info
 from temporalio import activity
+from temporalio.client import WorkflowFailureError
 from temporalio.common import RetryPolicy
 from temporalio.service import RPCError, RPCStatusCode
 
@@ -1888,6 +1889,10 @@ class Upload(Proc):
                 try:
                     handle = client.get_workflow_handle(workflow_id)
                     await handle.result()
+                except WorkflowFailureError:
+                    self.reload()
+                    if self.process_running:
+                        raise
                 except RPCError:
                     # might have already finished and been removed
                     pass
