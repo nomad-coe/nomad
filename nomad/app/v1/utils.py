@@ -102,7 +102,7 @@ class DownloadItem(BaseModel):
     entry_metadata: dict[str, Any] | None = None
 
 
-async def create_download_stream_zipped(
+def create_download_stream_zipped(
     download_items: DownloadItem | Iterator[DownloadItem],
     upload_files: UploadFiles | None = None,
     re_pattern: Any = None,
@@ -195,11 +195,10 @@ async def create_download_stream_zipped(
             if upload_files:
                 upload_files.close()
 
-    for x in create_zipstream(streamed_files(upload_files), compress=compress):
-        yield x
+    yield from create_zipstream(streamed_files(upload_files), compress=compress)
 
 
-async def create_download_stream_raw_file(
+def create_download_stream_raw_file(
     upload_files: UploadFiles,
     path: str,
     offset: int = 0,
