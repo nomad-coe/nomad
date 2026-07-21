@@ -1690,6 +1690,7 @@ class Entry(Proc):
 
         self._entry_metadata.apply_archive_metadata(self._parser_results)
         self._entry_metadata.processed = True
+        self._entry_metadata.process_status = self.process_status
 
         if self.upload.publish_directly:
             self._entry_metadata.published |= True
