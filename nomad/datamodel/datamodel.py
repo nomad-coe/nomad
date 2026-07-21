@@ -64,6 +64,7 @@ from .metainfo.simulation.legacy_workflows import Workflow as LegacySimulationWo
 from .metainfo.workflow import Workflow
 from .metainfo.measurements import Measurement
 from .metainfo.tabulartree import TabularTree
+from nomad.models.common import ProcessStatus
 
 try:
     from runschema.run import Run as run_def
@@ -746,6 +747,20 @@ class EntryMetadata(MSection):
         default=False,
         categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='Indicates that the entry is successfully processed.',
+        a_elasticsearch=Elasticsearch(),
+    )
+
+    process_status = Quantity(
+        type=MEnum(
+            ProcessStatus.READY,
+            ProcessStatus.PENDING,
+            ProcessStatus.RUNNING,
+            ProcessStatus.WAITING_FOR_RESULT,
+            ProcessStatus.SUCCESS,
+            ProcessStatus.FAILURE,
+            ProcessStatus.DELETED,
+        ),
+        description='The status of the current or last completed processing step.',
         a_elasticsearch=Elasticsearch(),
     )
 

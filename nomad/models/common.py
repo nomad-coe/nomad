@@ -24,3 +24,36 @@ from pydantic import AfterValidator
 from nomad.utils import normalize_datetime_utc
 
 UTCDateTime = Annotated[datetime.datetime, AfterValidator(normalize_datetime_utc)]
+
+
+class ProcessStatus:
+    """
+    Class holding constants related to the possible process statuses.
+
+    Attributes:
+        READY: The process is ready to start
+        PENDING: The process has been called, but still waiting for a celery worker to start running.
+        RUNNING: Currently running the main process function.
+        WAITING_FOR_RESULT: Waiting for the result from some other process.
+        SUCCESS: The last process completed successfully.
+        FAILURE: The last process completed with a fatal failure.
+        DELETED: Used to signal that the process results in the deletion of the object.
+
+        STATUSES_PROCESSING: List of statuses where the process is still incomplete (no other
+            process can be started).
+        STATUSES_NOT_PROCESSING: The opposite of the above - statuses from which a new
+            process can be started.
+    """
+
+    READY = 'READY'
+    PENDING = 'PENDING'
+    RUNNING = 'RUNNING'
+    WAITING_FOR_RESULT = 'WAITING_FOR_RESULT'
+    SUCCESS = 'SUCCESS'
+    FAILURE = 'FAILURE'
+    DELETED = 'DELETED'
+
+    STATUSES_PROCESSING = (PENDING, RUNNING, WAITING_FOR_RESULT)
+    STATUSES_NOT_PROCESSING = (READY, SUCCESS, FAILURE)
+    STATUSES_COMPLETED = (SUCCESS, FAILURE)
+    STATUSES_VALID_IN_DB = STATUSES_NOT_PROCESSING + STATUSES_PROCESSING

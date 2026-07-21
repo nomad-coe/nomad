@@ -324,6 +324,7 @@ def assert_processing(
         assert entry_metadata.quantities
         assert len(entry_metadata.quantities) > 0
         assert len(entry_metadata.processing_errors) == 0
+        assert entry_metadata.process_status == entry.process_status
 
         assert upload.get_entry(entry.entry_id) is not None
 
