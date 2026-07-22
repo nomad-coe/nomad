@@ -76,7 +76,7 @@ async def tool(
         404: {'model': HTTPExceptionModel, 'description': 'The tool does not exist.'},
     },
 )
-async def mounts(
+def mounts(
     tool: Annotated[ToolModel, Depends(check_tool)],
     user: Annotated[
         User, Depends(get_current_user([Scope.NORTH_READ], allow_anonymous=False))
@@ -92,7 +92,7 @@ async def mounts(
         401: {'model': HTTPExceptionModel, 'description': 'Authorization error.'},
     },
 )
-async def servers(
+def servers(
     user: Annotated[
         User, Depends(get_current_user([Scope.NORTH_READ], allow_anonymous=False))
     ],
@@ -141,7 +141,7 @@ async def servers(
         404: {'model': HTTPExceptionModel, 'description': 'The tool does not exist.'},
     },
 )
-async def server(
+def server(
     tool: Annotated[ToolModel, Depends(check_tool)],
     user: Annotated[
         User, Depends(get_current_user([Scope.NORTH_READ], allow_anonymous=False))
@@ -190,7 +190,7 @@ async def server(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def start(
+def start(
     tool: Annotated[ToolModel, Depends(check_tool)],
     user: Annotated[
         User, Depends(get_current_user([Scope.NORTH_RUN], allow_anonymous=False))
@@ -216,7 +216,7 @@ async def start(
         404: {'model': HTTPExceptionModel, 'description': 'The tool does not exist.'},
     },
 )
-async def delete(
+def delete(
     tool: Annotated[ToolModel, Depends(check_tool)],
     user: Annotated[
         User, Depends(get_current_user([Scope.NORTH_RUN], allow_anonymous=False))
