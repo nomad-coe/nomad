@@ -92,8 +92,17 @@ class NORTHTool(BaseModel):
     with_path: bool = Field(
         False,
         description=(
-            'Whether the tool supports a path to a file or directory. '
-            'This also enables tools to be launched from files in the NOMAD UI.'
+            'Whether the path of the file or directory the tool was launched '
+            'from is forwarded to the tool so it can open or deep-link to that '
+            'item. When enabled, the launcher passes the item path to the tool: '
+            'in the old hub it is appended to the tool URL via `path_prefix` '
+            '(e.g. `lab/tree/<path>` for JupyterLab); in the new hub it is sent '
+            'as `upload_id`/`path` query parameters for a handler inside the '
+            'tool image to consume. Only meaningful for tools that can open a '
+            'file from a URL (e.g. JupyterLab); set to False for tools that '
+            'cannot, such as desktop (noVNC) apps like VESTA or FIJI. This does '
+            'NOT control whether the tool is offered for a file in the NOMAD '
+            'UI. That is determined solely by `file_extensions`.'
         ),
     )
     file_extensions: list[str] = Field(
