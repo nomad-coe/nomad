@@ -302,7 +302,7 @@ SupportedCodes.propTypes = {
 }
 
 export function UploadDocumentation({ children }) {
-  return <Link href={`${appBase}/docs/web.html#uploading-and-publishing-data`}>
+  return <Link href={`${appBase}/docs/howto/manage/gui/upload.html`}>
     {children}
   </Link>
 }
@@ -311,7 +311,7 @@ UploadDocumentation.propTypes = {
 }
 
 export function SchemaDocumentation({ children }) {
-  return <Link href={`${appBase}/docs/schema/basics.html`}>
+  return <Link href={`${appBase}/docs/explanation/basics.html`}>
     {children}
   </Link>
 }
