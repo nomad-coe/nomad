@@ -69,18 +69,22 @@ def test_builtin_widget_defaults_are_applied_to_derived_requests():
         }
     }
     link_request = {'name': '*', 'section': reference_request}
-    assert derived_request['workflow2'] == {
-        'name': '*',
-        'inputs': link_request,
-        'outputs': link_request,
-        'tasks': {
+    workflow_request = derived_request['workflow2']
+    assert workflow_request['name'] == '*'
+    assert workflow_request['inputs'] == link_request
+    assert workflow_request['outputs'] == link_request
+
+    task_request = workflow_request['tasks']
+    for _ in range(2):
+        assert task_request | {'tasks': None} == {
             'name': '*',
             'section': reference_request,
             'task': reference_request,
             'inputs': link_request,
             'outputs': link_request,
-        },
-    }
+            'tasks': None,
+        }
+        task_request = task_request['tasks']
 
 
 def test_entry_layout_helpers_only_require_search_when_needed():

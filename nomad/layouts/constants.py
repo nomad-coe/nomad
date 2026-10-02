@@ -56,6 +56,22 @@ def _workflow_link_request() -> dict[str, Any]:
     }
 
 
+_MAX_WORKFLOW_NESTING_DEPTH = 16
+
+
+def _workflow_task_request(depth: int) -> dict[str, Any]:
+    request = {
+        'name': '*',
+        'section': _plain_reference_request(),
+        'task': _plain_reference_request(),
+        'inputs': _workflow_link_request(),
+        'outputs': _workflow_link_request(),
+    }
+    if depth > 0:
+        request['tasks'] = _workflow_task_request(depth - 1)
+    return request
+
+
 _BAND_STRUCTURE_ELECTRONIC = {
     'results': {
         'properties': {
@@ -195,13 +211,7 @@ BUILTIN_NODE_TYPE_DEFAULTS: dict[str, Any] = {
                 'name': '*',
                 'inputs': _workflow_link_request(),
                 'outputs': _workflow_link_request(),
-                'tasks': {
-                    'name': '*',
-                    'section': _plain_reference_request(),
-                    'task': _plain_reference_request(),
-                    'inputs': _workflow_link_request(),
-                    'outputs': _workflow_link_request(),
-                },
+                'tasks': _workflow_task_request(_MAX_WORKFLOW_NESTING_DEPTH),
             }
         }
     },
