@@ -28,7 +28,6 @@ from molid.search.service import SearchConfig, SearchService
 from unidecode import unidecode
 
 from nomad import utils
-from nomad.common import now
 from nomad.config import config
 from nomad.datamodel.data import ArchiveSection, Schema
 from nomad.datamodel.datamodel import EntryArchive
@@ -39,6 +38,7 @@ from nomad.datamodel.metainfo.annotations import (
     SectionDisplayAnnotation,
     SectionProperties,
 )
+from nomad.datamodel.metainfo.common import default_datetime
 from nomad.datamodel.metainfo.workflow import Link, Task, Workflow
 from nomad.datamodel.results import ELN, Material, Results
 from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
@@ -1377,8 +1377,8 @@ class ReadableIdentifiers(ArchiveSection):
         If the institute is not filled a institute abreviations will be constructed from
         the author's affiliation.
         If no datetime is filled, the datetime will be taken from the `datetime`
-        property of the parent, if it exists, otherwise the current date and time will be
-        used.
+        property of the parent, if it exists, otherwise the creation time of the entry
+        will be used.
         If no short name is filled, the name will be taken from the parent name, if it
         exists, otherwise it will be taken from the archive metadata entry name, if it
         exists, and finally if no other options are available it will use the name of the
@@ -1420,7 +1420,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = now()
+                self.datetime = default_datetime(archive)
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):

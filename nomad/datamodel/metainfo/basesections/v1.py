@@ -31,7 +31,7 @@ import requests
 from ase.data import atomic_masses, atomic_numbers, chemical_symbols
 from unidecode import unidecode
 
-from nomad.common import now
+from nomad.datamodel.metainfo.common import default_datetime
 from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 from nomad.metainfo import SchemaPackage
 from nomad.metainfo.data_type import m_str
@@ -242,7 +242,7 @@ class BaseSection(ArchiveSection):
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         """
         - If the instance is of type `EntryData`, it sets the archive's entry name based on the instance's name.
-        - Sets the `datetime` field to the current time if it is not already set.
+        - Sets the `datetime` field to the creation time of the entry if it is not already set.
         - Manages the `lab_id` field and updates the archive's `results.eln.lab_ids` list.
         - Adds the instance's `name` and `description` to the archive's `results.eln.names` and `results.eln.descriptions` lists, respectively.
         - Handles the `tags` attribute, if present, and updates the archive's `results.eln.tags` list.
@@ -263,7 +263,7 @@ class BaseSection(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.datetime is None:
-            self.datetime = now()
+            self.datetime = default_datetime(archive)
 
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
@@ -1918,8 +1918,8 @@ class ReadableIdentifiers(ArchiveSection):
         the author's affiliation.
 
         If no datetime is filled, the datetime will be taken from the `datetime`
-        property of the parent, if it exists, otherwise the current date and time will be
-        used.
+        property of the parent, if it exists, otherwise the creation time of the entry
+        will be used.
 
         If no short name is filled, the name will be taken from the parent name, if it
         exists, otherwise it will be taken from the archive metadata entry name, if it
@@ -1957,7 +1957,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = now()
+                self.datetime = default_datetime(archive)
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):
