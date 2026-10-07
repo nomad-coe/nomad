@@ -17,7 +17,7 @@
 #
 
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 from pydantic.main import BaseModel
@@ -1047,12 +1047,18 @@ class Condition(BaseModel):
     )
 
 
+UpdateMode = Literal['replace', 'overwrite', 'extend']
+RuleAction = Literal['set', 'delete']
+
+
 class Rule(BaseModel):
     source: str | None = Field(
         None, description='JMESPath to the source value in the source dictionary.'
     )
     target: str = Field(
-        ..., description='JMESPath to the target value in the target dictionary.'
+        ...,
+        description='JMESPath to the target value in the target dictionary. '
+        'Use an empty string to target the root.',
     )
     conditions: list[Condition] | None = Field(
         None, description='Conditions to check prior to applying the transformation.'
@@ -1063,6 +1069,47 @@ class Rule(BaseModel):
     use_rule: str | None = Field(
         None, description='Reference to another rule using #mapping_name.rule_name.'
     )
+    update_mode: UpdateMode | None = Field(
+        None,
+        description="""
+        How to write the value if the target already exists. If not set, the
+        `update_mode` of the rule set is used.
+
+        Available modes:
+            - 'replace' (default): Replace the existing target value.
+            - 'overwrite': Recursively merge dictionaries, keeping keys that only
+              exist in the target. On conflicts the new value wins, lists are replaced.
+            - 'extend': Never change existing data, only add to it. Recursively merge
+              dictionaries, keeping the existing value on conflicts, and append to lists.
+        """,
+    )
+
+    action: RuleAction | None = Field(
+        None,
+        description="""
+        What the rule does with its target.
+
+        Available actions:
+            - 'set' (default): Write the source value or `default_value` to the target.
+            - 'delete': Delete the target from the target data. Array placeholders
+              are resolved against the target data. Cannot be combined with
+              `source`, `default_value`, `update_mode` or `conditions`.
+        """,
+    )
+
+    @model_validator(mode='after')
+    def validate_action(self) -> 'Rule':
+        if self.action == 'delete':
+            invalid = [
+                name
+                for name in ('source', 'default_value', 'update_mode', 'conditions')
+                if getattr(self, name) is not None
+            ]
+            if invalid:
+                raise ValueError(
+                    f"A rule with action 'delete' cannot define {', '.join(invalid)}."
+                )
+        return self
 
     def override_fields(self, referenced_rule: 'Rule') -> 'Rule':
         """
@@ -1094,6 +1141,20 @@ class Rules(BaseModel):
         None, description='Placeholder for other metadata.'
     )
     rules: dict[str, Rule] = Field(..., description='Dictionary of named rules.')
+    update_mode: UpdateMode | None = Field(
+        None,
+        description='Default `update_mode` for all rules of this set that do not '
+        'define their own.',
+    )
+    sequential: bool = Field(
+        False,
+        description="""
+        If true, the rules are applied step by step to a single document: each rule
+        reads from the result of the previous rules instead of the original source,
+        and with `delete_sources` its sources are deleted right after it is applied.
+        The source data is not modified, the transformation works on a copy.
+        """,
+    )
 
 
 class H5WebAnnotation(AnnotationModel):
