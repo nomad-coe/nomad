@@ -887,3 +887,413 @@ def test_transformer_auto_detects_array_notation():
     # Notice: array_rules=True is omitted!
     result = t.transform(data)
     assert result == {'res': [{'val': 1}, {'val': 2}]}
+
+
+@pytest.mark.parametrize(
+    'update_mode, expected',
+    [
+        pytest.param(
+            None,
+            {'formula': 'H2O', 'nested': {'b': 3}, 'items': [3]},
+            id='default-replace',
+        ),
+        pytest.param(
+            'replace',
+            {'formula': 'H2O', 'nested': {'b': 3}, 'items': [3]},
+            id='replace',
+        ),
+        pytest.param(
+            'overwrite',
+            {
+                'name': 'x',
+                'formula': 'H2O',
+                'nested': {'a': 1, 'b': 3},
+                'items': [3],
+            },
+            id='overwrite',
+        ),
+        pytest.param(
+            'extend',
+            {
+                'name': 'x',
+                'formula': 'old',
+                'nested': {'a': 1, 'b': 2},
+                'items': [1, 2, 3],
+            },
+            id='extend',
+        ),
+    ],
+)
+def test_transform_update_mode(update_mode, expected):
+    """
+    Test that `update_mode` controls whether a section moved into an existing one
+    replaces it, overwrites conflicting keys or only extends it.
+    """
+    data = {
+        'data': {
+            'name': 'x',
+            'formula': 'old',
+            'nested': {'a': 1, 'b': 2},
+            'items': [1, 2],
+            'pure_substance': {'formula': 'H2O', 'nested': {'b': 3}, 'items': [3]},
+        }
+    }
+    rules = {
+        'rules': {
+            'move': {
+                'source': 'data.pure_substance',
+                'target': 'data',
+                'update_mode': update_mode,
+            }
+        }
+    }
+    result = Transformer.map(data, rules=rules, inplace=True, delete_sources=True)
+    assert result == {'data': expected}
+    assert 'pure_substance' in data['data'], 'Inplace transform modified the input'
+
+
+def test_transform_update_mode_with_default_value():
+    """
+    Test that `extend` only sets a default value if the target is missing.
+    """
+    data = {'a': [{'m_def': 'Existing'}, {}]}
+    result = Transformer.map(
+        data,
+        target='a[n].m_def',
+        default_value='Default',
+        update_mode='extend',
+        inplace=True,
+    )
+    assert result == {'a': [{'m_def': 'Existing'}, {'m_def': 'Default'}]}
+
+
+@pytest.mark.parametrize('update_mode', [None, 'overwrite', 'extend'])
+def test_transform_result_does_not_share_references(update_mode):
+    """
+    Test that the result shares no mutable values with the source data, the rules,
+    or other targets written by the same rule.
+    """
+    source = {'a': {'l': [1]}, 'items': [{}, {}]}
+    rules = Rules(
+        rules={
+            'copy': Rule(source='a', target='b', update_mode=update_mode),
+            'default': Rule(
+                target='items[n].c', default_value={'l': [1]}, update_mode=update_mode
+            ),
+        }
+    )
+    result = Transformer(rules).transform(source, inplace=True)
+    result['b']['l'].append(2)
+    result['items'][0]['c']['l'].append(2)
+    assert source == {'a': {'l': [1]}, 'items': [{}, {}]}
+    assert rules.rules['default'].default_value == {'l': [1]}
+    assert result['items'][1]['c'] == {'l': [1]}
+
+
+def test_transform_update_mode_with_use_rule():
+    """
+    Test that `update_mode` of a referencing rule is not reset by the referenced rule
+    and is inherited from the referenced rule if set there.
+    """
+    library = Rules(
+        rules={
+            'base': Rule(source='a', target='b'),
+            'extend': Rule(source='a', target='b', update_mode='extend'),
+        }
+    )
+    main = Rules(
+        rules={
+            'r1': Rule(target='b', use_rule='#lib.base', update_mode='overwrite'),
+            'r2': Rule(target='b', use_rule='#lib.extend'),
+        }
+    )
+    transformer = Transformer({'main': main, 'lib': library})
+    result = transformer.transform({'a': {'x': 1}}, 'main', {'b': {'x': 0, 'y': 2}})
+    assert result == {'b': {'x': 1, 'y': 2}}
+
+
+def test_transform_update_mode_with_array_notation_and_delete_sources():
+    """
+    Test that array placeholders are resolved when deleting sources and that
+    `update_mode` is kept when array rules are resolved.
+    """
+    data = {
+        'data': {
+            'elemental_composition': [
+                {'element': 'H', 'extra': {'a': 1}},
+                {'element': 'O'},
+                {'element': 'C'},
+            ],
+            'sub_system': [{'label': 's0', 'nested_system': {'m_def': 'X'}}],
+            'other': 1,
+        }
+    }
+    result = Transformer.map(
+        data,
+        source='data.elemental_composition[n1]',
+        target='data.sub_system[n1].nested_system',
+        update_mode='overwrite',
+        inplace=True,
+        delete_sources=True,
+    )
+    assert result == {
+        'data': {
+            'elemental_composition': [],
+            'sub_system': [
+                {
+                    'label': 's0',
+                    'nested_system': {'m_def': 'X', 'element': 'H', 'extra': {'a': 1}},
+                },
+                {'nested_system': {'element': 'O'}},
+                {'nested_system': {'element': 'C'}},
+            ],
+            'other': 1,
+        }
+    }
+
+
+def test_transform_delete_sources_keeps_source_containing_target():
+    """
+    Test that a source is not deleted if the target was written inside of it.
+    """
+    result = Transformer.map(
+        {'a': {'b': 1}},
+        source='a',
+        target='a.copy',
+        inplace=True,
+        delete_sources=True,
+    )
+    assert result == {'a': {'b': 1, 'copy': {'b': 1}}}
+
+
+def test_transform_delete_sources_skips_unmatched_conditions():
+    """
+    Test that only sources that were actually transferred are deleted.
+    """
+    rules = Rules(
+        rules={
+            'r': Rule(
+                source='a',
+                target='b',
+                conditions=[
+                    Condition(regex_condition=RegexCondition(regex_pattern='^x$'))
+                ],
+            )
+        }
+    )
+    result = Transformer(rules).transform({'a': 'y'}, inplace=True, delete_sources=True)
+    assert result == {'a': 'y'}
+
+
+def test_transform_wildcard_key_in_target_raises():
+    """
+    Test that a wildcard key in the target path raises a helpful error instead of
+    creating a literal '*' key.
+    """
+    with pytest.raises(ValueError, match='update_mode'):
+        Transformer.map(
+            {'data': {'s': {'a': 1}}},
+            source='data.s.[*]',
+            target='data.[*]',
+            inplace=True,
+        )
+
+
+def test_transformer_init_with_rules_dict():
+    """
+    Test that a plain dict in the `Rules` format is accepted.
+    """
+    rules = {'rules': {'r': {'source': 'a', 'target': 'b'}}}
+    assert Transformer(rules).transform({'a': {'x': 1}}) == {'b': {'x': 1}}
+    assert Transformer({'main': rules}).transform({'a': 1}, 'main') == {'b': 1}
+
+
+@pytest.mark.parametrize(
+    'update_mode, expected',
+    [
+        pytest.param(None, {'y': 2, 'z': 3}, id='replace'),
+        pytest.param('overwrite', {'k': 0, 'y': 2, 'z': 3}, id='overwrite'),
+        pytest.param('extend', {'k': 0, 'y': 1, 'z': 3}, id='extend'),
+    ],
+)
+def test_transform_root_target(update_mode, expected):
+    """
+    Test that an empty target path writes to the root of the target data.
+    """
+    rules = {'rules': {'r': {'source': 'c', 'target': '', 'update_mode': update_mode}}}
+    data = {'k': 0, 'y': 1, 'c': {'y': 2, 'z': 3}}
+    result = Transformer(rules).transform(data, inplace=True, delete_sources=True)
+    assert result == expected
+    assert Transformer(rules).transform(data) == {'y': 2, 'z': 3}
+
+
+def test_transform_root_target_type_mismatch_raises():
+    """
+    Test that a non-container value cannot be set at the root.
+    """
+    with pytest.raises(TypeError):
+        Transformer.map({'c': 1}, source='c', target='', inplace=True)
+
+
+def test_transform_multiple_rules_into_same_target():
+    """
+    Test that several rules can write into the same target with `update_mode`.
+    """
+    rules = {
+        'rules': {
+            'move_a': {'source': 'a', 'target': 'b'},
+            'move_c': {'source': 'c', 'target': 'b', 'update_mode': 'extend'},
+        }
+    }
+    data = {'a': {'x': 1, 'l': [1]}, 'c': {'y': 2, 'l': [2]}}
+    result = Transformer(rules).transform(data, inplace=True, delete_sources=True)
+    assert result == {'b': {'x': 1, 'l': [1, 2], 'y': 2}}
+
+
+def test_transform_rule_set_default_update_mode():
+    """
+    Test that the `update_mode` of a rule set is the default for its rules, can be
+    overridden per rule, and takes precedence over the `update_mode` argument.
+    """
+    data = {'b': {'x': 0, 'y': 0}, 'a': {'x': 1}, 'c': {'y': 2}, 'd': {'z': 3}}
+    rules = {
+        'update_mode': 'extend',
+        'rules': {
+            'move_a': {'source': 'a', 'target': 'b'},
+            'move_c': {'source': 'c', 'target': 'b', 'update_mode': 'overwrite'},
+        },
+    }
+    result = Transformer(rules).transform(data, inplace=True, update_mode='replace')
+    assert result['b'] == {'x': 0, 'y': 2}
+
+    # Without a rule set default, the update_mode argument is the default
+    del rules['update_mode']
+    result = Transformer.map(data, rules=rules, update_mode='extend', inplace=True)
+    assert result['b'] == {'x': 0, 'y': 2}
+
+    # Without any default, move_a replaces the target, move_c still overwrites
+    result = Transformer(rules).transform(data, inplace=True)
+    assert result['b'] == {'x': 1, 'y': 2}
+
+
+@pytest.mark.parametrize(
+    'data, path, expected',
+    [
+        pytest.param({'a': {'b': 1}}, 'a.b', {'a': {}}, id='key'),
+        pytest.param(
+            {'a': {'b': 1, 'keep': 2}},
+            'a.x.b',
+            {'a': {'b': 1, 'keep': 2}},
+            id='missing-intermediate-key',
+        ),
+        pytest.param(
+            {'s': [{'tmp': 1, 'k': 1}, {'tmp': 2}], 'x': 1},
+            's[n].tmp',
+            {'s': [{'k': 1}, {}], 'x': 1},
+            id='placeholder',
+        ),
+        pytest.param(
+            {'s': [{'tmp': 1}, {'tmp': 2}]}, 's[*].tmp', {'s': [{}, {}]}, id='wildcard'
+        ),
+        pytest.param({'s': [1, 2, 3]}, 's[n]', {'s': []}, id='list-elements'),
+        pytest.param(
+            {'s': [{'t': [1, 2]}, {'t': [3]}]},
+            's[n1].t[n2]',
+            {'s': [{'t': []}, {'t': []}]},
+            id='nested-placeholders',
+        ),
+    ],
+)
+def test_delete_path(data, path, expected):
+    """
+    Test that delete_path resolves array placeholders and ignores missing paths.
+    """
+    assert Transformer.delete_path(data, path) == expected
+
+
+def test_transform_delete_action():
+    """
+    Test that a rule with action 'delete' removes its target from the target data
+    and that it is applied in the order of the rules.
+    """
+    rules = {
+        'rules': {
+            'move': {'source': 'data.sub', 'target': 'result'},
+            'cleanup': {'target': 'result.items[n].tmp', 'action': 'delete'},
+        }
+    }
+    data = {'data': {'sub': {'items': [{'v': 1, 'tmp': 0}, {'v': 2, 'tmp': 0}]}}}
+    assert Transformer(rules).transform(data) == {
+        'result': {'items': [{'v': 1}, {'v': 2}]}
+    }
+    assert data['data']['sub']['items'][0]['tmp'] == 0, 'Source data was modified'
+
+    result = Transformer.map(
+        {'s': [{'tmp': 1}]}, target='s[n].tmp', action='delete', inplace=True
+    )
+    assert result == {'s': [{}]}
+
+
+@pytest.mark.parametrize(
+    'rule',
+    [
+        {'target': 'a', 'source': 'b', 'action': 'delete'},
+        {'target': 'a', 'default_value': 1, 'action': 'delete'},
+        {'target': 'a', 'update_mode': 'extend', 'action': 'delete'},
+    ],
+)
+def test_transform_delete_action_invalid(rule):
+    """
+    Test that a delete rule cannot define fields used to write values.
+    """
+    with pytest.raises(ValidationError):
+        Rule(**rule)
+
+
+def test_transform_sequential():
+    """
+    Test that the rules of a sequential rule set read from the result of the
+    previous rules, without modifying the source data.
+    """
+    rules = {
+        'sequential': True,
+        'rules': {
+            'step1': {'source': 'a', 'target': 'b'},
+            'step2': {'source': 'b.x', 'target': 'c'},
+            'step3': {'target': 'b.x', 'default_value': 9},
+            'cleanup': {'target': 'b.tmp', 'action': 'delete'},
+        },
+    }
+    data = {'a': {'x': 1, 'tmp': 0}}
+    result = Transformer(rules).transform(data)
+    assert result == {'a': {'x': 1, 'tmp': 0}, 'b': {'x': 9}, 'c': 1}
+    assert data == {'a': {'x': 1, 'tmp': 0}}, 'Source data was modified'
+
+    # Without sequential, step2 cannot see the output of step1
+    rules['sequential'] = False
+    assert 'c' not in Transformer(rules).transform(data, inplace=True)
+
+
+def test_transform_sequential_delete_sources_per_step():
+    """
+    Test that sources of sequential rules are deleted right after each rule, so
+    that later rules can write to the same path.
+    """
+    rules = {
+        'sequential': True,
+        'rules': {
+            'r1': {'source': 'a', 'target': 'b'},
+            'r2': {'source': 'c', 'target': 'a'},
+        },
+    }
+    result = Transformer(rules).transform({'a': 1, 'c': 2}, delete_sources=True)
+    assert result == {'b': 1, 'a': 2}
+
+
+def test_transform_sequential_target_data_raises():
+    """
+    Test that sequential rule sets do not accept a separate target_data.
+    """
+    rules = {'sequential': True, 'rules': {'r': {'source': 'a', 'target': 'b'}}}
+    with pytest.raises(ValueError, match='target_data'):
+        Transformer(rules).transform({'a': 1}, target_data={})
