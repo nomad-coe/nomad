@@ -1098,6 +1098,19 @@ def test_authorized_users_email_whitelist_logs_deprecation_warning(monkeypatch):
             id='boolean-versions',
         ),
         pytest.param(
+            {
+                'NOMAD_DASHBOARDS_ENABLED': 'false',
+                'NOMAD_DASHBOARDS_FRAME_ANCESTORS': '["\'self\'", "https://x.yz"]',
+            },
+            {
+                'dashboards': {
+                    'enabled': False,
+                    'frame_ancestors': ["'self'", 'https://x.yz'],
+                }
+            },
+            id='dashboards',
+        ),
+        pytest.param(
             {'NOMAD_ELASTIC_VERSION': '"7"'},
             {'elastic': {'version': '7'}},
             id='string-literal-version',

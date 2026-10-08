@@ -226,6 +226,8 @@ north:
   hub_service_api_token: secret-token
   nomad_access_token_expiry_time: 86400
   windows: true
+dashboards:
+  enabled: true
 ui:
   entry:
     cards:
