@@ -169,16 +169,6 @@ class Services(ConfigBaseModel):
     h5grove_enabled: bool = Field(
         True, description="""If true the app will serve the h5grove API."""
     )
-    dashboard_frame_ancestors: list[str] = Field(
-        default_factory=lambda: ["'self'"],
-        description="""
-        CSP ``frame-ancestors`` sources permitted to embed dashboard plugin
-        entry points in an iframe. Use ``'self'`` to only allow the NOMAD
-        GUI; add explicit origins (e.g. ``https://example.com``) to allow
-        other hosts. Applied to responses from
-        ``{api_base_path}/dashboards/``.
-        """,
-    )
 
     console_log_level: int | str = Field(
         logging.WARNING,
@@ -2400,6 +2390,28 @@ class Telemetry(ConfigBaseModel):
     )
 
 
+class Dashboards(ConfigBaseModel):
+    """Settings related to dashboard plugin entry points."""
+
+    enabled: bool = Field(
+        True,
+        description="""
+        Enables or disables dashboards. When disabled, dashboard plugin entry
+        points are not served and the dashboards menu item is hidden in the UI.
+    """,
+    )
+    frame_ancestors: list[str] = Field(
+        default_factory=lambda: ["'self'"],
+        description="""
+        CSP ``frame-ancestors`` sources permitted to embed dashboard plugin
+        entry points in an iframe. Use ``'self'`` to only allow the NOMAD
+        GUI; add explicit origins (e.g. ``https://example.com``) to allow
+        other hosts. Applied to responses from
+        ``{api_base_path}/dashboards/``.
+        """,
+    )
+
+
 class Config(ConfigBaseModel):
     """Model for the NOMAD configuration."""
 
@@ -2428,6 +2440,10 @@ class Config(ConfigBaseModel):
     north: NORTH = Field(
         default_factory=NORTH,
         description='Configuration for NORTH tools and the NORTH hub.',
+    )
+    dashboards: Dashboards = Field(
+        default_factory=Dashboards,
+        description='Configuration for dashboard plugin entry points.',
     )
     fs: FS = Field(
         default_factory=FS,

@@ -228,13 +228,15 @@ if config.services.h5grove_enabled:
     app.mount(config.services.join_path('h5grove'), h5grove_app)
 
 
-@app.middleware('http')
-async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
-    response = await call_next(request)
-    if request.url.path.startswith(config.services.join_path('dashboards') + '/'):
-        sources = ' '.join(config.services.dashboard_frame_ancestors)
-        response.headers['Content-Security-Policy'] = f'frame-ancestors {sources}'
-    return response
+if config.dashboards.enabled:
+
+    @app.middleware('http')
+    async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith(config.services.join_path('dashboards') + '/'):
+            sources = ' '.join(config.dashboards.frame_ancestors)
+            response.headers['Content-Security-Policy'] = f'frame-ancestors {sources}'
+        return response
 
 
 # Mount API and dashboard plugin apps
@@ -256,7 +258,7 @@ for entry_point in config.plugins.entry_points.filtered_values():
             api_app,
         )
     elif isinstance(entry_point, DashboardEntryPoint):
-        if entry_point.external_url is not None:
+        if not config.dashboards.enabled or entry_point.external_url is not None:
             continue
         try:
             dashboard_app = entry_point.load()
