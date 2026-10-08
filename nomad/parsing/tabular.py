@@ -108,18 +108,23 @@ class TableData(ArchiveSection):
     )
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
-
-        if self.fill_archive_from_datafile:
-            for quantity_def in self.m_def.all_quantities.values():
-                annotation = quantity_def.m_get_annotations('tabular_parser')
-                annotation = (
-                    annotation[0] if isinstance(annotation, list) else annotation
-                )
-                # this normalizer potentially creates new archives,.to avoid recursive call of the normalizer created by
-                # this normalizer, we check for if the parent is already parsed
-                if annotation and not archive.data.m_parent.metadata.entry_name:
-                    self.tabular_parser(quantity_def, archive, logger, annotation)
+        # The data file is parsed before calling the other normalizers, so that
+        # sections inheriting from both TableData and other base sections
+        # (e.g. PlotSection) can rely on the parsed data independent of the order
+        # of the base sections. The other normalizers still run if parsing fails.
+        try:
+            if self.fill_archive_from_datafile:
+                for quantity_def in self.m_def.all_quantities.values():
+                    annotation = quantity_def.m_get_annotations('tabular_parser')
+                    annotation = (
+                        annotation[0] if isinstance(annotation, list) else annotation
+                    )
+                    # this normalizer potentially creates new archives,.to avoid recursive call of the normalizer created by
+                    # this normalizer, we check for if the parent is already parsed
+                    if annotation and not archive.data.m_parent.metadata.entry_name:
+                        self.tabular_parser(quantity_def, archive, logger, annotation)
+        finally:
+            super().normalize(archive, logger)
 
     def tabular_parser(
         self,

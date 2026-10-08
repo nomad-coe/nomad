@@ -776,6 +776,389 @@ def test_tabular_csv(raw_files_function, monkeypatch, schema, content):
 
 
 @pytest.mark.parametrize(
+    'base_sections',
+    [
+        pytest.param(
+            [
+                'nomad.parsing.tabular.TableData',
+                'nomad.datamodel.metainfo.plot.PlotSection',
+            ],
+            id='TableData first',
+        ),
+        pytest.param(
+            [
+                'nomad.datamodel.metainfo.plot.PlotSection',
+                'nomad.parsing.tabular.TableData',
+            ],
+            id='PlotSection first',
+        ),
+    ],
+)
+def test_tabular_plot_section(raw_files_function, monkeypatch, base_sections):
+    """Tests that plotly_express figures of a section inheriting from both TableData
+    and PlotSection contain the data read from the data file, independent of the
+    order of the base sections.
+    """
+    schema = yaml.safe_dump(
+        {
+            'definitions': {
+                'name': 'tabular plot section',
+                'sections': {
+                    'Optical_absorption': {
+                        'base_sections': ['nomad.datamodel.data.EntryData']
+                        + base_sections,
+                        'quantities': {
+                            'data_file': {
+                                'type': 'str',
+                                'm_annotations': {
+                                    'eln': {'component': 'FileEditQuantity'},
+                                    'tabular_parser': {
+                                        'parsing_options': {
+                                            'comment': '#',
+                                            'skiprows': [1],
+                                        },
+                                        'mapping_options': [
+                                            {
+                                                'mapping_mode': 'column',
+                                                'file_mode': 'current_entry',
+                                                'sections': ['#root'],
+                                            }
+                                        ],
+                                    },
+                                },
+                            },
+                            'wavelength': {
+                                'type': 'np.float64',
+                                'unit': 'nm',
+                                'shape': ['*'],
+                                'm_annotations': {'tabular': {'name': 'Wavelength'}},
+                            },
+                            'absorbance': {
+                                'type': 'np.float64',
+                                'shape': ['*'],
+                                'm_annotations': {'tabular': {'name': 'Absorbance'}},
+                            },
+                        },
+                        'm_annotations': {
+                            'plotly_express': {
+                                'method': 'line',
+                                'x': '#wavelength',
+                                'y': '#absorbance',
+                                'layout': {'title': {'text': 'Optical Spectrum'}},
+                            }
+                        },
+                    }
+                },
+            },
+            'data': {
+                'm_def': 'Optical_absorption',
+                'data_file': 'test.my_schema.archive.csv',
+            },
+        }
+    )
+    content = strip(
+        """
+        Wavelength,Absorbance
+        nm,a.u.
+        400,0.1
+        500,0.2
+        600,0.3
+    """
+    )
+    csv_file, schema_file = get_files(schema, content)
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(csv_file, *args, **kwargs)
+
+    context = MyContext(local_dir='')
+
+    main_archive, _ = get_archives(context, schema_file, 'sample_id')
+    ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
+
+    data = main_archive.data
+    assert list(data.wavelength.magnitude) == [400, 500, 600]
+    assert list(data.absorbance) == [0.1, 0.2, 0.3]
+
+    assert len(data.figures) == 1
+    figure = data.figures[0].figure
+    assert figure['layout']['title']['text'] == 'Optical Spectrum'
+    trace = figure['data'][0]
+    assert list(trace.get('x', [])) == [400, 500, 600], 'figure trace has no x data'
+    assert list(trace.get('y', [])) == [0.1, 0.2, 0.3], 'figure trace has no y data'
+
+
+def parse_and_normalize_csv(schema: dict, content: str) -> EntryArchive:
+    """Parses and normalizes an archive using `schema`, where the data file of the
+    TableData section resolves to a csv file with `content`.
+    """
+    csv_file, schema_file = get_files(yaml.safe_dump(schema), strip(content))
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(csv_file, *args, **kwargs)
+
+    context = MyContext(local_dir='')
+
+    main_archive, _ = get_archives(context, schema_file, 'sample_id')
+    ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
+    return main_archive
+
+
+def column_mode_data_file():
+    return {
+        'type': 'str',
+        'm_annotations': {
+            'tabular_parser': {
+                'parsing_options': {'comment': '#'},
+                'mapping_options': [
+                    {
+                        'mapping_mode': 'column',
+                        'file_mode': 'current_entry',
+                        'sections': ['#root'],
+                    }
+                ],
+            }
+        },
+    }
+
+
+def test_tabular_parsing_error_runs_base_normalizers(raw_files_function):
+    """Tests that the other base section normalizers still run if parsing the
+    data file fails.
+    """
+    data_file = column_mode_data_file()
+    data_file['shape'] = ['*']  # non-scalar data files are not supported
+    schema = {
+        'definitions': {
+            'name': 'tabular parsing error',
+            'sections': {
+                'MyTable': {
+                    'base_sections': [
+                        'nomad.parsing.tabular.TableData',
+                        'nomad.datamodel.data.EntryData',
+                    ],
+                    'quantities': {'data_file': data_file},
+                }
+            },
+        },
+        'data': {'m_def': 'MyTable', 'data_file': ['test.my_schema.archive.csv']},
+    }
+    content = """
+        header_0,header_1
+        a,b
+    """
+
+    archive = parse_and_normalize_csv(schema, content)
+
+    assert archive.metadata.entry_type == 'MyTable'
+
+
+@pytest.mark.parametrize(
+    'base_sections',
+    [
+        pytest.param(
+            ['nomad.parsing.tabular.TableData', 'nomad.datamodel.data.EntryData'],
+            id='TableData first',
+        ),
+        pytest.param(
+            ['nomad.datamodel.data.EntryData', 'nomad.parsing.tabular.TableData'],
+            id='EntryData first',
+        ),
+    ],
+)
+def test_tabular_entry_data_order(raw_files_function, monkeypatch, base_sections):
+    """Tests that the data file is parsed if TableData is listed before EntryData.
+    EntryData sets the entry_name, which must not be mistaken for an entry
+    created by the tabular parser itself.
+    """
+    schema = {
+        'definitions': {
+            'name': 'tabular entry data order',
+            'sections': {
+                'MyTable': {
+                    'base_sections': base_sections,
+                    'quantities': {
+                        'data_file': column_mode_data_file(),
+                        'header_0': {
+                            'type': 'str',
+                            'm_annotations': {'tabular': {'name': 'header_0'}},
+                        },
+                    },
+                }
+            },
+        },
+        'data': {'m_def': 'MyTable', 'data_file': 'test.my_schema.archive.csv'},
+    }
+    content = """
+        header_0,header_1
+        a,b
+    """
+
+    archive = parse_and_normalize_csv(schema, content)
+
+    assert archive.data.header_0 == 'a'
+
+
+@pytest.mark.parametrize(
+    'base_sections',
+    [
+        pytest.param(
+            [
+                'nomad.parsing.tabular.TableData',
+                'nomad.datamodel.metainfo.basesections.BaseSection',
+            ],
+            id='TableData first',
+        ),
+        pytest.param(
+            [
+                'nomad.datamodel.metainfo.basesections.BaseSection',
+                'nomad.parsing.tabular.TableData',
+            ],
+            id='BaseSection first',
+        ),
+    ],
+)
+def test_tabular_base_section_eln_results(
+    raw_files_function, monkeypatch, base_sections
+):
+    """Tests that BaseSection quantities read from the data file are added to
+    results.eln, independent of the order of the base sections.
+    """
+    schema = {
+        'definitions': {
+            'name': 'tabular base section',
+            'sections': {
+                'MySample': {
+                    'base_sections': base_sections,
+                    'quantities': {
+                        'data_file': column_mode_data_file(),
+                        'lab_id': {
+                            'type': 'str',
+                            'm_annotations': {'tabular': {'name': 'Lab ID'}},
+                        },
+                        'description': {
+                            'type': 'str',
+                            'm_annotations': {'tabular': {'name': 'Description'}},
+                        },
+                    },
+                }
+            },
+        },
+        'data': {
+            'm_def': 'MySample',
+            'name': 'my sample',
+            'data_file': 'test.my_schema.archive.csv',
+        },
+    }
+    content = """
+        Lab ID,Description
+        S-001,grown at 300 K
+    """
+
+    archive = parse_and_normalize_csv(schema, content)
+
+    assert archive.data.lab_id == 'S-001'
+    assert archive.data.description == 'grown at 300 K'
+    assert archive.results.eln.lab_ids == ['S-001']
+    assert archive.results.eln.descriptions == ['grown at 300 K']
+
+
+@pytest.mark.parametrize(
+    'base_sections',
+    [
+        pytest.param(
+            [
+                'nomad.parsing.tabular.TableData',
+                'nomad.datamodel.metainfo.basesections.System',
+            ],
+            id='TableData first',
+        ),
+        pytest.param(
+            [
+                'nomad.datamodel.metainfo.basesections.System',
+                'nomad.parsing.tabular.TableData',
+            ],
+            id='System first',
+        ),
+    ],
+)
+def test_tabular_system_elemental_composition(
+    raw_files_function, monkeypatch, base_sections
+):
+    """Tests that the elemental composition read from the data file is completed
+    and added to results.material, independent of the order of the base sections.
+    """
+    schema = {
+        'definitions': {
+            'name': 'tabular system',
+            'sections': {
+                'MyComposition': {
+                    'base_sections': [
+                        'nomad.datamodel.metainfo.basesections.ElementalComposition'
+                    ],
+                    'quantities': {
+                        'element': {
+                            'type': 'str',
+                            'm_annotations': {'tabular': {'name': 'Element'}},
+                        },
+                        'atomic_fraction': {
+                            'type': 'np.float64',
+                            'm_annotations': {'tabular': {'name': 'Atomic fraction'}},
+                        },
+                    },
+                },
+                'MySystem': {
+                    'base_sections': base_sections,
+                    'quantities': {
+                        'data_file': {
+                            'type': 'str',
+                            'm_annotations': {
+                                'tabular_parser': {
+                                    'parsing_options': {'comment': '#'},
+                                    'mapping_options': [
+                                        {
+                                            'mapping_mode': 'row',
+                                            'file_mode': 'current_entry',
+                                            'sections': ['elemental_composition'],
+                                        }
+                                    ],
+                                }
+                            },
+                        }
+                    },
+                    'sub_sections': {
+                        'elemental_composition': {
+                            'repeats': True,
+                            'section': '#/MyComposition',
+                        }
+                    },
+                },
+            },
+        },
+        'data': {
+            'm_def': 'MySystem',
+            'name': 'my system',
+            'data_file': 'test.my_schema.archive.csv',
+        },
+    }
+    content = """
+        Element,Atomic fraction
+        Ga,0.5
+        As,0.5
+    """
+
+    archive = parse_and_normalize_csv(schema, content)
+
+    composition = archive.data.elemental_composition
+    assert [comp.element for comp in composition] == ['Ga', 'As']
+    assert all(comp.mass_fraction is not None for comp in composition)
+    assert sorted(archive.results.material.elements) == ['As', 'Ga']
+
+
+@pytest.mark.parametrize(
     'schema,content',
     [
         pytest.param(
