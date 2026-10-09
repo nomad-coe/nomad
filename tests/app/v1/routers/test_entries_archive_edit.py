@@ -35,6 +35,7 @@ from nomad.datamodel.data import EntryData
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.metainfo.basesections import BaseSection
 from nomad.datamodel.metainfo.eln import ELNSample
+from nomad.files import UploadFiles
 from nomad.metainfo import Quantity, Section, SubSection
 from nomad.processing.base import ProcessStatus
 from nomad.processing.data import Upload
@@ -431,6 +432,88 @@ def test_post_entry_edit_resolves_same_upload_yaml_schema(
         f'../upload/raw/{schema_mainfile}#/definitions/section_definitions/0'
     )
     assert_edit_reprocessed_successfully(upload_id, entry_id, data_mainfile)
+
+
+def create_yaml_archive_entry(
+    users_dict, upload_id: str, mainfile: str, content: dict
+) -> tuple[str, UploadFiles]:
+    """Registers an archive entry and writes *content* as its YAML mainfile."""
+    entry_id = utils.generate_entry_id(upload_id, mainfile)
+    example_data = ExampleData(main_author=users_dict['user1'])
+    example_data.create_upload(upload_id=upload_id, published=False)
+    example_data.create_entry(
+        entry_id=entry_id,
+        upload_id=upload_id,
+        mainfile=mainfile,
+        parser_name='parsers/archive',
+    )
+    example_data.save(with_files=False)
+
+    upload_files = create_test_upload_files(upload_id, published=False, archives=[])
+    with upload_files.raw_file(mainfile, 'wt') as f:
+        yaml.safe_dump(content, f, sort_keys=False)
+
+    return entry_id, upload_files
+
+
+def test_post_entry_edit_resolves_inline_yaml_schema(
+    client,
+    auth_headers,
+    users_dict,
+    elastic_function,
+    mongo_function,
+    raw_files_function,
+):
+    # The data references a section defined in the same file by its bare name.
+    upload_id = 'inline_schema_edit_upload'
+    mainfile = 'inline_schema.archive.yaml'
+    entry_id, upload_files = create_yaml_archive_entry(
+        users_dict,
+        upload_id,
+        mainfile,
+        {
+            'definitions': {
+                'sections': {
+                    'InlineEntry': {
+                        'base_sections': ['nomad.datamodel.data.EntryData'],
+                        'quantities': {'custom_value': {'type': 'str'}},
+                        'sub_sections': {
+                            'points': {
+                                'repeats': True,
+                                'section': {'quantities': {'x': {'type': 'float'}}},
+                            }
+                        },
+                    }
+                },
+            },
+            'data': {
+                'm_def': 'InlineEntry',
+                'custom_value': 'before',
+                'points': [{'x': 1.0}],
+            },
+        },
+    )
+
+    response = client.post(
+        f'entries/{entry_id}/edit',
+        headers=auth_headers['user1'],
+        json={
+            'changes': [
+                {'path': 'data/custom_value', 'new_value': 'after'},
+                {'path': 'data/points/0/x', 'new_value': 2.0},
+            ]
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    with upload_files.raw_file(mainfile, 'rt') as f:
+        archive_data = yaml.safe_load(f)
+    assert archive_data['data'] == {
+        'm_def': 'InlineEntry',
+        'custom_value': 'after',
+        'points': [{'x': 2.0}],
+    }
+    assert_edit_reprocessed_successfully(upload_id, entry_id, mainfile)
 
 
 def test_section_def_from_dict():

@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import copy
 import csv
 import functools
 import io
@@ -2300,8 +2301,19 @@ def post_entry_edit(
 
     # Apply changes directly to the raw dict – no full archive deserialisation.
     # This context-only archive resolves relative m_def references to local schemas.
+    # Inline definitions are loaded so that bare m_def names resolve like in processing.
+    # The definitions are copied because deserialisation mutates the given dict.
     # TODO no handling of concurrent changes yet
-    archive = datamodel.EntryArchive(m_context=context)
+    archive_dict = {}
+    if isinstance(archive_data.get('definitions'), dict):
+        archive_dict['definitions'] = copy.deepcopy(archive_data['definitions'])
+    try:
+        archive = datamodel.EntryArchive.m_from_dict(archive_dict, m_context=context)
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail='Could not load the definitions of the entry mainfile.',
+        ) from exc
     for change in data.changes:
         _apply_archive_change_to_dict(archive_data, change, archive=archive)
 
