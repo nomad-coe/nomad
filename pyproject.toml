@@ -93,6 +93,7 @@ infrastructure = [
   "opentelemetry-instrumentation-pymongo==0.63b1",
   "opentelemetry-instrumentation-elasticsearch==0.63b1",
   "prometheus-client",
+  "pymongo>=4.18.2",
   "uvicorn[standard]",
   "validators",
   "zipstream-ng",

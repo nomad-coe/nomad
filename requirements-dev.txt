@@ -182,7 +182,7 @@ pyjwt==2.15.1             # via oauthenticator, -r requirements.txt, nomad-lab (
 pymatgen==2025.10.7 ; python_full_version < '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymatgen==2026.5.4 ; python_full_version >= '3.11'  # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymatgen-core==2026.8.13 ; python_full_version >= '3.11'  # via pymatgen, -r requirements.txt
-pymongo==4.17.0           # via beanie, mongoengine, optimade, -r requirements.txt
+pymongo==4.18.2           # via beanie, mongoengine, optimade, -r requirements.txt, nomad-lab (pyproject.toml)
 pyparsing==3.3.2          # via bibtexparser, matplotlib, pip-requirements-parser, rdflib, -r requirements.txt
 pytest==9.1.1             # via pytest-asyncio, pytest-cov, pytest-socket, pytest-split, pytest-timeout, pytest-xdist, nomad-lab (pyproject.toml)
 pytest-asyncio==1.4.0     # via nomad-lab (pyproject.toml)
