@@ -81,6 +81,44 @@ def test_entry_points_filtered_keys_wildcards(include, exclude, expected_keys):
     assert entry_points.filtered_keys() == expected_keys
 
 
+@pytest.mark.parametrize(
+    'include, exclude, expected_keys',
+    [
+        pytest.param([], None, ['nomad_gui.apis:gui_api'], id='empty-include'),
+        pytest.param(
+            ['package_a:*'],
+            None,
+            ['package_a:one', 'nomad_gui.apis:gui_api'],
+            id='gui-omitted-from-include',
+        ),
+        pytest.param(
+            ['*'],
+            ['nomad_gui.apis:gui_api'],
+            ['package_a:one', 'nomad_gui.apis:gui_api'],
+            id='gui-explicitly-excluded',
+        ),
+        pytest.param(['*'], ['*'], ['nomad_gui.apis:gui_api'], id='exclude-all'),
+        pytest.param(
+            ['*'],
+            None,
+            ['package_a:one', 'nomad_gui.apis:gui_api'],
+            id='gui-already-included',
+        ),
+    ],
+)
+def test_gui_entry_point_is_always_included(include, exclude, expected_keys):
+    entry_points = EntryPoints(
+        options={
+            'package_a:one': SchemaPackageEntryPoint(),
+            'nomad_gui.apis:gui_api': APIEntryPoint(),
+        },
+        include=include,
+        exclude=exclude,
+    )
+
+    assert entry_points.filtered_keys() == expected_keys
+
+
 def mock_plugin_package(monkeypatch, directory):
     """Used for mocking the presence of a plugin package installation
     location."""

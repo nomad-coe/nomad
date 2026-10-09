@@ -32,6 +32,7 @@ from .common import Options
 from .ui import App
 
 example_prefix = '__examples__'
+GUI_ENTRY_POINT_ID = 'nomad_gui.apis:gui_api'
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -822,7 +823,7 @@ class EntryPoints(Options):
     )
 
     def filtered_keys(self) -> list[str]:
-        """Return entry point keys matching the include and exclude patterns."""
+        """Return filtered entry point keys, always including the installed GUI."""
         available_keys = list(self.options)
 
         if self.include is None:
@@ -837,11 +838,17 @@ class EntryPoints(Options):
                 )
 
         excluded_patterns = self.exclude or []
-        return [
+        filtered_keys = [
             key
             for key in included_keys
             if not any(fnmatchcase(key, pattern) for pattern in excluded_patterns)
         ]
+        if (
+            GUI_ENTRY_POINT_ID in self.options
+            and GUI_ENTRY_POINT_ID not in filtered_keys
+        ):
+            filtered_keys.append(GUI_ENTRY_POINT_ID)
+        return filtered_keys
 
 
 class PluginPackage(BaseModel):
