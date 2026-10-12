@@ -35,6 +35,7 @@ from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
     Filter,
     HDF5Annotation,
+    SchemaAnnotation,
     SectionDisplayAnnotation,
     SectionProperties,
 )
@@ -110,6 +111,9 @@ class BaseSection(Schema):
         a_display=SectionDisplayAnnotation(
             order=['name', 'datetime', 'lab_id', 'description'],
         ),
+        # Hides the basesections v2 from the 'Create from Schema' dialog.
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='BaseSection', enabled=False),
     )
     name = Quantity(
         type=str,
@@ -178,7 +182,10 @@ class Entity(BaseSection):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/BFO_0000002'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Entity', enabled=False),
     )
+
     datetime = Quantity(
         type=Datetime,
         description='The date and time when this entity was created.',
@@ -237,6 +244,8 @@ class Activity(BaseSection):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/BFO_0000015'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Activity', enabled=False),
     )
     datetime = Quantity(
         type=Datetime,
@@ -441,6 +450,11 @@ class Experiment(Activity):
     A section for grouping activities together into an experiment.
     """
 
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Experiment', enabled=False),
+    )
+
     steps = SubSection(
         section_def=ExperimentStep,
         description="""
@@ -454,6 +468,11 @@ class Collection(Entity):
     """
     A section for grouping entities together into a collection.
     """
+
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Collection', enabled=False),
+    )
 
     entities = SubSection(
         section_def=EntityReference,
@@ -567,6 +586,11 @@ class System(Entity):
     other systems.
     """
 
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='System', enabled=False),
+    )
+
     # elemental_composition = SubSection(
     #     description="""
     #     A list of all the elements found in the system together and their respective
@@ -622,6 +646,8 @@ class Element(System):
 
     m_def = Section(
         label_quantity='element',
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Element', enabled=False),
     )
     chemical_symbol = Quantity(
         type=MEnum(chemical_symbols[1:]),
@@ -659,6 +685,8 @@ class PureSubstance(System):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/CHEBI_23367'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='PureSubstance', enabled=False),
     )
     name = Quantity(
         type=str,
@@ -1069,6 +1097,11 @@ class Instrument(Entity):
     A base section that can be used for instruments.
     """
 
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Instrument', enabled=False),
+    )
+
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         """
         The normalizer for the `Instrument` class.
@@ -1133,6 +1166,8 @@ class Process(Activity):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/OBI_0000094'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Process', enabled=False),
     )
     end_time = Quantity(
         type=Datetime,
@@ -1217,7 +1252,11 @@ class Analysis(Activity):
      - data analysis
     """
 
-    m_def = Section(links=['http://purl.obolibrary.org/obo/OBI_0200000'])
+    m_def = Section(
+        links=['http://purl.obolibrary.org/obo/OBI_0200000'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Analysis', enabled=False),
+    )
     inputs = SubSection(
         section_def=SectionReference,
         description='The input data of the analysis.',
@@ -1254,6 +1293,8 @@ class SynthesisMethod(Process):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/CHMO_0001301'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='SynthesisMethod', enabled=False),
     )
 
 
@@ -1273,6 +1314,8 @@ class Measurement(Activity):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/OBI_0000070'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Measurement', enabled=False),
     )
     samples = SubSection(
         section_def=SystemReference,
