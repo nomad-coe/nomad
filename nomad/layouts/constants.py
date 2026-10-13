@@ -180,6 +180,15 @@ BUILTIN_NODE_TYPE_DEFAULTS: dict[str, Any] = {
             }
         }
     },
+    'mean_squared_displacement': {
+        'request': {
+            'results': {
+                'properties': {
+                    'dynamical': {'mean_squared_displacement': _resolved_request()}
+                }
+            }
+        }
+    },
     'geometry_optimization': {
         'request': {
             'results': {

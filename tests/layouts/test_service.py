@@ -107,6 +107,23 @@ def test_entry_layout_helpers_only_require_search_when_needed():
     assert intent.requires_layout_resolution
 
 
+@pytest.mark.parametrize('has_displacements', [False, True])
+def test_simulation_layout_requests_resolved_displacements_only_when_present(
+    has_displacements,
+):
+    quantities = ['results.method.simulation.program_name']
+    if has_displacements:
+        quantities.append('results.properties.dynamical.mean_squared_displacement')
+    request = derive_request_from_layout('simulation', {'quantities': quantities})
+    dynamical = request.get('results', {}).get('properties', {}).get('dynamical')
+    if has_displacements:
+        assert dynamical['mean_squared_displacement'] == {
+            'm_request': {'directive': 'resolved'}
+        }
+    else:
+        assert dynamical is None
+
+
 def test_default_layout_keeps_top_level_data_expanded_with_figures():
     derived_request = derive_request_from_layout(
         'default',
