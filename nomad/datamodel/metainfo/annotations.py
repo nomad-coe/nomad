@@ -1226,15 +1226,25 @@ class SchemaAnnotation(AnnotationModel):
     class MySchema(Schema):
         m_def = Section(a_schema=SchemaAnnotation(
             label='My Schema',
+            description='A description to show in the GUI instead of the class docstring.',
             enabled=False
         ))
     ```
     """
 
-    label: str = Field(
+    label: str | None = Field(
+        None,
         description="""
         Custom label to show for this schema in the GUI when instantiating new
         entries from it. If not set, the label set for the section will be used.
+        """,
+    )
+    description: str | None = Field(
+        None,
+        description="""
+        Custom description to show for this schema in the GUI when instantiating new
+        entries from it. If not set, the description of the section will be used.
+        The section definition's own description is not changed.
         """,
     )
     enabled: bool = Field(
