@@ -499,7 +499,7 @@ def get_entry_points(
 
     apps = []
     for id, ep in app_entry_points_cache.items():
-        app = ep.app.model_dump()
+        app = ep.app.model_dump(exclude_none=True)
         app['id'] = id
         apps.append(app)
     return {'data': apps}
@@ -596,7 +596,7 @@ def _build_app_response(app: App) -> dict[str, Any]:
         add_search(name, 'filters_locked')
 
     return {
-        'app': app.model_dump(),
+        'app': app.model_dump(exclude_none=True),
         'search_quantities': search_quantities,
     }
 
