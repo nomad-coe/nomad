@@ -24,6 +24,7 @@ from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
     PlotlyGraphObjectAnnotation,
     QuantityDisplayAnnotation,
+    SchemaAnnotation,
     SectionDisplayAnnotation,
 )
 from nomad.datamodel.metainfo.plot import PlotlyError
@@ -216,3 +217,73 @@ def test_display_annotation_is_registered(display, valid):
         # An invalid annotation is replaced by a stub that carries the error.
         assert annotation.m_error is not None
         assert len(errors) == 1
+
+
+def test_schema_annotation_label_is_optional():
+    """
+    A schema can be disabled without restating its label, and an unset label is
+    not serialized so that the GUI falls back to the section label or name.
+    """
+    annotation = SchemaAnnotation(enabled=False)
+    assert annotation.label is None
+    assert annotation.m_to_dict() == {'enabled': False}
+
+
+@pytest.mark.parametrize(
+    'schema',
+    [
+        pytest.param({'enabled': False}, id='without-label'),
+        pytest.param({'label': 'My Schema', 'enabled': False}, id='with-label'),
+    ],
+)
+def test_schema_annotation_from_dict(schema):
+    package = Package.m_from_dict(
+        {
+            'm_def': 'nomad.metainfo.metainfo.Package',
+            'sections': {'Test': {'m_annotations': {'schema': schema}}},
+        }
+    )
+    section = package.all_definitions['Test']
+    annotation = section.m_get_annotations('schema')
+    errors, _ = package.m_all_validate()
+
+    assert isinstance(annotation, SchemaAnnotation)
+    assert annotation.m_error is None
+    assert not errors
+    assert section.m_to_dict()['m_annotations']['schema'] == [schema]
+
+
+def test_schema_annotation_description_keeps_docstring():
+    from nomad.datamodel.data import Schema
+
+    class WithDescription(Schema):
+        """The docstring description."""
+
+        m_def = Section(a_schema=SchemaAnnotation(description='The custom one.'))
+
+    annotation = WithDescription.m_def.m_get_annotations('schema')
+
+    assert annotation.description == 'The custom one.'
+    assert WithDescription.m_def.description == 'The docstring description.'
+    assert WithDescription.m_def.m_to_dict()['m_annotations']['schema'] == [
+        {'description': 'The custom one.'}
+    ]
+
+
+def test_schema_annotation_description_from_dict():
+    package = Package.m_from_dict(
+        {
+            'm_def': 'nomad.metainfo.metainfo.Package',
+            'sections': {
+                'Test': {
+                    'description': 'The section description.',
+                    'm_annotations': {'schema': {'description': 'The custom one.'}},
+                }
+            },
+        }
+    )
+    package.init_metainfo()
+    section = package.all_definitions['Test']
+
+    assert section.m_get_annotations('schema').description == 'The custom one.'
+    assert section.description == 'The section description.'
