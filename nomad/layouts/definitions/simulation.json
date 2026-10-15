@@ -519,6 +519,25 @@
         "type": "condition",
         "query": {
           "quantities:any": [
+            "results.properties.dynamical.mean_squared_displacement"
+          ]
+        },
+        "children": [
+          {
+            "type": "container",
+            "title": "Dynamical properties",
+            "children": [
+              {
+                "type": "mean_squared_displacement"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "condition",
+        "query": {
+          "quantities:any": [
             "results.properties.mechanical.energy_volume_curve",
             "results.properties.mechanical.bulk_modulus",
             "results.properties.mechanical.shear_modulus"
