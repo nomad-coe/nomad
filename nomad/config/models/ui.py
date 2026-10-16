@@ -2145,10 +2145,8 @@ class App(ConfigBaseModel):
                                 search_quantity='datasets.dataset_id',
                                 options=0,
                             ),
-                            MenuItemDefinitions(),
                         ]
                     ),
-                    'optimade': Menu(items=[MenuItemOptimade()]),
                     'eln': Menu(
                         items=[
                             MenuItemTerms(
@@ -2181,7 +2179,6 @@ class App(ConfigBaseModel):
                             ),
                         ]
                     ),
-                    'custom_quantities': Menu(items=[MenuItemCustomQuantities()]),
                     'combine': MenuItemTerms(
                         search_quantity='combine',
                         options={
