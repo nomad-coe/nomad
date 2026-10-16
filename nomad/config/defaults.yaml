@@ -632,9 +632,6 @@ plugins:
                 size: m
               metadata:
                 label: Visibility / IDs / Schema
-              optimade:
-                label: Optimade
-                size: m
       apps/2_theory/1_calculations:
         entry_point_type: app
         app:
@@ -743,9 +740,6 @@ plugins:
                 size: m
               metadata:
                 label: Visibility / IDs / Schema
-              optimade:
-                label: Optimade
-                size: m
           dashboard:
             widgets:
               - layout:
@@ -850,14 +844,8 @@ plugins:
                 size: xl
               eln:
                 label: Electronic Lab Notebook
-              custom_quantities:
-                label: User Defined Quantities
-                size: l
               author:
                 label: Author / Origin / Dataset
                 size: m
               metadata:
                 label: Visibility / IDs / Schema
-              optimade:
-                label: Optimade
-                size: m
