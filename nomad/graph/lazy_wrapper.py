@@ -98,11 +98,12 @@ class CachedUpload:
 
     @cached_property
     def processing_successful(self):
-        return self.upload.processed_entries_count
+        # processed_entries_count includes both successful and failed entries
+        return self.upload.processed_entries_count - self.processing_failed
 
     @cached_property
     def processing_failed(self):
-        return self.n_entries - self.processing_successful
+        return self.upload.failed_entries_count
 
 
 class LazyUploadTotalCount(LazyWrapper):
