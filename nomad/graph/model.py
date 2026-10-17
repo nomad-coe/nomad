@@ -364,6 +364,17 @@ class RequestConfig(BaseModel):
         Like other settings, this propagates to the children unless overridden.
         """,
     )
+    include_label_quantities: bool = Field(
+        False,
+        description="""
+        Only applies to archives with `include_quantities` set to `False`. If `True`,
+        the scalar quantities that label a walked section are still included: the
+        `label_quantity` of its definition or of one of its base sections, and the
+        quantities `label`, `name`, `type` and `id`. This allows to show sections by
+        their labels while loading only the structure of an archive.
+        Like other settings, this propagates to the children unless overridden.
+        """,
+    )
     inherit_from_parent: bool = Field(
         True,
         description="""
