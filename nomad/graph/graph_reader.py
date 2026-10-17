@@ -3218,6 +3218,25 @@ def _is_quantity_reference(definition) -> bool:
     )
 
 
+_CONVENTIONAL_LABEL_QUANTITIES = frozenset({'label', 'name', 'type', 'id'})
+
+
+def _label_quantity_names(definition) -> frozenset[str]:
+    """
+    The names of the quantities that may label a section of the given definition:
+    the `label_quantity` of the definition or of one of its base sections, and the
+    conventional identifying quantities.
+    """
+    if not isinstance(definition, Section):
+        return _CONVENTIONAL_LABEL_QUANTITIES
+    names = set(_CONVENTIONAL_LABEL_QUANTITIES)
+    for section in (definition, *definition.all_base_sections):
+        label_quantity = (getattr(section, 'more', None) or {}).get('label_quantity')
+        if isinstance(label_quantity, str):
+            names.add(label_quantity)
+    return frozenset(names)
+
+
 class ArchiveReader(ArchiveLikeReader):
     """
     This class provides functionalities to read an archive with the required fields.
@@ -3632,9 +3651,12 @@ class ArchiveReader(ArchiveLikeReader):
             _node_cursor(node).set(result_to_write)
             return
 
+        label_keys: frozenset[str] = frozenset()
         if not config.include_quantities:
             # without quantities, a section is listed even if it has no subsections
             _node_cursor(node).container(dict)
+            if config.include_label_quantities:
+                label_keys = _label_quantity_names(node.definition)
         if config.pagination is not None:
             # only repeating subsections are paged, those below inherit the page size
             config = _copy_request_config(config, pagination=_child_pagination(config))
@@ -3655,6 +3677,14 @@ class ArchiveReader(ArchiveLikeReader):
                 if not config.include_quantities and isinstance(
                     child_definition, Quantity
                 ):
+                    # only the scalar values that label the section
+                    if key not in label_keys or _is_quantity_reference(
+                        child_definition
+                    ):
+                        continue
+                    child_archive = await goto_child(node.archive, key)
+                    if type(child_archive) in (str, int, float, bool):
+                        _node_cursor(node).child(key).set(child_archive)
                     continue
 
                 child_archive = await goto_child(node.archive, key)

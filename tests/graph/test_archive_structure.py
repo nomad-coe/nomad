@@ -28,7 +28,7 @@ import pytest
 
 from nomad.graph.graph_reader import ArchiveReader, ConfigError, GraphNode
 from nomad.graph.model import ArchivePagination, RequestConfig
-from nomad.metainfo import MSection, Package, Quantity, SubSection
+from nomad.metainfo import MSection, Package, Quantity, Section, SubSection
 
 m_package = Package(name='test_archive_structure')
 
@@ -44,8 +44,21 @@ class Middle(MSection):
 
 
 class SpecialMiddle(Middle):
+    m_def = Section(label_quantity='title')
     title = Quantity(type=str)
     extra = SubSection(section_def=Leaf)
+
+
+class Labeled(MSection):
+    m_def = Section(label_quantity='cell_name')
+    cell_name = Quantity(type=str)
+    name = Quantity(type=str, shape=['*'])
+    ref = Quantity(type=Leaf)
+    value = Quantity(type=float)
+
+
+class SpecialLabeled(Labeled):
+    pass
 
 
 Wide = type(
@@ -61,6 +74,7 @@ class Root(MSection):
     items = SubSection(section_def=Middle, repeats=True)
     empty = SubSection(section_def=Leaf, repeats=True)
     single = SubSection(section_def=Leaf)
+    labeled = SubSection(section_def=Labeled, repeats=True)
 
 
 m_package.__init_metainfo__()
@@ -109,8 +123,10 @@ def _read(query: dict, archive: dict | None = None) -> tuple[dict, dict[str, set
     return result, errors
 
 
-def _structure(depth: int = 2, **pagination) -> dict:
+def _structure(depth: int = 2, label_quantities: bool = False, **pagination) -> dict:
     request: dict = {'include_quantities': False, 'depth': depth}
+    if label_quantities:
+        request['include_label_quantities'] = True
     if pagination:
         request['pagination'] = pagination
     return {'m_request': request}
@@ -203,6 +219,90 @@ def test_include_quantities_is_inherited_and_can_be_overridden():
     result, _ = _read(query)
     assert result['single'] == {}
     assert result['items'][0] == {'name': 'item-0'}
+
+
+def _labeled_archive():
+    return {
+        'title': 'secret title',
+        'items': [
+            {'name': 'item-0', 'leaves': [{'name': 'leaf', 'value': 1.0}]},
+            {
+                'm_def': SpecialMiddle.m_def.qualified_name(),
+                'name': 'special',
+                'title': 'special title',
+            },
+        ],
+        'labeled': [
+            {
+                'cell_name': 'cell',
+                'name': ['not', 'a', 'label'],
+                'ref': '#/single',
+                'value': 1.0,
+            },
+            {
+                'm_def': SpecialLabeled.m_def.qualified_name(),
+                'cell_name': 'special cell',
+            },
+        ],
+        'single': {'name': 'single', 'value': 1.0},
+    }
+
+
+@pytest.fixture
+def labeled_definitions(monkeypatch):
+    definitions = {
+        definition.qualified_name(): definition
+        for definition in (SpecialMiddle.m_def, SpecialLabeled.m_def)
+    }
+
+    async def retrieve_definition(self, m_def, m_def_id=None, node=None):
+        return definitions[m_def]
+
+    monkeypatch.setattr(ArchiveReader, '_retrieve_definition', retrieve_definition)
+
+
+def test_label_quantities(labeled_definitions):
+    result, errors = _read(
+        _structure(depth=2, label_quantities=True), _labeled_archive()
+    )
+    assert not errors
+    # the root has no label quantities, only subsections
+    assert list(result.keys()) == ['items', 'labeled', 'single']
+    # a conventional label quantity
+    assert result['single'] == {'name': 'single'}
+    assert result['items'][0]['name'] == 'item-0'
+    assert _is_stub(result['items'][0]['leaves'])
+    # a polymorphic item with a label quantity of its own
+    assert result['items'][1] == {'name': 'special', 'title': 'special title'}
+    # the label quantity of the definition, but not a non-scalar `name` or a
+    # reference
+    assert result['labeled'][0] == {'cell_name': 'cell'}
+    # the label quantity of a base section
+    assert result['labeled'][1] == {'cell_name': 'special cell'}
+    assert 'secret title' not in json.dumps(result)
+    assert 'value' not in json.dumps(result)
+
+
+def test_label_quantities_are_inherited_and_can_be_overridden():
+    query = {
+        **_structure(depth=2, label_quantities=True),
+        'items[0]': {'m_request': {'include_label_quantities': False}},
+    }
+    result, _ = _read(query, _labeled_archive())
+    assert result['single'] == {'name': 'single'}
+    assert result['items'][0] == {'leaves': result['items'][0]['leaves']}
+
+
+def test_label_quantities_without_effect():
+    # without the option, no quantities
+    result, _ = _read(_structure(depth=2), _labeled_archive())
+    assert result['single'] == {}
+    # with quantities, all of them
+    result, _ = _read(
+        {'m_request': {'depth': 2, 'include_label_quantities': True}},
+        _labeled_archive(),
+    )
+    assert result['single'] == {'name': 'single', 'value': 1.0}
 
 
 def test_include_exclude():
@@ -351,6 +451,7 @@ def test_invalid_config(request_config):
 def test_is_plain():
     assert RequestConfig().is_plain()
     assert not RequestConfig(include_quantities=False).is_plain()
+    assert RequestConfig(include_label_quantities=True).is_plain()
     assert not RequestConfig(pagination={'page_size': 1}).is_plain()
 
 
