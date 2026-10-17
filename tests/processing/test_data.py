@@ -381,6 +381,7 @@ def assert_processing(
     for entry in search_results.data:
         assert entry['published'] == published
         assert entry['upload_id'] == upload.upload_id
+        assert entry['process_status'] == ProcessStatus.SUCCESS
 
 
 def assert_user_metadata(entries_metadata, user_metadata):

@@ -806,6 +806,7 @@ class EntryMetadata(MSection):
             ProcessStatus.FAILURE,
             ProcessStatus.DELETED,
         ),
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The status of the current or last completed processing step.',
         a_elasticsearch=Elasticsearch(),
     )

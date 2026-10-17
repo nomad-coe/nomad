@@ -963,7 +963,9 @@ class BundleImporter:
             )
 
             # Instantiate an entry object from the json, and validate it
-            entry_keys_to_copy = list(mongo_entry_metadata)
+            entry_keys_to_copy = [
+                k for k in mongo_entry_metadata if k != 'process_status'
+            ]
             entry_keys_to_copy.extend(
                 (
                     'upload_id',

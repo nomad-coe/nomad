@@ -140,6 +140,21 @@ user3_dict = {
 }
 
 
+def test_cached_upload_counts_failed_entries():
+    from nomad.graph.lazy_wrapper import CachedUpload
+
+    # processed_entries_count includes both successful and failed entries
+    upload = CachedUpload(
+        SimpleNamespace(
+            total_entries_count=16, processed_entries_count=16, failed_entries_count=2
+        )
+    )
+
+    assert upload.n_entries == 16
+    assert upload.processing_successful == 14
+    assert upload.processing_failed == 2
+
+
 def test_rewrite_mainfile_archive_reference_with_dotted_filename():
     from nomad.graph.graph_reader import _convert_ref_to_path_string
 
