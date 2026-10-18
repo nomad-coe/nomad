@@ -7,7 +7,7 @@ name = "nomad-lab"
 description = "The NOvel MAterials Discovery (NOMAD) Python package"
 readme = "README.md"
 authors = [
-  { name = "NOMAD Laboratory", email = "support@nomad-lab.eu" },
+  { name = "NOMAD Authors", email = "support@nomad-lab.eu" },
 ]
 version = '2.0.0'
 license = { text = "Apache-2.0" }
