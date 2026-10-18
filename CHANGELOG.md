@@ -1,35 +1,37 @@
 ## 2.0.0 (2026-10-18)
 
+### Added (8 changes)
+
+- [Added cabability for a project to include entries from other projects.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/fad4f15f96d66c3a033ec1ebb7afda99f9d84c38) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3253))
+- [Added graph API pagination features and added option to disable quantity fetching.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/48c2657740c432906ebf05215cbf6f69c7c105ba) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3254))
+- [Added support for Elasticsearch 9.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/b6ad36f36e547029f425bf571df4f3b5bf1c4bed) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2907))
+- [Added user notifications endpoint.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/e751339723af42f32596e2d872a100dc14288bf8) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3136))
+- [Added process status field into archive metadata.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/c32dbbf94c3ee4c008689f99ecda1dc7b07bbe9f) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3116))
+- [Added group ownership transfer feature](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1ad3714919d5785517af54aba4c185f2ce5150de) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3049))
+- [Added new configuration field for setting documentation URL.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6bc7ff69d6a4e8227c393b58b15717fe4ff272a7) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3258))
+- [Added new configuration fields for dashboards.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1346d8de0385e38d50bc89d45c21af15f4e9bdbc) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3269))
+
+### Changed (2 changes)
+
+- [Changed default mounting path for APIs and dashboards.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/baca1eb12dd7aeded00e9a368a40a678bd7c9db6) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3238))
+- [Optimized archive reading RAM usage by using streaming.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/0d80f62fec8340aded35087492091ee28ad87e94) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3181))
+
 ### Removed (5 changes)
 
 - [Removed use of deprecated menu items from default apps that ship with NOMAD.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/c3ca9005e588f6fab78ff223996985c8c1f88878) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3281))
 - [Removed deprecated PlotAnnotation class.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/41158c6b1d1e7e4008aa430e474d9074de80f604) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3248))
 - [Removed many of the deprecated configuration options.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/f765dfce8ef52f4940119ad270d5aa7a01967bfe) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3249))
 - [Removed log transfer feature.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/fac5dac87847b719d658ed82dd0ec41256f5cec5) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3219))
-- [Removed the materials indexing feature which was deprecated in v1.4.0.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6406203fad26743f8cb914092e155b2f7ca56849) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3221))
+- [Removed the materials indexing feature](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/6406203fad26743f8cb914092e155b2f7ca56849) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3221))
 
 ### Fixed (6 changes)
 
 - [Fixed issue with complex queries not passing app validation.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7b6e153591658d9523bf4a336a2933662a4bc3a7) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3264))
 - [Fixed issue with filepaths not accepting whitespace characters.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/a2557a4c4266d88a4ad7efec9748f243ae0eb45f) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3211))
-- [Fixed issue with archives not always being generated for mainfiles added...](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7d74ac1a280c916481d7efb538592c4a626b0f5d) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3226))
-- [Skip results normalizer if nomad-simulations workflow](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/30b07a6993ebdd7fcc118873466c89dbac6f0c88) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3171))
+- [Fixed issue with archives not always being generated for mainfiles.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/7d74ac1a280c916481d7efb538592c4a626b0f5d) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3226))
+- [Skip results normalizer if workflow comes from nomad-simulations](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/30b07a6993ebdd7fcc118873466c89dbac6f0c88) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3171))
 - [Fixed issue with NORTH launch row action not working.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/89677e1c53f22261ae505a04717a85369b6fb679) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3123))
 - [Fixed issue with resource downloading blocking the event loop during API calls.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/ab6b9f5516d373c313c1a1e62431f9294166bb69) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3118))
-
-### Added (6 changes)
-
-- [Added cabability for a project to include entries from other projects.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/fad4f15f96d66c3a033ec1ebb7afda99f9d84c38) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3253))
-- [Added graph API pagination features and added option to disable quantity fetching.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/48c2657740c432906ebf05215cbf6f69c7c105ba) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3254))
-- [Added support for Elasticsearch 9.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/b6ad36f36e547029f425bf571df4f3b5bf1c4bed) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/2907))
-- [Implement notifications endpoint](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/e751339723af42f32596e2d872a100dc14288bf8) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3136))
-- [Added process status field into archive metadata.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/c32dbbf94c3ee4c008689f99ecda1dc7b07bbe9f) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3116))
-- [Resolve "Group ownership transfer"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/1ad3714919d5785517af54aba4c185f2ce5150de) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3049))
-
-### Changed (2 changes)
-
-- [Changed default mounting path for APIs and dashboards.](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/baca1eb12dd7aeded00e9a368a40a678bd7c9db6) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3238))
-- [Resolve "Stream archive serialization via generators in msglc to prevent memory spikes"](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/commit/0d80f62fec8340aded35087492091ee28ad87e94) ([merge request](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests/3181))
 
 ## 1.4.3 (2026-07-13)
 
