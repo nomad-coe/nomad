@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from typing import Any
 
 _PROPERTY_VALUE_NODE_TYPES = (
@@ -19,6 +37,39 @@ def _resolved_request(
     if depth is not None:
         request['depth'] = depth
     return {'m_request': request}
+
+
+def _plain_reference_request() -> dict[str, Any]:
+    """Request a reference value without resolving its target section."""
+    return {
+        'm_request': {
+            'directive': 'plain',
+            'always_rewrite_references': True,
+        }
+    }
+
+
+def _workflow_link_request() -> dict[str, Any]:
+    return {
+        'name': '*',
+        'section': _plain_reference_request(),
+    }
+
+
+_MAX_WORKFLOW_NESTING_DEPTH = 16
+
+
+def _workflow_task_request(depth: int) -> dict[str, Any]:
+    request = {
+        'name': '*',
+        'section': _plain_reference_request(),
+        'task': _plain_reference_request(),
+        'inputs': _workflow_link_request(),
+        'outputs': _workflow_link_request(),
+    }
+    if depth > 0:
+        request['tasks'] = _workflow_task_request(depth - 1)
+    return request
 
 
 _BAND_STRUCTURE_ELECTRONIC = {
@@ -129,6 +180,15 @@ BUILTIN_NODE_TYPE_DEFAULTS: dict[str, Any] = {
             }
         }
     },
+    'mean_squared_displacement': {
+        'request': {
+            'results': {
+                'properties': {
+                    'dynamical': {'mean_squared_displacement': _resolved_request()}
+                }
+            }
+        }
+    },
     'geometry_optimization': {
         'request': {
             'results': {
@@ -157,9 +217,10 @@ BUILTIN_NODE_TYPE_DEFAULTS: dict[str, Any] = {
     'workflow': {
         'request': {
             'workflow2': {
-                'inputs': _resolved_request(),
-                'outputs': _resolved_request(),
-                'tasks': _resolved_request(),
+                'name': '*',
+                'inputs': _workflow_link_request(),
+                'outputs': _workflow_link_request(),
+                'tasks': _workflow_task_request(_MAX_WORKFLOW_NESTING_DEPTH),
             }
         }
     },

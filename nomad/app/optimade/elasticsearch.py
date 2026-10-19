@@ -1,6 +1,24 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from typing import Any
 
-from elasticsearch_dsl import Q
+from elasticsearch.dsl import Q
 from optimade.filterparser import LarkParser
 from optimade.models import StructureResource
 from optimade.server.entry_collections import EntryCollection
@@ -58,7 +76,7 @@ class StructureCollection(EntryCollection):
         self._check_aliases(self.resource_mapper.all_aliases())
         self._check_aliases(self.resource_mapper.all_length_aliases())
 
-    def _base_search_query(self) -> Q:
+    def _base_search_query(self) -> Any:
         return Q('exists', field='optimade.elements') & Q('term', processed=True)
 
     def __len__(self) -> int:

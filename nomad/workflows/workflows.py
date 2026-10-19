@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 """
 All workflow class definitions for NOMAD workflows.
 """
@@ -8,6 +26,8 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import Priority, RetryPolicy
 from temporalio.exceptions import ActivityError
+
+from nomad.workflows.utils import extract_temporal_error_details
 
 EDIT_UPLOAD_METADATA_PRIORITY = Priority(priority_key=1)
 PUBLISH_UPLOAD_PRIORITY = Priority(priority_key=2)
@@ -20,41 +40,6 @@ PROCESS_UPLOAD_PRIORITY = Priority(priority_key=4)
 UPDATE_UPLOAD_PRIORITY = Priority(priority_key=4)
 BATCH_PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
 PROCESS_ENTRY_PRIORITY = Priority(priority_key=5)
-
-_GENERIC_TEMPORAL_ERROR_MESSAGES = (
-    'child workflow failed',
-    'child workflow execution failed',
-    'workflow execution failed',
-    'activity task failed',
-    'activity failed',
-)
-
-
-def _extract_error_details(error: Exception) -> str:
-    """Return the most specific message from a Temporal error cause chain."""
-    messages: list[str] = []
-    current: Exception | None = error
-    seen: set[int] = set()
-
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        message = str(current).strip()
-        if message:
-            messages.append(message)
-        current = getattr(current, 'cause', None)
-
-    if not messages:
-        return str(error)
-
-    for message in reversed(messages):
-        lowered_message = message.lower()
-        if not any(
-            generic_message in lowered_message
-            for generic_message in _GENERIC_TEMPORAL_ERROR_MESSAGES
-        ):
-            return message
-
-    return messages[-1]
 
 
 with workflow.unsafe.imports_passed_through():
@@ -80,6 +65,7 @@ with workflow.unsafe.imports_passed_through():
         process_entry_batch_from_file_activity,
         publish_externally_activity,
         publish_upload_activity,
+        server_stats_checkin_activity,
         setup_example_upload_activity,
         update_files_activity,
     )
@@ -598,7 +584,7 @@ class UpdateUploadWorkflow:
                 workflow_id=workflow_info.workflow_id,
                 workflow_tmp_dir=input.workflow_tmp_dir,
                 failure_message='Process upload failed',
-                error_details=_extract_error_details(e),
+                error_details=extract_temporal_error_details(e),
             )
             raise e
 
@@ -699,7 +685,7 @@ class EditUploadMetadataWorkflow:
                 upload_id=input.upload_id,
                 workflow_id=workflow_info.workflow_id,
                 failure_message='Edit metadata failed',
-                error_details=_extract_error_details(e),
+                error_details=extract_temporal_error_details(e),
             )
             raise e
 
@@ -770,7 +756,7 @@ class TransferUploadOwnershipWorkflow:
                 upload_id=input.upload_id,
                 workflow_id=workflow_info.workflow_id,
                 failure_message='Ownership transfer failed',
-                error_details=_extract_error_details(e),
+                error_details=extract_temporal_error_details(e),
             )
             raise e
         finally:
@@ -787,9 +773,7 @@ class TransferUploadOwnershipWorkflow:
 class ImportBundleWorkflow:
     @workflow.run
     async def run(self, input: ImportBundleWorkflowInput):
-        retry_policy = RetryPolicy(
-            maximum_attempts=2,
-        )
+        retry_policy = RetryPolicy(maximum_attempts=1)
         timeout = timedelta(
             seconds=config.temporal.processing_timeouts.import_bundle_timeout
         )
@@ -829,7 +813,7 @@ class ImportBundleWorkflow:
                 upload_id=input.upload_id,
                 workflow_id=workflow_info.workflow_id,
                 failure_message='Import bundle failed',
-                error_details=_extract_error_details(e),
+                error_details=extract_temporal_error_details(e),
             )
             raise e
 
@@ -890,7 +874,7 @@ class PublishUploadWorkflow:
                 upload_id=input.upload_id,
                 workflow_id=workflow_info.workflow_id,
                 failure_message='Publish upload failed',
-                error_details=_extract_error_details(e),
+                error_details=extract_temporal_error_details(e),
             )
             raise e
 
@@ -911,6 +895,9 @@ class PublishExternallyWorkflow:
         retry_policy = RetryPolicy(
             maximum_attempts=2,
         )
+        # Publishing externally creates the upload on the target deployment and
+        # is therefore not safe to retry.
+        publish_retry_policy = RetryPolicy(maximum_attempts=1)
         timeout = timedelta(
             seconds=config.temporal.processing_timeouts.publish_externally_timeout
         )
@@ -935,7 +922,7 @@ class PublishExternallyWorkflow:
                 input,
                 schedule_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat_timeout,
-                retry_policy=retry_policy,
+                retry_policy=publish_retry_policy,
                 priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
 
@@ -946,14 +933,15 @@ class PublishExternallyWorkflow:
             )
 
         except Exception as e:
+            print('THIS IS THE ORIGINAL ERRROR', e)
             finalize_input = FinalizeUploadProcessingFailureInput(
                 result='failure',
                 upload_id=input.upload_id,
                 workflow_id=workflow_info.workflow_id,
                 failure_message='Publish externally failed',
-                error_details=_extract_error_details(e),
+                error_details=extract_temporal_error_details(e),
             )
-            raise e
+            raise
 
         finally:
             await workflow.execute_activity(
@@ -963,3 +951,13 @@ class PublishExternallyWorkflow:
                 retry_policy=retry_policy,
                 priority=PUBLISH_EXTERNALLY_PRIORITY,
             )
+
+
+@workflow.defn
+class ServerStatsWorkflow:
+    @workflow.run
+    async def run(self):
+        await workflow.execute_activity(
+            server_stats_checkin_activity,
+            start_to_close_timeout=timedelta(seconds=300),
+        )

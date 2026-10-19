@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import logging
 import signal
@@ -95,18 +113,27 @@ async def run_worker(worker_config: WorkerConfig):
         worker = Worker(**worker_kwargs)
         health_runner = None
 
+        logger.info('Starting CPU worker.')
+        worker_task = asyncio.create_task(worker.run())
+
         if should_start_health_server(worker_config):
             health_runner = await start_health_server(
                 host=worker_config.healthcheck_host,
                 port=worker_config.healthcheck_port,
+                worker_task=worker_task,
             )
-        # Run the worker until SIGTERM
-        logger.info('Starting CPU worker.')
-        worker_task = asyncio.create_task(worker.run())
 
+        stop_task = asyncio.create_task(stop_event.wait())
         try:
-            await stop_event.wait()
+            done, pending = await asyncio.wait(
+                [stop_task, worker_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if worker_task in done:
+                logger.error('Worker task exited unexpectedly.')
+                await worker_task
         finally:
+            stop_task.cancel()
             if health_runner is not None:
                 await health_runner.cleanup()
 

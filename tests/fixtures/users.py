@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 """
 User fixtures:
 - user0: admin user
@@ -6,6 +24,7 @@ User fixtures:
 """
 
 import pytest
+from pydantic import SecretStr
 
 from nomad.auth import keycloak, user_management
 from nomad.auth.keycloak import KeycloakError, OIDCToken
@@ -148,6 +167,9 @@ class KeycloakMock:
         else:
             assert False, 'no token based get_user during tests'
 
+    async def a_get_user(self, *, user_id=None, username=None, email=None):
+        return self.get_user(user_id=user_id, username=username, email=email)
+
     def search_user(self, query):
         return [
             User(**user)
@@ -172,7 +194,7 @@ class KeycloakMock:
 
 
 config.keycloak.realm_name = 'fairdi_nomad_test'
-config.keycloak.password = 'password'
+config.keycloak.password = SecretStr('password')
 
 _keycloak = keycloak.keycloak
 _user_management = user_management.user_management

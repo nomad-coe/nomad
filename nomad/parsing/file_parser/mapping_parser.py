@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import bz2
 import gzip
 import json
@@ -1168,7 +1186,8 @@ class Data(BaseModel, validate_assignment=True):
         if self.transformer:
             value = self.transformer.get_data(source_data, parser, **kwargs)
             return self.transformer.normalize_data(value)
-        elif self.path:
+
+        if self.path:
             return self.path.get_data(
                 source_data if self.path.is_relative_path() else parser.data, **kwargs
             )
@@ -1197,12 +1216,12 @@ class BaseMapper(BaseModel):
         all_paths: Internal list of all absolute paths for remove optimization.
     """
 
-    source: 'Data' = Field(None, description="""Source data.""")
-    target: 'Data' = Field(None, description="""Target data.""")
+    source: 'Data | None' = Field(None, description="""Source data.""")
+    target: 'Data | None' = Field(None, description="""Target data.""")
     indices: list[int] | str | None = Field(
         None, description="""List of indices of data to include."""
     )
-    order: int = Field(None, description="""Execution order.""")
+    order: int | None = Field(None, description="""Execution order.""")
     remove: bool | None = Field(None, description="""Remove data from source.""")
     cache: bool | None = Field(None, description="""Store the result of the mapper.""")
     all_paths: list[str] = Field(
@@ -2300,8 +2319,8 @@ class MetainfoMapper(MetainfoBaseMapper, Mapper):
 
 
 class MetainfoTransformer(MetainfoBaseMapper, Transformer):
-    unit: str = Field(None, description="""Pint unit to be applied to value.""")
-    search: str = Field(None, description="""Path to search value.""")
+    unit: str | None = Field(None, description="""Pint unit to be applied to value.""")
+    search: str | None = Field(None, description="""Path to search value.""")
 
     def normalize_data(self, value: Any):
         if self.search:
@@ -2361,10 +2380,11 @@ class MetainfoParser(MappingParser):
         self._annotation_key = value
         self._mapper = None
 
-    def load_file(self) -> MSection:
+    def load_file(self) -> MSection | None:
         if self._data_object is not None:
             with open(self.filepath) as f:
                 return self._data_object.m_from_dict(json.load(f))
+
         elif self.filepath:
             try:
                 archive = EntryArchive()
@@ -2372,6 +2392,7 @@ class MetainfoParser(MappingParser):
                 return archive
             except Exception:
                 self.logger.errror('Error loading archive file.')
+
         return None
 
     def to_dict(self, **kwargs) -> dict[str | int, Any]:
@@ -3017,7 +3038,7 @@ class TextParser(MappingParser):
         >>> data = parser.to_dict()  # Returns TextFileParser results
     """
 
-    text_parser: TextFileParser = None
+    text_parser: TextFileParser | None = None
 
     def to_dict(self, **kwargs) -> dict[str | int, Any]:
         if self.data_object:
@@ -3029,7 +3050,7 @@ class TextParser(MappingParser):
         raise NotImplementedError
 
     def load_file(self) -> Any:
-        if self.filepath:
+        if self.filepath and self.text_parser is not None:
             self.text_parser.findlazy = True
             self.text_parser.mainfile = self.filepath
         return self.text_parser

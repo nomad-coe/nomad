@@ -296,16 +296,19 @@ def _query_uploads(
             process_status__in=proc.ProcessStatus.STATUSES_PROCESSING
         )
 
+    upload_filter_q = Q(upload_id__in=list(uploads)) if uploads is not None else Q()
     if entries_mongo_query_q == Q():
         # If there is no entry based query, we get the list of all uploads from the upload
         # and not the entry collection. This ensures that we will also catch uploads that
         # do not have an entry.
         mongo_entry_based_uploads = set(
-            proc.Upload.objects().distinct(field='upload_id')  # type: ignore
+            proc.Upload.objects(upload_filter_q).distinct(field='upload_id')  # type: ignore
         )
     else:
         mongo_entry_based_uploads = set(
-            proc.Entry.objects(entries_mongo_query_q).distinct(field='upload_id')  # type: ignore
+            proc.Entry.objects(entries_mongo_query_q & upload_filter_q).distinct(
+                field='upload_id'
+            )  # type: ignore
         )
 
     if entries_query_uploads is not None:
@@ -612,7 +615,6 @@ def reset(ctx, uploads, with_entries, success, failure):
     '--transformer',
     help='Qualified name to a Python function that should be applied to each EntryMetadata.',
 )
-@click.option('--skip-materials', is_flag=True, help='Only update the entries index.')
 @click.option(
     '--print-progress',
     default=0,
@@ -620,7 +622,7 @@ def reset(ctx, uploads, with_entries, success, failure):
     help='Prints a dot every given seconds. Can be used to keep terminal open that have an i/o-based timeout.',
 )
 @click.pass_context
-def index(ctx, uploads, parallel, transformer, skip_materials, print_progress):
+def index(ctx, uploads, parallel, transformer, print_progress):
     from nomad import search
 
     transformer_func = None
@@ -651,7 +653,7 @@ def index(ctx, uploads, parallel, transformer, skip_materials, print_progress):
             if transformer is not None:
                 transform(entries)
             archives = [entry.m_parent for entry in entries]
-            search.index(archives, update_materials=not skip_materials, refresh=True)
+            search.index(archives, refresh=True)
 
         return True
 
@@ -668,9 +670,7 @@ def delete_upload(
 
     # delete elastic
     if not skip_es:
-        search.delete_upload(
-            upload_id=upload.upload_id, update_materials=False, refresh=True
-        )
+        search.delete_upload(upload_id=upload.upload_id, refresh=True)
 
     # delete files
     if not skip_files:

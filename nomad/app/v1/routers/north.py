@@ -46,8 +46,14 @@ class APITag(str, Enum):
     DEFAULT = 'north'
 
 
-hub_api_headers = {'Authorization': f'Bearer {config.north.hub_service_api_token}'}
+hub_api_headers = {
+    'Authorization': f'Bearer {config.north.hub_service_api_token.get_secret_value()}'
+}
 logger = get_logger(__name__)
+
+# JupyterHub is an external service. Bound every request so an unavailable hub
+# cannot consume a FastAPI worker indefinitely.
+NORTH_HUB_TIMEOUT_SECONDS = 30
 
 
 class ToolStateEnum(str, Enum):
@@ -91,7 +97,9 @@ def _get_status(tool: ToolModel, user: User) -> ToolModel:
         return tool
 
     url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}/progress'
-    response = requests.get(url, headers=hub_api_headers)
+    response = requests.get(
+        url, headers=hub_api_headers, timeout=NORTH_HUB_TIMEOUT_SECONDS
+    )
 
     if response.status_code == 404:
         # The user or the tool does not yet exist
@@ -113,14 +121,14 @@ def _get_status(tool: ToolModel, user: User) -> ToolModel:
 
 
 @router.get(
-    '/',
+    '',
     tags=[APITag.DEFAULT],
     response_model=ToolsResponseModel,
     summary='Get a list of all configured tools and their current state.',
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_tools(
+def get_tools(
     user: Annotated[User, Depends(get_current_user([Scope.NORTH_READ]))],
 ):
     north_tools: list[NORTHToolEntryPoint] = []
@@ -146,7 +154,7 @@ async def get_tools(
     )
 
 
-async def tool(name: str) -> ToolModel:
+def tool(name: str) -> ToolModel:
     config.plugins.entry_points.options
     plugin = None
     for value in config.plugins.entry_points.options.values():
@@ -175,7 +183,7 @@ async def tool(name: str) -> ToolModel:
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_tool(
+def get_tool(
     tool: Annotated[ToolModel, Depends(tool)],
     user: Annotated[
         User,
@@ -185,7 +193,9 @@ async def get_tool(
 ):
     if upload_id:
         url = f'{config.hub_url()}/api/users/{user.username}'
-        response = requests.get(url, headers=hub_api_headers)
+        response = requests.get(
+            url, headers=hub_api_headers, timeout=NORTH_HUB_TIMEOUT_SECONDS
+        )
         return ToolResponseModel(
             tool=tool.name,
             username=user.username,
@@ -228,7 +238,7 @@ def _check_uploadid_is_mounted(
     response_model_exclude_none=True,
 )
 @traced(span_name='north.start_tool')
-async def start_tool(
+def start_tool(
     tool: Annotated[ToolModel, Depends(tool)],
     user: Annotated[
         User,
@@ -240,9 +250,13 @@ async def start_tool(
 
     # Make sure the user exists
     url = f'{config.hub_url()}/api/users/{user.username}'
-    response = requests.get(url, headers=hub_api_headers)
+    response = requests.get(
+        url, headers=hub_api_headers, timeout=NORTH_HUB_TIMEOUT_SECONDS
+    )
     if response.status_code == 404:
-        response = requests.post(url, headers=hub_api_headers)
+        response = requests.post(
+            url, headers=hub_api_headers, timeout=NORTH_HUB_TIMEOUT_SECONDS
+        )
         if response.status_code == 200:
             logger.info('created north user', user_id=user.user_id)
         else:
@@ -346,7 +360,7 @@ async def start_tool(
             'default_url': tool.default_url,
         },
         'environment': {
-            'SUBFOLDER': f'{config.services.api_base_path.rstrip("/")}/north/user/{user.username}/',
+            'SUBFOLDER': f'{config.services.join_path("north", "user", user.username)}/',
             'JUPYTERHUB_CLIENT_API_URL': f'{config.north_url()}/hub/api',
             'NOMAD_CLIENT_USER': user.username,
             'NOMAD_CLIENT_ACCESS_TOKEN': access_token,
@@ -371,7 +385,9 @@ async def start_tool(
         },
     )
 
-    response = requests.post(url, json=body, headers=hub_api_headers)
+    response = requests.post(
+        url, json=body, headers=hub_api_headers, timeout=NORTH_HUB_TIMEOUT_SECONDS
+    )
 
     if (
         response.status_code == 400
@@ -407,7 +423,7 @@ async def start_tool(
     response_model_exclude_none=True,
 )
 @traced(span_name='north.stop_tool')
-async def stop_tool(
+def stop_tool(
     tool: Annotated[ToolModel, Depends(tool)],
     user: Annotated[
         User,
@@ -415,7 +431,12 @@ async def stop_tool(
     ],
 ):
     url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
-    response = requests.delete(url, json={'remove': True}, headers=hub_api_headers)
+    response = requests.delete(
+        url,
+        json={'remove': True},
+        headers=hub_api_headers,
+        timeout=NORTH_HUB_TIMEOUT_SECONDS,
+    )
 
     if response.status_code == 404:
         tool.state = ToolStateEnum.stopped

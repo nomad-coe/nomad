@@ -28,7 +28,6 @@ from unidecode import unidecode
 from nomad.datamodel.metainfo.plot import PlotSection
 
 from nomad import utils
-from nomad.common import now
 from nomad.datamodel.data import (
     ArchiveSection,
     BasicElnCategory,
@@ -65,7 +64,7 @@ from nomad.datamodel.metainfo.basesections.v1 import (
 from nomad.datamodel.metainfo.basesections.v1 import (
     SystemComponent as Component,
 )
-from nomad.datamodel.metainfo.common import ProvenanceTracker
+from nomad.datamodel.metainfo.common import ProvenanceTracker, default_datetime
 from nomad.datamodel.results import (
     ELN,
     BandGap,
@@ -171,7 +170,7 @@ class ElnBaseSection(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short human readable and descriptive name.',
-        a_eln=dict(component='StringEditQuantity', label='short name'),
+        a_eln=dict(component='StringEditQuantity', label='Short name'),
     )
 
     datetime = Quantity(
@@ -209,7 +208,7 @@ class ElnBaseSection(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.datetime is None:
-            self.datetime = now()
+            self.datetime = default_datetime(archive)
 
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
@@ -665,8 +664,8 @@ class SampleID(ArchiveSection):
         If the institute is not filled a institute abreviations will be constructed from
         the author's affiliation.
         If no creation datetime is filled, the datetime will be taken from the `datetime`
-        property of the parent, if it exists, otherwise the current date and time will be
-        used.
+        property of the parent, if it exists, otherwise the creation time of the entry
+        will be used.
         If no short name is filled, the name will be taken from the parent name, if it
         exists, otherwise it will be taken from the archive metadata entry name, if it
         exists, and finally if no other options are available it will use the name of the
@@ -708,7 +707,7 @@ class SampleID(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.creation_datetime = self.m_parent.datetime
             else:
-                self.creation_datetime = now()
+                self.creation_datetime = default_datetime(archive)
 
         if self.sample_short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):
@@ -777,7 +776,7 @@ class Substance(System):
     name = Quantity(
         type=str,
         description='The name of the substance entry.',
-        a_eln=dict(component='StringEditQuantity', label='substance name'),
+        a_eln=dict(component='StringEditQuantity', label='Substance name'),
     )
 
     lab_id = Quantity(
@@ -785,7 +784,7 @@ class Substance(System):
         description="""
         A human readable substance ID that is at least unique for the lab.
         """,
-        a_eln=dict(component='StringEditQuantity', label='substance ID'),
+        a_eln=dict(component='StringEditQuantity', label='Substance ID'),
     )
 
     cas_uri = Quantity(
@@ -810,7 +809,7 @@ class Substance(System):
         type=str,
         description='CAS image.',
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor', label='image of substance'),
+        a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'),
     )
 
     inchi = Quantity(
@@ -861,7 +860,7 @@ class Substance(System):
         by the other quantities and subsections.
         """,
         a_eln=dict(
-            component='RichTextEditQuantity', label='detailed substance description'
+            component='RichTextEditQuantity', label='Detailed substance description'
         ),
     )
 
@@ -875,9 +874,9 @@ class Substance(System):
             archive (EntryArchive): The archive that is being normalized.
             logger (Any): A structlog logger.
         """
-        import httpx
+        import httpx2
 
-        response = httpx.get(
+        response = httpx2.get(
             f'https://commonchemistry.cas.org/api/detail?cas_rn={self.cas_number}',
             timeout=2,
         )
@@ -963,9 +962,9 @@ class Substance(System):
         Returns:
             bool: Whether the search found a unique result.
         """
-        import httpx
+        import httpx2
 
-        response = httpx.get(
+        response = httpx2.get(
             f'https://commonchemistry.cas.org/api/search?q={search}', timeout=2
         )
         if response.status_code == 200:

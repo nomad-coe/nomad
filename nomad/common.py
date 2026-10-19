@@ -21,6 +21,8 @@ source code. Notably, this module should be importable anywhere in the NOMAD
 source code without circular imports.
 """
 
+from __future__ import annotations
+
 import importlib.util
 import os
 import re
@@ -29,10 +31,14 @@ import tarfile
 import warnings
 import zipfile
 from datetime import datetime, timedelta, timezone
+from glob import has_magic
 from tempfile import TemporaryDirectory
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-import httpx
+if TYPE_CHECKING:
+    from fsspec import AbstractFileSystem
+
+import httpx2
 
 
 def get_package_path(package_name: str) -> str:
@@ -85,7 +91,7 @@ def download_file(url: str, filepath: str) -> str | None:
     directory = os.path.dirname(final_filepath)
 
     try:
-        with httpx.stream(
+        with httpx2.stream(
             'GET',
             url,
         ) as response:
@@ -118,7 +124,9 @@ decompress_file_extensions = {
 }
 
 
-def get_compression_format(path: str) -> Literal['zip', 'tar', 'error'] | None:
+def get_compression_format(
+    path: str, *, fs: AbstractFileSystem | None = None
+) -> Literal['zip', 'tar', 'error'] | None:
     """
     Returns the decompression format ('zip', 'tar' or 'error') if `path` specifies a file
     which should be automatically decompressed before adding it to an upload. If `path`
@@ -132,14 +140,30 @@ def get_compression_format(path: str) -> Literal['zip', 'tar', 'error'] | None:
     Note, some files, like for example excel files, are actually zip files, and we don't want
     to extract such files. Therefore, we only auto decompress if the file has an extension
     we recognize as decompressable, like ".zip", ".tar" etc.
+
+    ``path`` is the nominal path (used for the extension). ``fs`` is the filesystem that
+    actually holds the bytes. When omitted, ``FSUtility.upath`` is used (public paths
+    go to remote when ``protocol`` is set).
     """
+    from fsspec.implementations.local import LocalFileSystem
+
     from nomad.files import FSUtility
 
-    upath = FSUtility.upath(path)
-    if upath.is_dir():
-        return None
+    if fs is None:
+        source = FSUtility.upath(path)
+        if source.is_dir():
+            return None
+        file_cm = source.open('rb')
+    else:
+        location = (
+            path if isinstance(fs, LocalFileSystem) else FSUtility.remote_path(path)
+        )
+        if fs.isdir(location):
+            return None
+        file_cm = fs.open(location, 'rb')
+
     basename_lower = os.path.basename(path).lower()
-    with upath.open('rb') as file:
+    with file_cm as file:
         for extension, format in decompress_file_extensions.items():
             if basename_lower.endswith(extension):
                 if format == 'tar':
@@ -245,20 +269,35 @@ def is_safe_path(path: str, safe_path: str, is_directory=True) -> bool:
 
 def is_safe_relative_path(path: str) -> bool:
     """
-    Checks if path is a *safe* relative path. We consider it safe if it does not start with
-    '/' or use '.' or '..' elements (which could be open for security leaks if allowed).
-    It may end with a single '/', indicating that a folder is referred. For referring to
-    the base folder, the empty string should be used (not '.' etc).
+    Validate a slash-separated relative path that never goes above the base folder.
+
+    '.' and '..' components are allowed as long as traversal never goes above
+    the base folder, even temporarily. The empty string and '.' refer to the
+    base folder. A single trailing slash is allowed. Absolute paths, repeated
+    slashes and NULs are rejected.
+
+    NULs are rejected because no file system can store them (Python's `open`
+    raises `ValueError` on them), so such a path can never name a real file.
+    Every other control character, newlines included, is a legal character in
+    POSIX file names and in zip/tar member names, and is therefore accepted.
+    Consumers that embed a path in a line- or header-oriented format must
+    escape it themselves (see `nomad.app.v1.utils.browser_download_headers`).
+
+    Paths use NOMAD's nominal '/' separator regardless of the host OS.
+
+    This is a lexical check; it does not prevent traversal through symlinks.
     """
     if not isinstance(path, str):
         return False
+
     if path == '':
         return True
-    if path.startswith('/') or '//' in path or '\n' in path:
+
+    if path.startswith('/') or '//' in path or '\x00' in path:
         return False
 
     depth = 0
-    for element in path.split(os.sep):
+    for element in path.removesuffix('/').split('/'):
         if element == '.':
             continue
         if element == '..':
@@ -271,6 +310,15 @@ def is_safe_relative_path(path: str) -> bool:
             return False
 
     return True
+
+
+def has_glob_wildcards(path: str) -> bool:
+    """
+    Checks if `path` contains glob wildcard characters ('*', '?', '[' or ']').
+    fsspec's copy/move operations interpret these as glob patterns rather than
+    literal characters, which can silently operate on the wrong files.
+    """
+    return has_magic(path)
 
 
 # Return current UTC time (can be mocked for tests)

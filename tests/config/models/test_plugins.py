@@ -26,10 +26,97 @@ from nomad.config.models.north import NORTHTool
 from nomad.config.models.plugins import (
     APIEntryPoint,
     DashboardEntryPoint,
+    EntryPoints,
     ExampleUploadEntryPoint,
     NORTHToolEntryPoint,
+    SchemaPackageEntryPoint,
     UploadResource,
 )
+
+
+@pytest.mark.parametrize(
+    'include, exclude, expected_keys',
+    [
+        pytest.param(None, None, ['package_a:one', 'package_a:two', 'package_b:one']),
+        pytest.param([], None, []),
+        pytest.param(
+            ['package_b:*', 'package_a:two'], None, ['package_b:one', 'package_a:two']
+        ),
+        pytest.param(['package_a:*'], ['*:two'], ['package_a:one']),
+        pytest.param(
+            ['package_a:*', '*:one'],
+            None,
+            ['package_a:one', 'package_a:two', 'package_b:one'],
+        ),
+        pytest.param(None, ['package_a:*'], ['package_b:one']),
+        pytest.param(
+            ['*'],
+            None,
+            ['package_a:one', 'package_a:two', 'package_b:one'],
+            id='include-all',
+        ),
+        pytest.param(['*'], ['*'], [], id='exclude-all'),
+        pytest.param(['missing:*'], None, [], id='unmatched-include'),
+        pytest.param(
+            None,
+            ['missing:*'],
+            ['package_a:one', 'package_a:two', 'package_b:one'],
+            id='unmatched-exclude',
+        ),
+        pytest.param(
+            ['package_b:*', '*'],
+            None,
+            ['package_b:one', 'package_a:one', 'package_a:two'],
+            id='include-pattern-order-with-catch-all',
+        ),
+    ],
+)
+def test_entry_points_filtered_keys_wildcards(include, exclude, expected_keys):
+    options = {
+        key: SchemaPackageEntryPoint()
+        for key in ['package_a:one', 'package_a:two', 'package_b:one']
+    }
+    entry_points = EntryPoints(options=options, include=include, exclude=exclude)
+
+    assert entry_points.filtered_keys() == expected_keys
+
+
+@pytest.mark.parametrize(
+    'include, exclude, expected_keys',
+    [
+        pytest.param([], None, ['nomad_gui.apis:gui_api'], id='empty-include'),
+        pytest.param(
+            ['package_a:*'],
+            None,
+            ['package_a:one', 'nomad_gui.apis:gui_api'],
+            id='gui-omitted-from-include',
+        ),
+        pytest.param(
+            ['*'],
+            ['nomad_gui.apis:gui_api'],
+            ['package_a:one', 'nomad_gui.apis:gui_api'],
+            id='gui-explicitly-excluded',
+        ),
+        pytest.param(['*'], ['*'], ['nomad_gui.apis:gui_api'], id='exclude-all'),
+        pytest.param(
+            ['*'],
+            None,
+            ['package_a:one', 'nomad_gui.apis:gui_api'],
+            id='gui-already-included',
+        ),
+    ],
+)
+def test_gui_entry_point_is_always_included(include, exclude, expected_keys):
+    entry_points = EntryPoints(
+        options={
+            'package_a:one': SchemaPackageEntryPoint(),
+            'nomad_gui.apis:gui_api': APIEntryPoint(),
+        },
+        include=include,
+        exclude=exclude,
+    )
+
+    assert entry_points.filtered_keys() == expected_keys
 
 
 def mock_plugin_package(monkeypatch, directory):
@@ -413,16 +500,9 @@ def test_example_upload_entry_point_load_invalid(config, error, monkeypatch):
 @pytest.mark.parametrize(
     'config, error, value',
     [
-        pytest.param({}, 'prefix must be defined', None, id='prefix-must-be-defined'),
-        pytest.param(
-            {'prefix': None},
-            'prefix must be defined',
-            None,
-            id='prefix-must-not-be-none',
-        ),
-        pytest.param(
-            {'prefix': ''}, 'prefix must be defined', None, id='prefix-must-not-empty'
-        ),
+        pytest.param({}, None, None, id='prefix-optional'),
+        pytest.param({'prefix': None}, None, None, id='prefix-none'),
+        pytest.param({'prefix': ''}, None, None, id='prefix-empty-treated-as-unset'),
         pytest.param({'prefix': '/foo/bar/'}, None, 'foo/bar', id='prefix-slashes'),
         pytest.param(
             {'prefix': 'not_$url& save'},
@@ -430,9 +510,33 @@ def test_example_upload_entry_point_load_invalid(config, error, monkeypatch):
             None,
             id='prefix-is-valid-url',
         ),
+        pytest.param(
+            {'external_url': 'https://example.com/api'},
+            None,
+            None,
+            id='external-url',
+        ),
+        pytest.param(
+            {'external_url': 'javascript:alert(1)'},
+            'external_url must be an absolute http',
+            None,
+            id='external-url-javascript-rejected',
+        ),
+        pytest.param(
+            {'external_url': '/relative/path'},
+            'external_url must be an absolute http',
+            None,
+            id='external-url-relative-rejected',
+        ),
+        pytest.param(
+            {'external_url': 'https://example.com/api', 'prefix': 'my/api'},
+            'prefix cannot be combined with external_url',
+            None,
+            id='external-url-and-prefix-rejected',
+        ),
     ],
 )
-def test_api_entry_point_invalid(config, error, value):
+def test_api_entry_point_validation(config, error, value):
     class MyAPIEntryPoint(APIEntryPoint):
         def load(self):
             pass
@@ -463,6 +567,20 @@ def test_api_entry_point():
         'id': 'test_api',
         'entry_point_type': 'api',
         'prefix': 'my/api',
+    }
+
+
+def test_api_entry_point_external():
+    entry_point = APIEntryPoint(
+        id='test_api',
+        external_url='https://example.com/api',
+    )
+
+    assert entry_point.load() is None
+    assert entry_point.dict_safe() == {
+        'id': 'test_api',
+        'entry_point_type': 'api',
+        'external_url': 'https://example.com/api',
     }
 
 

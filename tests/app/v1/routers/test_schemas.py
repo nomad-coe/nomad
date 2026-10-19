@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import jsonschema
 import pytest
 
@@ -112,6 +113,7 @@ def test_json_schema_by_m_def(client):
     assert schema['properties'] == {
         'quantity': {
             'type': 'string',
+            'nomad_type': 'str',
             'description': 'Quantity for test.',
             '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.SectionWithBoth.quantity@{SectionWithBoth.quantity.definition_id}',
         },
@@ -139,6 +141,7 @@ def test_json_schema_by_m_def(client):
             'properties': {
                 'program_name': {
                     'type': 'string',
+                    'nomad_type': 'str',
                     'description': 'Quantity for test.',
                     '$id': f'{SCHEMA_ENDPOINT}/tests.metainfo.test_metainfo.Simulation.program_name@{Simulation.program_name.definition_id}',
                 }

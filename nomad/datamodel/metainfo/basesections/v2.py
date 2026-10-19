@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import datetime
 import os
 import re
@@ -27,7 +28,6 @@ from molid.search.service import SearchConfig, SearchService
 from unidecode import unidecode
 
 from nomad import utils
-from nomad.common import now
 from nomad.config import config
 from nomad.datamodel.data import ArchiveSection, Schema
 from nomad.datamodel.datamodel import EntryArchive
@@ -35,9 +35,11 @@ from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
     Filter,
     HDF5Annotation,
+    SchemaAnnotation,
     SectionDisplayAnnotation,
     SectionProperties,
 )
+from nomad.datamodel.metainfo.common import default_datetime
 from nomad.datamodel.metainfo.workflow import Link, Task, Workflow
 from nomad.datamodel.results import ELN, Material, Results
 from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
@@ -109,6 +111,9 @@ class BaseSection(Schema):
         a_display=SectionDisplayAnnotation(
             order=['name', 'datetime', 'lab_id', 'description'],
         ),
+        # Hides the basesections v2 from the 'Create from Schema' dialog.
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='BaseSection', enabled=False),
     )
     name = Quantity(
         type=str,
@@ -117,7 +122,10 @@ class BaseSection(Schema):
     )
     datetime = Quantity(
         type=Datetime,
-        description='The date and time associated with this section.',
+        description=(
+            'The date and time associated with the activity or entity described by the '
+            'section.'
+        ),
         a_eln=dict(component='DateTimeEditQuantity'),
     )
     lab_id = Quantity(
@@ -135,16 +143,11 @@ class BaseSection(Schema):
     def normalize(self, archive: EntryArchive, logger: 'BoundLogger') -> None:
         """
         The normalizer for the `BaseSection` class.
-        Will set the `datetime` to now if not set. If this section is the top-level
-        section of the entry, it will update the `entry_name` in the metadata of the
-        archive. It will also ensure that `results.eln` exists and add information
-        from this section to `results.eln`.
+        If this section is the top-level section of the entry, it will update the
+        `entry_name` in the metadata of the archive. It will also ensure that
+        `results.eln` exists and add information from this section to `results.eln`.
         """
         super().normalize(archive, logger)
-
-        # Set datetime to now if not set
-        if self.datetime is None:
-            self.datetime = now()
 
         # Update entry name if this is the top-level section
         if isinstance(self.m_parent, EntryArchive):
@@ -179,6 +182,14 @@ class Entity(BaseSection):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/BFO_0000002'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Entity', enabled=False),
+    )
+
+    datetime = Quantity(
+        type=Datetime,
+        description='The date and time when this entity was created.',
+        a_eln=dict(component='DateTimeEditQuantity'),
     )
 
 
@@ -233,11 +244,18 @@ class Activity(BaseSection):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/BFO_0000015'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Activity', enabled=False),
     )
     datetime = Quantity(
         type=Datetime,
         description='The date and time when this activity was started.',
         a_eln=dict(component='DateTimeEditQuantity', label='starting time'),
+    )
+    datetime_end = Quantity(
+        type=Datetime,
+        description='The date and time when this activity ended.',
+        a_eln=dict(component='DateTimeEditQuantity', label='ending time'),
     )
     method = Quantity(
         type=str,
@@ -245,7 +263,7 @@ class Activity(BaseSection):
     )
     location = Quantity(
         type=str,
-        description='location of the experiment.',
+        description='The location associated with this activity.',
         a_eln=dict(component='StringEditQuantity'),
     )
     steps = SubSection(
@@ -432,6 +450,11 @@ class Experiment(Activity):
     A section for grouping activities together into an experiment.
     """
 
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Experiment', enabled=False),
+    )
+
     steps = SubSection(
         section_def=ExperimentStep,
         description="""
@@ -445,6 +468,11 @@ class Collection(Entity):
     """
     A section for grouping entities together into a collection.
     """
+
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Collection', enabled=False),
+    )
 
     entities = SubSection(
         section_def=EntityReference,
@@ -558,6 +586,11 @@ class System(Entity):
     other systems.
     """
 
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='System', enabled=False),
+    )
+
     # elemental_composition = SubSection(
     #     description="""
     #     A list of all the elements found in the system together and their respective
@@ -613,6 +646,8 @@ class Element(System):
 
     m_def = Section(
         label_quantity='element',
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Element', enabled=False),
     )
     chemical_symbol = Quantity(
         type=MEnum(chemical_symbols[1:]),
@@ -650,6 +685,8 @@ class PureSubstance(System):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/CHEBI_23367'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='PureSubstance', enabled=False),
     )
     name = Quantity(
         type=str,
@@ -1060,6 +1097,11 @@ class Instrument(Entity):
     A base section that can be used for instruments.
     """
 
+    m_def = Section(
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Instrument', enabled=False),
+    )
+
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         """
         The normalizer for the `Instrument` class.
@@ -1124,6 +1166,8 @@ class Process(Activity):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/OBI_0000094'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Process', enabled=False),
     )
     end_time = Quantity(
         type=Datetime,
@@ -1208,7 +1252,11 @@ class Analysis(Activity):
      - data analysis
     """
 
-    m_def = Section(links=['http://purl.obolibrary.org/obo/OBI_0200000'])
+    m_def = Section(
+        links=['http://purl.obolibrary.org/obo/OBI_0200000'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Analysis', enabled=False),
+    )
     inputs = SubSection(
         section_def=SectionReference,
         description='The input data of the analysis.',
@@ -1245,6 +1293,8 @@ class SynthesisMethod(Process):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/CHMO_0001301'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='SynthesisMethod', enabled=False),
     )
 
 
@@ -1264,6 +1314,8 @@ class Measurement(Activity):
 
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/OBI_0000070'],
+        # TODO: Remove this once the basesections v2 are the default.
+        a_schema=SchemaAnnotation(label='Measurement', enabled=False),
     )
     samples = SubSection(
         section_def=SystemReference,
@@ -1368,8 +1420,8 @@ class ReadableIdentifiers(ArchiveSection):
         If the institute is not filled a institute abreviations will be constructed from
         the author's affiliation.
         If no datetime is filled, the datetime will be taken from the `datetime`
-        property of the parent, if it exists, otherwise the current date and time will be
-        used.
+        property of the parent, if it exists, otherwise the creation time of the entry
+        will be used.
         If no short name is filled, the name will be taken from the parent name, if it
         exists, otherwise it will be taken from the archive metadata entry name, if it
         exists, and finally if no other options are available it will use the name of the
@@ -1411,7 +1463,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = now()
+                self.datetime = default_datetime(archive)
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):

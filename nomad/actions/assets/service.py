@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import hashlib
 import os
@@ -231,12 +249,12 @@ def _write_upload_file(
                 size += len(chunk)
                 if size > max_size:
                     raise HTTPException(
-                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                         detail='Uploaded file exceeds configured maximum size.',
                     )
                 if user_quota > 0 and (current_usage + size) > user_quota:
                     raise HTTPException(
-                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                         detail='User action asset quota exceeded.',
                     )
                 sha.update(chunk)
@@ -464,7 +482,7 @@ async def clone_action_asset(
     max_size = config.actions.action_assets.max_file_size_bytes
     if source_size > max_size:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail='Source file exceeds configured maximum size.',
         )
 
@@ -473,7 +491,7 @@ async def clone_action_asset(
         current_usage = await _current_user_usage_bytes(user_id)
         if (current_usage + source_size) > user_quota:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail='User action asset quota exceeded.',
             )
 

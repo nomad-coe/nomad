@@ -16,9 +16,8 @@
 # limitations under the License.
 #
 
-import re
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 from pydantic.main import BaseModel
@@ -30,6 +29,7 @@ from nomad.metainfo import (
     MEnum,
     Quantity,
     Reference,
+    Section,
 )
 from nomad.utils import strip
 
@@ -131,28 +131,94 @@ class Filter(BaseModel):
     )
 
 
-class DisplayAnnotation(BaseModel):
-    """The display settings defined by an include list or an exclude list of the quantities and subsections."""
+def validate_display(fields: dict, definition) -> None:
+    """
+    Checks the values of a `display` annotation against the definition it annotates.
 
-    visible: Filter | None = Field(  # type: ignore
+    A display annotation means different things on a section and on a single property:
+    on a section `visible` and `editable` are filters that select properties by name,
+    while on a quantity or subsection they are booleans that switch that one property on
+    or off. Without this check a mismatch is silently ignored by the GUI.
+    """
+    is_section = isinstance(definition, Section)
+    kind = 'section' if is_section else type(definition).__name__.lower()
+
+    for name in ('visible', 'editable'):
+        value = fields.get(name)
+        if value is None:
+            continue
+        if is_section:
+            assert isinstance(value, Filter), (
+                f'The `{name}` of a display annotation on a {kind} must be a filter '
+                f'with an `include` and/or an `exclude` list of property names.'
+            )
+        else:
+            assert isinstance(value, bool), (
+                f'The `{name}` of a display annotation on a {kind} must be a boolean.'
+            )
+
+    assert is_section or fields.get('order') is None, (
+        'The `order` of a display annotation can only be used on sections.'
+    )
+    assert isinstance(definition, Quantity) or fields.get('unit') is None, (
+        'The `unit` of a display annotation can only be used on quantities.'
+    )
+
+
+class DisplayAnnotation(AnnotationModel):
+    """
+    The model that a `display` annotation is validated against.
+
+    The annotation takes a different shape on a section than on a quantity, so this
+    model accepts both and checks the values against the annotated definition. Schemas
+    written in Python should use the specialized `SectionDisplayAnnotation` and
+    `QuantityDisplayAnnotation` instead.
+    """
+
+    visible: Filter | bool | None = Field(  # type: ignore
         None,
         description=strip(
             """
-            Defines the visible quantities and subsections.
+            Defines the visible quantities and subsections of a section, or the
+            visibility of a single quantity or subsection.
         """
         ),
     )
-    editable: Filter | None = Field(
+    editable: Filter | bool | None = Field(
         None,
         description=strip(
             """
-            Defines the editable quantities and subsections.
+            Defines the editable quantities and subsections of a section, or the
+            editability of a single quantity or subsection.
+        """
+        ),
+    )
+    unit: str | None = Field(
+        None,
+        description=strip(
+            """
+            To determine the default display unit for quantity.
+        """
+        ),
+    )
+    order: list[str] | None = Field(
+        None,
+        description=strip(
+            """
+            To customize the order of the quantities and subsections.
         """
         ),
     )
 
+    @field_validator('m_definition')
+    @classmethod
+    def validate_definition(cls, definition, values):  # pylint: disable=no-self-argument
+        if definition:
+            validate_display(values.data, definition)
+        return definition
 
-class QuantityDisplayAnnotation(BaseModel):
+
+class QuantityDisplayAnnotation(AnnotationModel):
     """
     This annotations control how quantities are displayed in the GUI. Use the
     key `display` to add this annotation. For example in Python:
@@ -165,16 +231,17 @@ class QuantityDisplayAnnotation(BaseModel):
     or in YAML:
     ```yaml
     definitions:
-      Example:
-        quantities:
-          sample_weight:
-            type: float
-            unit: g
-            m_annotations:
-              display:
-                unit: kg
-                visible: true
-                editable: false
+      sections:
+        Example:
+          quantities:
+            sample_weight:
+              type: float
+              unit: g
+              m_annotations:
+                display:
+                  unit: kg
+                  visible: true
+                  editable: false
     ```
     """
 
@@ -203,16 +270,26 @@ class QuantityDisplayAnnotation(BaseModel):
         ),
     )
 
+    @field_validator('m_definition')
+    @classmethod
+    def validate_definition(cls, definition, values):  # pylint: disable=no-self-argument
+        if definition:
+            validate_display(values.data, definition)
+        return definition
 
-class SectionDisplayAnnotation(DisplayAnnotation):
+
+class SectionDisplayAnnotation(AnnotationModel):
     """
     This annotations control how sections are displayed in the GUI. Use the
-    key `display` to add this annotation. For example in Python:
+    key `display` to add this annotation. `visible` and `editable` are filters that
+    select properties by name, so they take an `include` and/or an `exclude` list.
+    For example in Python:
 
     ```python
     class Example(MSection):
         m_def = Section(a_display={
-            'visible': False
+            'visible': {'exclude': ['secret_quantity']},
+            'order': ['name', 'description'],
         })
     ```
 
@@ -223,10 +300,28 @@ class SectionDisplayAnnotation(DisplayAnnotation):
         Example:
           m_annotations:
             display:
-              visible: false
+              visible:
+                exclude: [secret_quantity]
+              order: [name, description]
     ```
     """
 
+    visible: Filter | None = Field(  # type: ignore
+        None,
+        description=strip(
+            """
+            Defines the visible quantities and subsections.
+        """
+        ),
+    )
+    editable: Filter | None = Field(
+        None,
+        description=strip(
+            """
+            Defines the editable quantities and subsections.
+        """
+        ),
+    )
     order: list[str] | None = Field(
         None,
         description=strip(
@@ -235,6 +330,13 @@ class SectionDisplayAnnotation(DisplayAnnotation):
         """
         ),
     )
+
+    @field_validator('m_definition')
+    @classmethod
+    def validate_definition(cls, definition, values):  # pylint: disable=no-self-argument
+        if definition:
+            validate_display(values.data, definition)
+        return definition
 
 
 class SectionProperties(BaseModel):
@@ -928,126 +1030,6 @@ class HDF5Annotation(AnnotationModel):
     )
 
 
-class PlotAnnotation(AnnotationModel):
-    """
-    The `PlotAnnotation` is now deprecated and will be removed in future releases.
-    We recommend transitioning to the use of `PlotSection` and `PlotlyGraphObjectAnnotation` for your plotting needs.
-
-    This annotation can be used to add a plot to a section or quantity. Example:
-
-    ```python
-    class Evaporation(MSection):
-        m_def = Section(a_plot={
-            'label': 'Temperature and Pressure',
-            'x': 'process_time',
-            'y': ['./substrate_temperature', './chamber_pressure'],
-            'config': {
-                'editable': True,
-                'scrollZoom': False
-            }
-        })
-        time = Quantity(type=float, shape=['*'], unit='s')
-        substrate_temperature = Quantity(type=float, shape=['*'], unit='K')
-        chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa')
-    ```
-
-    You can create multi-line plots by using lists of the properties `y` (and `x`).
-    You either have multiple sets of `y`-values over a single set of `x`-values. Or
-    you have pairs of `x` and `y` values. For this purpose the annotation properties
-    `x` and `y` can reference a single quantity or a list of quantities.
-    For repeating sub sections, the section instance can be selected with an index, e.g.
-    "sub_section_name/2/parameter_name" or with a slice notation `start:stop` where
-    negative values index from the end of the array, e.g.
-    "sub_section_name/1:-5/parameter_name".
-
-    The interactive examples of the plot annotations can be found
-    [here](https://nomad-lab.eu/prod/v1/staging/gui/dev/plot).
-    """
-
-    def __init__(self, *args, **kwargs):
-        # pydantic does not seem to support multiple aliases per field
-        super().__init__(
-            *args,
-            x=kwargs.pop('x', None)
-            or kwargs.pop('xAxis', None)
-            or kwargs.pop('x_axis', None),
-            y=kwargs.pop('y', None)
-            or kwargs.pop('yAxis', None)
-            or kwargs.pop('y_axis', None),
-            **kwargs,
-        )
-
-    label: str | None = Field(
-        None, description='Is passed to plotly to define the label of the plot.'
-    )
-    x: list[str] | str = Field(
-        ...,
-        description="""
-        A path or list of paths to the x-axes values. Each path is a `/` separated
-        list of sub-section and quantity names that leads from the annotation section
-        to the quantity. Repeating sub sections are indexed between two `/`s with an
-        integer or a slice `start:stop`.
-    """,
-    )
-    y: list[str] | str = Field(
-        ...,
-        description="""
-        A path or list of paths to the y-axes values. list of sub-section and quantity
-        names that leads from the annotation section to the quantity. Repeating sub
-        sections are indexed between two `/`s with an integer or a slice `start:stop`.
-    """,
-    )
-    lines: list[dict] | None = Field(
-        None,
-        description="""
-        A list of dicts passed as `traces` to plotly to configure the lines of the plot.
-        See [https://plotly.com/javascript/reference/scatter/](https://plotly.com/javascript/reference/scatter/) for details.
-    """,
-    )
-    layout: dict | None = Field(
-        None,
-        description="""
-        A dict passed as `layout` to plotly to configure the plot layout.
-        See [https://plotly.com/javascript/reference/layout/](https://plotly.com/javascript/reference/layout/) for details.
-    """,
-    )
-    config: dict | None = Field(
-        None,
-        description="""
-        A dict passed as `config` to plotly to configure the plot functionality.
-        See [https://plotly.com/javascript/configuration-options/](https://plotly.com/javascript/configuration-options/) for details.
-    """,
-    )
-
-    @field_validator('y')
-    @classmethod
-    def validate_y(cls, y, values):
-        x = values.data.get('x', [])
-        if not isinstance(x, list):
-            x = [x]
-
-        if isinstance(x, list):
-            assert len(x) == 1 or len(x) == len(y), strip(
-                f"""
-                You must use on set of x-values, or the amount x-quantities ({len(x)})
-                has to match the amount of y-quantities ({len(y)}).
-            """
-            )
-
-        return y
-
-    @field_validator('x', 'y')
-    @classmethod
-    def validate_quantity_references(cls, value):  # pylint: disable=no-self-argument
-        values = value if isinstance(value, list) else [value]
-        for item in values:
-            assert re.match(
-                r'^(\.\/)?(\w+\/)*((\w+\/\-?\d*:\-?\d*)\/(\w+\/)*)*\w+$', item
-            ), f'{item} is not a valid quantity reference.'
-
-        return value
-
-
 class RegexCondition(BaseModel):
     regex_path: str | None = Field(
         None,
@@ -1065,12 +1047,18 @@ class Condition(BaseModel):
     )
 
 
+UpdateMode = Literal['replace', 'overwrite', 'extend']
+RuleAction = Literal['set', 'delete']
+
+
 class Rule(BaseModel):
     source: str | None = Field(
         None, description='JMESPath to the source value in the source dictionary.'
     )
     target: str = Field(
-        ..., description='JMESPath to the target value in the target dictionary.'
+        ...,
+        description='JMESPath to the target value in the target dictionary. '
+        'Use an empty string to target the root.',
     )
     conditions: list[Condition] | None = Field(
         None, description='Conditions to check prior to applying the transformation.'
@@ -1081,6 +1069,47 @@ class Rule(BaseModel):
     use_rule: str | None = Field(
         None, description='Reference to another rule using #mapping_name.rule_name.'
     )
+    update_mode: UpdateMode | None = Field(
+        None,
+        description="""
+        How to write the value if the target already exists. If not set, the
+        `update_mode` of the rule set is used.
+
+        Available modes:
+            - 'replace' (default): Replace the existing target value.
+            - 'overwrite': Recursively merge dictionaries, keeping keys that only
+              exist in the target. On conflicts the new value wins, lists are replaced.
+            - 'extend': Never change existing data, only add to it. Recursively merge
+              dictionaries, keeping the existing value on conflicts, and append to lists.
+        """,
+    )
+
+    action: RuleAction | None = Field(
+        None,
+        description="""
+        What the rule does with its target.
+
+        Available actions:
+            - 'set' (default): Write the source value or `default_value` to the target.
+            - 'delete': Delete the target from the target data. Array placeholders
+              are resolved against the target data. Cannot be combined with
+              `source`, `default_value`, `update_mode` or `conditions`.
+        """,
+    )
+
+    @model_validator(mode='after')
+    def validate_action(self) -> 'Rule':
+        if self.action == 'delete':
+            invalid = [
+                name
+                for name in ('source', 'default_value', 'update_mode', 'conditions')
+                if getattr(self, name) is not None
+            ]
+            if invalid:
+                raise ValueError(
+                    f"A rule with action 'delete' cannot define {', '.join(invalid)}."
+                )
+        return self
 
     def override_fields(self, referenced_rule: 'Rule') -> 'Rule':
         """
@@ -1112,6 +1141,20 @@ class Rules(BaseModel):
         None, description='Placeholder for other metadata.'
     )
     rules: dict[str, Rule] = Field(..., description='Dictionary of named rules.')
+    update_mode: UpdateMode | None = Field(
+        None,
+        description='Default `update_mode` for all rules of this set that do not '
+        'define their own.',
+    )
+    sequential: bool = Field(
+        False,
+        description="""
+        If true, the rules are applied step by step to a single document: each rule
+        reads from the result of the previous rules instead of the original source,
+        and with `delete_sources` its sources are deleted right after it is applied.
+        The source data is not modified, the transformation works on a copy.
+        """,
+    )
 
 
 class H5WebAnnotation(AnnotationModel):
@@ -1183,15 +1226,25 @@ class SchemaAnnotation(AnnotationModel):
     class MySchema(Schema):
         m_def = Section(a_schema=SchemaAnnotation(
             label='My Schema',
+            description='A description to show in the GUI instead of the class docstring.',
             enabled=False
         ))
     ```
     """
 
-    label: str = Field(
+    label: str | None = Field(
+        None,
         description="""
         Custom label to show for this schema in the GUI when instantiating new
         entries from it. If not set, the label set for the section will be used.
+        """,
+    )
+    description: str | None = Field(
+        None,
+        description="""
+        Custom description to show for this schema in the GUI when instantiating new
+        entries from it. If not set, the description of the section will be used.
+        The section definition's own description is not changed.
         """,
     )
     enabled: bool = Field(
@@ -1291,11 +1344,11 @@ class MappingAnnotation(AnnotationModel):
 
 
 AnnotationModel.m_registry['eln'] = ELNAnnotation
+AnnotationModel.m_registry['display'] = DisplayAnnotation
 AnnotationModel.m_registry['browser'] = BrowserAnnotation
 AnnotationModel.m_registry['tabular_parser'] = TabularParserAnnotation
 AnnotationModel.m_registry['tabular'] = TabularAnnotation
 AnnotationModel.m_registry['hdf5'] = HDF5Annotation
-AnnotationModel.m_registry['plot'] = PlotAnnotation
 AnnotationModel.m_registry['h5web'] = H5WebAnnotation
 AnnotationModel.m_registry['schema'] = SchemaAnnotation
 AnnotationModel.m_registry['mapping'] = MappingAnnotation

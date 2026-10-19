@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import os
 from contextlib import asynccontextmanager
 
@@ -68,6 +69,7 @@ def mount_with_trailing_slash_redirect(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from nomad import infrastructure
+    from nomad.actions.workflows.utils import setup_server_stats
     from nomad.cli.dev import generate_gui_artifacts_js, get_gui_config
     from nomad.metainfo.elasticsearch_extension import entry_type
     from nomad.parsing.parsers import import_all_parsers
@@ -101,6 +103,8 @@ async def lifespan(app: FastAPI):
 
     try:
         app.state.temporal_client = await get_client()
+        await setup_server_stats(app.state.temporal_client)
+
         yield
     except Exception as e:
         logger = get_logger(__name__)
@@ -113,7 +117,9 @@ async def lifespan(app: FastAPI):
             await infrastructure.async_mongo_client.close()
             infrastructure.async_mongo_client = None
             infrastructure.async_mongo_loop = None
-        if os.path.exists(GuiFiles.gui_artifacts_path):
+        if GuiFiles.gui_artifacts_path is not None and os.path.exists(
+            GuiFiles.gui_artifacts_path
+        ):
             os.remove(GuiFiles.gui_artifacts_path)
 
 
@@ -125,14 +131,14 @@ from nomad.tracing import setup_tracing
 setup_tracing(app)
 setup_prometheus(app)
 
-app_base = config.services.api_base_path
+app_base = config.services.route_prefix
 
 
 def temporal_client() -> Client:
     return app.state.temporal_client
 
 
-@app.get(f'{app_base}/alive')
+@app.get(config.services.join_path('alive'))
 async def alive():
     return 'I am, alive!'
 
@@ -142,7 +148,7 @@ async def health():
     return {'healthcheck': 'ok'}
 
 
-app.mount(f'{app_base}/api/v1', v1_app)
+app.mount(config.services.join_path('api', 'v1'), v1_app)
 v1_app.add_middleware(
     CORSMiddleware,  # CORS has to be the first to act on request
     allow_origins=['*'],
@@ -183,7 +189,7 @@ if config.services.optimade_enabled:
                 bearer_token = auth.split(' ', 1)[1]
 
             try:
-                _resolve_user_with_scopes(
+                await _resolve_user_with_scopes(
                     required_scopes=self.required_scopes,
                     allow_anonymous=True,
                     request=request,
@@ -207,44 +213,52 @@ if config.services.optimade_enabled:
     )
 
     optimade_wrapper.mount('/', optimade_app)
-    app.mount(f'{app_base}/optimade', optimade_wrapper)
+    app.mount(config.services.join_path('optimade'), optimade_wrapper)
 
 
 if config.services.dcat_enabled:
     from .dcat.main import app as dcat_app
 
-    app.mount(f'{app_base}/dcat', dcat_app)
+    app.mount(config.services.join_path('dcat'), dcat_app)
 
 
 if config.services.h5grove_enabled:
     from .h5grove_app import app as h5grove_app
 
-    app.mount(f'{app_base}/h5grove', h5grove_app)
+    app.mount(config.services.join_path('h5grove'), h5grove_app)
 
 
-@app.middleware('http')
-async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
-    response = await call_next(request)
-    if request.url.path.startswith(f'{app_base}/dashboards/'):
-        sources = ' '.join(config.services.dashboard_frame_ancestors)
-        response.headers['Content-Security-Policy'] = f'frame-ancestors {sources}'
-    return response
+if config.dashboards.enabled:
+
+    @app.middleware('http')
+    async def _dashboard_frame_ancestors_middleware(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith(config.services.join_path('dashboards') + '/'):
+            sources = ' '.join(config.dashboards.frame_ancestors)
+            response.headers['Content-Security-Policy'] = f'frame-ancestors {sources}'
+        return response
 
 
 # Mount API and dashboard plugin apps
+if config.plugins is None:
+    raise RuntimeError('No plugins are loaded')
+
 for entry_point in config.plugins.entry_points.filtered_values():
     if isinstance(entry_point, APIEntryPoint):
+        if entry_point.external_url is not None:
+            continue
         api_app = entry_point.load()
         assert isinstance(api_app, FastAPI), (
             f'Error loading entry point "{entry_point.id}": The load method of an API entry point must return a FastAPI instance'
         )
+        prefix = entry_point.prefix or f'apis/{entry_point.id_url_safe}'
         mount_with_trailing_slash_redirect(
             app,
-            f'{app_base}/{entry_point.prefix}',
+            config.services.join_path(prefix),
             api_app,
         )
     elif isinstance(entry_point, DashboardEntryPoint):
-        if entry_point.external_url is not None:
+        if not config.dashboards.enabled or entry_point.external_url is not None:
             continue
         try:
             dashboard_app = entry_point.load()
@@ -254,7 +268,7 @@ for entry_point in config.plugins.entry_points.filtered_values():
                 )
             mount_with_trailing_slash_redirect(
                 app,
-                f'{app_base}/dashboards/{entry_point.id_url_safe}',
+                config.services.join_path('dashboards', entry_point.id_url_safe),
                 dashboard_app,
             )
         except Exception as exc:

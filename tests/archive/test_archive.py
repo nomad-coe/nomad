@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import json
 import os.path
 from datetime import datetime
@@ -29,9 +30,11 @@ from nomad import utils
 from nomad.archive import (
     ArchiveQueryError,
     RequiredReader,
+    check_archive_version,
     query_archive,
     read_archive,
     to_json,
+    v2_magic,
     v2_magic_len,
     write_archive,
 )
@@ -87,6 +90,66 @@ def _unpack(data, pos=None):
         return msgpack.unpackb(f.read(pos[1] - pos[0]), raw=False)
 
 
+def _create_legacy_archive(version: int, entry_id: str, entry: dict) -> bytes:
+    """Create the smallest useful archive in the legacy v1 or v2 layout."""
+    assert version in (1, 2)
+
+    packer = msgpack.Packer(autoreset=True, use_bin_type=True)
+    archive = BytesIO()
+    entry_id = utils.adjust_uuid_size(entry_id)
+
+    def encode_position(start: int, end: int) -> bytes:
+        return start.to_bytes(5, 'little') + end.to_bytes(5, 'little')
+
+    def write_raw(value: bytes) -> tuple[int, int]:
+        start = archive.tell()
+        archive.write(value)
+        return start, archive.tell()
+
+    def write(value) -> tuple[int, int]:
+        return write_raw(packer.pack(value))
+
+    if version == 2:
+        write_raw(v2_magic)
+
+    header_start = archive.tell()
+    write_raw(packer.pack_map_header(3))
+    write('toc_pos')
+    write(encode_position(0, 0))
+    write('toc')
+
+    empty_position = encode_position(0, 0)
+    toc_position = write({entry_id: [empty_position, empty_position]})
+
+    write('data')
+    write_raw(packer.pack_map_header(1))
+    write(entry_id)
+    write_raw(packer.pack_map_header(2))
+    write('toc')
+
+    packed_entry = packer.pack(entry)
+    entry_toc_position = write({'pos': [0, len(packed_entry)]})
+    write('data')
+    entry_data_position = write_raw(packed_entry)
+
+    archive.seek(header_start)
+    write_raw(packer.pack_map_header(3))
+    write('toc_pos')
+    write(encode_position(*toc_position))
+    write('toc')
+    rewritten_toc_position = write(
+        {
+            entry_id: [
+                encode_position(*entry_toc_position),
+                encode_position(*entry_data_position),
+            ]
+        }
+    )
+    assert rewritten_toc_position == toc_position
+
+    return archive.getvalue()
+
+
 def test_write_archive_empty():
     f = BytesIO()
     write_archive(f, {})
@@ -134,12 +197,31 @@ def test_read_archive_single(example_uuid, example_entry):
         data[example_uuid]['run']['system'][2]
 
 
+@pytest.mark.parametrize('archive_version', [1, 2])
+def test_read_legacy_archive_with_fsutility_file_object(
+    tmp_path, archive_version, example_uuid, example_entry
+):
+    from nomad.files import FSUtility
+
+    path = str(tmp_path / f'legacy-v{archive_version}.msg')
+    with FSUtility.open(path, 'w') as tmp_file:
+        tmp_file.write(
+            _create_legacy_archive(archive_version, example_uuid, example_entry)
+        )
+
+    with FSUtility.open(path) as file_obj:
+        assert check_archive_version(file_obj) == archive_version
+        with read_archive(file_obj) as data:
+            assert example_uuid in data
+            assert to_json(data[example_uuid]['run']) == example_entry['run']
+
+
 def test_read_archive_multi(monkeypatch, example_uuid, example_entry):
     monkeypatch.setattr('nomad.config.archive.small_obj_optimization_threshold', 256)
 
     _toc_uuid_size = utils.default_hash_len + 1
     _toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
-    _entries_per_block = config.archive.block_size // _toc_item_size
+    _entries_per_block = 2**20 // _toc_item_size
 
     archive_size = _entries_per_block * 2 + 23
     f = BytesIO()
@@ -277,10 +359,7 @@ def test_convert(tmp):
             assert to_json(springer_new[uuid]) == to_json(entry)
 
 
-@pytest.fixture(scope='function')
-def json_dict():
-    return json.loads(
-        """
+_JSON_DICT = """
 {
     "metadata": {
         "entry_id": "test_id"
@@ -366,7 +445,11 @@ def json_dict():
     }
 }
 """
-    )
+
+
+@pytest.fixture(scope='function')
+def json_dict():
+    return json.loads(_JSON_DICT)
 
 
 @pytest.fixture(scope='function')
@@ -511,6 +594,70 @@ def all_archive():
 @pytest.mark.parametrize(
     'required,inplace_result,root_result',
     [
+        pytest.param(
+            {'run': {'system': {'*': '*'}}},
+            {
+                'run': [
+                    {
+                        'system': [
+                            {
+                                'atoms': {'labels': ['He']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                            {
+                                'atoms': {'labels': ['H']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                        ]
+                    }
+                ],
+                'm_ref_archives': {},
+            },
+            {
+                'run': [
+                    {
+                        'system': [
+                            {
+                                'atoms': {'labels': ['He']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                            {
+                                'atoms': {'labels': ['H']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                        ]
+                    }
+                ],
+                'm_ref_archives': {},
+            },
+            id='wildcard',
+        ),
+        pytest.param(
+            {'run': {'system': {'*': '*', 'symmetry': 'exclude'}}},
+            {
+                'run': [
+                    {
+                        'system': [
+                            {'atoms': {'labels': ['He']}},
+                            {'atoms': {'labels': ['H']}},
+                        ]
+                    }
+                ],
+                'm_ref_archives': {},
+            },
+            {
+                'run': [
+                    {
+                        'system': [
+                            {'atoms': {'labels': ['He']}},
+                            {'atoms': {'labels': ['H']}},
+                        ]
+                    }
+                ],
+                'm_ref_archives': {},
+            },
+            id='wildcard-with-exclude',
+        ),
         pytest.param('include', all_archive(), all_archive(), id='include-all'),
         pytest.param('*', all_archive(), all_archive(), id='include-all-alias'),
         pytest.param(
@@ -740,8 +887,8 @@ def test_required_reader(
                 assert_dict(results, root_result)
 
 
-@pytest.fixture(scope='function')
-def example_data_with_reference(temporal_worker, user1, json_dict):
+@pytest.fixture(scope='module')
+def example_data_with_reference(user1, mongo_infra, elastic_module):
     """
     Provides a couple of entries with references.
 
@@ -794,15 +941,16 @@ def example_data_with_reference(temporal_worker, user1, json_dict):
         },  # remote reference
     ]
 
-    del json_dict['results']
+    test_dict = json.loads(_JSON_DICT)
+    del test_dict['results']
 
     for index, ref in enumerate(ref_list):
         ref['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
-        json_dict['workflow2'] = ref
+        test_dict['workflow2'] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
             entry_id=f'id_{index + 1:02d}',
-            entry_archive=EntryArchive.m_from_dict(json_dict),
+            entry_archive=EntryArchive.m_from_dict(test_dict),
         )
 
     for archive in data.archives.values():
@@ -810,9 +958,13 @@ def example_data_with_reference(temporal_worker, user1, json_dict):
 
     data.save(with_files=True, with_es=True, with_mongo=True)
 
+    from nomad.app.v1.models import MetadataPagination
     from nomad.search import search
 
-    results = search().data
+    results = search(
+        query={'upload_id': 'id_published_with_ref'},
+        pagination=MetadataPagination(order_by='entry_id', order='asc'),
+    ).data
     assert len(results) == 6
     for i in (0, 1, 5):
         assert 'entry_references' not in results[i]
@@ -913,23 +1065,24 @@ def remote_reference_required():
     ],
 )
 def test_required_reader_with_remote_reference(
-    json_dict,
     remote_reference_required,
     resolve_inplace,
-    elastic_function,
     example_data_with_reference,
     user1,
     entry_id,
     inplace_result,
 ):
-    archive = {'workflow2': json_dict['workflow2']}
-    archive['workflow2']['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
-    archive['workflow2']['tasks'] = [
-        {
-            'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
-            'task': f'../entries/{entry_id}/archive#/workflow2',
+    archive = {
+        'workflow2': {
+            'm_def': 'simulationworkflowschema.SimulationWorkflow',
+            'tasks': [
+                {
+                    'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+                    'task': f'../entries/{entry_id}/archive#/workflow2',
+                }
+            ],
         }
-    ]
+    }
 
     f = BytesIO()
     write_archive(f, {'entry_id': archive})

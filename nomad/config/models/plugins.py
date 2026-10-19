@@ -19,6 +19,7 @@
 import os
 import re
 import shutil
+from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Literal, Union, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -31,6 +32,7 @@ from .common import Options
 from .ui import App
 
 example_prefix = '__examples__'
+GUI_ENTRY_POINT_ID = 'nomad_gui.apis:gui_api'
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -39,6 +41,19 @@ if TYPE_CHECKING:
     from nomad.metainfo import SchemaPackage
     from nomad.normalizing import Normalizer as NormalizerBaseClass
     from nomad.parsing import Parser as ParserBaseClass
+
+
+def _map_level_to_execution_order(data):
+    """Maps the deprecated `level` field into `execution_order`.
+
+    If both are given, `level` takes precedence: plugin defaults are always
+    stored as `execution_order` after validation, so a `level` in the input can
+    only come from a user override (e.g. in nomad.yaml) that is merged on top.
+    """
+    if isinstance(data, dict) and data.get('level') is not None:
+        data = dict(data)
+        data['execution_order'] = data.pop('level')
+    return data
 
 
 class EntryPoint(BaseModel):
@@ -136,14 +151,29 @@ class NormalizerEntryPoint(EntryPoint):
         description='Determines the entry point type.',
         json_schema_extra={'hidden': True},
     )
-    level: int = Field(
+    execution_order: int = Field(
         0,
         description="""
         Integer that determines the execution order of this normalizer within
-        the processing of an individual entry. Normalizers with the lowest level
-        is run first.
+        the processing of an individual entry. Normalizers with the lowest
+        execution order are run first.
         """,
     )
+    level: int | None = Field(
+        None,
+        deprecated='"level" is deprecated, use "execution_order" instead.',
+    )
+
+    @model_validator(mode='before')
+    @classmethod
+    def _level_to_execution_order(cls, data):
+        return _map_level_to_execution_order(data)
+
+    @model_validator(mode='after')
+    def _sync_level(self):
+        # Keep the deprecated attribute readable without marking it as set.
+        self.__dict__['level'] = self.execution_order
+        return self
 
     def load(self) -> 'NormalizerBaseClass':
         """Used to lazy-load a normalizer instance. You should override this
@@ -160,13 +190,27 @@ class ParserEntryPoint(EntryPoint):
         description='Determines the entry point type.',
         json_schema_extra={'hidden': True},
     )
-    level: int = Field(
+    execution_order: int = Field(
         0,
         description="""
         Integer that determines the execution order of this parser within an
-        upload. Parser with lowest level will be executed first. Note that this
-        only controls the order in which matched parsers are executed, but does
-        not affect the order in which parsers are matched to files.
+        upload. Parsers with the lowest execution order will be executed first.
+        Note that this only controls the order in which matched parsers are
+        executed, but does not affect the order in which parsers are matched to
+        files.
+    """,
+    )
+    level: int | None = Field(
+        None,
+        deprecated='"level" is deprecated, use "execution_order" instead.',
+    )
+    matching_order: int = Field(
+        0,
+        description="""
+        Integer that determines the order in which this parser is considered when
+        matching files. Parsers with the lowest matching order are considered first.
+        Parsers with the same matching order are ordered alphabetically by name. If all
+        parsers use the default value, their registration order is retained.
     """,
     )
     aliases: list[str] = Field([], description="""List of alternative parser names.""")
@@ -252,6 +296,17 @@ class ParserEntryPoint(EntryPoint):
         matched like normal files.
     """,
     )
+
+    @model_validator(mode='before')
+    @classmethod
+    def _level_to_execution_order(cls, data):
+        return _map_level_to_execution_order(data)
+
+    @model_validator(mode='after')
+    def _sync_level(self):
+        # Keep the deprecated attribute readable without marking it as set.
+        self.__dict__['level'] = self.execution_order
+        return self
 
     def load(self) -> 'ParserBaseClass':
         """Used to lazy-load a parser instance. You should override this method
@@ -341,14 +396,6 @@ class ExampleUploadEntryPoint(EntryPoint):
         # is wrong here.
         list[UploadResource | str] | UploadResource | str
     ) = Field(None, description='List of data resources for this example upload.')
-    path: str | None = Field(
-        None,
-        deprecated='"path" is deprecated, use "resources" instead.',
-    )
-    url: str | None = Field(
-        None,
-        deprecated='"url" is deprecated, use "resources" instead.',
-    )
     from_examples_directory: bool = Field(
         False,
         description='Whether this example upload should be read from the "examples" directory.',
@@ -490,22 +537,19 @@ class ExampleUploadEntryPoint(EntryPoint):
                     resource = resource.dict()
                 resource_objects.append(resource)
 
-        # Backwards compatibility for path and url
-        else:
-            path = values.get('path')
-            url = values.get('url')
-            if path:
-                resource_objects.append({'path': path})
-            if url:
-                resource_objects.append({'path': url})
-
         values['resources'] = resource_objects
 
         return values
 
 
 class APIEntryPoint(EntryPoint):
-    """Base model for API plugin entry points."""
+    """Base model for API plugin entry points.
+
+    An API entry point either (a) returns a FastAPI instance from ``load()``
+    that will be mounted under ``{api_base_path}/apis/{id_url_safe}`` (or
+    under a custom ``prefix``), or (b) declares an ``external_url`` pointing
+    to an API served by a separate service.
+    """
 
     entry_point_type: Literal['api'] = Field(
         'api',
@@ -516,32 +560,55 @@ class APIEntryPoint(EntryPoint):
     prefix: str | None = Field(
         None,
         description=(
-            'The prefix for the API. The URL for the API will be the base URL of the NOMAD '
-            'installation followed by this prefix. The prefix must not collide with any other '
-            'API prefixes. There is no default, this field must be set.'
+            'The path under which the API is mounted, relative to the base path of '
+            'the NOMAD backend. If not set, it is automatically generated as '
+            '``apis/{id_url_safe}``, which guarantees a predictable, collision-free '
+            'location. You should not set this manually unless you know what you '
+            'are doing: a custom prefix must not collide with any other route served '
+            'by the NOMAD backend. Cannot be combined with ``external_url``.'
+        ),
+    )
+
+    external_url: str | None = Field(
+        None,
+        description=(
+            'Absolute URL to an API served outside of NOMAD. When set, '
+            '``load()`` is not called and no mount is performed.'
         ),
     )
 
     @model_validator(mode='before')
     @classmethod
-    def prefix_must_be_defined_and_valid(cls, v):
+    def _validate(cls, v):
         import urllib.parse
 
-        if 'prefix' not in v:
-            raise ValueError('prefix must be defined')
-        if not v['prefix']:
-            raise ValueError('prefix must be defined')
-        if urllib.parse.quote(v['prefix']) != v['prefix']:
-            raise ValueError('prefix must be a valid URL path')
+        if isinstance(v, BaseModel):
+            v = v.model_dump(exclude_none=True)
 
-        v['prefix'] = v['prefix'].strip('/')
+        prefix = v.get('prefix')
+        if prefix is not None:
+            if not isinstance(prefix, str):
+                raise ValueError('prefix must be a string')
+            if urllib.parse.quote(prefix) != prefix:
+                raise ValueError('prefix must be a valid URL path')
+            v['prefix'] = prefix.strip('/') or None
+
+        external_url = v.get('external_url')
+        if external_url:
+            parsed = urllib.parse.urlparse(external_url)
+            if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+                raise ValueError('external_url must be an absolute http(s) URL')
+            if v.get('prefix'):
+                raise ValueError('prefix cannot be combined with external_url')
+
         return v
 
-    def load(self) -> 'FastAPI':
+    def load(self) -> 'FastAPI | None':
         """Used to lazy-load the API instance. You should override this
-        method in your subclass. Note that any Python module imports required
-        for the API should be done within this function as well."""
-        pass
+        method in your subclass when serving the API from inside NOMAD. Leave
+        as-is when using ``external_url``. Note that any Python module imports
+        required for the API should be done within this function as well."""
+        return None
 
     def dict_safe(self):
         """Used to serialize the non-confidential parts of a plugin model. This
@@ -557,7 +624,7 @@ class DashboardEntryPoint(EntryPoint):
 
     A dashboard entry point either (a) returns a FastAPI instance from
     ``load()`` that will be mounted under
-    ``{app_base}/dashboards/{id_url_safe}``, or (b) declares an
+    ``{api_base_path}/dashboards/{id_url_safe}``, or (b) declares an
     ``external_url`` pointing to a dashboard served by a separate service.
     """
 
@@ -754,6 +821,34 @@ class EntryPoints(Options):
     options: dict[str, EntryPointType] = Field(
         dict(), description='The available plugin entry points.'
     )
+
+    def filtered_keys(self) -> list[str]:
+        """Return filtered entry point keys, always including the installed GUI."""
+        available_keys = list(self.options)
+
+        if self.include is None:
+            included_keys = available_keys
+        else:
+            included_keys = []
+            for pattern in self.include:
+                included_keys.extend(
+                    key
+                    for key in available_keys
+                    if key not in included_keys and fnmatchcase(key, pattern)
+                )
+
+        excluded_patterns = self.exclude or []
+        filtered_keys = [
+            key
+            for key in included_keys
+            if not any(fnmatchcase(key, pattern) for pattern in excluded_patterns)
+        ]
+        if (
+            GUI_ENTRY_POINT_ID in self.options
+            and GUI_ENTRY_POINT_ID not in filtered_keys
+        ):
+            filtered_keys.append(GUI_ENTRY_POINT_ID)
+        return filtered_keys
 
 
 class PluginPackage(BaseModel):

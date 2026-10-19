@@ -1,3 +1,4 @@
+#
 # Copyright The NOMAD Authors.
 #
 # This file is part of NOMAD. See https://nomad-lab.eu for further info.
@@ -13,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
 import fnmatch
 import re
@@ -25,6 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from nomad.app.v1.models import HTTPExceptionModel, User
+from nomad.app.v1.models.models import ops
 from nomad.app.v1.models.pagination import Pagination
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.app.v1.utils import create_responses
@@ -209,6 +212,35 @@ def parse_quantity_name(full_name: str) -> dict[str, str | None]:
     return {'path': path, 'schema': schema_new, 'dtype': dtype}
 
 
+def get_query_quantities(query: Any, prefix: str | None = None) -> list[str]:
+    """
+    Returns the names of the search quantities targeted by the given API query.
+    Logical operators (and/or/not) are traversed, operator suffixes (e.g. ':any')
+    are removed and nested section dicts are resolved into full quantity names.
+    """
+    if isinstance(query, list):
+        return [q for item in query for q in get_query_quantities(item, prefix)]
+    if not isinstance(query, dict):
+        return []
+
+    quantities: list[str] = []
+    for key, value in query.items():
+        if key in ('and', 'or', 'not'):
+            quantities.extend(get_query_quantities(value, prefix))
+            continue
+        name, _, qualifier = key.rpartition(':')
+        if not name or qualifier not in ops:
+            name = key
+        full_name = f'{prefix}.{name}' if prefix else name
+        # Dicts whose keys are all operators (e.g. {"gt": 1}) target the quantity
+        # itself; other dicts are nested section queries.
+        if isinstance(value, dict) and value and not value.keys() <= ops.keys():
+            quantities.extend(get_query_quantities(value, full_name))
+        else:
+            quantities.append(full_name)
+    return quantities
+
+
 def parse_jmespath(input: str) -> dict[str, Any]:
     """
     Parses a JMESPath expression and extracts the targeted quantity along with additional details.
@@ -344,19 +376,21 @@ def get_search_quantity(
     return result
 
 
-def glob(path: str, include: list[str], exclude: list[str]) -> bool:
+def glob(path: str, include: list[str] | None, exclude: list[str] | None) -> bool:
     """
     Determines if path matches include and not exclude.
     """
-    match = False if include else True
+    match: bool = False if include else True
     for pattern in include or []:
         if fnmatch.fnmatch(path, pattern):
             match = True
             break
+
     for pattern in exclude or []:
         if fnmatch.fnmatch(path, pattern):
             match = False
             break
+
     return match
 
 
@@ -365,7 +399,9 @@ def prefilter_search_quantities(
 ) -> list[SearchQuantity]:
     """Pre-filters for a specific app based on its entry point."""
     entry_point = app_entry_points_cache.get(app_path)
+    assert entry_point is not None
     sq_filter = entry_point.app.search_quantities
+    assert sq_filter is not None
     return [
         sq
         for key, sq in search_quantities.items()
@@ -452,7 +488,7 @@ def _initialize_search_quantities():
     response_model=dict[str, Any],
     response_model_exclude_none=True,
 )
-async def get_entry_points(
+def get_entry_points(
     _user: Annotated[
         User,
         Depends(get_current_user([Scope.APPS_READ])),
@@ -463,7 +499,7 @@ async def get_entry_points(
 
     apps = []
     for id, ep in app_entry_points_cache.items():
-        app = ep.app.model_dump()
+        app = ep.app.model_dump(exclude_none=True)
         app['id'] = id
         apps.append(app)
     return {'data': apps}
@@ -502,6 +538,7 @@ def _build_app_response(app: App) -> dict[str, Any]:
     # Columns
     for column in app.columns or []:
         add_jmespath(column.search_quantity, 'the results table column')
+
     # Widgets
     if app.dashboard and app.dashboard.widgets:
         for widget in app.dashboard.widgets:
@@ -555,11 +592,11 @@ def _build_app_response(app: App) -> dict[str, Any]:
     if app.menu:
         load_menu(app.menu)
     # Filters_locked
-    for key in (app.filters_locked or {}).keys():
-        add_search(key, 'filters_locked')
+    for name in get_query_quantities(app.filters_locked):
+        add_search(name, 'filters_locked')
 
     return {
-        'app': app.model_dump(),
+        'app': app.model_dump(exclude_none=True),
         'search_quantities': search_quantities,
     }
 
@@ -572,7 +609,7 @@ def _build_app_response(app: App) -> dict[str, Any]:
     response_model_exclude_none=True,
     responses=create_responses(_bad_app_not_found, _bad_search_quantity_parse),
 )
-async def get_entry_point(
+def get_entry_point(
     app_path: str,
     _user: Annotated[
         User,
@@ -605,7 +642,7 @@ async def get_entry_point(
     response_model_exclude_none=True,
     responses=create_responses(_bad_search_quantity_parse),
 )
-async def validate(
+def validate(
     app: App,
     _user: Annotated[
         User,
@@ -628,7 +665,7 @@ async def validate(
     response_model_exclude_none=True,
     responses=create_responses(_bad_app_not_found),
 )
-async def get_entry_point_search_quantities(
+def get_entry_point_search_quantities(
     data: SearchQuantityRequest,
     _user: Annotated[
         User,

@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import logging
 import os
 
@@ -97,6 +115,18 @@ def test_routing_handler_prefers_action_instance_id(tmp_path, monkeypatch):
     finally:
         root_logger.handlers = old_handlers
         structlog.contextvars.clear_contextvars()
+
+
+def test_log_path_does_not_fall_back_to_legacy_layout(tmp_path, monkeypatch):
+    monkeypatch.setattr(config.fs, 'actions', str(tmp_path))
+    legacy = tmp_path / 'logs' / 'instance.log'
+    legacy.parent.mkdir()
+    legacy.write_text('old log')
+
+    assert action_log_file_path('instance') == str(
+        tmp_path / 'instance' / 'nomad_system' / 'logs' / 'instance.log'
+    )
+    assert legacy.read_text() == 'old log'
 
 
 @pytest.mark.asyncio

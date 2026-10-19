@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import shutil
 import tempfile
@@ -9,8 +27,6 @@ from pathlib import Path
 from typing import TypeAlias
 from unittest.mock import MagicMock
 
-import elasticsearch
-import elasticsearch.exceptions
 import pytest
 import pytest_asyncio
 from mongoengine import OperationError
@@ -24,6 +40,12 @@ from nomad.actions import TaskQueue
 from nomad.actions.activities.utils import get_nomad_internal_activities
 from nomad.actions.workflows.utils import get_nomad_internal_workflows
 from nomad.config import config
+from nomad.elastic_compat import (
+    CONFLICT_ERROR_TYPES,
+    NOT_FOUND_ERROR_TYPES,
+    TRANSPORT_ERROR_TYPES,
+    create_elastic_client,
+)
 from nomad.infrastructure import index_builtin_packages
 
 
@@ -34,6 +56,7 @@ class TrieNode:
         """
         self.children = {}
         self.is_end_of_word = False
+        self.matched_prefix = None
 
 
 class Trie:
@@ -56,32 +79,32 @@ class Trie:
                 node.children[char] = TrieNode()
             node = node.children[char]
         node.is_end_of_word = True
+        node.matched_prefix = word
 
 
 class CustomScheduler(LoadScopeScheduling):
     """
     Custom test scheduler for parallel test execution with pytest-xdist.
 
-    It defines a method for splitting the scope of tests to enable efficient parallel execution
-    by distributing tests across different workers based on predefined integration test prefixes.
-    By distributing it this way, all of the integration tests would be passed to one single worker,
-    thus avoiding any issues that may arise with running parallel tests that require celery workers.
+    Tests whose nodeid matches an integration prefix share a scope unique to that
+    prefix. That keeps tests from the same file (or directory prefix) on one
+    worker so they cannot collide, while different integration modules can still
+    run in parallel on gw0/gw1/gw2.
 
-    The scheduler uses a Trie data structure for efficient integration test prefix matching,
-    reducing the time complexity of splitting test scopes.
+    Parser and normalizer suites stay in this list: they previously failed when
+    xdist freely load-balanced them. Each still gets its own scope, so they are
+    not queued behind cli/upload/archive on a single worker.
+
+    The scheduler uses a Trie for prefix matching.
     """
 
     integration_tests = [
         'tests/app/v1/routers/test_apps.py',
-        'tests/app/v1/routers/test_federation.py',
         'tests/app/v1/routers/uploads/test_uploads_non_xdist.py',
-        'tests/app/v1/routers/uploads/test_transfer_bundle.py',
+        'tests/app/v1/routers/uploads/test_upload_actions.py',
         'tests/archive/test_archive.py',
-        'tests/logtransfer/test_logtransfer.py',
         'tests/normalizing',
         'tests/parsing/test_parsing.py',
-        'tests/processing/test_base.py',
-        'tests/processing/test_data_legacy.py',
         'tests/processing/test_rfc3161.py',
         'tests/test_cli.py',
     ]
@@ -103,14 +126,15 @@ class CustomScheduler(LoadScopeScheduling):
             nodeid (str): The identifier of the test.
 
         Returns:
-            str: 'integration-tests' if nodeid matches an integration test, else nodeid itself.
+            str: ``integration-<prefix>`` if nodeid matches an integration test,
+            else nodeid itself.
         """
         node = self.trie.root
         for char in nodeid:
             if char in node.children:
                 node = node.children[char]
                 if node.is_end_of_word:
-                    return 'integration-tests'
+                    return f'integration-{node.matched_prefix}'
             else:
                 break
         return nodeid
@@ -254,42 +278,26 @@ def elastic_test_entries_index(worker_id):
 
 
 @pytest.fixture(scope='session')
-def elastic_test_materials_index(worker_id):
-    return f'nomad_materials_v1_test_{worker_id}'
+def elastic_test_indices(elastic_test_entries_index):
+    return [elastic_test_entries_index]
 
 
 @pytest.fixture(scope='session')
-def elastic_test_indices(elastic_test_entries_index, elastic_test_materials_index):
-    return [elastic_test_entries_index, elastic_test_materials_index]
-
-
-@pytest.fixture(scope='session')
-def elastic_infra(
-    monkeysession, elastic_test_entries_index, elastic_test_materials_index
-):
+def elastic_infra(monkeysession, elastic_test_entries_index):
     """Provides elastic infrastructure to the session"""
     monkeysession.setattr(
         'nomad.config.elastic.entries_index', elastic_test_entries_index
     )
-    monkeysession.setattr(
-        'nomad.config.elastic.materials_index', elastic_test_materials_index
-    )
 
     # attempt to remove and recreate all indices
-    return clear_elastic_infra(
-        [elastic_test_entries_index, elastic_test_materials_index]
-    )
+    return clear_elastic_infra([elastic_test_entries_index])
 
 
 def clear_elastic_infra(indices):
     """
     Removes and re-creates all indices and mappings.
     """
-    from elasticsearch_dsl import connections
-
-    connection = connections.create_connection(
-        hosts=[f'{config.elastic.host}:{config.elastic.port}']
-    )
+    connection = create_elastic_client(verify=False)
 
     for index in indices:
         try:
@@ -316,21 +324,25 @@ def clear_elastic(elastic_infra, indices):
                         refresh=True,
                     )
                     break  # Success! Break the retry loop
-                except elasticsearch.exceptions.ConflictError:
+                except CONFLICT_ERROR_TYPES:
                     if retry_count:
                         # Sleep and try again
                         time.sleep(0.5)
                         retry_count -= 1
                     else:
                         raise
-                except elasticsearch.exceptions.TransportError:
+                except NOT_FOUND_ERROR_TYPES:
+                    # Happens if a test removed indices without recreating them.
+                    clear_elastic_infra(indices)
+                    break
+                except TRANSPORT_ERROR_TYPES:
                     if retry_count:
                         # Sleep and try again
                         time.sleep(1)
                         retry_count -= 1
                     else:
                         raise
-    except elasticsearch.exceptions.NotFoundError:
+    except NOT_FOUND_ERROR_TYPES:
         # Happens if a test removed indices without recreating them.
         clear_elastic_infra(indices)
 

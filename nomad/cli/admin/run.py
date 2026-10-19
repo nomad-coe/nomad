@@ -22,6 +22,7 @@ from typing import Any
 
 import click
 
+from nomad.cli.cli import config_file_option
 from nomad.config import config
 from nomad.config.models.config import WorkerConfig
 
@@ -29,21 +30,15 @@ from .admin import admin
 
 
 @admin.group(help='Run a nomad service locally (outside docker).')
-@click.option(
-    '-f',
-    '--config-file',
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True),
-    multiple=True,
-    help='Specify one or more NOMAD config yaml files. Can be repeated. Later files overwrite earlier ones.',
-)
-def run(config_file: tuple[str, ...]):
-    if config_file:
-        from nomad.config import load_and_set_config
-
-        load_and_set_config(files=list(config_file))
+@config_file_option
+def run():
+    # The config files are applied by `nomad.cli.config_files` before any nomad module
+    # is imported, they cannot be applied from here.
+    pass
 
 
 @run.command(help='Run the jupyter hub.')
+@config_file_option
 def hub():
     run_hub()
 
@@ -52,6 +47,7 @@ def hub():
 @click.option(
     '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
 )
+@config_file_option
 def action_cpu_worker(pool_size: int | None):
     import asyncio
 
@@ -70,6 +66,7 @@ def action_cpu_worker(pool_size: int | None):
 @click.option(
     '--pool-size', '--workers', type=int, default=None, help='Number of workers.'
 )
+@config_file_option
 def action_gpu_worker(pool_size: int | None):
     import asyncio
 
@@ -100,6 +97,7 @@ def action_gpu_worker(pool_size: int | None):
     default=None,
     help='Maximum number of concurrent activities for the internal worker.',
 )
+@config_file_option
 def action_internal_worker(
     pool_size: int | None,
     max_tasks_per_child: int | None,
@@ -128,6 +126,7 @@ def action_internal_worker(
     default=None,
     help='Maximum number of concurrent activities for the internal worker.',
 )
+@config_file_option
 def worker(
     pool_size: int | None,
     max_tasks_per_child: int | None,
@@ -156,6 +155,7 @@ def worker(
     help='Run app with gunicorn instead of uvicorn.',
 )
 @click.option('--workers', type=int, help='Passed to uvicorn workers parameter.')
+@config_file_option
 def app(with_gui: bool, **kwargs):
     run_app(with_gui=with_gui, **kwargs)
 
@@ -231,15 +231,15 @@ def run_app(
                 with open(source_file) as f:
                     file_data = f.read()
                 file_data = file_data.replace(
-                    '/nomad-oasis', config.services.api_base_path
+                    '/nomad-oasis', config.services.route_prefix
                 )
                 with open(source_file, 'w') as f:
                     f.write(file_data)
 
         # App and gui are served from the same server, same port. Replace the base urls with
         # relative paths
-        config.ui.app_base = f'{config.services.api_base_path.rstrip("/")}'
-        config.ui.north_base = f'{config.services.api_base_path.rstrip("/")}/north'
+        config.ui.app_base = config.services.route_prefix
+        config.ui.north_base = config.services.join_path('north')
 
     from nomad.utils import get_logger
 
@@ -325,7 +325,11 @@ def run_hub():
     from jupyterhub.app import main
 
     if 'JUPYTERHUB_CRYPT_KEY' not in os.environ:
-        crypt_key = config.north.jupyterhub_crypt_key
+        crypt_key = (
+            config.north.jupyterhub_crypt_key.get_secret_value()
+            if config.north.jupyterhub_crypt_key
+            else None
+        )
         if crypt_key is None:
             crypt_key = (
                 subprocess.check_output('openssl rand -hex 32'.split(' '))
@@ -405,5 +409,6 @@ def run_appworker(
 @click.option(
     '--dev', is_flag=True, default=False, help='Use one worker (for dev. env.).'
 )
+@config_file_option
 def appworker(**kwargs):
     run_appworker(**kwargs)

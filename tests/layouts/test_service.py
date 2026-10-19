@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -44,14 +62,29 @@ def test_builtin_widget_defaults_are_applied_to_derived_requests():
     derived_request: dict = {}
     calculate_request_from_layout(compiled, derived_request)
 
-    assert (
-        derived_request['workflow2']['inputs']['m_request']['directive'] == 'resolved'
-    )
-    assert 'depth' not in derived_request['workflow2']['inputs']['m_request']
-    assert (
-        derived_request['workflow2']['outputs']['m_request']['directive'] == 'resolved'
-    )
-    assert derived_request['workflow2']['tasks']['m_request']['directive'] == 'resolved'
+    reference_request = {
+        'm_request': {
+            'directive': 'plain',
+            'always_rewrite_references': True,
+        }
+    }
+    link_request = {'name': '*', 'section': reference_request}
+    workflow_request = derived_request['workflow2']
+    assert workflow_request['name'] == '*'
+    assert workflow_request['inputs'] == link_request
+    assert workflow_request['outputs'] == link_request
+
+    task_request = workflow_request['tasks']
+    for _ in range(2):
+        assert task_request | {'tasks': None} == {
+            'name': '*',
+            'section': reference_request,
+            'task': reference_request,
+            'inputs': link_request,
+            'outputs': link_request,
+            'tasks': None,
+        }
+        task_request = task_request['tasks']
 
 
 def test_entry_layout_helpers_only_require_search_when_needed():
@@ -72,6 +105,23 @@ def test_entry_layout_helpers_only_require_search_when_needed():
     intent = get_layout_query_intent(auto_archive_request)
     assert intent.requires_search_metadata
     assert intent.requires_layout_resolution
+
+
+@pytest.mark.parametrize('has_displacements', [False, True])
+def test_simulation_layout_requests_resolved_displacements_only_when_present(
+    has_displacements,
+):
+    quantities = ['results.method.simulation.program_name']
+    if has_displacements:
+        quantities.append('results.properties.dynamical.mean_squared_displacement')
+    request = derive_request_from_layout('simulation', {'quantities': quantities})
+    dynamical = request.get('results', {}).get('properties', {}).get('dynamical')
+    if has_displacements:
+        assert dynamical['mean_squared_displacement'] == {
+            'm_request': {'directive': 'resolved'}
+        }
+    else:
+        assert dynamical is None
 
 
 def test_default_layout_keeps_top_level_data_expanded_with_figures():
@@ -107,8 +157,9 @@ def test_layout_plan_returns_compiled_layouts_and_selected_request():
     assert [layout['id'] for layout in plan.matching_layouts] == ['default']
     assert plan.matching_layouts[0]['overview']['type'] == 'container'
     assert plan.archive_request['data']['figures'] == '*'
-    assert plan.archive_request['workflow2']['tasks']['m_request'] == {
-        'directive': 'resolved'
+    assert plan.archive_request['workflow2']['tasks']['task']['m_request'] == {
+        'directive': 'plain',
+        'always_rewrite_references': True,
     }
     assert 'request' not in str(plan.matching_layouts[0]['overview'])
 

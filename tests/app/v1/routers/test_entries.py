@@ -25,6 +25,7 @@ from urllib.parse import urlencode
 
 import pytest
 
+from nomad.app.v1.routers import entries as entries_router
 from nomad.metainfo.elasticsearch_extension import entry_type, schema_separator
 from nomad.utils.exampledata import ExampleData
 from tests.test_files import append_raw_files, example_mainfile_contents  # noqa: F401
@@ -830,6 +831,107 @@ def test_entries_rawdir(
     )
 
 
+@pytest.mark.parametrize('endpoint', ['archive', 'rawdir'])
+@pytest.mark.parametrize(
+    'pagination, expected_entries',
+    [
+        pytest.param({'page_size': 0}, 0, id='zero-page-size'),
+        pytest.param({'page': 2}, 0, id='second-page'),
+        pytest.param({'page_offset': 1}, 0, id='page-offset'),
+        pytest.param({'page': 1}, 1, id='first-page'),
+    ],
+)
+def test_exact_entry_mongo_pagination(
+    client, example_data, endpoint, pagination, expected_entries
+):
+    response = client.post(
+        f'entries/{endpoint}/query',
+        json={
+            'owner': 'public',
+            'query': {'entry_id': 'id_01'},
+            'pagination': pagination,
+        },
+    )
+
+    assert_response(response, 200)
+    response_json = response.json()
+    assert response_json['pagination']['total'] == 1
+    assert len(response_json['data']) == expected_entries
+    for key, value in pagination.items():
+        assert response_json['pagination'][key] == value
+
+
+@pytest.mark.parametrize('endpoint', ['archive', 'rawdir'])
+def test_exact_entry_mongo_respects_public_owner(
+    auth_headers, client, example_data, endpoint
+):
+    response = client.post(
+        f'entries/{endpoint}/query',
+        headers=auth_headers['user1'],
+        json={
+            'owner': 'public',
+            'query': {'entry_id': 'id_child_entries_child1'},
+        },
+    )
+
+    assert_response(response, 200)
+    assert response.json()['pagination']['total'] == 0
+    assert response.json()['data'] == []
+
+
+@pytest.mark.parametrize('endpoint', ['archive', 'rawdir'])
+def test_exact_entry_mongo_preserves_owner_authentication(
+    client, example_data, endpoint
+):
+    response = client.post(
+        f'entries/{endpoint}/query',
+        json={'owner': 'shared', 'query': {'entry_id': 'id_01'}},
+    )
+
+    assert_response(response, 401)
+
+
+@pytest.mark.parametrize('endpoint', ['archive', 'rawdir'])
+def test_exact_entry_collections_do_not_search(
+    client, example_data, monkeypatch, endpoint
+):
+    def fail_search(*args, **kwargs):
+        raise AssertionError('exact entry lookup should not search Elasticsearch')
+
+    monkeypatch.setattr(entries_router, 'perform_search', fail_search)
+
+    response = client.post(
+        f'entries/{endpoint}/query',
+        json={'owner': 'public', 'query': {'entry_id': 'id_01'}},
+    )
+
+    assert_response(response, 200)
+    response_json = response.json()
+    assert len(response_json['data']) == 1
+    assert response_json['query'] == {'name': 'entry_id', 'value': 'id_01'}
+    if endpoint == 'archive':
+        assert set(response_json['data'][0]) == {
+            'entry_id',
+            'upload_id',
+            'parser_name',
+            'archive',
+        }
+
+
+@pytest.mark.parametrize('endpoint', ['archive', 'rawdir'])
+def test_exact_entry_mongo_preserves_order_validation(client, example_data, endpoint):
+    response = client.post(
+        f'entries/{endpoint}/query',
+        json={
+            'owner': 'public',
+            'query': {'entry_id': 'id_01'},
+            'pagination': {'order_by': 'does_not_exist'},
+        },
+    )
+
+    assert_response(response, 422)
+
+
 @pytest.mark.parametrize(
     'user, owner, query, files, total, files_per_entry, status_code',
     [
@@ -1299,6 +1401,43 @@ def test_entry_raw_file(
 
 
 @pytest.mark.parametrize(
+    'path',
+    [
+        pytest.param('entries/id_01/rawdir', id='rawdir'),
+        pytest.param('entries/id_01/raw/mainfile.json', id='raw-file'),
+    ],
+)
+def test_exact_entry_raw_endpoints_do_not_search(
+    client, example_data, monkeypatch, path
+):
+    def fail_search(*args, **kwargs):
+        raise AssertionError('exact entry lookup should not search Elasticsearch')
+
+    monkeypatch.setattr(entries_router, 'perform_search', fail_search)
+
+    response = client.get(path)
+
+    assert_response(response, 200)
+
+
+def test_exact_entry_raw_download_does_not_search(client, example_data, monkeypatch):
+    def fail_search(*args, **kwargs):
+        raise AssertionError('exact entry lookup should not search Elasticsearch')
+
+    monkeypatch.setattr(entries_router, 'perform_search', fail_search)
+
+    response = client.get('entries/id_01/raw')
+
+    assert_response(response, 200)
+    assert_raw_zip_file(
+        response,
+        files=6,
+        manifest_entries=1,
+        compressed=False,
+    )
+
+
+@pytest.mark.parametrize(
     'user, owner, query, required, files, total, status_code',
     [
         pytest.param(None, None, {}, None, {}, 23, 200, id='all'),
@@ -1611,7 +1750,7 @@ def test_entries_get_query_dynamic(
 
 
 @pytest.mark.parametrize(
-    'owner, user, status_code, total_entries, total_mainfiles, total_materials',
+    'owner, user, status_code, total_entries, total_mainfiles',
     owner_test_parameters(),
 )
 @pytest.mark.parametrize('http_method', ['post', 'get'])
@@ -1634,7 +1773,6 @@ def test_entries_owner(
     status_code,
     total_entries,
     total_mainfiles,
-    total_materials,
     http_method,
     test_method,
 ):

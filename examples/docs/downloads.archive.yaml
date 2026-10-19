@@ -1,8 +1,0 @@
-data:
-  m_def: nomad.datamodel.metainfo.downloads.Downloads
-  mainfiles:
-    - downloads/ZnSe/4/vasprun.xml.relax1
-  downloads:
-    - url: https://www.dropbox.com/s/8zd7aqe91lza2r4/theory-example-upload.zip?dl=1
-      output: downloads/upload.zip
-      extract: true

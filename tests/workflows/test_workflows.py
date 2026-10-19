@@ -1,12 +1,35 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import tempfile
 import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from temporalio.client import WorkflowFailureError
+from temporalio.common import WorkflowIDConflictPolicy
+from temporalio.exceptions import WorkflowAlreadyStartedError
+from temporalio.service import RPCError, RPCStatusCode
 
 from nomad.actions import TaskQueue
+from nomad.actions.workflows.utils import SERVER_STATS_WORKFLOW_ID, setup_server_stats
+from nomad.config import config
 from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Upload
 from nomad.workflows.activities import (
@@ -32,7 +55,7 @@ from nomad.workflows.shared_objects import (
     UploadProcessingWorkflowInput,
 )
 from nomad.workflows.utils import CLEANUP_ENTRY_BATCH_SIZE, ENTRY_BATCH_FILE_SIZE
-from nomad.workflows.workflows import UpdateUploadWorkflow
+from nomad.workflows.workflows import ServerStatsWorkflow, UpdateUploadWorkflow
 
 # Test Constants
 TEST_UPLOAD_ID = 'test-upload-123'
@@ -174,6 +197,11 @@ def mock_data_layer(monkeypatch):
     mock_delete_upload = Mock()
     monkeypatch.setattr('nomad.workflows.activities.delete_upload', mock_delete_upload)
 
+    mock_notification_service = Mock()
+    monkeypatch.setattr(
+        'nomad.workflows.activities.notification_service', mock_notification_service
+    )
+
     # Mock config
     mock_config = Mock()
     mock_reprocess = Mock()
@@ -217,6 +245,7 @@ def mock_data_layer(monkeypatch):
         'public_files': mock_public_files,
         'public_files_instance': mock_public_files_instance,
         'delete_upload': mock_delete_upload,
+        'notification_service': mock_notification_service,
         'config': mock_config,
     }
 
@@ -664,6 +693,11 @@ class TestProcessUploadWorkflow:
         temporal_worker,
     ):
         """Test complete upload processing workflow."""
+        upload = mock_data_layer['upload_instance']
+        upload.upload_id = TEST_UPLOAD_ID
+        upload.main_author = TEST_USER_ID
+        upload.upload_name = 'Test project'
+        upload.current_process = '_process_upload'
 
         # Mock next_level_entries to return entries first, then empty
         def mock_next_level_entries_side_effect(*args, **kwargs):
@@ -700,6 +734,10 @@ class TestProcessUploadWorkflow:
         mock_data_layer['upload_instance'].update_files.assert_called_once()
         mock_data_layer['upload_instance'].match_all.assert_called_once()
         mock_data_layer['upload_instance'].cleanup.assert_called_once()
+        mock_data_layer['notification_service'].emit.assert_called_once()
+        notification = mock_data_layer['notification_service'].emit.call_args.kwargs
+        assert notification['user_id'] == TEST_USER_ID
+        assert notification['data']['result'] == 'success'
 
     @pytest.mark.asyncio
     async def test_processing_loop_multiple_levels(
@@ -1408,7 +1446,7 @@ class TestTransferUploadOwnershipWorkflow:
     def ownership_transfer_mock_data_layer(self, mock_data_layer, monkeypatch):
         """Setup mocks specific to ownership transfer workflow tests."""
         # Mock OwnershipTransferRecord queryset delete behavior in nomad.mongo.users
-        mock_record_queryset = Mock()
+        mock_record_queryset = MagicMock()
         mock_record_class = Mock()
         mock_record_class.objects.return_value = mock_record_queryset
         monkeypatch.setattr(
@@ -1421,6 +1459,9 @@ class TestTransferUploadOwnershipWorkflow:
 
         # Configure upload instance for ownership transfer
         mock_data_layer['upload_instance'].main_author = TEST_USER_ID
+        mock_data_layer[
+            'upload_instance'
+        ].current_process = '_transfer_upload_ownership'
         mock_data_layer['upload_instance'].reviewers = [
             'reviewer-1',
             'new-owner-user-id',
@@ -1473,6 +1514,9 @@ class TestTransferUploadOwnershipWorkflow:
                 ownership_transfer_mock_data_layer['upload_instance'].process_status
                 == ProcessStatus.SUCCESS
             )
+            ownership_transfer_mock_data_layer[
+                'notification_service'
+            ].emit.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_ownership_transfer_removes_reviewers(
@@ -1615,3 +1659,103 @@ class TestTransferUploadOwnershipWorkflow:
             ownership_transfer_mock_data_layer[
                 'record_queryset'
             ].delete.assert_called_once()
+
+
+def _not_found_error() -> RPCError:
+    return RPCError('Workflow not found', RPCStatusCode.NOT_FOUND, b'')
+
+
+def _mock_temporal_client(
+    handle: AsyncMock | None = None,
+) -> tuple[AsyncMock, AsyncMock]:
+    mock_client = AsyncMock()
+    mock_handle = handle or AsyncMock()
+    mock_client.get_workflow_handle = MagicMock(return_value=mock_handle)
+    return mock_client, mock_handle
+
+
+class TestSetupServerStats:
+    """Tests for the setup_server_stats function."""
+
+    @pytest.mark.asyncio
+    async def test_setup_server_stats_starts_when_missing(self):
+        mock_client, mock_handle = _mock_temporal_client()
+        mock_handle.describe.side_effect = _not_found_error()
+
+        await setup_server_stats(mock_client)
+
+        mock_client.get_workflow_handle.assert_called_once_with(
+            SERVER_STATS_WORKFLOW_ID
+        )
+        mock_handle.terminate.assert_not_called()
+        mock_client.start_workflow.assert_called_once()
+        call_args = mock_client.start_workflow.call_args
+        assert call_args[0][0] == ServerStatsWorkflow.run
+        assert call_args[1]['id'] == SERVER_STATS_WORKFLOW_ID
+        assert call_args[1]['task_queue'] == TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value
+        assert (
+            call_args[1]['cron_schedule']
+            == config.services.collect_server_stats_cron_expression
+        )
+        assert (
+            call_args[1]['id_conflict_policy'] == WorkflowIDConflictPolicy.USE_EXISTING
+        )
+
+    @pytest.mark.asyncio
+    async def test_setup_server_stats_is_idempotent_when_cron_matches(self):
+        mock_client, mock_handle = _mock_temporal_client()
+        mock_description = MagicMock()
+        mock_description.raw_info.cron_schedule = (
+            config.services.collect_server_stats_cron_expression
+        )
+        mock_handle.describe.return_value = mock_description
+
+        await setup_server_stats(mock_client)
+
+        mock_handle.terminate.assert_not_called()
+        mock_client.start_workflow.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_setup_server_stats_handles_already_started(self):
+        mock_client, mock_handle = _mock_temporal_client()
+        mock_handle.describe.side_effect = _not_found_error()
+        mock_client.start_workflow.side_effect = WorkflowAlreadyStartedError(
+            SERVER_STATS_WORKFLOW_ID, 'ServerStatsWorkflow'
+        )
+
+        await setup_server_stats(mock_client)
+
+        mock_client.start_workflow.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_setup_server_stats_terminates_when_disabled(self, monkeypatch):
+        monkeypatch.setattr(config.services, 'collect_server_stats', False)
+        mock_client, mock_handle = _mock_temporal_client()
+
+        await setup_server_stats(mock_client)
+
+        mock_handle.terminate.assert_awaited_once()
+        mock_client.start_workflow.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_server_stats_workflow_execution(
+        self,
+        mongo_function,
+        elastic_function,
+        raw_files_function,
+        temporal_worker,
+        monkeypatch,
+    ):
+        mock_collect = MagicMock()
+        monkeypatch.setattr(
+            'nomad.workflows.activities.collect_server_stats', mock_collect
+        )
+
+        async with temporal_worker() as env:
+            await env.client.execute_workflow(
+                'ServerStatsWorkflow',
+                id='test-server-stats-workflow',
+                task_queue=TaskQueue.NOMAD_INTERNAL_WORKFLOWS.value,
+            )
+
+        mock_collect.assert_called_once()

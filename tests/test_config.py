@@ -18,15 +18,24 @@
 
 import os
 import re
+import threading
+from typing import get_args
 
 import pytest
 import yaml
-from pydantic import ValidationError
+from pydantic import BaseModel, SecretStr, ValidationError
 
+import nomad.config
 from nomad.auth.scopes import _resolve_scopes
-from nomad.config import load_config
+from nomad.config import CONFIG_ENV, load_config
 from nomad.config.models import config as config_module
-from nomad.config.models.config import Auth
+from nomad.config.models.config import (
+    Auth,
+    Config,
+    NOMADFileSystem,
+    Services,
+    reset_target_fs_state,
+)
 from nomad.config.models.plugins import ParserEntryPoint, SchemaPackageEntryPoint
 from nomad.utils import flatten_dict
 
@@ -86,6 +95,64 @@ def test_config_file_change(mockopen, monkeypatch):
     conf_env = {'NOMAD_CONFIG': 'test.yaml'}
     config = load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
     assert_config(config, conf_yaml)
+
+
+def _write_config(path, config_dict):
+    with open(path, 'w') as file:
+        file.write(yaml.dump(config_dict))
+    return str(path)
+
+
+@pytest.mark.parametrize('source', ['env', 'files'])
+def test_config_multiple_files(source, tmp_path, monkeypatch):
+    """
+    Tests that several config files are merged in order, with later files overwriting
+    earlier ones. They can be given through the environment or directly.
+    """
+    first = _write_config(
+        tmp_path / 'nomad.yaml', {'fs': {'public': 'first', 'staging': 'first'}}
+    )
+    second = _write_config(tmp_path / 'nomad-dev.yaml', {'fs': {'public': 'second'}})
+
+    if source == 'env':
+        monkeypatch.setenv(CONFIG_ENV, os.pathsep.join([first, second]))
+        config = load_config()
+    else:
+        monkeypatch.delenv(CONFIG_ENV, raising=False)
+        config = load_config(files=[first, second])
+
+    assert config.fs.public == 'second'
+    assert config.fs.staging == 'first'
+
+
+def test_config_missing_file_warns(tmp_path, monkeypatch):
+    """A config file that does not exist is reported instead of silently ignored."""
+    existing = _write_config(tmp_path / 'nomad.yaml', {'fs': {'public': 'ok'}})
+    missing = str(tmp_path / 'does-not-exist.yaml')
+    monkeypatch.setenv(CONFIG_ENV, os.pathsep.join([existing, missing]))
+
+    warnings: list[str] = []
+    monkeypatch.setattr(nomad.config.logger, 'warning', warnings.append)
+
+    config = load_config()
+
+    assert config.fs.public == 'ok'
+    assert any(missing in warning for warning in warnings)
+
+
+def test_config_section_is_not_a_mapping(tmp_path, monkeypatch):
+    """
+    A scalar given for a whole config section must produce a validation error that
+    names the offending field, not an AttributeError from the extra field validator.
+    """
+    monkeypatch.setenv(
+        'NOMAD_CONFIG', _write_config(tmp_path / 'nomad.yaml', {'north': 'not a dict'})
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        load_config()
+
+    assert 'north' in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -568,6 +635,42 @@ def test_id_url_safe(
 
 
 @pytest.mark.parametrize(
+    'entry_point_config, expected_prefix',
+    [
+        pytest.param({}, 'apis/my_package-my_api', id='default-prefix'),
+        pytest.param(
+            {'id_url_safe': 'custom'}, 'apis/custom', id='default-prefix-custom-id'
+        ),
+        pytest.param({'prefix': '/my/api/'}, 'my/api', id='custom-prefix'),
+        pytest.param(
+            {'external_url': 'https://example.com/api'}, None, id='external-url'
+        ),
+    ],
+)
+def test_api_entry_point_prefix(
+    entry_point_config, expected_prefix, mockopen, monkeypatch
+):
+    """Tests that API entry points get the default ``apis/{id_url_safe}`` prefix
+    unless a custom prefix or an external_url is given."""
+    config_dict = {
+        'plugins': {
+            'options': {
+                'my_package:my_api': {
+                    'entry_point_type': 'api',
+                    **entry_point_config,
+                }
+            },
+        }
+    }
+    conf_yaml, conf_env = load_format(config_dict, 'yaml')
+    config = load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
+    config.load_plugins()
+
+    entry_point = config.plugins.entry_points.options['my_package:my_api']
+    assert entry_point.prefix == expected_prefix
+
+
+@pytest.mark.parametrize(
     'entry_points, collides',
     [
         pytest.param(
@@ -619,6 +722,40 @@ def test_id_url_safe(
             False,
             id='no clash if inactive',
         ),
+        pytest.param(
+            {
+                'exclude': ['pkg.mod:*'],
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                },
+            },
+            False,
+            id='no clash if wildcard excluded',
+        ),
+        pytest.param(
+            {
+                'include': ['pkg*'],
+                'options': {
+                    'pkg.mod:Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                    'pkg-mod_Class': {
+                        'id_url_safe': 'A',
+                        'entry_point_type': 'schema_package',
+                    },
+                },
+            },
+            True,
+            id='clash if wildcard included',
+        ),
     ],
 )
 def test_id_url_safe_collision(entry_points, collides, mockopen, monkeypatch):
@@ -657,6 +794,171 @@ def test_id_url_safe_collision(entry_points, collides, mockopen, monkeypatch):
 def test_normalized_url(conf_yaml, conf_expected, mockopen, monkeypatch):
     config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
     assert_config(config, conf_expected)
+
+
+@pytest.mark.parametrize(
+    'configured, expected_public, expected_prefix',
+    [
+        pytest.param('/', '/', '', id='root'),
+        pytest.param('/develop', '/develop', '/develop', id='develop'),
+        pytest.param('/prod/v1/', '/prod/v1', '/prod/v1', id='trailing-slash'),
+    ],
+)
+def test_services_base_path_normalization(configured, expected_public, expected_prefix):
+    services = Services(api_base_path=configured)
+
+    assert services.api_base_path == expected_public
+    assert services.route_prefix == expected_prefix
+    assert services.join_path('api', 'v1') == f'{expected_prefix}/api/v1'
+    assert services.join_path('/gui/') == f'{expected_prefix}/gui'
+
+
+@pytest.mark.parametrize('configured', ['', 'develop', '/develop//v1'])
+def test_services_base_path_rejects_malformed_paths(configured):
+    with pytest.raises(ValidationError):
+        Services(api_base_path=configured)
+
+
+def test_credential_fields_are_excluded_from_serialization():
+    credential_name = re.compile(
+        r'(api_key|access_token|client_key|codec_key|crypt_key|password|private_token|secret|token)$'
+    )
+    visited = set()
+
+    def check_model(model: BaseModel):
+        model_type = type(model)
+        if model_type in visited:
+            return
+        visited.add(model_type)
+
+        for field_name, field in model_type.model_fields.items():
+            if credential_name.search(field_name):
+                assert field.exclude, (
+                    f'{model_type.__name__}.{field_name} must set exclude=True'
+                )
+                assert field.annotation is SecretStr or SecretStr in get_args(
+                    field.annotation
+                ), f'{model_type.__name__}.{field_name} must use SecretStr'
+
+            value = getattr(model, field_name)
+            if isinstance(value, BaseModel):
+                check_model(value)
+
+    check_model(Config())
+
+
+def test_model_dump_excludes_credentials():
+    config = Config(
+        services={'api_secret': 'services-secret-that-is-at-least-32-bytes'},
+        north={
+            'jupyterhub_crypt_key': 'north-crypt-key',
+            'hub_service_api_token': 'north-api-token',
+        },
+        elastic={'password': 'elastic-password'},
+        temporal={
+            'api_key': 'temporal-api-key',
+            'payload_codec_key': 'payload-codec-key-that-is-32-bytes',
+            'tls_client_key': 'temporal-client-key',
+            'oidc': {'client_secret': 'temporal-oidc-secret'},
+        },
+        keycloak={
+            'password': 'keycloak-password',
+            'client_secret': 'keycloak-client-secret',
+        },
+        mongo={'password': 'mongo-password'},
+        mail={'password': 'mail-password'},
+        client={'password': 'client-password', 'access_token': 'client-token'},
+        datacite={'password': 'datacite-password'},
+        gitlab={'private_token': 'gitlab-token'},
+        rfc3161_timestamp={'password': 'timestamp-password'},
+    )
+
+    dumped = config.model_dump()
+    excluded_paths = [
+        ('services', 'api_secret'),
+        ('north', 'jupyterhub_crypt_key'),
+        ('north', 'hub_service_api_token'),
+        ('elastic', 'password'),
+        ('temporal', 'api_key'),
+        ('temporal', 'payload_codec_key'),
+        ('temporal', 'tls_client_key'),
+        ('temporal', 'oidc', 'client_secret'),
+        ('keycloak', 'password'),
+        ('keycloak', 'client_secret'),
+        ('mongo', 'password'),
+        ('mail', 'password'),
+        ('client', 'password'),
+        ('client', 'access_token'),
+        ('datacite', 'password'),
+        ('gitlab', 'private_token'),
+        ('rfc3161_timestamp', 'password'),
+    ]
+
+    for *parents, field_name in excluded_paths:
+        section = dumped
+        for parent in parents:
+            section = section[parent]
+        assert field_name not in section
+
+    # Exclusion only affects serialization, not internal consumers.
+    assert (
+        config.services.api_secret.get_secret_value()
+        == 'services-secret-that-is-at-least-32-bytes'
+    )
+    assert str(config.services.api_secret) == '**********'
+
+
+@pytest.mark.parametrize(
+    'configured, api_url, gui_url, north_url, hub_url',
+    [
+        pytest.param(
+            '/',
+            'https://nomad.example/api',
+            'https://nomad.example/gui',
+            'https://north.example:9000/north',
+            'http://north.example:9000/north/hub',
+            id='root',
+        ),
+        pytest.param(
+            '/develop',
+            'https://nomad.example/develop/api',
+            'https://nomad.example/develop/gui',
+            'https://north.example:9000/develop/north',
+            'http://north.example:9000/develop/north/hub',
+            id='develop',
+        ),
+        pytest.param(
+            '/prod/v1/',
+            'https://nomad.example/prod/v1/api',
+            'https://nomad.example/prod/v1/gui',
+            'https://north.example:9000/prod/v1/north',
+            'http://north.example:9000/prod/v1/north/hub',
+            id='prod',
+        ),
+    ],
+)
+def test_config_urls_use_normalized_base_path(
+    configured, api_url, gui_url, north_url, hub_url
+):
+    config = Config(
+        services=Services(
+            api_base_path=configured,
+            api_host='nomad.example',
+            api_port=443,
+            https=True,
+        ),
+        north={'hub_host': 'north.example', 'hub_port': 9000},
+    )
+
+    assert config.api_url() == api_url
+    assert config.gui_url() == gui_url
+    assert config.gui_url('search/entries') == f'{gui_url}/search/entries'
+    assert config.north_url() == north_url
+    assert config.hub_url() == hub_url
+    assert (
+        config.ui.app_base == f'https://nomad.example:443{config.services.route_prefix}'
+    )
+    assert config.ui.north_base == north_url
 
 
 # Tests for `Auth`
@@ -794,6 +1096,29 @@ def test_authorized_users_email_whitelist_logs_deprecation_warning(monkeypatch):
                 }
             },
             id='boolean-versions',
+        ),
+        pytest.param(
+            {
+                'NOMAD_DASHBOARDS_ENABLED': 'false',
+                'NOMAD_DASHBOARDS_FRAME_ANCESTORS': '["\'self\'", "https://x.yz"]',
+            },
+            {
+                'dashboards': {
+                    'enabled': False,
+                    'frame_ancestors': ["'self'", 'https://x.yz'],
+                }
+            },
+            id='dashboards',
+        ),
+        pytest.param(
+            {'NOMAD_ELASTIC_VERSION': '"7"'},
+            {'elastic': {'version': '7'}},
+            id='string-literal-version',
+        ),
+        pytest.param(
+            {'NOMAD_ELASTIC_SCHEME': '"https"'},
+            {'elastic': {'scheme': 'https'}},
+            id='string-literal-scheme',
         ),
     ],
 )
@@ -942,3 +1267,387 @@ def test_oasis_auth_backwards_compatibility_warnings(
 
     for expected_warning in expected_warnings:
         assert expected_warning in messages
+
+
+class _CountingFileSystem:
+    """Minimal fsspec stand-in that records ``makedirs`` calls."""
+
+    def __init__(self):
+        self.makedirs_calls: list[tuple[str, bool]] = []
+        self.fail_makedirs = False
+
+    def makedirs(self, path, exist_ok=False):
+        self.makedirs_calls.append((path, exist_ok))
+        if self.fail_makedirs:
+            raise OSError('bucket ensure failed')
+
+
+def test_target_fs_ensures_bucket_once_per_connection(monkeypatch):
+    """``makedirs`` runs once per protocol+bucket+extra in a process, and retries on error."""
+    reset_target_fs_state()
+    fake_fs = _CountingFileSystem()
+    monkeypatch.setattr(
+        'nomad.config.models.config.filesystem', lambda protocol, **kwargs: fake_fs
+    )
+
+    public_fs = NOMADFileSystem(
+        protocol='s3',
+        bucket='bucket-a',
+        extra={'endpoint_url': 'http://localhost:8333'},
+    )
+
+    assert public_fs.target_fs is fake_fs
+    assert fake_fs.makedirs_calls == [('bucket-a', True)]
+
+    fake_fs.makedirs_calls.clear()
+    public_fs.target_fs
+    public_fs.target_fs
+    assert fake_fs.makedirs_calls == []
+
+    public_fs.bucket = 'bucket-b'
+    public_fs.target_fs
+    assert fake_fs.makedirs_calls == [('bucket-b', True)]
+
+    fake_fs.makedirs_calls.clear()
+    fake_fs.fail_makedirs = True
+    public_fs.bucket = 'bucket-c'
+    with pytest.raises(
+        RuntimeError,
+        match='Cannot establish valid connection to the target file system.',
+    ) as exc_info:
+        public_fs.target_fs
+    assert isinstance(exc_info.value.__cause__, OSError)
+    assert fake_fs.makedirs_calls == [('bucket-c', True)]
+
+    fake_fs.makedirs_calls.clear()
+    with pytest.raises(
+        RuntimeError,
+        match='Cannot establish valid connection to the target file system.',
+    ):
+        public_fs.target_fs
+    assert fake_fs.makedirs_calls == [('bucket-c', True)]
+
+    fake_fs.makedirs_calls.clear()
+    fake_fs.fail_makedirs = False
+    public_fs.target_fs
+    assert fake_fs.makedirs_calls == [('bucket-c', True)]
+    fake_fs.makedirs_calls.clear()
+    public_fs.target_fs
+    assert fake_fs.makedirs_calls == []
+
+    reset_target_fs_state()
+
+
+def test_target_fs_makedirs_does_not_block_other_buckets(monkeypatch):
+    """A stalled ``makedirs`` for one bucket must not serialise another key."""
+    reset_target_fs_state()
+    entered = threading.Event()
+    release = threading.Event()
+
+    class BlockingFileSystem(_CountingFileSystem):
+        def makedirs(self, path, exist_ok=False):
+            if path == 'bucket-block':
+                entered.set()
+                if not release.wait(timeout=2):
+                    raise TimeoutError('release never set')
+            super().makedirs(path, exist_ok=exist_ok)
+
+    fake_fs = BlockingFileSystem()
+    monkeypatch.setattr(
+        'nomad.config.models.config.filesystem', lambda protocol, **kwargs: fake_fs
+    )
+
+    blocked = NOMADFileSystem(
+        protocol='s3',
+        bucket='bucket-block',
+        extra={'endpoint_url': 'http://localhost:8333'},
+    )
+    other = NOMADFileSystem(
+        protocol='s3',
+        bucket='bucket-other',
+        extra={'endpoint_url': 'http://localhost:8333'},
+    )
+    errors: list[Exception] = []
+
+    def first_caller():
+        try:
+            blocked.target_fs
+        except Exception as exc:
+            errors.append(exc)
+
+    def second_caller():
+        try:
+            if not entered.wait(timeout=2):
+                raise TimeoutError('blocked makedirs never started')
+            other.target_fs
+        except Exception as exc:
+            errors.append(exc)
+        finally:
+            release.set()
+
+    first = threading.Thread(target=first_caller)
+    second = threading.Thread(target=second_caller)
+    first.start()
+    second.start()
+    first.join(timeout=3)
+    second.join(timeout=3)
+    assert errors == []
+    assert not first.is_alive()
+    assert not second.is_alive()
+    assert fake_fs.makedirs_calls == [
+        ('bucket-other', True),
+        ('bucket-block', True),
+    ]
+
+    reset_target_fs_state()
+
+
+@pytest.mark.parametrize(
+    ('kwargs', 'expected'),
+    [
+        ({}, 'local_only'),
+        ({'protocol': 's3'}, 'remote_only'),
+        ({'write_mode': 'local_then_remote'}, 'local_then_remote'),
+        ({'protocol': 's3', 'write_mode': 'local_only'}, 'local_only'),
+        ({'protocol': 's3', 'write_mode': 'local_then_remote'}, 'local_then_remote'),
+        ({'write_mode': 'remote_only'}, 'remote_only'),
+    ],
+)
+def test_resolved_write_mode(kwargs, expected):
+    public_fs = NOMADFileSystem(**kwargs)
+    assert public_fs.resolved_write_mode == expected
+
+
+def test_storage_redirects_config():
+    from nomad.config.models.config import NOMADFileSystem
+
+    fs_dict = {
+        'protocol': 's3',
+        'bucket': 'nomad-public',
+        'redirects': {
+            'enabled': True,
+            'public_endpoint_url': 'https://nomad-lab.eu/files',
+            'signed_url_expiration': 3600,
+            'nomad_storage_gateway': {
+                'enabled': True,
+                'zip': True,
+                'raw_files': True,
+                'archives': True,
+            },
+        },
+    }
+    fs = NOMADFileSystem.model_validate(fs_dict)
+    assert fs.redirects.enabled is True
+    assert fs.redirects.public_endpoint_url == 'https://nomad-lab.eu/files'
+    assert fs.redirects.signed_url_expiration == 3600
+    assert fs.redirects.nomad_storage_gateway.enabled is True
+    assert fs.redirects.nomad_storage_gateway.zip is True
+    assert fs.redirects.nomad_storage_gateway.raw_files is True
+    assert fs.redirects.nomad_storage_gateway.archives is True
+
+
+def test_nomad_storage_gateway_url_generation():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway(
+        enabled=True,
+        raw_files=True,
+        archives=True,
+    )
+    base_url = 'https://nomad-lab.eu/files'
+    assert (
+        gw.get_file_url(base_url, 'upload_123', 'folder/file.txt')
+        == 'https://nomad-lab.eu/files/file/upload_123/folder/file.txt'
+    )
+    assert (
+        gw.get_file_url(
+            base_url,
+            'upload_123',
+            'folder/file.txt',
+            query_params='offset=10&length=20',
+        )
+        == 'https://nomad-lab.eu/files/file/upload_123/folder/file.txt?offset=10&length=20'
+    )
+    assert (
+        gw.get_zip_url(base_url, 'upload_123')
+        == 'https://nomad-lab.eu/files/zip/upload_123'
+    )
+    assert (
+        gw.get_zip_url(base_url, 'upload_123', path='folder/subfolder')
+        == 'https://nomad-lab.eu/files/zip/upload_123/folder/subfolder'
+    )
+    assert (
+        gw.get_archive_url(base_url, 'upload_123', 'entry_456')
+        == 'https://nomad-lab.eu/files/archive/upload_123/entry_456?format=msgpack'
+    )
+    assert (
+        gw.get_archive_url(base_url, 'upload_123', 'entry_456', format='msgpack')
+        == 'https://nomad-lab.eu/files/archive/upload_123/entry_456?format=msgpack'
+    )
+    assert (
+        gw.get_archive_url(base_url, 'upload_123', 'entry_456', format='json')
+        == 'https://nomad-lab.eu/files/archive/upload_123/entry_456?format=json'
+    )
+
+
+def test_presign_gateway_url_adds_sigv4_query_params():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway()
+    signed = gw.presign_url(
+        'https://nomad-lab.eu/files/zip/upload_123',
+        extra={
+            'key': 'test_access_key',
+            'secret': 'test_secret_key',
+            'client_kwargs': {'region_name': 'us-east-1'},
+        },
+        expires=3600,
+        user_id='alice',
+    )
+    from urllib.parse import parse_qs, urlparse
+
+    parsed = urlparse(signed)
+    qs = parse_qs(parsed.query)
+    assert parsed.path == '/files/zip/upload_123'
+    assert qs['X-Amz-Algorithm'] == ['AWS4-HMAC-SHA256']
+    assert qs.get('X-Amz-Credential')
+    assert qs.get('X-Amz-Date')
+    assert qs['X-Amz-Expires'] == ['3600']
+    assert qs.get('X-Amz-Signature')
+    assert qs['user_id'] == ['alice']
+
+
+def test_presign_gateway_url_different_paths_have_different_signatures():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway()
+    extra = {'key': 'test_access_key', 'secret': 'test_secret_key'}
+    signed_a = gw.presign_url(
+        'https://nomad-lab.eu/files/zip/upload_a',
+        extra=extra,
+        expires=24 * 60 * 60,
+        user_id='alice',
+    )
+    signed_b = gw.presign_url(
+        'https://nomad-lab.eu/files/zip/upload_b',
+        extra=extra,
+        expires=24 * 60 * 60,
+        user_id='alice',
+    )
+    from urllib.parse import parse_qs, urlparse
+
+    sig_a = parse_qs(urlparse(signed_a).query)['X-Amz-Signature'][0]
+    sig_b = parse_qs(urlparse(signed_b).query)['X-Amz-Signature'][0]
+    assert sig_a != sig_b
+
+
+def test_presign_gateway_url_missing_credentials_raises(monkeypatch):
+    from nomad.config.models.config import NomadStorageGateway
+
+    monkeypatch.delenv('AWS_ACCESS_KEY_ID', raising=False)
+    monkeypatch.delenv('AWS_SECRET_ACCESS_KEY', raising=False)
+
+    gw = NomadStorageGateway()
+    with pytest.raises(ValueError, match='key/secret'):
+        gw.presign_url(
+            'https://nomad-lab.eu/files/zip/upload_123',
+            extra={'endpoint_url': 'http://localhost:8333'},
+            expires=24 * 60 * 60,
+            user_id='alice',
+        )
+
+
+def test_presign_gateway_url_uses_env_credentials(monkeypatch):
+    from nomad.config.models.config import NomadStorageGateway
+
+    monkeypatch.setenv('AWS_ACCESS_KEY_ID', 'env_key')
+    monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', 'env_secret')
+
+    gw = NomadStorageGateway()
+    signed = gw.presign_url(
+        'https://nomad-lab.eu/files/zip/upload_123',
+        extra={'endpoint_url': 'http://localhost:8333'},
+        expires=24 * 60 * 60,
+        user_id='alice',
+    )
+    assert 'X-Amz-Signature' in signed
+
+
+def test_presign_gateway_url_signs_gateway_path_not_object_key():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway()
+    signed = gw.presign_url(
+        'https://nomad-lab.eu/files/file/upload_123/folder/file.txt?offset=10',
+        extra={'key': 'test_access_key', 'secret': 'test_secret_key'},
+        expires=24 * 60 * 60,
+        user_id='alice',
+    )
+    from urllib.parse import parse_qs, urlparse
+
+    parsed = urlparse(signed)
+    assert parsed.path == '/files/file/upload_123/folder/file.txt'
+    assert 'nomad-public' not in parsed.path
+    qs = parse_qs(parsed.query)
+    assert qs['offset'] == ['10']
+    assert qs['user_id'] == ['alice']
+    assert qs.get('X-Amz-Signature')
+
+
+def test_with_signed_identity_adds_anonymous_sentinel():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway()
+    assert (
+        gw.with_signed_identity(
+            'https://nomad-lab.eu/files/zip/upload_123',
+            None,
+        )
+        == 'https://nomad-lab.eu/files/zip/upload_123?user_id=anonymous'
+    )
+    assert (
+        gw.with_signed_identity(
+            'https://nomad-lab.eu/files/zip/upload_123',
+            '',
+        )
+        == 'https://nomad-lab.eu/files/zip/upload_123?user_id=anonymous'
+    )
+
+
+def test_with_signed_identity_overwrites_client_user_id():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway()
+    assert (
+        gw.with_signed_identity(
+            'https://nomad-lab.eu/files/file/upload_123/out?offset=10&user_id=victim',
+            'alice',
+        )
+        == 'https://nomad-lab.eu/files/file/upload_123/out?offset=10&user_id=alice'
+    )
+
+
+def test_presign_gateway_url_different_user_ids_have_different_signatures():
+    from nomad.config.models.config import NomadStorageGateway
+
+    gw = NomadStorageGateway()
+    extra = {'key': 'test_access_key', 'secret': 'test_secret_key'}
+    signed_a = gw.presign_url(
+        'https://nomad-lab.eu/files/zip/upload_123',
+        extra=extra,
+        expires=24 * 60 * 60,
+        user_id='alice',
+    )
+    signed_b = gw.presign_url(
+        'https://nomad-lab.eu/files/zip/upload_123',
+        extra=extra,
+        expires=24 * 60 * 60,
+        user_id='bob',
+    )
+    from urllib.parse import parse_qs, urlparse
+
+    qs_a = parse_qs(urlparse(signed_a).query)
+    qs_b = parse_qs(urlparse(signed_b).query)
+    assert qs_a['user_id'] == ['alice']
+    assert qs_b['user_id'] == ['bob']
+    assert qs_a['X-Amz-Signature'] != qs_b['X-Amz-Signature']

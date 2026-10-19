@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import threading
 import weakref
@@ -56,7 +74,6 @@ def _get_runtime() -> Runtime:
             if _runtime is None:
                 _runtime = Runtime(
                     telemetry=TelemetryConfig(metrics=_get_metrics_config()),
-                    worker_heartbeat_interval=None,
                 )
 
     return _runtime
@@ -139,10 +156,16 @@ async def _connect_client(api_key: str | None) -> Client:
 
     data_converter = temporalio.converter.DataConverter(
         payload_converter_class=PydanticPayloadConverter,
-        payload_codec=None
-        # Disable encryption in dev mode
-        if config.services.mode == ModeEnum.DEVELOPMENT
-        else EncryptionCodec(),
+        # Development deployments remain unencrypted unless an explicit
+        # Temporal payload key is configured (needed for cross-Oasis Nexus).
+        payload_codec=(
+            EncryptionCodec()
+            if (
+                config.services.mode != ModeEnum.DEVELOPMENT
+                or config.temporal.payload_codec_key
+            )
+            else None
+        ),
     )
     plugins = []
     if config.telemetry.tracing.enabled:
@@ -161,7 +184,11 @@ async def _connect_client(api_key: str | None) -> Client:
         ):
             tls = TLSConfig(
                 client_cert=_load_cert_or_key(config.temporal.tls_client_cert),
-                client_private_key=_load_cert_or_key(config.temporal.tls_client_key),
+                client_private_key=_load_cert_or_key(
+                    config.temporal.tls_client_key.get_secret_value()
+                    if config.temporal.tls_client_key
+                    else None
+                ),
                 server_root_ca_cert=_load_cert_or_key(
                     config.temporal.tls_server_root_ca_cert
                 ),
@@ -184,7 +211,11 @@ async def _connect_client(api_key: str | None) -> Client:
 
 async def get_client() -> Client:
     if not config.temporal.oidc.enabled:
-        return await _connect_client(config.temporal.api_key)
+        return await _connect_client(
+            config.temporal.api_key.get_secret_value()
+            if config.temporal.api_key
+            else None
+        )
 
     loop = asyncio.get_running_loop()
     managed = _get_managed_oidc_client(loop)

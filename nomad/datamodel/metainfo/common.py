@@ -16,8 +16,23 @@
 # limitations under the License.
 #
 
+from datetime import datetime
+
+from nomad.common import now
 from nomad.metainfo import Category, MCategory, MSection, Quantity, Section, SubSection
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
+from nomad.metainfo.elasticsearch_extension import Elasticsearch
+
+
+def default_datetime(archive) -> datetime:
+    """
+    The fallback for datetimes that a normalizer fills in when the user left them
+    empty. Returns the creation time of the entry, so that the value stays the same
+    when the entry is reprocessed, e.g. after an edit that only writes the changed
+    fields to the raw file. Falls back to the current time outside of processing.
+    """
+    metadata = getattr(archive, 'metadata', None)
+    entry_create_time = getattr(metadata, 'entry_create_time', None)
+    return entry_create_time or now()
 
 
 class FastAccess(MCategory):
@@ -50,7 +65,7 @@ class ProvenanceTracker(MSection):
         Class or type of the provenance.
         Can be used to add further description to the provenance.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
 

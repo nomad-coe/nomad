@@ -191,7 +191,7 @@ def prune_pats(
     import warnings
 
     from nomad import infrastructure
-    from nomad.auth.tokens import prune_pat
+    from nomad.auth.pat import pat_service
     from nomad.common import parse_timedelta
 
     infrastructure.setup_mongo()
@@ -208,7 +208,7 @@ def prune_pats(
             raise click.ClickException(str(e)) from e
 
     try:
-        result = prune_pat(
+        result = pat_service.prune(
             dry_run=dry_run,
             inactive_for=parsed_inactive_for,
             inactive_before=inactive_before,
@@ -264,92 +264,6 @@ def restore(path_to_dump):
     print(
         f'mongorestore --host {config.mongo.host} --port {config.mongo.port} --db {config.mongo.db_name} {path_to_dump}'
     )
-
-
-@ops.command(
-    help=('Generate an nginx.conf to serve the GUI and proxy pass to API container.')
-)
-@click.option(
-    '--prefix',
-    type=str,
-    default=config.services.api_base_path,
-    help='Alter the url path prefix.',
-)
-@click.option(
-    '--host',
-    type=str,
-    default=config.services.api_host,
-    help='Alter the NOMAD app host.',
-)
-@click.option(
-    '--port',
-    type=str,
-    default=config.services.api_port,
-    help='Alter the NOMAD port host.',
-)
-@click.option(
-    '--server/--no-server',
-    default=True,
-    help='Control writing of the outer server {} block. '
-    'Useful when conf file is included within another nginx.conf.',
-)
-def nginx_conf(prefix, host, port, server):
-    prefix = prefix.rstrip('/')
-    prefix = '/{}'.format(prefix.lstrip('/'))
-
-    if server:
-        print(
-            """server {
-    listen        80;
-    server_name   www.example.com;
-    proxy_set_header Host $host;
-        """
-        )
-
-    print(
-        f"""
-    location / {{
-        proxy_pass http://{host}:{port};
-    }}
-
-    location ~ {prefix}\\/?(gui)?$ {{
-        rewrite ^ {prefix}/gui/ permanent;
-    }}
-
-    location {prefix}/gui/ {{
-        proxy_intercept_errors on;
-        error_page 404 = @redirect_to_index;
-        proxy_pass http://{host}:{port};
-    }}
-
-    location @redirect_to_index {{
-        rewrite ^ {prefix}/gui/index.html break;
-        proxy_pass http://{host}:{port};
-    }}
-
-    location ~ \\/gui\\/(service-worker\\.js|meta\\.json)$ {{
-        add_header Last-Modified $date_gmt;
-        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-        if_modified_since off;
-        expires off;
-        etag off;
-        proxy_pass http://{host}:{port};
-    }}
-
-    location ~ /api/v1/uploads(/?$|.*/raw|.*/bundle?$) {{
-        client_max_body_size 35g;
-        proxy_request_buffering off;
-        proxy_pass http://{host}:{port};
-    }}
-
-    location ~ /api/v1/.*/download {{
-        proxy_buffering off;
-        proxy_pass http://{host}:{port};
-    }}
-"""
-    )
-    if server:
-        print('}')
 
 
 @ops.command(

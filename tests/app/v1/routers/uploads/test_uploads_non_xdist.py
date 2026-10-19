@@ -21,9 +21,13 @@ import os
 import time
 import zipfile
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
+from nomad.config import config
+from nomad.config.models.config import NOMADFileSystem, NomadStorageGateway
+from nomad.files import PublicUploadFiles
 from nomad.processing import ProcessStatus
 from tests.app.v1.routers.common import (
     assert_browser_download_headers,
@@ -241,6 +245,11 @@ def test_editing_raw_file(
             id='upload-w-child-entries',
         ),
         pytest.param(
+            dict(upload_id='silly_value', expected_status_code=404),
+            id='invalid-upload_id',
+        ),
+        # Test access/permission
+        pytest.param(
             dict(
                 user=None,
                 expected_status_code=200,
@@ -261,10 +270,7 @@ def test_editing_raw_file(
             id='nologin-embargo',
         ),
         pytest.param(dict(user='user0', expected_data_len=1), id='admin-access'),
-        pytest.param(
-            dict(upload_id='silly_value', expected_status_code=404),
-            id='invalid-upload_id',
-        ),
+        # Test pagination
         pytest.param(
             dict(
                 upload_id='id_published',
@@ -457,12 +463,14 @@ def test_get_upload_entries(auth_headers, client, mongo_module, example_data, kw
             200,
             id='child-entry',
         ),
+        # Test access/permission
         pytest.param('id_embargo', 'id_embargo_1', None, 401, id='no-credentials'),
         pytest.param(
             'id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'
         ),
         pytest.param('id_embargo', 'id_embargo_1', 'user2', 403, id='no-access'),
         pytest.param('id_embargo', 'id_embargo_1', 'user0', 200, id='admin-access'),
+        # Test invalid upload/entry IDs
         pytest.param(
             'silly_value', 'id_embargo_1', 'user1', 404, id='invalid-upload_id'
         ),
@@ -763,6 +771,7 @@ def test_get_upload_rawdir_path(
             ),
             id='no-args',
         ),
+        # Test access/permission
         pytest.param(
             dict(
                 user='user2',
@@ -779,6 +788,7 @@ def test_get_upload_rawdir_path(
         pytest.param(
             dict(user='invalid', expected_status_code=401), id='invalid-credentials'
         ),
+        # Test filter by `is_processing`
         pytest.param(
             dict(
                 query_params={'is_processing': True, 'roles': 'main_author'},
@@ -803,6 +813,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-is_processing-False',
         ),
+        # Test filter by `is_published`
         pytest.param(
             dict(
                 query_params={'is_published': True},
@@ -829,6 +840,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-is_published-False',
         ),
+        # Test filter by `upload_id`
         pytest.param(
             dict(
                 query_params={'upload_id': 'id_published'},
@@ -843,6 +855,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-upload_id-multiple',
         ),
+        # Test filter by `upload_name`
         pytest.param(
             dict(
                 query_params={'upload_name': 'name_published'},
@@ -925,6 +938,7 @@ def test_get_upload_rawdir_path(
             ),
             id='filter-upload_name-fuzzy-empty',
         ),
+        # Test pagination
         pytest.param(
             dict(
                 query_params={'page_size': 2},
@@ -1001,6 +1015,7 @@ def test_get_upload_rawdir_path(
             dict(query_params={'order_by': 'upload_id'}, expected_status_code=422),
             id='pag-invalid-order_by',
         ),
+        # Test `roles`
         pytest.param(
             dict(
                 user='user2',
@@ -1120,9 +1135,541 @@ def test_get_upload_raw(
                     assert content.encode() in file_content
 
 
+def _assert_presigned_gateway_redirect(
+    location: str,
+    *,
+    path_prefix: str,
+    user_id: str,
+    expires: int = 24 * 60 * 60,
+    query_params: dict[str, str] | None = None,
+) -> None:
+    parsed = urlparse(location)
+    assert parsed.scheme == 'https'
+    assert parsed.path.startswith(path_prefix)
+    qs = parse_qs(parsed.query)
+    assert qs['X-Amz-Algorithm'] == ['AWS4-HMAC-SHA256']
+    assert qs.get('X-Amz-Credential')
+    assert qs.get('X-Amz-Date')
+    assert qs['X-Amz-Expires'] == [str(expires)]
+    assert qs.get('X-Amz-Signature')
+    assert qs['user_id'] == [user_id]
+    if query_params:
+        for key, value in query_params.items():
+            assert qs[key] == [value]
+
+
+def test_get_upload_raw_redirects_to_signed_remote_url(
+    monkeypatch, auth_headers, client, example_data
+):
+    class RemoteFS:
+        protocol = 's3'
+
+        def url(self, path, expires):
+            assert expires == 24 * 60 * 60
+            return f'https://storage.example.test/{path}?signature=test'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    assert response.headers['location'].startswith('https://storage.example.test/')
+
+
+def test_get_upload_raw_redirects_with_public_endpoint_url(
+    monkeypatch, auth_headers, client, example_data
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    class SigningFS:
+        def url(self, path, expires):
+            return f'https://nomad-lab.eu/files/signed/{path}?expires={expires}'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(NOMADFileSystem, 'signing_fs', property(lambda _: SigningFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    assert response.headers['location'].startswith('https://nomad-lab.eu/files/signed/')
+
+
+def test_get_upload_whole_zip_redirects_to_gateway(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'zip', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/zip/id_published',
+        user_id=user1.user_id,
+    )
+
+
+def test_get_upload_whole_zip_gateway_does_not_require_raw_files(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'zip', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'raw_files', False
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/zip/id_published',
+        user_id=user1.user_id,
+    )
+
+
+def test_get_upload_whole_zip_raw_files_does_not_enable_gateway_zip(
+    monkeypatch, auth_headers, client, example_data
+):
+    class RemoteFS:
+        protocol = 's3'
+
+        def url(self, path, expires):
+            return f'https://storage.example.test/{path}?signature=test'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'zip', False
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'raw_files', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    assert response.headers['location'].startswith('https://storage.example.test/')
+    assert '/files/zip/' not in response.headers['location']
+
+
+def test_get_upload_raw_compressed_root_redirects_to_gateway_zip(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'zip', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'raw_files', False
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw/?compress=true',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/zip/id_published',
+        user_id=user1.user_id,
+        query_params={'compress': 'true'},
+    )
+
+
+def test_get_upload_raw_compressed_root_redirects_to_s3(
+    monkeypatch, auth_headers, client, example_data
+):
+    class RemoteFS:
+        protocol = 's3'
+
+        def url(self, path, expires):
+            assert expires == 24 * 60 * 60
+            return f'https://storage.example.test/{path}?signature=test'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', False
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw/?compress=true',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    assert response.headers['location'].startswith('https://storage.example.test/')
+
+
+def test_get_upload_raw_file_redirects_to_gateway(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'raw_files', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw/1_1.aux?offset=100&length=200',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/file/id_published/1_1.aux',
+        user_id=user1.user_id,
+        query_params={'offset': '100', 'length': '200'},
+    )
+
+
+def test_get_upload_raw_file_overwrites_client_user_id(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'raw_files', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw/1_1.aux?user_id=victim&offset=100',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/file/id_published/1_1.aux',
+        user_id=user1.user_id,
+        query_params={'offset': '100'},
+    )
+    assert parse_qs(urlparse(response.headers['location']).query)['user_id'] != [
+        'victim'
+    ]
+
+
+def test_get_upload_whole_zip_anonymous_mints_sentinel(
+    monkeypatch, client, example_data
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'zip', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'uploads/id_published/raw',
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/zip/id_published',
+        user_id=NomadStorageGateway.ANONYMOUS_USER_ID,
+    )
+
+
+def test_get_entry_raw_redirects_to_gateway(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'raw_files', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'entries/id_01/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/zip/id_published/',
+        user_id=user1.user_id,
+    )
+
+
+def test_get_entry_archive_redirects_to_gateway(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'archives', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'entries/id_01/archive',
+        headers={**auth_headers['user1'], 'Accept': 'application/msgpack'},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/archive/id_published/id_01',
+        user_id=user1.user_id,
+        query_params={'format': 'msgpack'},
+    )
+
+
+def test_get_entry_archive_download_redirects_to_gateway(
+    monkeypatch, auth_headers, client, example_data, user1
+):
+    class RemoteFS:
+        protocol = 's3'
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects,
+        'public_endpoint_url',
+        'https://nomad-lab.eu/files',
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'archives', True
+    )
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'public'))
+
+    response = client.get(
+        'entries/id_01/archive/download',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    _assert_presigned_gateway_redirect(
+        response.headers['location'],
+        path_prefix='/files/archive/id_published/id_01',
+        user_id=user1.user_id,
+        query_params={'format': 'json'},
+    )
+
+
+def test_get_embargoed_upload_raw_does_not_redirect(
+    monkeypatch, auth_headers, client, example_data
+):
+    class RemoteFS:
+        protocol = 's3'
+
+        def open(self, path, mode):
+            return io.BytesIO(b'restricted raw ZIP')
+
+        def url(self, path, expires):
+            raise AssertionError('embargoed downloads must not use signed URLs')
+
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(PublicUploadFiles, 'storage_fs', property(lambda _: RemoteFS()))
+    monkeypatch.setattr(PublicUploadFiles, 'access', property(lambda _: 'restricted'))
+
+    response = client.get(
+        'uploads/id_embargo/raw',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert response.content == b'restricted raw ZIP'
+
+
+def test_get_upload_raw_file_gateway_disabled_streams_locally(
+    monkeypatch, auth_headers, client, example_data
+):
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', False
+    )
+
+    response = client.get(
+        'uploads/id_published/raw/test_content/subdir/test_entry_01/mainfile.json',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert not response.is_redirect
+
+
+def test_get_entry_archive_gateway_disabled_serves_json(
+    monkeypatch, auth_headers, client, example_data
+):
+    monkeypatch.setattr(config.fs.public_fs.redirects, 'enabled', True)
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'enabled', True
+    )
+    monkeypatch.setattr(
+        config.fs.public_fs.redirects.nomad_storage_gateway, 'archives', False
+    )
+
+    response = client.get(
+        'entries/id_01/archive',
+        headers=auth_headers['user1'],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert not response.is_redirect
+    assert 'data' in response.json()
+
+
 @pytest.mark.parametrize(
     'args, expected_status_code, expected_mime_type, expected_content',
     [
+        # Test unpublished file
         pytest.param(
             dict(
                 user='user1',
@@ -1168,6 +1715,7 @@ def test_get_upload_raw(
             'content',
             id='unpublished-file-admin-auth',
         ),
+        # Test published file
         pytest.param(
             dict(
                 user='user1',
@@ -1202,6 +1750,7 @@ def test_get_upload_raw(
             'content',
             id='published-file-admin-auth',
         ),
+        # Test compression
         pytest.param(
             dict(
                 user='user1',
@@ -1268,6 +1817,7 @@ def test_get_upload_raw(
             ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
             id='published-dir-compressed-root',
         ),
+        # Test failures
         pytest.param(
             dict(
                 user='user1',
@@ -1292,6 +1842,7 @@ def test_get_upload_raw(
             None,
             id='bad-path',
         ),
+        # Test query param: offset and length
         pytest.param(
             dict(
                 user='user1',
@@ -1342,6 +1893,7 @@ def test_get_upload_raw(
             'nten',
             id='published-file-offset-and-length',
         ),
+        # Test invalid query parameters
         pytest.param(
             dict(
                 user='user1',
@@ -1367,6 +1919,7 @@ def test_get_upload_raw(
             None,
             id='invalid-length',
         ),
+        # Test access/permission
         pytest.param(
             dict(
                 user=None,
@@ -1499,6 +2052,44 @@ def test_get_upload_raw_path(
                     )
 
 
+def test_get_published_raw_file_reuses_and_closes_one_zip_filesystem(
+    monkeypatch, auth_headers, client, example_data
+):
+    """Metadata lookup and streaming share one ZIP parse for a file response."""
+    opened = 0
+    closed = 0
+    original_ensure = PublicUploadFiles._ensure_zip_index
+    original_close = PublicUploadFiles.close
+
+    def tracked_ensure(self):
+        nonlocal opened
+        first_open = self._zip is None
+        result = original_ensure(self)
+        if first_open:
+            opened += 1
+        return result
+
+    def tracked_close(self):
+        nonlocal closed
+        had_index = self._zip is not None
+        original_close(self)
+        if had_index:
+            closed += 1
+
+    monkeypatch.setattr(PublicUploadFiles, '_ensure_zip_index', tracked_ensure)
+    monkeypatch.setattr(PublicUploadFiles, 'close', tracked_close)
+
+    response = client.get(
+        'uploads/id_published/raw/test_content/subdir/test_entry_01/mainfile.json',
+        headers=auth_headers['user1'],
+    )
+
+    assert response.status_code == 200
+    assert response.content
+    assert opened == 1
+    assert closed == 1
+
+
 @pytest.mark.parametrize(
     'upload_id, mainfile, user, status_code',
     [
@@ -1509,6 +2100,14 @@ def test_get_upload_raw_path(
             200,
             id='published',
         ),
+        pytest.param(
+            'id_child_entries',
+            'test_content/mainfile_w_children.json',
+            'user1',
+            200,
+            id='entry-w-child-entries',
+        ),
+        # Test failures
         pytest.param(
             'id_published',
             'test_content/doesnotexist.json',
@@ -1523,6 +2122,7 @@ def test_get_upload_raw_path(
             404,
             id='bad-upload-id',
         ),
+        # Test access/permission
         pytest.param(
             'id_unpublished',
             'test_content/id_unpublished_1/mainfile.json',
@@ -1542,14 +2142,7 @@ def test_get_upload_raw_path(
             'test_content/id_unpublished_1/mainfile.json',
             'user1',
             200,
-            id='auth',
-        ),
-        pytest.param(
-            'id_child_entries',
-            'test_content/mainfile_w_children.json',
-            'user1',
-            200,
-            id='entry-w-child-entries',
+            id='ok-with-access',
         ),
     ],
 )
@@ -1574,12 +2167,6 @@ def test_get_upload_entry_archive_mainfile(
     'upload_id, entry_id, user, status_code',
     [
         pytest.param('id_published', 'id_01', None, 200, id='published'),
-        pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
-        pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
-        pytest.param(
-            'id_unpublished', 'id_unpublished_1', None, 401, id='unpublished-nologin'
-        ),
-        pytest.param('id_unpublished', 'id_unpublished_1', 'user1', 200, id='auth'),
         pytest.param(
             'id_child_entries',
             'id_child_entries_child1',
@@ -1587,6 +2174,14 @@ def test_get_upload_entry_archive_mainfile(
             200,
             id='child-entry',
         ),
+        # Test failures
+        pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
+        pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
+        # Test access/permission
+        pytest.param(
+            'id_unpublished', 'id_unpublished_1', None, 401, id='unpublished-nologin'
+        ),
+        pytest.param('id_unpublished', 'id_unpublished_1', 'user1', 200, id='auth'),
     ],
 )
 def test_get_upload_entry_archive(

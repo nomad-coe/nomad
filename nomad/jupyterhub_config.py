@@ -120,7 +120,7 @@ c.JupyterHub.services.append(
     {
         'name': 'nomad-service',
         'admin': True,
-        'api_token': config.north.hub_service_api_token,
+        'api_token': config.north.hub_service_api_token.get_secret_value(),
     }
 )
 
@@ -134,7 +134,7 @@ c.JupyterHub.default_server_name = 'jupyter'
 
 # The public facing URL of the whole JupyterHub application. This is the address on which
 # the proxy will bind. (Default: 'http://:8000')
-c.JupyterHub.bind_url = f'http://:9000/{config.services.api_base_path.strip("/")}/north'
+c.JupyterHub.bind_url = f'http://:9000{config.services.join_path("north")}'
 
 # configure authenticator
 nomad_public_keycloak = f'{config.keycloak.public_server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'

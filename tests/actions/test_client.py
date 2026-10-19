@@ -1,7 +1,26 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import SecretStr
 
 from nomad.actions import client as client_module
 from nomad.config import config
@@ -16,7 +35,7 @@ async def test_get_client():
 
 
 class FakeRuntime:
-    def __init__(self, *, telemetry, worker_heartbeat_interval):
+    def __init__(self, *, telemetry, worker_heartbeat_interval=None):
         self.telemetry = telemetry
         self.worker_heartbeat_interval = worker_heartbeat_interval
 
@@ -26,7 +45,7 @@ async def test_get_client_reuses_runtime(monkeypatch):
     created_runtimes = []
     connect = AsyncMock(side_effect=[object(), object()])
 
-    def runtime_factory(*, telemetry, worker_heartbeat_interval):
+    def runtime_factory(*, telemetry, worker_heartbeat_interval=None):
         runtime = FakeRuntime(
             telemetry=telemetry,
             worker_heartbeat_interval=worker_heartbeat_interval,
@@ -57,7 +76,7 @@ async def test_get_client_disables_prometheus_exporter_for_app(monkeypatch):
     created_runtimes = []
     connect = AsyncMock(return_value=object())
 
-    def runtime_factory(*, telemetry, worker_heartbeat_interval):
+    def runtime_factory(*, telemetry, worker_heartbeat_interval=None):
         runtime = FakeRuntime(
             telemetry=telemetry,
             worker_heartbeat_interval=worker_heartbeat_interval,
@@ -86,7 +105,7 @@ async def test_get_client_passes_api_key_and_tls_config_basic(monkeypatch):
     monkeypatch.setattr(client_module.Client, 'connect', connect)
     monkeypatch.setattr(config.services, 'mode', ModeEnum.DEVELOPMENT)
     monkeypatch.setattr(config.telemetry.tracing, 'enabled', False)
-    monkeypatch.setattr(config.temporal, 'api_key', 'my-secret-key')
+    monkeypatch.setattr(config.temporal, 'api_key', SecretStr('my-secret-key'))
     monkeypatch.setattr(config.temporal, 'use_tls', True)
     monkeypatch.setattr(config.temporal, 'tls_client_cert', None)
     monkeypatch.setattr(config.temporal, 'tls_client_key', None)
@@ -113,7 +132,7 @@ async def test_get_client_passes_custom_tls_config(monkeypatch, tmp_path):
     monkeypatch.setattr(config.temporal, 'api_key', None)
     monkeypatch.setattr(config.temporal, 'use_tls', False)
     monkeypatch.setattr(config.temporal, 'tls_client_cert', str(cert_file))
-    monkeypatch.setattr(config.temporal, 'tls_client_key', 'raw_key_string')
+    monkeypatch.setattr(config.temporal, 'tls_client_key', SecretStr('raw_key_string'))
     monkeypatch.setattr(config.temporal, 'tls_server_root_ca_cert', None)
     monkeypatch.setattr(config.temporal, 'tls_domain', 'temporal.example.com')
 

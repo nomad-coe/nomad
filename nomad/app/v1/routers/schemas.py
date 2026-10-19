@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from enum import Enum
 from typing import Annotated
 
@@ -24,7 +25,8 @@ from fastapi.responses import JSONResponse
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
-from nomad.metainfo.util import MDefNotFound, MDefWithoutMetainfo, resolve_m_def
+from nomad.metainfo.util import MDefNotFound, MDefWithoutMetainfo
+from nomad.schemas import get_schema as get_schema_definition
 
 router = APIRouter()
 
@@ -43,7 +45,7 @@ class SerializationFormat(str, Enum):
     tags=[APITag.DEFAULT],
     summary='Return a serialization of a specific data schema.',
 )
-async def get_schema(
+def get_schema(
     _user: Annotated[User, Depends(get_current_user([Scope.SCHEMAS_READ]))],
     schema_id: Annotated[
         str,
@@ -137,7 +139,7 @@ Format for the returned schema. Available formats:
 
     # Resolve class
     try:
-        section = resolve_m_def(m_def=qualified_name)
+        section = get_schema_definition(qualified_name, tag or None)
     except MDefNotFound as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -148,13 +150,6 @@ Format for the returned schema. Available formats:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
-
-    # Check the tag if provided
-    if tag and tag != section.definition_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Tag {tag} could not be found for {qualified_name}. Note that only the tag corresponding to the most recently added definition is currently supported.',
-        )
 
     if format == SerializationFormat.JSONSCHEMA:
         return JSONResponse(

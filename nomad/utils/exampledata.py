@@ -25,6 +25,7 @@ from nomad.datamodel import EntryArchive, EntryMetadata, Results
 from nomad.datamodel.metainfo import runschema
 from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.mongo.doi import EmbeddedDOI
+from nomad.mongo.included_entries import IncludedEntries
 from nomad.normalizing import normalizers
 from nomad.processing.data import mongo_upload_metadata
 
@@ -98,7 +99,7 @@ class ExampleData:
 
         if with_es:
             archives = list(self.archives.values())
-            errors = search.index(archives, update_materials=False, refresh=True)
+            errors = search.index(archives, refresh=True)
             assert not errors, (
                 f'The following errors encountered during indexing: {errors}'
             )
@@ -213,8 +214,14 @@ class ExampleData:
             'published_to': [],
         }
         upload_dict.update(kwargs)
+
         if upload_dict.get('doi') is not None:
             upload_dict['doi'] = EmbeddedDOI(**upload_dict['doi'])
+
+        key = 'included_entries'
+        if upload_dict.get(key) is not None:
+            upload_dict[key] = IncludedEntries(**upload_dict[key])
+
         if published is not None:
             if published and not upload_dict['publish_time']:
                 upload_dict['publish_time'] = self._next_time_stamp()
@@ -379,6 +386,7 @@ class ExampleData:
         atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
 
         archive = EntryArchive()
+        assert runschema is not None
         run = runschema.run.Run()
         archive.run.append(run)
         run.m_create(runschema.run.Program, name='VASP')
@@ -435,12 +443,15 @@ def create_entry_archive(
     if metadata:
         entry_metadata = entry.m_create(EntryMetadata)
         entry_metadata.m_update(**metadata)
+
     if results:
         entry_results = Results.m_from_dict(results)
         entry.m_add_sub_section(EntryArchive.results, entry_results)
-    if run:
+
+    if run and runschema is not None:
         entry_run = runschema.run.Run.m_from_dict(run)
         entry.m_add_sub_section(EntryArchive.run, entry_run)
+
     if workflow:
         entry_workflow = Workflow.m_from_dict(workflow)
         entry.m_add_sub_section(EntryArchive.workflow2, entry_workflow)

@@ -195,18 +195,6 @@ class Theme(ConfigBaseModel):
     title: str = Field(description='Site name in the browser tab.')
 
 
-class NORTHUI(ConfigBaseModel):
-    """NORTH (NOMAD Remote Tools Hub) UI configuration."""
-
-    enabled: bool = Field(
-        True,
-        description="""
-        Whether the NORTH tools are available in the UI.
-        The default value is read from the root-level NORTH configuration.
-    """,
-    )
-
-
 class Card(ConfigBaseModel):
     """Definition for a card shown in the entry overview page."""
 
@@ -2157,10 +2145,8 @@ class App(ConfigBaseModel):
                                 search_quantity='datasets.dataset_id',
                                 options=0,
                             ),
-                            MenuItemDefinitions(),
                         ]
                     ),
-                    'optimade': Menu(items=[MenuItemOptimade()]),
                     'eln': Menu(
                         items=[
                             MenuItemTerms(
@@ -2193,7 +2179,6 @@ class App(ConfigBaseModel):
                             ),
                         ]
                     ),
-                    'custom_quantities': Menu(items=[MenuItemCustomQuantities()]),
                     'combine': MenuItemTerms(
                         search_quantity='combine',
                         options={
@@ -2257,13 +2242,3 @@ class UI(ConfigBaseModel):
         None, description='Controls the available unit systems.'
     )
     entry: Entry | None = Field(None, description='Controls the entry visualization.')
-    apps: Apps | None = Field(
-        None,
-        deprecated='The "ui.apps" field is deprecated. You should define apps either via plugins or in "plugins.entry_points.options".',
-    )
-    north: NORTHUI = Field(
-        NORTHUI(), description='NORTH (NOMAD Remote Tools Hub) UI configuration.'
-    )
-    example_uploads: ExampleUploads = Field(
-        ExampleUploads(), description='Controls the available example uploads.'
-    )

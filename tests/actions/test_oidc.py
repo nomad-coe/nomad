@@ -1,8 +1,26 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import time
 from unittest.mock import AsyncMock
 
-import httpx
+import httpx2
 import pytest
 
 from nomad.actions import oidc as oidc_module
@@ -39,7 +57,7 @@ async def test_fetch_oidc_access_token_uses_client_credentials(monkeypatch):
     response = FakeResponse({'access_token': 'token-1', 'expires_in': 60})
     fake_client = FakeHTTPClient(response)
     monkeypatch.setattr(
-        oidc_module.httpx,
+        oidc_module.httpx2,
         'AsyncClient',
         lambda **kwargs: fake_client,
     )
@@ -63,14 +81,14 @@ async def test_fetch_oidc_access_token_uses_client_credentials(monkeypatch):
         'grant_type': 'client_credentials',
         'scope': 'temporal',
     }
-    assert isinstance(call.kwargs['auth'], httpx.BasicAuth)
+    assert isinstance(call.kwargs['auth'], httpx2.BasicAuth)
 
 
 @pytest.mark.asyncio
 async def test_fetch_oidc_access_token_rejects_invalid_response(monkeypatch):
     fake_client = FakeHTTPClient(FakeResponse({'expires_in': 60}))
     monkeypatch.setattr(
-        oidc_module.httpx,
+        oidc_module.httpx2,
         'AsyncClient',
         lambda **kwargs: fake_client,
     )

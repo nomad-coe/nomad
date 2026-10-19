@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import annotations
 
 import importlib
@@ -448,11 +449,12 @@ class QuantityType(Datatype):
             return value.serialize_self()
         elif isinstance(value, Reference):
             # When requesting stable references, use this simplified serialization
-            if type(value) in {
+            stable_references = kwargs.get('stable_references', False)
+            if stable_references and type(value) in {
                 Reference,
                 QuantityReference,
                 MSectionReference,
-            } and kwargs.get('stable_references', False):
+            }:
                 target = value.target_section_def
                 type_data = f'{target.qualified_name()}@{target.definition_id}'
                 return {
@@ -464,6 +466,14 @@ class QuantityType(Datatype):
             else:
                 transform = kwargs.get('transform')
                 serialized = value.serialize_self(kwargs.get('section'))
+                if stable_references and serialized.get('type_kind') in {
+                    'reference',
+                    'quantity_reference',
+                }:
+                    target = value.target_section_def
+                    serialized['type_data'] = (
+                        f'{target.qualified_name()}@{target.definition_id}'
+                    )
                 return transform(serialized) if transform is not None else serialized
 
         raise MetainfoError(f'Type {value} is not a valid quantity type.')
@@ -765,6 +775,19 @@ def metainfo_setter(method):
     return wrapper
 
 
+# Instance-local cache fields written during hash() / graph reads. These are not
+# metainfo quantities; routing them through alias resolution is wasted work.
+_MSECTION_CACHE_ATTRS = frozenset(
+    {
+        '_cached_hash',
+        '_cached_count',
+        '_cached_def_id',
+        '_cached_short_def_ref',
+        '_cached_short_def_ref_version',
+    }
+)
+
+
 # TODO find a way to make this a subclass of collections.abs.Mapping
 class MSection(metaclass=MObjectMeta):
     """
@@ -996,6 +1019,12 @@ class MSection(metaclass=MObjectMeta):
             cast(Definition, content).__init_metainfo__()
 
     def __setattr__(self, name, value):
+        # Hash/graph caches are written in tight loops (recursive hash(), definition_id).
+        # Skip alias/variadic resolution for those known fields only — not every '_' name.
+        if name in _MSECTION_CACHE_ATTRS:
+            self.__dict__[name] = value
+            return
+
         if self.m_def is None:
             return super().__setattr__(name, value)
 
@@ -2020,14 +2049,14 @@ class MSection(metaclass=MObjectMeta):
                             yield name, serialised_dict
                         elif return_as_generator:
 
-                            def _subsection_gen():
-                                for item in subsections:
+                            def _subsection_gen(_subsections):
+                                for item in _subsections:
                                     if item is None:
                                         yield None
                                     else:
                                         yield item.m_to_dict(**kwargs)
 
-                            yield name, streamable_list(_subsection_gen())
+                            yield name, streamable_list(_subsection_gen(subsections))
                         else:
                             serialised_list: list = [
                                 None if item is None else item.m_to_dict(**kwargs)
@@ -2596,6 +2625,10 @@ class MSection(metaclass=MObjectMeta):
             'm_parent',  # will be automatically set if self is attached to something
             'm_parent_sub_section',  # will be automatically set if self is attached to something
             '_cached_hash',  # unique to each instance
+            '_cached_count',
+            '_cached_def_id',
+            '_cached_short_def_ref',
+            '_cached_short_def_ref_version',
         )
 
         new_copy = self.m_def.section_cls()
@@ -2804,6 +2837,9 @@ class Definition(MSection):
     def __init__(self, *args, **kwargs):
         self._cached_count: int | None = None
         self._cached_hash: _HASH_OBJ | None = None
+        self._cached_def_id: str | None = None
+        self._cached_short_def_ref: str | None = None
+        self._cached_short_def_ref_version: tuple[int, ...] | None = None
 
         # a definition could potentially be loaded from mongodb with an outdated hashing algorithm
         # thus the then definition ID shall be treated as a snapshot (revision) ID that may not comply
@@ -2946,6 +2982,7 @@ class Definition(MSection):
         if self._cached_hash is None or self._cached_count != self.m_mod_count:
             self._cached_count = self.m_mod_count
             self._cached_hash = default_hash()
+            self._cached_def_id = None  # Invalidate cached hex string when hash changes
             self._cached_hash.update(self._hash_seed().encode('utf-8'))
 
             for item in self.attributes:
@@ -2961,7 +2998,16 @@ class Definition(MSection):
 
         Returns the hash digest.
         """
-        return self.snapshot_id or self.hash().hexdigest()
+        if self.snapshot_id:
+            return self.snapshot_id
+        # Reuse cached hex digest if the definition version (m_mod_count) has not changed.
+        # Avoids expensive recursive SHA256 hashing on repeated graph query traversals.
+        if self._cached_def_id is not None and self._cached_count == self.m_mod_count:
+            return self._cached_def_id
+
+        digest = self.hash().hexdigest()
+        self._cached_def_id = digest
+        return digest
 
     def definition_reference(self, source):
         """
@@ -3227,7 +3273,14 @@ class Quantity(Property):
         if isinstance(value, units.Quantity):
             return value
 
-        if self.unit is not None and isinstance(self.type, Number):
+        # value is still the raw {name: MQuantity} dict when the caller didn't
+        # request one specific stored instance (no actual_name kwarg) -- there
+        # is no single magnitude here to attach a unit to.
+        if (
+            self.unit is not None
+            and isinstance(self.type, Number)
+            and not isinstance(value, dict)
+        ):
             # Note that we cannot do simple multiplication here as Pint units
             # with offsets do not support multiplication:
             # https://pint.readthedocs.io/en/stable/user/nonmult.html

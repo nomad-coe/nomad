@@ -18,14 +18,19 @@
 
 import asyncio
 import json
+import zipfile
+from contextlib import contextmanager
 from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 import pytest_asyncio
 import yaml
 
+from nomad import utils
 from nomad.datamodel import EntryArchive, ServerContext
 from nomad.datamodel.metainfo.simulation import run
+from nomad.files import PublicUploadFiles, StagingUploadFiles
 from nomad.graph.graph_reader import (
     ArchiveReader,
     EntryReader,
@@ -135,11 +140,95 @@ user3_dict = {
 }
 
 
+def test_cached_upload_counts_failed_entries():
+    from nomad.graph.lazy_wrapper import CachedUpload
+
+    # processed_entries_count includes both successful and failed entries
+    upload = CachedUpload(
+        SimpleNamespace(
+            total_entries_count=16, processed_entries_count=16, failed_entries_count=2
+        )
+    )
+
+    assert upload.n_entries == 16
+    assert upload.processing_successful == 14
+    assert upload.processing_failed == 2
+
+
+def test_rewrite_mainfile_archive_reference_with_dotted_filename():
+    from nomad.graph.graph_reader import _convert_ref_to_path_string
+
+    upload_id = 'current-upload'
+    mainfile = 'mp-999540/vasprun.xml.gz'
+    entry_id = utils.generate_entry_id(upload_id, mainfile)
+
+    assert (
+        _convert_ref_to_path_string(
+            f'../upload/archive/mainfile/{mainfile}#/workflow2', upload_id
+        )
+        == f'uploads/{upload_id}/entries/{entry_id}/archive/workflow2'
+    )
+
+
+def test_rewrite_absolute_entry_archive_reference():
+    from nomad.graph.graph_reader import _convert_ref_to_path_string
+
+    target_entry_id = 'BnTgO2-NgsazXORAyJ1tW43V6w1z'
+    assert (
+        _convert_ref_to_path_string(
+            f'/entries/{target_entry_id}/archive#/workflow2', 'parent-upload'
+        )
+        == f'uploads/parent-upload/entries/{target_entry_id}/archive/workflow2'
+    )
+
+
 def increment():
     n = 0
     while True:
         n += 1
         yield n
+
+
+@pytest.mark.parametrize(
+    ('span', 'expected_measurements'),
+    [
+        (None, 0),
+        (SimpleNamespace(is_recording=lambda: False), 0),
+        (SimpleNamespace(is_recording=lambda: True, set_attribute=lambda *_: None), 1),
+    ],
+    ids=['tracing-disabled', 'unsampled', 'sampled'],
+)
+def test_load_archive_measures_reads_only_for_recording_spans(
+    monkeypatch, span, expected_measurements
+):
+    measurements = []
+
+    @contextmanager
+    def fake_trace_span(*args, **kwargs):
+        yield span
+
+    @contextmanager
+    def fake_measure_fs_reads():
+        measurements.append(True)
+        yield SimpleNamespace(read_bytes=10, read_time=0.001)
+
+    class UploadFiles:
+        @contextmanager
+        def read_archive(self, entry_id):
+            yield {entry_id: {'value': 1}}
+
+    monkeypatch.setattr('nomad.graph.graph_reader.trace_span', fake_trace_span)
+    monkeypatch.setattr(
+        'nomad.graph.graph_reader.measure_fs_reads', fake_measure_fs_reads
+    )
+
+    reader = ArchiveReader({})
+    reader.upload_pool['upload-id'] = UploadFiles()
+
+    with reader.load_archive('upload-id', 'entry-id') as archive:
+        assert archive == {'value': 1}
+
+    assert len(measurements) == expected_measurements
 
 
 @pytest.mark.asyncio
@@ -197,6 +286,215 @@ async def test_definition_resolution_is_cached_per_graph_request(monkeypatch):
 
     assert upload_calls == [('upload-id', None, True)]
     assert fetch_calls == [('First', 'first-id'), ('Second', 'second-id')]
+
+
+def test_duplicate_graph_errors_are_not_logged_repeatedly(monkeypatch):
+    from types import SimpleNamespace
+
+    debug_messages = []
+    monkeypatch.setattr(
+        'nomad.graph.graph_reader.logger',
+        SimpleNamespace(debug=debug_messages.append),
+    )
+
+    with ArchiveReader({}) as reader:
+        reader._log('Definition value is not found.')
+        reader._log('Definition value is not found.')
+        reader._log('Definition other is not found.')
+
+        assert reader.errors == {
+            'GENERAL': {
+                'Definition value is not found.',
+                'Definition other is not found.',
+            }
+        }
+
+    assert debug_messages == [
+        'Definition value is not found.',
+        'Definition other is not found.',
+    ]
+
+
+def test_short_definition_references_are_cached_per_graph_request():
+    from nomad.graph.graph_reader import _get_short_definition_reference
+
+    class RuntimeDefinition:
+        """Slots-only stand-in so Level 1 cannot store instance cache fields."""
+
+        __slots__ = ('definition_id', 'qualified_name_calls')
+
+        def __init__(self):
+            self.definition_id = 'definition-id'
+            self.qualified_name_calls = 0
+
+        def qualified_name(self):
+            self.qualified_name_calls += 1
+            return 'package.Section'
+
+    definition = RuntimeDefinition()
+    with ArchiveReader({}) as reader:
+        cache = reader._reader_cache
+        expected = 'package.Section@definition-id'
+
+        assert _get_short_definition_reference(cache, definition) == expected
+        assert _get_short_definition_reference(cache, definition) == expected
+        assert definition.qualified_name_calls == 1
+        assert cache.short_definition_references[id(definition)][0] is definition
+
+
+def test_short_definition_references_are_cached_across_requests():
+    from nomad.graph.graph_reader import _get_short_definition_reference
+
+    class RuntimeDefinition:
+        definition_id = 'definition-id'
+        qualified_name_calls = 0
+        m_mod_count = 0
+
+        def qualified_name(self):
+            self.qualified_name_calls += 1
+            return 'package.Section'
+
+    definition = RuntimeDefinition()
+    expected = 'package.Section@definition-id'
+
+    # Request 1
+    with ArchiveReader({}) as reader1:
+        assert (
+            _get_short_definition_reference(reader1._reader_cache, definition)
+            == expected
+        )
+        assert definition.qualified_name_calls == 1
+
+    # Request 2 (different reader and fresh reader cache)
+    with ArchiveReader({}) as reader2:
+        assert (
+            _get_short_definition_reference(reader2._reader_cache, definition)
+            == expected
+        )
+        # Should hit definition-level cache without calling qualified_name again
+        assert definition.qualified_name_calls == 1
+
+    # Modification invalidates definition-level cache
+    definition.m_mod_count += 1
+    definition.definition_id = 'definition-id-v2'
+    expected_v2 = 'package.Section@definition-id-v2'
+
+    with ArchiveReader({}) as reader3:
+        assert (
+            _get_short_definition_reference(reader3._reader_cache, definition)
+            == expected_v2
+        )
+        assert definition.qualified_name_calls == 2
+
+
+def test_short_definition_references_invalidate_on_ancestor_rename():
+    from nomad.graph.graph_reader import _get_short_definition_reference
+    from nomad.metainfo import Package, Section
+
+    package = Package(name='short_ref_ancestor_v1')
+    section = Section(name='MySection')
+    package.m_add_sub_section(Package.section_definitions, section)
+
+    with ArchiveReader({}) as reader1:
+        ref_v1 = _get_short_definition_reference(reader1._reader_cache, section)
+    assert ref_v1.startswith('short_ref_ancestor_v1.MySection@')
+
+    # Renaming the package bumps only the package's m_mod_count, not the child's.
+    package.name = 'short_ref_ancestor_v2'
+
+    with ArchiveReader({}) as reader2:
+        ref_v2 = _get_short_definition_reference(reader2._reader_cache, section)
+    assert ref_v2.startswith('short_ref_ancestor_v2.MySection@')
+    assert ref_v2 != ref_v1
+
+
+def test_metainfo_property_definitions_are_cached_per_graph_request():
+    from types import SimpleNamespace
+
+    from nomad.graph.graph_reader import _get_property_definition
+
+    child_definition = object()
+
+    class RuntimeDefinition:
+        all_properties = {'child': child_definition}
+        resolve_calls = 0
+
+        def m_resolved(self):
+            self.resolve_calls += 1
+            return self
+
+    definition = RuntimeDefinition()
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload-id',
+            entry_id='entry-id',
+            current_path=[],
+            result_root={},
+            ref_result_root={},
+            archive=SimpleNamespace(m_def=None),
+            archive_root={},
+            definition=definition,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+
+        assert _get_property_definition(node, 'child') is child_definition
+        assert _get_property_definition(node, 'child') is child_definition
+        assert definition.resolve_calls == 1
+
+
+def test_fast_request_config_copy_matches_validated_copy_and_resets_hash():
+    from nomad.graph.graph_reader import _copy_request_config
+    from nomad.graph.model import DirectiveType, RequestConfig
+
+    parent = RequestConfig(
+        directive=DirectiveType.resolved,
+        include=frozenset({'value'}),
+        index=(0,),
+    )
+    parent_hash = parent.hash
+
+    child = _copy_request_config(
+        parent,
+        property_name='child',
+        include=frozenset({'*'}),
+        exclude=None,
+        index=None,
+    )
+    validated_child = parent.new(
+        {
+            'property_name': 'child',
+            'include': ['*'],
+            'exclude': None,
+            'index': None,
+        }
+    )
+
+    assert child.model_dump() == validated_child.model_dump()
+    assert child.hash != parent_hash
+
+
+def test_fast_request_config_copy_uses_supported_path_for_subclasses():
+    from pydantic import ConfigDict, PrivateAttr
+
+    from nomad.graph.graph_reader import _copy_request_config
+    from nomad.graph.model import RequestConfig
+
+    class ExtendedRequestConfig(RequestConfig):
+        model_config = ConfigDict(extra='allow')
+        extra_field: str = 'default'
+        _private_state: list[str] = PrivateAttr(default_factory=list)
+
+    parent = ExtendedRequestConfig(extra_field='custom', extension='preserved')
+    parent._private_state.append('preserved')
+    child = _copy_request_config(parent, property_name='child')
+
+    assert type(child) is ExtendedRequestConfig
+    assert child.extra_field == 'custom'
+    assert child.extension == 'preserved'
+    assert child._private_state == ['preserved']
+    assert child.property_name == 'child'
 
 
 counter = increment()
@@ -313,6 +611,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'embargo_length': 0,
                     'license': 'CC BY 4.0',
                     'n_entries': 6,
+                    'included_entries': None,
                     'upload_files_server_path': 'id_published_with_ref',
                 }
             },
@@ -372,6 +671,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'embargo_length': 0,
                     'license': 'CC BY 4.0',
                     'n_entries': 6,
+                    'included_entries': None,
                     'upload_files_server_path': 'id_published_with_ref',
                 }
             },
@@ -578,6 +878,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'embargo_length': 0,
                     'license': 'CC BY 4.0',
                     'n_entries': 6,
+                    'included_entries': None,
                     'upload_files_server_path': 'id_published_with_ref',
                     Token.ENTRIES: {
                         'id_01': {
@@ -742,6 +1043,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'embargo_length': 0,
                     'license': 'CC BY 4.0',
                     'n_entries': 6,
+                    'included_entries': None,
                     'upload_files_server_path': 'id_published_with_ref',
                     Token.ENTRIES: {
                         'id_02': {
@@ -854,6 +1156,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                                 'embargo_length': 0,
                                 'license': 'CC BY 4.0',
                                 'n_entries': 6,
+                                'included_entries': None,
                                 'upload_files_server_path': 'id_published_with_ref',
                             },
                         }
@@ -984,6 +1287,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'processing_successful': 6,
             'license': 'CC BY 4.0',
             'n_entries': 6,
+            'included_entries': None,
             'upload_files_server_path': 'id_published_with_ref',
         },
     )
@@ -1032,6 +1336,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'processing_successful': 6,
             'license': 'CC BY 4.0',
             'n_entries': 6,
+            'included_entries': None,
             'upload_files_server_path': 'id_published_with_ref',
             Token.RAW: {
                 'm_is': 'Directory',
@@ -1124,6 +1429,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'embargo_length': 0,
             'license': 'CC BY 4.0',
             'n_entries': 6,
+            'included_entries': None,
             'processing_failed': 0,
             'processing_successful': 6,
             'upload_files_server_path': 'id_published_with_ref',
@@ -1169,6 +1475,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'embargo_length': 0,
             'license': 'CC BY 4.0',
             'n_entries': 6,
+            'included_entries': None,
             'processing_failed': 0,
             'processing_successful': 6,
             'upload_files_server_path': 'id_published_with_ref',
@@ -1201,6 +1508,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'embargo_length': 0,
                 'license': 'CC BY 4.0',
                 'n_entries': 6,
+                'included_entries': None,
                 'processing_failed': 0,
                 'processing_successful': 6,
                 'upload_files_server_path': 'id_published_with_ref',
@@ -1255,6 +1563,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'embargo_length': 0,
                 'license': 'CC BY 4.0',
                 'n_entries': 6,
+                'included_entries': None,
                 'processing_failed': 0,
                 'processing_successful': 6,
                 'upload_files_server_path': 'id_published_with_ref',
@@ -1327,6 +1636,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             'embargo_length': 0,
             'license': 'CC BY 4.0',
             'n_entries': 6,
+            'included_entries': None,
             'processing_failed': 0,
             'processing_successful': 6,
             'upload_files_server_path': 'id_published_with_ref',
@@ -1739,6 +2049,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'processing_successful': 6,
                 'license': 'CC BY 4.0',
                 'n_entries': 6,
+                'included_entries': None,
                 'upload_files_server_path': 'id_published_with_ref',
             },
         },
@@ -1800,6 +2111,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                 'embargo_length': 0,
                 'license': 'CC BY 4.0',
                 'n_entries': 6,
+                'included_entries': None,
                 'processing_failed': 0,
                 'processing_successful': 6,
                 'upload_files_server_path': 'id_published_with_ref',
@@ -2153,6 +2465,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                         'processing_failed': 0,
                         'processing_successful': 6,
                         'n_entries': 6,
+                        'included_entries': None,
                         'upload_files_server_path': 'id_published_with_ref',
                     }
                 },
@@ -2242,6 +2555,7 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                         'embargo_length': 0,
                         'license': 'CC BY 4.0',
                         'n_entries': 6,
+                        'included_entries': None,
                         'processing_failed': 0,
                         'processing_successful': 6,
                         'upload_files_server_path': 'id_published_with_ref',
@@ -2766,6 +3080,7 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
                     'embargo_length': 0,
                     'license': 'CC BY 4.0',
                     'n_entries': 6,
+                    'included_entries': None,
                     'processing_failed': 0,
                     'processing_successful': 6,
                     'upload_files_server_path': 'id_published_with_ref',
@@ -2840,6 +3155,7 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
                     'embargo_length': 0,
                     'license': 'CC BY 4.0',
                     'n_entries': 6,
+                    'included_entries': None,
                     'processing_failed': 0,
                     'processing_successful': 6,
                     'upload_files_server_path': 'id_published_with_ref',
@@ -4613,6 +4929,160 @@ def test_file_system_reader_resolved_directory_uses_batch_lookup(
     assert response['mainfile_for_id_02']['entry']['entry_id'] == 'id_02'
 
 
+def test_file_system_reader_plain_listing(user1, example_data_with_reference):
+    required = {
+        'm_request': {
+            'directive': 'plain',
+        }
+    }
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published_with_ref')
+        assert 'id_published_with_ref' in reader.upload_pool
+        assert response['m_is'] == 'Directory'
+        assert response['1.aux'] == {'path': '1.aux', 'm_is': 'File', 'size': 8}
+        assert response['mainfile_for_id_01']['m_is'] == 'File'
+        assert response['mainfile_for_id_01']['size'] == 3227
+
+
+def test_file_system_reader_pools_and_closes_published_zip(user1, example_data):
+    required = {
+        'm_request': {
+            'directive': 'plain',
+            'depth': 2,
+        }
+    }
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published')
+        assert 'id_published' in reader.upload_pool
+        upload_files = reader.upload_pool['id_published']
+        assert isinstance(upload_files, PublicUploadFiles)
+        assert upload_files._zip is not None
+        assert response['m_is'] == 'Directory'
+        assert 'test_content' in response
+
+    assert upload_files._zip is None
+
+
+def test_file_system_reader_reuses_zip_index_across_queries(
+    monkeypatch, tmp_path, user1, example_data
+):
+    from nomad.config import config
+
+    monkeypatch.setattr(config.fs.public_fs.metadata_cache, 'enabled', True)
+    monkeypatch.setattr(config.fs.public_fs.metadata_cache, 'directory', str(tmp_path))
+
+    zipfile_calls = {'n': 0}
+    original_zipfile = zipfile.ZipFile
+
+    class CountingZipFile(original_zipfile):
+        def __init__(self, *args, **kwargs):
+            zipfile_calls['n'] += 1
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(zipfile, 'ZipFile', CountingZipFile)
+
+    required = {
+        'm_request': {
+            'directive': 'plain',
+            'depth': 2,
+        }
+    }
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published')
+        upload_files = reader.upload_pool['id_published']
+        assert response['m_is'] == 'Directory'
+        assert upload_files._zip is not None
+    assert upload_files._zip is None
+    first_parses = zipfile_calls['n']
+    assert first_parses >= 1
+
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published')
+        upload_files = reader.upload_pool['id_published']
+        assert response['m_is'] == 'Directory'
+        assert 'test_content' in response
+        assert upload_files._zip is not None
+    assert zipfile_calls['n'] == first_parses
+
+
+def test_file_system_reader_reuses_archive_toc_across_queries(
+    monkeypatch, tmp_path, user1, example_data
+):
+    from nomad.archive.utils import check_archive_version as original_check
+    from nomad.config import config
+
+    monkeypatch.setattr(config.fs.public_fs.metadata_cache, 'enabled', True)
+    monkeypatch.setattr(config.fs.public_fs.metadata_cache, 'directory', str(tmp_path))
+
+    version_calls = {'n': 0}
+
+    def counting_check(file_or_path, *args, **kwargs):
+        version_calls['n'] += 1
+        return original_check(file_or_path, *args, **kwargs)
+
+    monkeypatch.setattr('nomad.files.archive_toc.check_archive_version', counting_check)
+
+    required = {
+        'm_request': {'directive': 'plain'},
+        Token.ARCHIVE: {
+            'metadata': {
+                'm_request': {'directive': 'plain', 'include': ['entry_id']},
+            }
+        },
+    }
+
+    with EntryReader(required, user=user1) as reader:
+        first = reader.sync_read('id_01')
+    first_calls = version_calls['n']
+    assert first_calls >= 1
+
+    with EntryReader(required, user=user1) as reader:
+        second = reader.sync_read('id_03')
+    assert version_calls['n'] == first_calls
+    assert first['archive']['metadata']['entry_id'] == 'id_01'
+    assert second['archive']['metadata']['entry_id'] == 'id_03'
+
+
+def test_file_system_reader_reuses_zip_index_across_queries_with_ref(
+    monkeypatch, tmp_path, user1, example_data_with_reference
+):
+    from nomad.config import config
+
+    monkeypatch.setattr(config.fs.public_fs.metadata_cache, 'enabled', True)
+    monkeypatch.setattr(config.fs.public_fs.metadata_cache, 'directory', str(tmp_path))
+
+    zipfile_calls = {'n': 0}
+    original_zipfile = zipfile.ZipFile
+
+    class CountingZipFile(original_zipfile):
+        def __init__(self, *args, **kwargs):
+            zipfile_calls['n'] += 1
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(zipfile, 'ZipFile', CountingZipFile)
+
+    required = {
+        'm_request': {
+            'directive': 'plain',
+            'depth': 2,
+        }
+    }
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published_with_ref')
+        upload_files = reader.upload_pool['id_published_with_ref']
+        assert response['m_is'] == 'Directory'
+        assert isinstance(upload_files, StagingUploadFiles)
+        assert 'mainfile_for_id_01' in response
+    assert zipfile_calls['n'] == 0
+
+    with FileSystemReader(required, user=user1) as reader:
+        response = reader.sync_read('id_published_with_ref')
+        upload_files = reader.upload_pool['id_published_with_ref']
+        assert response['m_is'] == 'Directory'
+        assert 'mainfile_for_id_01' in response
+    assert zipfile_calls['n'] == 0
+
+
 def test_entry_reader_retrieve_entry_does_not_call_perform_search(
     monkeypatch, user1, example_data_with_reference
 ):
@@ -4827,3 +5297,617 @@ def test_m_def_format_short_with_explicit_m_def(user1, custom_data):
     assert 'MySection' in m_def_value
     # Other quantities should still be present
     assert archive_data['my_quantity'] == 'test_value'
+
+
+def test_archive_reader_filtered_v3_lazy_reader():
+    """Regression test: v3 combined archives return msglc.LazyReader for entry archives.
+
+    Ensure ArchiveReader respects include/exclude filters on LazyReader and does
+    not treat it as a primitive value that gets copied wholesale.
+    """
+    from io import BytesIO
+
+    from msglc import FileInfo, LazyReader, combine, dump
+
+    target = BytesIO()
+
+    def generate_entries():
+        buf = BytesIO()
+        dump(
+            buf,
+            {
+                'entry_id_1': {
+                    'metadata': {
+                        'upload_id': 'upload_id_1',
+                        'entry_id': 'entry_id_1',
+                        'mainfile': 'test.json',
+                    },
+                    'results': {
+                        'material': {
+                            'chemical_formula_reduced': 'H2O',
+                        },
+                    },
+                }
+            },
+            backend='rust',
+        )
+        buf.seek(0)
+        with LazyReader(buf) as r:
+            yield FileInfo(None, 'entry_id_1', obj=r['entry_id_1'])
+
+    combine(target, generate_entries(), backend='rust')
+    target.seek(0)
+
+    with LazyReader(target) as combined_reader:
+        entry = combined_reader['entry_id_1'].unwrap()
+        assert not isinstance(entry, LazyReader)
+
+        # 1. exclude: ['*'] should return empty dict
+        with ArchiveReader(
+            {'m_request': {'directive': 'plain', 'exclude': ['*']}}
+        ) as reader:
+            res = reader.sync_read(entry)
+            assert res == {}, f'Expected empty dict, got {res}'
+
+        # 2. include: ['results'] should only contain results, not metadata
+        with ArchiveReader(
+            {'m_request': {'directive': 'plain', 'include': ['results']}}
+        ) as reader:
+            res = reader.sync_read(entry)
+            assert 'metadata' not in res
+            assert res.get('results') == {
+                'material': {
+                    'chemical_formula_reduced': 'H2O',
+                },
+            }
+
+        # 3. exclude: ['metadata'] should omit metadata
+        with ArchiveReader(
+            {'m_request': {'directive': 'plain', 'exclude': ['metadata']}}
+        ) as reader:
+            res = reader.sync_read(entry)
+            assert 'metadata' not in res
+            assert 'results' in res
+
+        # 4. Filtered subsection query on metadata
+        with ArchiveReader(
+            {
+                'metadata': {
+                    'm_request': {
+                        'directive': 'plain',
+                        'include': ['entry_id'],
+                    }
+                }
+            }
+        ) as reader:
+            res = reader.sync_read(entry)
+            assert res == {'metadata': {'entry_id': 'entry_id_1'}}, f'Got {res}'
+
+
+def test_archive_reader_resolves_repeated_subsection_definition_once(monkeypatch):
+    from nomad.graph.model import DirectiveType, RequestConfig
+    from nomad.metainfo import MSection, Package, SubSection
+
+    m_package = Package(name='test_repeated_subsection_definition')
+
+    class Child(MSection):
+        pass
+
+    class Parent(MSection):
+        children = SubSection(section_def=Child, repeats=True)
+
+    m_package.__init_metainfo__()
+    original_m_resolved = MSection.m_resolved
+    resolution_count = 0
+
+    def count_child_resolution(definition):
+        nonlocal resolution_count
+        if definition is Child.m_def:
+            resolution_count += 1
+        return original_m_resolved(definition)
+
+    monkeypatch.setattr(MSection, 'm_resolved', count_child_resolution)
+    children = [{}, {}, {}]
+    result = {}
+
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload',
+            entry_id='entry',
+            current_path=['children'],
+            result_root=result,
+            ref_result_root=result,
+            archive=children,
+            archive_root={'children': children},
+            definition=Parent.children,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+        asyncio.run(
+            reader._resolve(node, RequestConfig(directive=DirectiveType.resolved))
+        )
+
+    assert result == {'children': []}
+    assert resolution_count == 1
+
+
+def test_archive_reader_plain_subsection_does_not_resolve_definition(monkeypatch):
+    from nomad.graph.model import DirectiveType, RequestConfig
+    from nomad.metainfo import MSection, Package, Quantity, SubSection
+
+    m_package = Package(name='test_plain_subsection_definition')
+
+    class Child(MSection):
+        value = Quantity(type=str)
+
+    class Parent(MSection):
+        child = SubSection(section_def=Child)
+
+    m_package.__init_metainfo__()
+    original_m_resolved = MSection.m_resolved
+    resolution_count = 0
+
+    def count_child_resolution(definition):
+        nonlocal resolution_count
+        if definition is Child.m_def:
+            resolution_count += 1
+        return original_m_resolved(definition)
+
+    monkeypatch.setattr(MSection, 'm_resolved', count_child_resolution)
+    archive = {'child': {'value': 'test'}}
+    result = {}
+
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload',
+            entry_id='entry',
+            current_path=[],
+            result_root=result,
+            ref_result_root=result,
+            archive=archive,
+            archive_root=archive,
+            definition=Parent.m_def,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+        asyncio.run(reader._resolve(node, RequestConfig(directive=DirectiveType.plain)))
+
+    assert result == archive
+    assert resolution_count == 0
+
+
+def test_archive_reader_direct_containers_preserve_filtered_results():
+    archive = {
+        'metadata': {
+            'entry_id': 'entry',
+            'upload_id': 'upload',
+            'quantities': ['first', 'second'],
+            'text_search_contents': [],
+        }
+    }
+
+    with ArchiveReader(
+        {
+            'metadata': {
+                'm_request': {
+                    'directive': 'plain',
+                    'include': ['does_not_exist'],
+                }
+            }
+        }
+    ) as reader:
+        assert reader.sync_read(archive) == {}
+
+    with ArchiveReader(
+        {
+            'metadata': {
+                'm_request': {
+                    'directive': 'plain',
+                    'max_list_size': 1,
+                }
+            }
+        }
+    ) as reader:
+        assert reader.sync_read(archive) == {
+            'metadata': {
+                'entry_id': 'entry',
+                'upload_id': 'upload',
+                'quantities': (
+                    '__INTERNAL__:../uploads/upload/archive/entry#/metadata/quantities'
+                ),
+                'text_search_contents': [],
+            }
+        }
+
+    with ArchiveReader(
+        {
+            'metadata': {
+                'm_request': {
+                    'directive': 'plain',
+                    'include': ['text_search_contents'],
+                    'depth': 1,
+                }
+            }
+        }
+    ) as reader:
+        # an empty container is not replaced by a reference
+        assert reader.sync_read(archive) == {'metadata': {'text_search_contents': []}}
+
+
+def test_archive_reader_result_containers_do_not_alias_the_source_archive():
+    archive = {
+        'metadata': {
+            'entry_id': 'entry',
+            'upload_id': 'upload',
+            'quantities': ['first', 'second'],
+        }
+    }
+
+    with ArchiveReader({'metadata': '*'}) as reader:
+        result = reader.sync_read(archive)
+
+    result['metadata']['result_only'] = True
+    assert 'result_only' not in archive['metadata']
+
+
+def test_archive_reader_discards_container_pointer_after_reference_root_switch():
+    archive = {
+        'metadata': {'entry_id': 'entry', 'upload_id': 'upload'},
+        'run': [
+            {
+                'system': [{'atoms': {'labels': ['H']}}],
+                'calculation': [{'system_ref': '/run/0/system/0'}],
+            }
+        ],
+    }
+    query = {
+        'run[0]': {
+            'calculation[0]': {
+                'm_request': {
+                    'directive': 'resolved',
+                    'include': ['system_ref'],
+                }
+            }
+        }
+    }
+
+    with ArchiveReader(query) as reader:
+        assert reader.sync_read(archive) == {
+            'run': [
+                {
+                    'calculation': [
+                        {
+                            'system_ref': (
+                                'uploads/upload/entries/entry/archive/run/0/system/0'
+                            )
+                        }
+                    ]
+                }
+            ],
+            'uploads': {
+                'upload': {
+                    'entries': {
+                        'entry': {
+                            'archive': {
+                                'run': [{'system': [{'atoms': {'labels': ['H']}}]}]
+                            }
+                        }
+                    }
+                }
+            },
+        }
+
+
+def test_archive_reader_json_and_any_quantities():
+    """Ensure JSON and Any quantities with dict values are resolved correctly
+    without treating inner dictionary keys as Section definitions and without
+    triggering Section.__getattr__('type') lookups.
+    """
+    from unittest.mock import patch
+
+    from nomad.graph.graph_reader import RequestConfig, ResultCursor
+    from nomad.metainfo import MSection, Package, Quantity, SubSection
+    from nomad.metainfo.data_type import JSON, Any
+
+    m_package = Package(name='test_package_json_any')
+
+    class SubSectionData(MSection):
+        sub_prop = Quantity(type=str)
+
+    class MySectionData(MSection):
+        json_quantity = Quantity(type=JSON)
+        any_quantity = Quantity(type=Any)
+        str_quantity = Quantity(type=str)
+        sub = SubSection(section_def=SubSectionData)
+
+    m_package.__init_metainfo__()
+
+    archive_data = {
+        'json_quantity': {'k': 'v', 'nested': {'num': 123}},
+        'any_quantity': {'any_k': [1, 2], 'flag': True},
+        'str_quantity': 'test_str',
+        'sub': {'sub_prop': 'sub_val'},
+    }
+
+    # 1. Full resolve: verify dict-valued JSON and Any quantities resolve properly
+    result = {}
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload_1',
+            entry_id='entry_1',
+            current_path=['data'],
+            result_root=result,
+            ref_result_root=result,
+            archive=archive_data,
+            archive_root={'data': archive_data},
+            definition=MySectionData.m_def,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+            result_cursor=ResultCursor.from_path(result, ['data']),
+        )
+        asyncio.run(reader._resolve(node, RequestConfig()))
+
+    data = result['data']
+    assert data['json_quantity'] == {'k': 'v', 'nested': {'num': 123}}
+    assert data['any_quantity'] == {'any_k': [1, 2], 'flag': True}
+    assert data['str_quantity'] == 'test_str'
+    assert data['sub']['sub_prop'] == 'sub_val'
+
+    # 2. Stripping: verify container size limit stripping works for dict quantities
+    result_stripped = {}
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload_1',
+            entry_id='entry_1',
+            current_path=['data'],
+            result_root=result_stripped,
+            ref_result_root=result_stripped,
+            archive=archive_data,
+            archive_root={'data': archive_data},
+            definition=MySectionData.m_def,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+            result_cursor=ResultCursor.from_path(result_stripped, ['data']),
+        )
+        asyncio.run(reader._resolve(node, RequestConfig(max_dict_size=1)))
+
+    data_stripped = result_stripped['data']
+    assert data_stripped['json_quantity'].startswith('__INTERNAL__:')
+    assert data_stripped['any_quantity'].startswith('__INTERNAL__:')
+    assert data_stripped['str_quantity'] == 'test_str'
+
+    # 3. Regression test: Section.__getattr__ is never called with 'type'
+    original_getattr = MSection.__getattr__
+    type_lookups = []
+
+    def mock_getattr(self, name):
+        if name == 'type':
+            type_lookups.append(name)
+        return original_getattr(self, name)
+
+    with patch.object(MSection, '__getattr__', mock_getattr):
+        result_perf = {}
+        with ArchiveReader({}) as reader:
+            node = GraphNode(
+                upload_id='upload_1',
+                entry_id='entry_1',
+                current_path=['data'],
+                result_root=result_perf,
+                ref_result_root=result_perf,
+                archive=archive_data,
+                archive_root={'data': archive_data},
+                definition=MySectionData.m_def,
+                visited_path=set(),
+                current_depth=0,
+                reader=reader,
+                result_cursor=ResultCursor.from_path(result_perf, ['data']),
+            )
+            asyncio.run(reader._resolve(node, RequestConfig()))
+
+        assert len(type_lookups) == 0, (
+            f"Expected 0 'type' lookups on Section, got {len(type_lookups)}"
+        )
+
+
+def test_archive_reader_quantity_fast_path_preserves_definition_output():
+    from nomad.graph.model import DirectiveType, MDefFormatType, RequestConfig
+    from nomad.metainfo import MSection, Package, Quantity
+    from nomad.metainfo.data_type import JSON
+
+    m_package = Package(name='test_quantity_fast_path_definition')
+
+    class MySection(MSection):
+        payload = Quantity(type=JSON)
+
+    m_package.__init_metainfo__()
+    archive = {'payload': {'key': 'value'}}
+    result = {}
+
+    with ArchiveReader({}) as reader:
+        node = GraphNode(
+            upload_id='upload',
+            entry_id='entry',
+            current_path=['data'],
+            result_root=result,
+            ref_result_root=result,
+            archive=archive,
+            archive_root={'data': archive},
+            definition=MySection.m_def,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+        asyncio.run(
+            reader._resolve(
+                node,
+                RequestConfig(
+                    directive=DirectiveType.resolved,
+                    m_def_format=MDefFormatType.short,
+                ),
+            )
+        )
+
+    assert result['data']['payload']['key'] == 'value'
+    assert result['data']['payload']['m_def'].startswith(
+        f'{MySection.payload.qualified_name()}@'
+    )
+
+
+def test_archive_reader_quantity_fast_path_uses_child_resolver_config():
+    from nomad.graph.model import DirectiveType, RequestConfig
+    from nomad.metainfo import MSection, Package, Quantity
+
+    m_package = Package(name='test_quantity_fast_path_resolver_config')
+
+    class MySection(MSection):
+        main_author = Quantity(type=str)
+
+    m_package.__init_metainfo__()
+    archive = {'main_author': 'user-id'}
+    result = {}
+    resolver_properties = []
+
+    with ArchiveReader({}) as reader:
+        apply_resolver = reader._apply_resolver
+
+        async def record_resolver(node, config):
+            resolver_properties.append(config.property_name)
+            return await apply_resolver(node, config)
+
+        reader._apply_resolver = record_resolver
+        node = GraphNode(
+            upload_id='upload',
+            entry_id='entry',
+            current_path=['data'],
+            result_root=result,
+            ref_result_root=result,
+            archive=archive,
+            archive_root={'data': archive},
+            definition=MySection.m_def,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+        asyncio.run(
+            reader._resolve(node, RequestConfig(directive=DirectiveType.resolved))
+        )
+
+    assert result == {'data': {'main_author': 'user-id'}}
+    assert resolver_properties == ['main_author']
+
+
+def test_archive_reader_quantity_fast_path_skips_resolver_for_lists():
+    from nomad.graph.model import DirectiveType, RequestConfig, ResolveType
+    from nomad.metainfo import MSection, Package, Quantity
+
+    m_package = Package(name='test_quantity_fast_path_list_resolver')
+
+    class MySection(MSection):
+        identifiers = Quantity(type=str, shape=['*'])
+
+    m_package.__init_metainfo__()
+    archive = {'identifiers': ['first', 'second']}
+    result = {}
+
+    with ArchiveReader({}) as reader:
+
+        async def unexpected_resolver(*args, **kwargs):
+            pytest.fail('list-valued quantities must bypass the value resolver')
+
+        reader._apply_resolver = unexpected_resolver
+        node = GraphNode(
+            upload_id='upload',
+            entry_id='entry',
+            current_path=['data'],
+            result_root=result,
+            ref_result_root=result,
+            archive=archive,
+            archive_root={'data': archive},
+            definition=MySection.m_def,
+            visited_path=set(),
+            current_depth=0,
+            reader=reader,
+        )
+        asyncio.run(
+            reader._resolve(
+                node,
+                RequestConfig(
+                    directive=DirectiveType.resolved,
+                    resolve_type=ResolveType.user,
+                ),
+            )
+        )
+
+    assert result == {'data': {'identifiers': ['first', 'second']}}
+
+
+def test_archive_reader_subsection_plain_wildcard_filters_unknown_properties():
+    archive = {
+        'metadata': {
+            'entry_id': 'entry_1',
+            'upload_id': 'upload_1',
+            'quantities': ['q1', 'q2'],
+            'not_in_definition': 'must not leak',
+        },
+        'run': [
+            {
+                'calculation': [
+                    {'energy': {'total': {'value': 1.0}}},
+                    {
+                        'energy': {
+                            'total': {'value': 2.0},
+                            'nested_not_in_definition': 'plain child remains atomic',
+                        },
+                        'not_in_definition': 'must not leak',
+                    },
+                ]
+            }
+        ],
+    }
+
+    query = {
+        'metadata': '*',
+        'run[0]': {
+            'calculation[-1]': '*',
+        },
+    }
+
+    with ArchiveReader(query) as reader:
+        result = reader.sync_read(archive)
+
+    assert result == {
+        'm_errors': [
+            {
+                'error_type': 'GENERAL',
+                'message': 'Definition not_in_definition is not found.',
+            }
+        ],
+        'metadata': {
+            'entry_id': 'entry_1',
+            'upload_id': 'upload_1',
+            'quantities': ['q1', 'q2'],
+        },
+        'run': [
+            {
+                'calculation': [
+                    None,
+                    {
+                        'energy': {
+                            'total': {'value': 2.0},
+                            'nested_not_in_definition': 'plain child remains atomic',
+                        }
+                    },
+                ]
+            }
+        ],
+    }
+
+    # Verify no container aliasing
+    result['metadata']['result_only'] = True
+    result['run'][0]['calculation'][1]['result_only'] = True
+    assert 'result_only' not in archive['metadata']
+    assert 'result_only' not in archive['run'][0]['calculation'][1]

@@ -15,15 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+import json
 import logging
 import os
+import re
+import threading
 import warnings
 from enum import Enum
 from importlib.metadata import entry_points, version
-from typing import Literal
-from urllib.parse import quote
+from typing import Any, ClassVar, Literal
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
-from fsspec import filesystem
+from fsspec import AbstractFileSystem, filesystem
 from fsspec.implementations.local import LocalFileSystem
 from msglc.config import config as msglc_config
 from msglc.config import configure
@@ -31,6 +35,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SecretStr,
     computed_field,
     field_validator,
     model_validator,
@@ -42,7 +47,7 @@ from nomad.config.models.pagination import PaginationBaseModel
 
 from .common import ConfigBaseModel, Options, OptionsGlob
 from .north import NORTH
-from .plugins import EntryPointType, PluginPackage, Plugins
+from .plugins import EntryPoints, EntryPointType, PluginPackage, Plugins
 from .ui import UI
 
 logger = logging.getLogger(__name__)
@@ -102,9 +107,10 @@ class Services(ConfigBaseModel):
         The base path prefix for the NOMAD app and api.
     """,
     )
-    api_secret: str = Field(
-        _DEFAULT_API_KEY,
+    api_secret: SecretStr = Field(
+        SecretStr(_DEFAULT_API_KEY),
         min_length=32,
+        exclude=True,
         description="""
         A secret that is used to issue download and other tokens.
     """,
@@ -162,16 +168,6 @@ class Services(ConfigBaseModel):
     )
     h5grove_enabled: bool = Field(
         True, description="""If true the app will serve the h5grove API."""
-    )
-    dashboard_frame_ancestors: list[str] = Field(
-        default_factory=lambda: ["'self'"],
-        description="""
-        CSP ``frame-ancestors`` sources permitted to embed dashboard plugin
-        entry points in an iframe. Use ``'self'`` to only allow the NOMAD
-        GUI; add explicit origins (e.g. ``https://example.com``) to allow
-        other hosts. Applied to responses from
-        ``{api_base_path}/dashboards/``.
-        """,
     )
 
     console_log_level: int | str = Field(
@@ -258,6 +254,15 @@ class Services(ConfigBaseModel):
         description='If true, all queries to the /entries/query API endpoint will be logged.',
     )
 
+    collect_server_stats: bool = Field(
+        True,
+        description='If true, server statistics will be collected periodically.',
+    )
+    collect_server_stats_cron_expression: str = Field(
+        '1 1 * * *',
+        description='Cron expression for scheduling server stats collection.',
+    )
+
     # Validators
     _console_log_level = field_validator('console_log_level', mode='before')(
         normalize_loglevel
@@ -265,6 +270,47 @@ class Services(ConfigBaseModel):
     _actions_log_level = field_validator('actions_log_level', mode='before')(
         normalize_loglevel
     )
+
+    @field_validator('api_base_path', mode='before')
+    @classmethod
+    def normalize_api_base_path(cls, value: str) -> str:
+        """Normalize the public deployment base path.
+
+        The configured value remains a public URL path (and consequently uses ``/``
+        for a root deployment).  ``route_prefix`` below is the corresponding value
+        for composing routes, where the root is represented by an empty prefix.
+        """
+        if not isinstance(value, str):
+            raise ValueError('services.api_base_path must be a string')
+
+        value = value.strip()
+        if value == '/':
+            return '/'
+        if not value:
+            raise ValueError('services.api_base_path must not be empty')
+        if not value.startswith('/'):
+            raise ValueError('services.api_base_path must start with "/"')
+        if '//' in value:
+            raise ValueError('services.api_base_path must not contain empty segments')
+        return value.rstrip('/')
+
+    @property
+    def route_prefix(self) -> str:
+        """The deployment base path suitable for composing application routes.
+
+        Root deployments use an empty prefix so that ``join_path('api', 'v1')``
+        becomes ``/api/v1`` rather than ``//api/v1``.
+        """
+        if self.api_base_path == '/':
+            return ''
+        return self.api_base_path
+
+    def join_path(self, *parts: str) -> str:
+        """Join URL path components below this deployment's public base path."""
+        segments = [part.strip('/') for part in parts if part and part.strip('/')]
+        if not segments:
+            return self.route_prefix or '/'
+        return f'{self.route_prefix}/{"/".join(segments)}'
 
     def api_url(
         self,
@@ -277,6 +323,15 @@ class Services(ConfigBaseModel):
         Returns the url of the current running nomad API. This is for server-side use.
         This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
         """
+        return f'{self.base_url(ssl, api_host, api_port)}{self.join_path(api)}'
+
+    def base_url(
+        self,
+        ssl: bool = True,
+        api_host: str | None = None,
+        api_port: int | None = None,
+    ) -> str:
+        """Return the scheme and authority of this deployment, without its path."""
         if api_port is None:
             api_port = self.api_port  # type: ignore
         if api_host is None:
@@ -285,8 +340,7 @@ class Services(ConfigBaseModel):
         host_and_port = api_host
         if api_port not in [80, 443]:
             host_and_port += ':' + str(api_port)
-        base_path = self.api_base_path.strip('/')
-        return f'{protocol}://{host_and_port}/{base_path}/{api}'
+        return f'{protocol}://{host_and_port}'
 
 
 def resolve_scopes_valid(scope_options):
@@ -555,6 +609,307 @@ class Oasis(ConfigBaseModel):
     )
 
 
+_DEFAULT_DOCUMENTATION_URL = 'https://docs.nomad-lab.eu'
+
+
+def get_default_documentation_url(nomad_version: str | None) -> str:
+    """
+    Returns the official documentation URL for the given NOMAD version. Clean
+    release versions (e.g. `1.4.3`) link to the docs of that release, any other
+    version (development builds, release candidates, ...) to the stable docs.
+    """
+    if nomad_version and re.fullmatch(r'\d+\.\d+\.\d+', nomad_version):
+        return f'{_DEFAULT_DOCUMENTATION_URL}/{nomad_version}'
+    return _DEFAULT_DOCUMENTATION_URL
+
+
+class Documentation(ConfigBaseModel):
+    """
+    Settings for the documentation associated with this NOMAD deployment.
+    """
+
+    url: str | None = Field(
+        None,
+        description=f"""
+        The URL where the documentation for this deployment is hosted. If not
+        set, it defaults to the official NOMAD documentation for the installed
+        version, i.e. `{_DEFAULT_DOCUMENTATION_URL}/<version>` for release
+        versions like `1.4.3`, and the stable documentation at
+        `{_DEFAULT_DOCUMENTATION_URL}` otherwise.
+    """,
+    )
+
+    @model_validator(mode='after')
+    @classmethod
+    def __validate(cls, values):  # pylint: disable=no-self-argument
+        if not values.url:
+            values.url = get_default_documentation_url(__version__)
+        values.url = values.url.rstrip('/')
+        return values
+
+
+class MetadataCache(ConfigBaseModel):
+    """Per-node cache of published indexes and remote-ready markers."""
+
+    enabled: Literal['auto'] | bool = Field(
+        'auto',
+        description="""Whether to cache parsed ZIP member/archive TOC indexes and
+remote-ready marker validations.
+
+``auto`` enables the cache when ``protocol == 's3'``. Set ``true`` to force it
+on (for example in local tests) and ``false`` to disable it.""",
+    )
+    directory: str | None = Field(
+        None,
+        description="""Directory for cached ZIP/archive TOC index files and remote-ready
+marker entries. When unset, entries are stored under
+``<config.fs.local_tmp>/nomad-zip-index``. The
+directory is shared by all Gunicorn workers on the node.""",
+    )
+    max_disk_mb: int = Field(
+        1024,
+        ge=0,
+        description="""Maximum total size of each cached index/marker file kind on disk, in MiB.
+
+Set to 0 to disable sweeping (unbounded growth).""",
+    )
+    memory_max_mb: int = Field(
+        64,
+        ge=0,
+        description="""Maximum in-process cache of parsed indexes, in MiB,
+per index kind (ZIP member index and archive TOC each have this budget).
+
+Bounded by estimated live Python footprint, not item count. Set to 0 to
+disable the memory cache (the on-disk cache is unchanged).""",
+    )
+    revalidate_seconds: int = Field(
+        60,
+        ge=0,
+        description="""Seconds to trust a memory-cached identity or disk-cached ready marker
+validation before remote metadata calls.
+
+Within this TTL a warm index read performs no remote HEAD/info and a warm
+remote-ready marker skips its GET and artifact HEADs. Set to 0 to validate on
+every request.""",
+    )
+
+    def is_enabled(self, protocol: str | None) -> bool:
+        if self.enabled == 'auto':
+            return protocol == 's3'
+        return bool(self.enabled)
+
+
+# Connection+bucket pairs for which ``makedirs`` has already succeeded in this
+# process. Keyed by protocol, bucket, and serialized ``extra`` (endpoint/credentials).
+_ensured_target_fs: set[tuple[str, str, str]] = set()
+_ensured_target_fs_lock = threading.Lock()
+
+
+def reset_target_fs_state() -> None:
+    """Drop process-level records of ensured remote buckets. Intended for tests."""
+    with _ensured_target_fs_lock:
+        _ensured_target_fs.clear()
+
+
+class NomadStorageGateway(ConfigBaseModel):
+    """
+    Configuration for integrating with an external storage gateway service
+    (e.g., ``nomad-storage-gateway``).
+
+    This is an experimental feature. When enabled, NOMAD delegates specific data-plane
+    operations (whole published ZIP downloads, extracting individual files from those
+    archives, streaming directory ZIP bundles, or streaming binary entry archives)
+    directly to the gateway, bypassing Python ASGI worker processes and local disk
+    buffering. Each offload path has its own flag so they can be enabled independently.
+    """
+
+    enabled: bool = Field(
+        False,
+        description=(
+            'Master toggle for storage gateway integration. If False, all file '
+            'extraction and archive requests are handled locally by the NOMAD backend.'
+        ),
+    )
+    raw_files: bool = Field(
+        False,
+        description=(
+            'Redirect single raw file and directory bundle download requests to the storage gateway. '
+            'The gateway extracts members or streams directory ZIPs directly from the published ZIP archive.'
+        ),
+    )
+    file_url: str | None = Field(
+        None,
+        description=(
+            'Custom endpoint URL for single raw file extraction. If omitted, defaults to '
+            '`{public_endpoint_url}/file`.'
+        ),
+    )
+    zip: bool = Field(
+        False,
+        description=(
+            'Redirect whole published upload ZIP downloads (`GET /uploads/{id}/raw`) to the '
+            'storage gateway (`/zip/{upload_id}`). Directory bundles and individual files '
+            'stay on `raw_files`.'
+        ),
+    )
+    zip_url: str | None = Field(
+        None,
+        description=(
+            'Custom endpoint URL for directory and whole upload ZIP streaming. If omitted, defaults to '
+            '`{public_endpoint_url}/zip`.'
+        ),
+    )
+    archives: bool = Field(
+        False,
+        description=(
+            'Redirect full calculation entry archive requests to the storage gateway for '
+            'direct high-throughput msgpack or JSON streaming.'
+        ),
+    )
+    archive_url: str | None = Field(
+        None,
+        description=(
+            'Custom endpoint URL for entry archive streaming. If omitted, defaults to '
+            '`{public_endpoint_url}/archive`.'
+        ),
+    )
+
+    def get_file_url(
+        self,
+        base_url: str | None,
+        upload_id: str,
+        path: str,
+        query_params: str | None = None,
+    ) -> str:
+        base = (self.file_url or f'{(base_url or "").rstrip("/")}/file').rstrip('/')
+        url = f'{base}/{upload_id}/{path.lstrip("/")}'
+        if query_params:
+            url = f'{url}?{query_params}'
+        return url
+
+    def get_zip_url(
+        self,
+        base_url: str | None,
+        upload_id: str,
+        path: str | None = None,
+        query_params: str | None = None,
+    ) -> str:
+        base = (self.zip_url or f'{(base_url or "").rstrip("/")}/zip').rstrip('/')
+        if path:
+            url = f'{base}/{upload_id}/{path.lstrip("/")}'
+        else:
+            url = f'{base}/{upload_id}'
+        if query_params:
+            url = f'{url}?{query_params}'
+        return url
+
+    def get_archive_url(
+        self,
+        base_url: str | None,
+        upload_id: str,
+        entry_id: str,
+        format: Literal['json', 'msgpack'] = 'msgpack',
+    ) -> str:
+        base = (self.archive_url or f'{(base_url or "").rstrip("/")}/archive').rstrip(
+            '/'
+        )
+        return f'{base}/{upload_id}/{entry_id}?format={format}'
+
+    ANONYMOUS_USER_ID: ClassVar[str] = 'anonymous'
+    _IDENTITY_QUERY_KEYS: ClassVar[frozenset[str]] = frozenset({'user_id'})
+
+    def with_signed_identity(self, url: str, user_id: str | None) -> str:
+        """Bind mint-time identity into the URL. Client-supplied user_id is dropped."""
+        parts = urlsplit(url)
+        query = [
+            (key, value)
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+            if key not in self._IDENTITY_QUERY_KEYS
+        ]
+        identity = user_id if user_id else self.ANONYMOUS_USER_ID
+        query.append(('user_id', identity))
+        return urlunsplit(parts._replace(query=urlencode(query)))
+
+    def presign_url(
+        self, url: str, extra: dict, expires: int, *, user_id: str | None
+    ) -> str:
+        """SigV4-query-sign a storage-gateway redirect URL for GET requests.
+
+        Always attaches ``user_id`` (or ``anonymous``) before signing so the
+        gateway can attribute downloads without calling back into NOMAD.
+        """
+        import os
+
+        from botocore.auth import S3SigV4QueryAuth
+        from botocore.awsrequest import AWSRequest
+        from botocore.credentials import Credentials
+
+        url = self.with_signed_identity(url, user_id)
+
+        key = extra.get('key') or os.environ.get('AWS_ACCESS_KEY_ID')
+        secret = extra.get('secret') or os.environ.get('AWS_SECRET_ACCESS_KEY')
+        if not key or not secret:
+            raise ValueError(
+                'Gateway redirects require S3 credentials (either in fs.public_fs.extra '
+                'key/secret or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY environment variables).'
+            )
+
+        client_kwargs = extra.get('client_kwargs')
+        if isinstance(client_kwargs, dict) and client_kwargs.get('region_name'):
+            region_name = client_kwargs['region_name']
+        else:
+            region_name = extra.get('region_name') or 'us-east-1'
+
+        credentials = Credentials(key, secret)
+        signer = S3SigV4QueryAuth(
+            credentials,
+            's3',
+            region_name,
+            expires=expires,
+        )
+        request = AWSRequest(method='GET', url=url)
+        request.context['payload_signing_enabled'] = False
+        signer.add_auth(request)
+        return request.url
+
+
+class StorageRedirects(ConfigBaseModel):
+    """
+    Configuration for redirecting public downloads to external storage endpoints and gateways.
+    """
+
+    enabled: bool = Field(
+        False,
+        description=(
+            'Master switch for download redirects. When enabled, whole published archive '
+            'downloads (such as raw ZIP files) are redirected to S3 presigned URLs instead of '
+            'streaming through the NOMAD backend.'
+        ),
+    )
+    public_endpoint_url: str | None = Field(
+        None,
+        description=(
+            'The public base URL authority used for client downloads and signed URLs (e.g., '
+            '``https://nomad-lab.eu/files``). When set, externally visible download URLs '
+            'are signed against this authority rather than the internal cluster endpoint.'
+        ),
+    )
+    signed_url_expiration: int = Field(
+        24 * 60 * 60,
+        gt=0,
+        description=(
+            'Lifetime in seconds of generated presigned URLs for published archive downloads.'
+        ),
+    )
+    nomad_storage_gateway: NomadStorageGateway = Field(
+        default_factory=NomadStorageGateway,
+        description=(
+            'Configuration for offloading virtual archive member extraction and entry '
+            'streaming to the nomad-storage-gateway microservice (experimental).'
+        ),
+    )
+
+
 class NOMADFileSystem(ConfigBaseModel):
     protocol: Literal['s3'] | None = Field(
         None,
@@ -641,6 +996,69 @@ public/ex/examples_template_985dc9d7/raw-public.plain.zip
 ```
 """,
     )
+    read_mode: Literal['remote_only', 'remote_then_local'] = Field(
+        'remote_only',
+        description="""Controls reads of public files when a remote filesystem is configured.
+
+``remote_only`` reads published files only from the configured remote filesystem.
+``remote_then_local`` reads from remote storage when a matching
+``.nomad-remote-ready.json`` completion marker is present, and falls back to the local
+public filesystem otherwise (including while a dual-write copy is still running).
+Legacy publishes without a marker select remote only when the local public directory
+has no published artifacts. The selected backend is used consistently for an upload;
+artifacts are never mixed between the two backends.
+""",
+    )
+    write_mode: Literal['local_only', 'remote_only', 'local_then_remote'] | None = (
+        Field(
+            None,
+            description="""Controls writes of published files when a remote filesystem is configured.
+
+``local_only`` packs published artifacts only onto the local public filesystem.
+``remote_only`` packs published artifacts only onto the configured remote filesystem
+(historical behaviour when ``protocol`` is set).
+``local_then_remote`` packs onto the local public filesystem, copies the finished
+objects to remote storage, then writes a ``.nomad-remote-ready.json`` completion
+marker. The marker is the read gate for ``remote_then_local``.
+
+If unset, defaults to ``remote_only`` when ``protocol`` is set, otherwise ``local_only``.
+""",
+        )
+    )
+    redirect_downloads: bool = Field(
+        False,
+        description='Redirect whole non-embargoed published raw ZIP downloads to signed remote URLs.',
+    )
+    signed_url_expiration: int = Field(
+        24 * 60 * 60,
+        gt=0,
+        description='Lifetime in seconds of signed URLs created for published raw ZIP downloads.',
+    )
+    redirects: StorageRedirects = Field(
+        default_factory=StorageRedirects,
+        description='Configuration for download redirects and storage gateway integration.',
+    )
+    zip_tail_prefetch_kb: int = Field(
+        512,
+        ge=0,
+        description="""KiB of ZIP tail to prefetch when indexing a remote published raw archive.
+
+The end-of-central-directory record stores absolute offsets from byte 0 of the ZIP.
+Prefetching the last N KiB lets ``zipfile.ZipFile`` parse the central directory from RAM
+for typical uploads. Set to 0 to fetch the tail on demand. Oversized central directories
+fall back to additional range reads.""",
+    )
+    metadata_cache: MetadataCache = Field(
+        default_factory=MetadataCache,
+        description="""Per-node cache of ZIP member/archive TOC indexes and remote-ready markers.
+
+Enabled automatically for S3 public storage. Index files are keyed by object
+identity (never upload id alone). A process-level memory cache skips the
+HEAD/info call within ``revalidate_seconds``; after that TTL, or when memory
+caching is disabled, each request validates with one HEAD/info. A validated
+remote-ready marker uses the same revalidation period before its marker GET and
+artifact HEADs are repeated. Disk files are shared by all workers on the node.""",
+    )
 
     @model_validator(mode='after')
     @classmethod
@@ -654,6 +1072,19 @@ public/ex/examples_template_985dc9d7/raw-public.plain.zip
 
         return values
 
+    @property
+    def resolved_write_mode(
+        self,
+    ) -> Literal['local_only', 'remote_only', 'local_then_remote']:
+        """Effective published-write destination.
+
+        An explicit ``write_mode`` wins. Otherwise ``remote_only`` when
+        ``protocol`` is set, else ``local_only``.
+        """
+        if self.write_mode is not None:
+            return self.write_mode
+        return 'remote_only' if self.protocol is not None else 'local_only'
+
     def ensure_buffer_size(self):
         if self.protocol == 's3':
             if msglc_config.read_buffer_size < 5 * 2**20:
@@ -662,21 +1093,65 @@ public/ex/examples_template_985dc9d7/raw-public.plain.zip
                 configure(write_buffer_size=5 * 2**20)
 
     @property
-    def target_fs(self):
+    def target_fs(self) -> AbstractFileSystem:
         if self.protocol is None:
             return LocalFileSystem()
 
         remote_fs = filesystem(self.protocol, **self.extra)
-        try:
-            remote_fs.makedirs(self.bucket, exist_ok=True)
-        except Exception as e:
-            raise RuntimeError(
-                'Cannot establish valid connection to the target file system.'
-            ) from e
+        key = (
+            self.protocol,
+            self.bucket,
+            json.dumps(self.extra, sort_keys=True, default=str),
+        )
+        with _ensured_target_fs_lock:
+            already_ensured = key in _ensured_target_fs
+        if not already_ensured:
+            # Two first callers may both miss and both head_bucket; that is
+            # acceptable. Do not hold the lock across the network call.
+            try:
+                remote_fs.makedirs(self.bucket, exist_ok=True)
+            except Exception as e:
+                raise RuntimeError(
+                    'Cannot establish valid connection to the target file system.'
+                ) from e
+            with _ensured_target_fs_lock:
+                _ensured_target_fs.add(key)
 
         self.ensure_buffer_size()
 
         return remote_fs
+
+    @property
+    def signing_fs(self):
+        """
+        Filesystem used specifically for generating public presigned URLs.
+        If public_endpoint_url is set, uses that endpoint for SigV4 host signing.
+        """
+        if self.protocol != 's3' or not self.redirects.public_endpoint_url:
+            return self.target_fs
+
+        import copy
+
+        signing_extra = copy.deepcopy(self.extra)
+        if 'client_kwargs' in signing_extra and isinstance(
+            signing_extra['client_kwargs'], dict
+        ):
+            signing_extra['client_kwargs']['endpoint_url'] = (
+                self.redirects.public_endpoint_url
+            )
+        else:
+            signing_extra['endpoint_url'] = self.redirects.public_endpoint_url
+
+        try:
+            return filesystem(self.protocol, **signing_extra)
+        except Exception:
+            return self.target_fs
+
+    def get_download_url(self, location: str, expires: int | None = None) -> str:
+        """Generate a presigned download URL for a published artifact location."""
+        if expires is None:
+            expires = self.redirects.signed_url_expiration
+        return self.signing_fs.url(location, expires=expires)
 
 
 class FS(ConfigBaseModel):
@@ -819,12 +1294,28 @@ class Actions(ConfigBaseModel):
 
 
 class Elastic(ConfigBaseModel):
+    version: Literal['7', '9'] = Field(
+        '7',
+        description=(
+            'Major version of the Elasticsearch cluster. Version 7 is supported '
+            'temporarily and is deprecated; use version 9 for new deployments.'
+        ),
+    )
+
+    @field_validator('version', mode='before')
+    @classmethod
+    def transform_version(cls, value: Any) -> Any:
+        if isinstance(value, int) and not isinstance(value, bool):
+            return str(value)
+        return value
+
     username: str = Field(
         '',
         description='Username for authenticating with the Elasticsearch server.',
     )
-    password: str = Field(
-        '',
+    password: SecretStr = Field(
+        SecretStr(''),
+        exclude=True,
         description='Password for authenticating with the Elasticsearch server.',
     )
     host: str = Field(
@@ -835,6 +1326,23 @@ class Elastic(ConfigBaseModel):
         9200,
         description='Port on which the Elasticsearch server is listening.',
     )
+    scheme: Literal['http', 'https'] = Field(
+        'http',
+        description=(
+            'URL scheme used to connect to the Elasticsearch server. '
+            'Elasticsearch 9 requires this; its Python client rejects host:port '
+            'without a scheme. Values with a trailing :// (http://, https://) '
+            'are accepted.'
+        ),
+    )
+
+    @field_validator('scheme', mode='before')
+    @classmethod
+    def transform_scheme(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip().lower().removesuffix('://')
+        return value
+
     timeout: int = Field(
         60,
         description='Default request timeout (in seconds) for Elasticsearch operations.',
@@ -871,17 +1379,9 @@ class Elastic(ConfigBaseModel):
         90 * 1024 * 1024,  # 90 MB
         description='Maximum payload size sent to the Elasticsearch server in bytes. Note that Elasticsearch has an internal limit of 100MB that you can configure as well.',
     )
-    entries_per_material_cap: int = Field(
-        1000,
-        description='Maximum number of entries per material used when aggregating entry data to materials.',
-    )
     entries_index: str = Field(
         'nomad_entries_v1',
         description='Name of the Elasticsearch index storing entries.',
-    )
-    materials_index: str = Field(
-        'nomad_materials_v1',
-        description='Name of the Elasticsearch index storing materials.',
     )
 
 
@@ -1053,8 +1553,9 @@ class TemporalOIDC(ConfigBaseModel):
         None,
         description='Confidential OIDC client ID representing this NOMAD deployment.',
     )
-    client_secret: str | None = Field(
+    client_secret: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Confidential OIDC client secret. Configure this through deployment secrets.',
     )
     scope: str | None = Field(
@@ -1143,17 +1644,19 @@ class Temporal(ConfigBaseModel):
         None,
         description='The bind address for the Prometheus metrics server. If not set, the runtime will not be configured with Prometheus metrics.',
     )
-    api_key: str | None = Field(
+    api_key: SecretStr | None = Field(
         None,
+        exclude=True,
         description='API Key used to connect to the Temporal server.',
     )
     oidc: TemporalOIDC = Field(
         default_factory=TemporalOIDC,
         description='OIDC client-credentials authentication for Temporal clients.',
     )
-    payload_codec_key: str | None = Field(
+    payload_codec_key: SecretStr | None = Field(
         None,
         min_length=32,
+        exclude=True,
         description='Optional key used to encrypt Temporal payloads. When unset, services.api_secret is used by default.',
     )
     payload_codec_key_id: str = Field(
@@ -1169,8 +1672,9 @@ class Temporal(ConfigBaseModel):
         None,
         description='Path to the client certificate (PEM format) or the raw certificate content string to use for mTLS.',
     )
-    tls_client_key: str | None = Field(
+    tls_client_key: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Path to the client private key (PEM format) or the raw key content string to use for mTLS.',
     )
     tls_server_root_ca_cert: str | None = Field(
@@ -1225,16 +1729,18 @@ class Keycloak(ConfigBaseModel):
         'admin',
         description='Administrative Keycloak username used for service-level operations.',
     )
-    password: str = Field(
-        'password',
+    password: SecretStr = Field(
+        SecretStr('password'),
+        exclude=True,
         description='Administrative Keycloak password used for service-level operations.',
     )
     client_id: str = Field(
         'nomad_public',
         description='Keycloak client ID used by the NOMAD backend/UI.',
     )
-    client_secret: str | None = Field(
+    client_secret: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Optional Keycloak client secret used for confidential clients.',
     )
 
@@ -1260,9 +1766,14 @@ class Mongo(ConfigBaseModel):
         None,
         description='Optional username for MongoDB authentication.',
     )
-    password: str | None = Field(
+    password: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Optional password for MongoDB authentication.',
+    )
+    ownership_transfer_record_ttl: int = Field(
+        90 * 24 * 3600,
+        description='TTL in seconds for persisted ownership transfer records.',
     )
 
 
@@ -1288,53 +1799,6 @@ class Logstash(ConfigBaseModel):
     _level = field_validator('level', mode='before')(normalize_loglevel)
 
     model_config = ConfigDict(coerce_numbers_to_str=True)
-
-
-class Logtransfer(ConfigBaseModel):
-    """Configuration of logtransfer and statistics service.
-
-    When enabled (enabled) an additional logger will write logs to a log file (log_file).
-    At regular intervals (transfer_interval) a celery task is scheduled. It will log a set
-    of statistics. It will copy the log file (transfer_log_files). Transfer the contents
-    of the copy to the central NOMAD (oasis.central_nomad_deployment_url) and delete the copy.
-    The transfer is only done if the the log file has a certain size (transfer_threshold). Only a
-    maximum amount of logs are transferred (transfer_capacity). Only logs with a certain
-    level (level) are considered. The files will be stored in fs.tmp.
-    """
-
-    enabled: bool = Field(
-        False,
-        description='If enabled this starts process that frequently generates logs with statistics.',
-    )
-    transfer_threshold: int = Field(
-        0,
-        description='The minimum size in bytes of stored logs before logs are transferred. 0 means transfer at every transfer interval.',
-    )
-    transfer_capacity: int = Field(
-        1000000,
-        description='The maximum number of bytes of stored logs that are transferred. Excess is dropped.',
-    )
-    transfer_interval: int = Field(
-        600,
-        description='Time interval in seconds after which stored logs are potentially transferred.',
-    )
-    level: int | str = Field(
-        logging.INFO, description='The min log level for logs to be transferred.'
-    )
-    log_file: str = Field(
-        'nomad.log', description='The log file that is used to store logs for transfer.'
-    )
-    transfer_log_file: str = Field(
-        '.transfer.log',
-        description='The log file that is used to copy logs for transfer.',
-    )
-    file_rollover_wait_time: float = Field(
-        1,
-        description='Time in seconds to wait after log file was "rolled over" for transfer.',
-    )
-
-    # Validators
-    _level = field_validator('level', mode='before')(normalize_loglevel)
 
 
 class Tests(ConfigBaseModel):
@@ -1372,8 +1836,9 @@ class Mail(ConfigBaseModel):
         '',
         description='SMTP username used for authentication (if with_login is True).',
     )
-    password: str = Field(
-        '',
+    password: SecretStr = Field(
+        SecretStr(''),
+        exclude=True,
         description='SMTP password used for authentication (if with_login is True).',
     )
     from_address: str = Field(
@@ -1505,12 +1970,14 @@ class Client(ConfigBaseModel):
         None,
         description='Optional username used by the Python NOMAD client for authentication.',
     )
-    password: str | None = Field(
+    password: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Optional password used by the Python NOMAD client for authentication.',
     )
-    access_token: str | None = Field(
+    access_token: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Optional bearer access token used by the Python NOMAD client.',
     )
     url: str = Field(
@@ -1536,24 +2003,22 @@ class DataCite(ConfigBaseModel):
         '*',
         description='DataCite username.',
     )
-    password: str = Field(
-        '*',
+    password: SecretStr = Field(
+        SecretStr('*'),
+        exclude=True,
         description='DataCite password.',
     )
 
 
 class GitLab(ConfigBaseModel):
-    private_token: str = Field(
-        'not set',
+    private_token: SecretStr = Field(
+        SecretStr('not set'),
+        exclude=True,
         description='Private token used for accessing the GitLab API (e.g. for CI integrations).',
     )
 
 
 class Process(ConfigBaseModel):
-    index_materials: bool = Field(
-        False,
-        description='If True, material-level indices are created/updated during processing.',
-    )
     reuse_parser: bool = Field(
         True,
         description='If True, parser instances may be reused between entries to improve performance.',
@@ -1644,8 +2109,9 @@ class RFC3161Timestamp(ConfigBaseModel):
         None,
         description='Optional username for authenticating to the RFC3161 timestamping server.',
     )
-    password: str | None = Field(
+    password: SecretStr | None = Field(
         None,
+        exclude=True,
         description='Optional password for authenticating to the RFC3161 timestamping server.',
     )
 
@@ -1659,6 +2125,9 @@ class BundleExportSettings(ConfigBaseModel):
     )
     include_datasets: bool = Field(
         True, description='If the datasets should be included in the export'
+    )
+    include_schemas: bool = Field(
+        False, description='If schemas should be included in the export'
     )
 
 
@@ -1784,10 +2253,6 @@ class BundleImport(ConfigBaseModel):
 
 
 class Archive(ConfigBaseModel):
-    block_size: int = Field(
-        1 * 2**20,
-        description='Deprecated, not used in the latest storage. In case of using blocked TOC, this is the size of each block.',
-    )
     read_buffer_size: int = Field(
         1 * 2**20,
         description='GPFS needs at least 256K to achieve decent performance.',
@@ -1800,12 +2265,8 @@ class Archive(ConfigBaseModel):
         A small value will result in more syscalls, a large value will result in higher peak memory usage.
         """,
     )
-    toc_depth: int = Field(
-        10,
-        description='Deprecated, not used in the latest storage. Depths of table of contents in the archive.',
-    )
     small_obj_optimization_threshold: int = Field(
-        1 * 2**20,
+        4 * 2**20,
         description="""
         For any child of lists/dicts whose encoded size is smaller than this value, no TOC will be generated.""",
     )
@@ -1845,6 +2306,11 @@ class Archive(ConfigBaseModel):
             copy_chunk_size=self.copy_chunk_size,
             # Memory may leak when set to True in concurrent scenarios.
             disable_gc=False,
+            # we only deal with data 100% comply with JSON specification
+            # disable extended types to improve performance
+            has_numpy=False,
+            has_set=False,
+            has_tuple=False,
         )
 
 
@@ -1891,10 +2357,6 @@ class Uploads(ConfigBaseModel):
         page_size=10, order_by='upload_create_time', order='desc'
     )
     entries: Entries = Entries()
-    ownership_transfer_record_ttl_seconds: int = Field(
-        90 * 24 * 3600,
-        description='TTL in seconds for persisted upload ownership transfer records.',
-    )
 
 
 class TelemetryTracing(ConfigBaseModel):
@@ -1928,6 +2390,28 @@ class Telemetry(ConfigBaseModel):
     )
 
 
+class Dashboards(ConfigBaseModel):
+    """Settings related to dashboard plugin entry points."""
+
+    enabled: bool = Field(
+        True,
+        description="""
+        Enables or disables dashboards. When disabled, dashboard plugin entry
+        points are not served and the dashboards menu item is hidden in the UI.
+    """,
+    )
+    frame_ancestors: list[str] = Field(
+        default_factory=lambda: ["'self'"],
+        description="""
+        CSP ``frame-ancestors`` sources permitted to embed dashboard plugin
+        entry points in an iframe. Use ``'self'`` to only allow the NOMAD
+        GUI; add explicit origins (e.g. ``https://example.com``) to allow
+        other hosts. Applied to responses from
+        ``{api_base_path}/dashboards/``.
+        """,
+    )
+
+
 class Config(ConfigBaseModel):
     """Model for the NOMAD configuration."""
 
@@ -1945,6 +2429,10 @@ class Config(ConfigBaseModel):
         default_factory=Meta,
         description='Metadata and presentation details for this NOMAD deployment.',
     )
+    documentation: Documentation = Field(
+        default_factory=Documentation,
+        description='Where the documentation for this NOMAD deployment is hosted.',
+    )
     oasis: Oasis = Field(
         default_factory=Oasis,
         description='Configuration options specific to NOMAD Oasis deployments.',
@@ -1952,6 +2440,10 @@ class Config(ConfigBaseModel):
     north: NORTH = Field(
         default_factory=NORTH,
         description='Configuration for NORTH tools and the NORTH hub.',
+    )
+    dashboards: Dashboards = Field(
+        default_factory=Dashboards,
+        description='Configuration for dashboard plugin entry points.',
     )
     fs: FS = Field(
         default_factory=FS,
@@ -1981,10 +2473,6 @@ WARNING: Modifying the storage configuration of an existing installation would m
     logstash: Logstash = Field(
         default_factory=Logstash,
         description='Logstash logging and forwarding configuration.',
-    )
-    logtransfer: Logtransfer = Field(
-        default_factory=Logtransfer,
-        description='Configuration for the logtransfer/statistics service.',
     )
     telemetry: Telemetry = Field(
         default_factory=Telemetry,
@@ -2070,14 +2558,10 @@ WARNING: Modifying the storage configuration of an existing installation would m
         return self.services.api_url(ssl, api, api_host, api_port)
 
     def gui_url(self, page: str | None = None):
-        base = self.api_url(True)[:-3]
-        if base.endswith('/'):
-            base = base[:-1]
-
+        base = self.services.base_url(True)
         if page is not None:
-            return f'{base}/gui/{page}'
-
-        return f'{base}/gui'
+            return f'{base}{self.services.join_path("gui", page)}'
+        return f'{base}{self.services.join_path("gui")}'
 
     def north_url(self, ssl: bool = True):
         return self.api_url(
@@ -2088,7 +2572,7 @@ WARNING: Modifying the storage configuration of an existing installation would m
         )
 
     def hub_url(self):
-        return f'http://{self.north.hub_host}:{self.north.hub_port}{self.services.api_base_path}/north/hub'
+        return f'http://{self.north.hub_host}:{self.north.hub_port}{self.services.join_path("north", "hub")}'
 
     @model_validator(mode='after')
     @classmethod
@@ -2100,12 +2584,10 @@ WARNING: Modifying the storage configuration of an existing installation would m
         north = values.north
         ui = values.ui
         if ui:
-            if north:
-                values.ui.north.enabled = north.enabled
             if services:
-                values.ui.app_base = f'{"https" if services.https else "http"}://{services.api_host}:{services.api_port}{values.services.api_base_path.rstrip("/")}'
+                values.ui.app_base = f'{"https" if services.https else "http"}://{services.api_host}:{services.api_port}{services.route_prefix}'
             if services and north:
-                values.ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.api_base_path.rstrip("/")}/north'
+                values.ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.join_path("north")}'
 
         # Backwards compatibility for auth settings stored in the oasis config.
         if 'require_authentication' in values.oasis.model_fields_set:
@@ -2295,7 +2777,7 @@ WARNING: Modifying the storage configuration of an existing installation would m
         Also checks for collisions among all id_url_safe values.
 
         Args:
-            entry_points_options: Dictionary of entry point id to entry point config.
+            entry_points: Dictionary of entry point id to entry point config.
 
         Raises:
             ValueError: If a custom id_url_safe is not URL-safe or if there are
@@ -2307,7 +2789,7 @@ WARNING: Modifying the storage configuration of an existing installation would m
 
         # Iterate over all the activated entry points to assign URL-safe identifiers and
         # check for collisions
-        for entry_point_id in Options.model_validate(entry_points).filtered_keys():
+        for entry_point_id in EntryPoints.model_validate(entry_points).filtered_keys():
             config = entry_points.get('options', {}).get(entry_point_id)
             if not config:
                 continue
@@ -2344,3 +2826,11 @@ WARNING: Modifying the storage configuration of an existing installation would m
                 config['id_url_safe'] = url_safe_id
             else:
                 config.id_url_safe = url_safe_id
+
+            # Assign the default mount prefix for internally served API entry points
+            if entry_point_type == 'api':
+                if isinstance(config, dict):
+                    if not config.get('prefix') and not config.get('external_url'):
+                        config['prefix'] = f'apis/{url_safe_id}'
+                elif not config.prefix and not config.external_url:
+                    config.prefix = f'apis/{url_safe_id}'

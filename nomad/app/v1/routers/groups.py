@@ -231,6 +231,7 @@ def create_user_group(
         )
         user_group_edit.members = None
 
+    assert user_group_edit.members_info is not None
     validate_members_info(user_group_edit.members_info, user.user_id)
 
     user_group = create_mongo_user_group(user_group_edit)

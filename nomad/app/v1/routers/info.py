@@ -20,9 +20,8 @@
 API endpoint that deliver backend configuration details.
 """
 
-import re
 from enum import Enum
-from typing import Annotated, Final
+from typing import Annotated, Any, Final
 
 from fastapi import Depends
 from fastapi.routing import APIRouter
@@ -30,14 +29,11 @@ from fastapi_cache.decorator import cache
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
-from nomad import normalizing
 from nomad.app.v1.routers.auth import get_current_user
 from nomad.auth.scopes import Scope
-from nomad.config import config
 from nomad.config.models.plugins import PluginPackage
-from nomad.parsing import parsers
-from nomad.parsing.parsers import code_metadata
-from nomad.search import get_statistics
+from nomad.models.common import UTCDateTime
+from nomad.server_stats import deployment_info, load_server_stats
 from nomad.utils import strip
 
 from ..models import User
@@ -83,6 +79,9 @@ class StatisticsModel(BaseModel):
         description='Accumulated number of calculations, e.g. total energy calculations in the Archive',
     )
     n_materials: int | None = Field(None, description='Number of materials in NOMAD')
+    public_data_size: int | None = Field(
+        None, description='Total size of public data (in bytes) in NOMAD'
+    )
 
 
 class CodeInfoModel(BaseModel):
@@ -93,6 +92,9 @@ class CodeInfoModel(BaseModel):
 
 
 class InfoModel(BaseModel):
+    collect_time: UTCDateTime | None = Field(
+        None, description='When the cached server statistics were last collected.'
+    )
     parsers: list[str]
     metainfo_packages: list[str]
     codes: list[CodeInfoModel]
@@ -126,6 +128,11 @@ class InfoModel(BaseModel):
     )
 
 
+def _info_key_builder(func, namespace: str = '', **_: Any) -> str:
+    # The response does not depend on the user, so all requests share one entry.
+    return f'{namespace}:{func.__module__}:{func.__name__}'
+
+
 @router.get(
     '',
     tags=[APITag.DEFAULT],
@@ -134,56 +141,20 @@ class InfoModel(BaseModel):
     response_model_exclude_none=True,
     response_model=InfoModel,
 )
-@cache(expire=INFO_CACHE_TTL)
-async def get_info(
+@cache(expire=INFO_CACHE_TTL, key_builder=_info_key_builder)
+def get_info(
     _user: Annotated[
         User,
         Depends(get_current_user([Scope.INFO_READ])),
     ],
 ):
-    """Return information about the nomad backend and its configuration."""
+    """Return information about the nomad backend and its configuration.
 
-    parser_names = sorted(
-        [re.sub(r'^(parsers?|missing)/', '', key) for key in parsers.parser_dict.keys()]
-    )
-
-    config.load_plugins()
-
-    return {
-        'parsers': parser_names,
-        'metainfo_packages': [
-            'general',
-            'general.experimental',
-            'common',
-            'public',
-        ]
-        + parser_names,
-        'codes': [
-            {
-                'code_name': x.get('codeLabel', 'unknown code'),
-                'code_homepage': x.get('codeUrl'),
-            }
-            for x in sorted(
-                code_metadata.values(),
-                key=lambda info: info.get('codeLabel', 'unknown code').lower(),
-            )
-        ],
-        'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
-        'plugin_entry_points': [
-            entry_point.dict_safe()
-            for entry_point in config.plugins.entry_points.filtered_values()
-        ]
-        if config.plugins and config.plugins.entry_points
-        else [],
-        'plugin_packages': [
-            plugin_package.model_dump()
-            for plugin_package in config.plugins.plugin_packages.values()
-        ]
-        if config.plugins and config.plugins.plugin_packages
-        else [],
-        'statistics': get_statistics(),
-        'version': config.meta.version,
-        'deployment': config.meta.deployment,
-        'oasis': config.oasis.is_oasis,
-        'git': {},
-    }
+    The deployment information is computed on demand. The statistics are never
+    collected here; they are read from the snapshot written by the Temporal
+    server-stats workflow and are omitted if there is no snapshot yet.
+    """
+    payload = deployment_info()
+    if (stats := load_server_stats()) is not None:
+        payload |= stats
+    return payload

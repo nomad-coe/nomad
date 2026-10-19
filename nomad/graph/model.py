@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import annotations
 
 import functools
@@ -31,6 +32,7 @@ from pydantic import (
     Field,
     ValidationError,
     field_validator,
+    model_validator,
 )
 
 from nomad.app.v1.models import Direction, Metadata, MetadataPagination, Pagination
@@ -111,6 +113,54 @@ class MetainfoPagination(Pagination):
         return [] if first == last else result[first:last]
 
 
+class ArchivePagination(BaseModel):
+    """
+    Pagination of the items of a repeating subsection. The order is fixed to the
+    archive order. The properties of a section are never paged.
+    """
+
+    page_size: int = Field(
+        10, ge=1, description='The number of items of a repeating subsection per page.'
+    )
+    page: int | None = Field(
+        None, ge=1, description='The number of the page to return, starting from 1.'
+    )
+    page_containing: int | None = Field(
+        None,
+        ge=0,
+        description="""
+        Select the page that contains the item with the given index. Falls back to
+        the first page if the index does not exist. Cannot be combined with `page`.
+        """,
+    )
+    model_config = ConfigDict(extra='forbid')
+
+    @model_validator(mode='after')
+    def _validate_page(self):
+        if self.page is not None and self.page_containing is not None:
+            raise ValueError('page_containing cannot be combined with page.')
+        return self
+
+    def resolve_window(self, total: int) -> tuple[int, int, dict]:
+        """
+        Compute the [start, end) window of the page for a list of `total` items.
+        Returns the window and the pagination response.
+        """
+        if self.page is not None:
+            page = self.page
+        elif self.page_containing is not None and self.page_containing < total:
+            page = self.page_containing // self.page_size + 1
+        else:
+            page = 1
+
+        start = (page - 1) * self.page_size
+        return (
+            min(start, total),
+            min(start + self.page_size, total),
+            dict(page=page, page_size=self.page_size, total=total),
+        )
+
+
 class DirectiveType(Enum):
     plain = 'plain'
     resolved = 'resolved'
@@ -153,6 +203,9 @@ def check_pattern(data: frozenset[str] | None) -> frozenset[str] | None:
             assert re.match(r'^[*?+a-zA-z_\d./]*$', value) is not None
         return data
     return None
+
+
+_WILDCARD_FROZENSET: frozenset[str] = frozenset({'*'})
 
 
 class RequestConfig(BaseModel):
@@ -301,6 +354,27 @@ class RequestConfig(BaseModel):
         This index field can be optionally used to slice the list.
         """,
     )
+    include_quantities: bool = Field(
+        True,
+        description="""
+        Only applies to archives. If `False`, quantities are not included when a
+        section is walked implicitly, only its subsections are. Explicitly requested
+        quantities are still returned. Combined with `depth`, this yields the
+        structure of an archive without its values.
+        Like other settings, this propagates to the children unless overridden.
+        """,
+    )
+    include_label_quantities: bool = Field(
+        False,
+        description="""
+        Only applies to archives with `include_quantities` set to `False`. If `True`,
+        the scalar quantities that label a walked section are still included: the
+        `label_quantity` of its definition or of one of its base sections, and the
+        quantities `label`, `name`, `type` and `id`. This allows to show sections by
+        their labels while loading only the structure of an archive.
+        Like other settings, this propagates to the children unless overridden.
+        """,
+    )
     inherit_from_parent: bool = Field(
         True,
         description="""
@@ -310,6 +384,7 @@ class RequestConfig(BaseModel):
     )
     pagination: None | (
         dict
+        | ArchivePagination
         | DatasetPagination
         | EntryProcDataPagination
         | MetadataPagination
@@ -321,9 +396,12 @@ class RequestConfig(BaseModel):
         None,
         description="""
         The pagination configuration used for MongoDB search.
-        This setting does not propagate to its children.
+        This setting does not propagate to explicitly requested children.
         For Token.ENTRIES, Token.UPLOADS and 'm_datasets', different validation rules apply.
         Please refer to `DatasetPagination`, `UploadProcDataPagination`, `MetadataPagination` for details.
+        For archives, see `ArchivePagination`: it pages the items of repeating
+        subsections, and the page is reported in the `m_response` of the parent
+        section. Implicitly walked repeating subsections inherit the page size only.
         """,
     )
     query: None | (
@@ -397,10 +475,18 @@ class RequestConfig(BaseModel):
         For a given key, check whether it should be included.
         """
         if self.include:
+            if (
+                self.include is _WILDCARD_FROZENSET
+                or '*' in self.include
+                or key in self.include
+            ):
+                return True
             return any(
                 re.match(pattern, key) for pattern in _normalise_pattern(self.include)
             )
         if self.exclude:
+            if key in self.exclude:
+                return False
             return not any(
                 re.match(pattern, key) for pattern in _normalise_pattern(self.exclude)
             )
@@ -424,13 +510,18 @@ class RequestConfig(BaseModel):
         """
         return (
             self.directive == DirectiveType.plain
+            and self.include_quantities is True
+            and self.pagination is None
             and self.include_definition == DefinitionType.none
             and self.always_rewrite_references is False
             and self.index is None
             and self.depth is None
             and self.max_list_size is None
             and self.max_dict_size is None
-            and self.include == frozenset({'*'})
+            and (
+                self.include is _WILDCARD_FROZENSET
+                or self.include == _WILDCARD_FROZENSET
+            )
             and self.m_def_format == MDefFormatType.full
         )
 

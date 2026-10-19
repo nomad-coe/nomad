@@ -22,6 +22,7 @@ from enum import Enum
 from inspect import Parameter, Signature
 from typing import Annotated
 
+import anyio
 import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from fastapi import Query as FastApiQuery
@@ -30,27 +31,25 @@ from pydantic import BaseModel, Field, field_validator
 
 from nomad import datamodel
 from nomad.auth.keycloak import KeycloakError, OIDCToken, keycloak
-from nomad.auth.scopes import Scope
-from nomad.auth.tokens import (
+from nomad.auth.pat import (
     PAT_PREFIX,
-    AuthResult,
-    PATMetadata,
+    PATCreationSpec,
     PATQuery,
     PATSortOrder,
-    authenticate_pat,
-    create_pat,
+    pat_service,
+)
+from nomad.auth.scopes import Scope, resolve_scope_aliases
+from nomad.auth.tokens import (
+    AuthResult,
     generate_simple_token,
-    get_pat,
     get_user_from_keycloak_token,
     get_user_from_simple_token,
     get_user_from_upload_token,
-    list_pat,
-    revoke_pat,
-    rotate_pat,
 )
 from nomad.config import config
 from nomad.config.models.config import ModeEnum
 from nomad.models.common import UTCDateTime
+from nomad.tracing import traced
 from nomad.utils import get_logger
 
 from ..common import root_path
@@ -76,7 +75,8 @@ oauth2_scheme = OAuth2PasswordBearer(
 )
 
 
-def _resolve_user_with_scopes(
+@traced(span_name='graph.auth.resolve_user')
+async def _resolve_user_with_scopes(
     *,
     required_scopes: set[str],
     allow_anonymous: bool,
@@ -103,7 +103,7 @@ def _resolve_user_with_scopes(
             # simple token only has `user/exp` in payload,
             # while the keycloak has much more (RFC 7519)
             if unverified_payload.keys() == {'user', 'exp'}:
-                auth_result = get_user_from_simple_token(simple_token)
+                auth_result = await get_user_from_simple_token(simple_token)
         except jwt.DecodeError as e:  # token could be non-JWT (for testing)
             logger.error('Failed to decode simple token', exc_info=e)
 
@@ -121,19 +121,22 @@ def _resolve_user_with_scopes(
 
     # Resolve user from personal access token
     if auth_result is None and personal_access_token:
-        pat = authenticate_pat(personal_access_token)
+        # TODO: migrate to `beanie`
+        pat = await anyio.to_thread.run_sync(
+            pat_service.authenticate, personal_access_token
+        )
 
         if pat is not None:
-            user = datamodel.User.get(user_id=pat.user_id)
+            user = await datamodel.User.a_get(user_id=pat.user_id)
             if user:
-                auth_result = AuthResult(user=user, scopes=pat.scopes)
+                auth_result = AuthResult(user=user, scopes=set(pat.scopes))
             else:
                 # The user was deleted, but their PAT still exists
                 logger.warning(f'Valid PAT used for missing user_id: {pat.user_id}')
 
     # Resolve user from upload token
     if auth_result is None and upload_token:
-        auth_result = get_user_from_upload_token(upload_token)
+        auth_result = await get_user_from_upload_token(upload_token)
 
     if auth_result is None:  # user resolving failed: anonymous user
         user = None
@@ -147,7 +150,9 @@ def _resolve_user_with_scopes(
         if config.services.mode != ModeEnum.DEVELOPMENT:
             raise ValueError('assume_auth_for_username is development-only')
 
-        user = datamodel.User.get(username=config.tests.assume_auth_for_username)
+        user = await datamodel.User.a_get(
+            username=config.tests.assume_auth_for_username
+        )
         scopes = Scope.all_values()  # full permission for tester
 
     # Anonymous users
@@ -163,7 +168,7 @@ def _resolve_user_with_scopes(
     else:
         # Validate user against Keycloak
         try:
-            existing_user = datamodel.User.get(user_id=user.user_id)
+            existing_user = await datamodel.User.a_get(user_id=user.user_id)
         except Exception as e:
             logger.error(
                 'Failed to lookup authenticated user in Keycloak.',
@@ -203,8 +208,10 @@ def _resolve_user_with_scopes(
     # 2. imagine someone was admin before but not anymore,
     # they shouldn't be able to use old tokens with admin permission
 
-    # Enforce backend scopes
-    if missing_scopes := required_scopes - set(scopes):
+    # Enforce backend scopes. Resolve deprecated aliases so existing PATs keep
+    # working while newly created tokens only expose the current scope names.
+    resolved_scopes = resolve_scope_aliases(scopes)
+    if missing_scopes := required_scopes - resolved_scopes:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f'Missing scopes: {sorted(missing_scopes)}',
@@ -235,8 +242,8 @@ def get_current_user(
     else:
         required_scopes = set(required_scopes)
 
-    def current_user(**kwargs) -> User | None:
-        return _resolve_user_with_scopes(
+    async def current_user(**kwargs) -> User | None:
+        return await _resolve_user_with_scopes(
             required_scopes=required_scopes,
             allow_anonymous=allow_anonymous,
             request=kwargs.get('request'),
@@ -322,7 +329,7 @@ _bad_credentials_response = (
     summary='Get an OIDC token response',
     responses=create_responses(_bad_credentials_response),
 )
-async def get_token(
+def get_token(
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestFormStrict, Depends()],
 ) -> OIDCToken:
@@ -359,7 +366,7 @@ async def get_token(
 class PATCreateRequest(BaseModel):
     """Payload for creating a new token."""
 
-    metadata: PATMetadata
+    metadata: PATCreationSpec
     expires_in_days: int | None = 30
 
 
@@ -440,7 +447,7 @@ def create_pat_endpoint(
         )
 
     try:
-        return create_pat(
+        return pat_service.create(
             user_id=user.user_id,
             metadata=request.metadata,
             expires_in_days=request.expires_in_days,
@@ -480,7 +487,7 @@ def rotate_pat_endpoint(
         404 Not Found: If the target token does not exist.
     """
     try:
-        result = rotate_pat(user_id=user.user_id, pat_id=pat_id)
+        result = pat_service.rotate(user_id=user.user_id, pat_id=pat_id)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -539,7 +546,7 @@ def list_pat_endpoint(
     Retrieves a paginated list of PATs.
     """
     # Fetch data and total count from the service layer
-    result = list_pat(
+    result = pat_service.list_owned(
         user_id=user.user_id,
         query=query,
         start=pagination.get_simple_index(),
@@ -578,8 +585,7 @@ def get_pat_endpoint(
         400 bad request: If the token ID format is invalid.
         404 Not Found: If the token does not exist or belongs to another user.
     """
-
-    pat = get_pat(user_id=user.user_id, pat_id=pat_id)
+    pat = pat_service.get(user_id=user.user_id, pat_id=pat_id)
 
     if pat is None:
         raise HTTPException(
@@ -610,7 +616,7 @@ def revoke_pat_endpoint(
     Raises:
         404 Not Found: If the target token does not exist.
     """
-    success = revoke_pat(user_id=user.user_id, pat_id=pat_id)
+    success = pat_service.revoke(user_id=user.user_id, pat_id=pat_id)
 
     if not success:
         raise HTTPException(

@@ -28,6 +28,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 import yaml
+from temporalio.client import WorkflowFailureError
 
 from nomad import infrastructure, utils
 from nomad.archive import to_json
@@ -237,6 +238,48 @@ def test_put_file_and_process_local_does_not_set_success_message_on_failure(
     main_entry.process_entry_local.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    'process_status, parser_level, should_process',
+    [
+        pytest.param(ProcessStatus.SUCCESS, -1, True, id='stale-level-not-processing'),
+        pytest.param(ProcessStatus.RUNNING, -1, False, id='lower-level-processing'),
+        pytest.param(ProcessStatus.RUNNING, 0, True, id='same-level-processing'),
+        pytest.param(ProcessStatus.RUNNING, None, True, id='no-level-processing'),
+    ],
+)
+def test_process_updated_raw_file_parser_level(
+    process_status, parser_level, should_process
+):
+    """
+    Tests that raw files are processed/not processed correctly by
+    `process_updated_raw_file`. The function should correctly process completely new files
+    when no processing is currently running, and should process files that have a higher
+    level even if processing is running.
+    """
+    entry = MagicMock()
+    parser = SimpleNamespace(level=0)
+    upload = SimpleNamespace(
+        published=False,
+        parser_level=parser_level,
+        process_running=process_status in ProcessStatus.STATUSES_PROCESSING,
+        current_process_flags=None,
+        get_logger=MagicMock,
+        upload_files=SimpleNamespace(raw_isfile=lambda _path: True),
+        match_mainfiles=lambda _path, _example: [('mainfile.json', None, parser)],
+        _get_or_create_entry=lambda *args, **kwargs: (entry, False, None),
+    )
+
+    Upload.process_updated_raw_file(upload, 'mainfile.json', True)
+
+    if should_process:
+        entry._process_entry_local.assert_called_once()
+        assert entry.process_status == ProcessStatus.SUCCESS
+        entry.save.assert_called_once()
+    else:
+        entry._process_entry_local.assert_not_called()
+        entry.save.assert_not_called()
+
+
 @pytest.fixture(scope='function', autouse=True)
 def mongo_forall(mongo_function):
     pass
@@ -303,6 +346,7 @@ def assert_processing(
             for log_data in entry_archive['processing_logs']:
                 for key in ['event', 'entry_id', 'level']:
                     key in log_data
+                assert 'workflow_ids' in log_data
                 has_test_event = (
                     has_test_event or log_data['event'] == 'a test log entry'
                 )
@@ -323,6 +367,7 @@ def assert_processing(
         assert entry_metadata.quantities
         assert len(entry_metadata.quantities) > 0
         assert len(entry_metadata.processing_errors) == 0
+        assert entry_metadata.process_status == entry.process_status
 
         assert upload.get_entry(entry.entry_id) is not None
 
@@ -336,6 +381,7 @@ def assert_processing(
     for entry in search_results.data:
         assert entry['published'] == published
         assert entry['upload_id'] == upload.upload_id
+        assert entry['process_status'] == ProcessStatus.SUCCESS
 
 
 def assert_user_metadata(entries_metadata, user_metadata):
@@ -995,6 +1041,60 @@ def mock_failure(cls, function_name, monkeypatch):
     mock.__name__ = function_name
 
     monkeypatch.setattr(f'nomad.processing.data.{cls.__name__}.{function_name}', mock)
+
+
+@pytest.mark.asyncio
+async def test_await_workflows_ignores_settled_workflow_failure(monkeypatch):
+    workflow_failure = WorkflowFailureError(cause=RuntimeError('workflow failed'))
+    handle = SimpleNamespace(result=AsyncMock(side_effect=workflow_failure))
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-user',
+        process_status=ProcessStatus.FAILURE,
+        workflow_ids=['test-workflow'],
+    )
+    monkeypatch.setattr(upload, 'reload', Mock())
+
+    async def mock_get_client():
+        return client
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+
+    await upload.await_workflows()
+
+    client.get_workflow_handle.assert_called_once_with('test-workflow')
+    handle.result.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_await_workflows_reraises_active_workflow_failure(monkeypatch):
+    workflow_failure = WorkflowFailureError(cause=RuntimeError('workflow failed'))
+    handle = SimpleNamespace(result=AsyncMock(side_effect=workflow_failure))
+    client = SimpleNamespace(get_workflow_handle=Mock(return_value=handle))
+    upload = Upload(
+        upload_id='test-upload',
+        main_author='test-user',
+        process_status=ProcessStatus.FAILURE,
+        workflow_ids=['test-workflow'],
+    )
+    reload_count = 0
+
+    def reload():
+        nonlocal reload_count
+        reload_count += 1
+        if reload_count == 2:
+            upload.process_status = ProcessStatus.RUNNING
+
+    monkeypatch.setattr(upload, 'reload', reload)
+
+    async def mock_get_client():
+        return client
+
+    monkeypatch.setattr('nomad.processing.data.get_client', mock_get_client)
+
+    with pytest.raises(WorkflowFailureError):
+        await upload.await_workflows()
 
 
 @pytest.mark.parametrize(

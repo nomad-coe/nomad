@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import builtins
 import importlib
 import logging
@@ -30,11 +31,11 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
+from httpx2 import ASGITransport, AsyncClient
 
 from nomad.config import config
 
-# make sure to disable logstash (the logs can interfere with the testing, especially for logtransfer)
+# make sure to disable logstash (the logs can interfere with the testing)
 config.logstash.enabled = False  # noqa: E402  # this must be set *before* the other modules are imported
 
 from nomad import utils
@@ -61,10 +62,10 @@ structlogging.ConsoleFormatter.short_format = True
 setattr(logging, 'Formatter', structlogging.ConsoleFormatter)
 
 pytest_plugins = (
+    'tests.fixtures.infrastructure',
     'tests.fixtures.data',
     'tests.fixtures.groups',
     'tests.fixtures.group_uploads',
-    'tests.fixtures.infrastructure',
     'tests.fixtures.mails',
     'tests.fixtures.users',
 )
@@ -331,10 +332,10 @@ async def async_api_v1(monkeypatch, user_molds):
         'http://testserver/api/v1/entries/archive/query',
     )
 
-    monkeypatch.setattr('httpx.AsyncClient.get', getattr(test_client, 'get'))
-    monkeypatch.setattr('httpx.AsyncClient.put', getattr(test_client, 'put'))
-    monkeypatch.setattr('httpx.AsyncClient.post', getattr(test_client, 'post'))
-    monkeypatch.setattr('httpx.AsyncClient.delete', getattr(test_client, 'delete'))
+    monkeypatch.setattr('httpx2.AsyncClient.get', getattr(test_client, 'get'))
+    monkeypatch.setattr('httpx2.AsyncClient.put', getattr(test_client, 'put'))
+    monkeypatch.setattr('httpx2.AsyncClient.post', getattr(test_client, 'post'))
+    monkeypatch.setattr('httpx2.AsyncClient.delete', getattr(test_client, 'delete'))
 
     def mocked_auth_headers(self) -> dict:
         for user in user_molds.values():

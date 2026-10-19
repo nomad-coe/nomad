@@ -20,7 +20,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Annotated
 
-from elasticsearch_dsl import Q
+from elasticsearch.dsl import Q
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
 from nomad import utils
@@ -68,7 +68,7 @@ _raw_response = (
     summary='Returns a DCAT dataset for a given NOMAD entry id.',
     responses=create_responses(_bad_id_response, _raw_response),
 )
-async def get_dataset(
+def get_dataset(
     entry_id: Annotated[str, Path(description='The unique NOMAD entry id.')],
     rdf_respose=Depends(rdf_response),
 ):
@@ -97,7 +97,7 @@ async def get_dataset(
     summary='Returns a DCAT dataset for a given NOMAD entry id.',
     responses=create_responses(_raw_response),
 )
-async def get_catalog(
+def get_catalog(
     after: Annotated[
         str | None, Query(description='return entries after the given entry_id')
     ] = None,

@@ -1,9 +1,27 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-import httpx
+import httpx2
 from temporalio.client import Client
 
 from nomad.config.models.config import TemporalOIDC
@@ -31,11 +49,13 @@ async def fetch_oidc_access_token(settings: TemporalOIDC) -> OIDCAccessToken:
     if settings.scope:
         data['scope'] = settings.scope
 
-    async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
+    async with httpx2.AsyncClient(timeout=settings.request_timeout) as client:
         response = await client.post(
             settings.token_url,
             data=data,
-            auth=httpx.BasicAuth(settings.client_id, settings.client_secret),
+            auth=httpx2.BasicAuth(
+                settings.client_id, settings.client_secret.get_secret_value()
+            ),
         )
         response.raise_for_status()
         body = response.json()

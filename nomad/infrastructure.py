@@ -31,12 +31,12 @@ import warnings  # TODO put somemore thought into warnings
 from email.mime.text import MIMEText
 from email.utils import make_msgid
 
-from elasticsearch_dsl import connections
 from mongoengine import connect, disconnect
 from mongoengine.connection import ConnectionFailure
 
 from nomad import utils
 from nomad.config import config
+from nomad.elastic_compat import create_elastic_client
 
 # The metainfo is defined and used during imports. This is problematic.
 # We import all parsers very early in the infrastructure setup. This will populate
@@ -85,7 +85,10 @@ def setup_mongo():
         db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port
     )
     if config.mongo.username and config.mongo.password:
-        kwargs.update(username=config.mongo.username, password=config.mongo.password)
+        kwargs.update(
+            username=config.mongo.username,
+            password=config.mongo.password.get_secret_value(),
+        )
 
     try:
         mongo_client = connect(**kwargs)
@@ -95,14 +98,17 @@ def setup_mongo():
 
     logger.info('setup mongo connection')
 
-    # drop cache at startup
-    db = mongo_client.get_database(config.mongo.db_name)
-    db.get_collection('cache').drop()
-
+    from nomad.mongo.cache import SERVER_STATS_CACHE_KEY, MongoCache
     from nomad.mongo.groups import MongoUserGroup
+    from nomad.mongo.notifications import Notification
     from nomad.processing import Entry, Upload
 
+    # Drop FastAPI cache entries on startup, but keep the server-stats snapshot.
+    db = mongo_client.get_database(config.mongo.db_name)
+    db.get_collection('cache').delete_many({'key': {'$ne': SERVER_STATS_CACHE_KEY}})
+    MongoCache.ensure_indexes()
     MongoUserGroup.ensure_indexes()
+    Notification.ensure_indexes()
     Upload.ensure_indexes()
     Entry.ensure_indexes()
 
@@ -127,7 +133,10 @@ async def init_async_mongo():
 
     kwargs = dict(host=config.mongo.host, port=config.mongo.port)
     if config.mongo.username and config.mongo.password:
-        kwargs.update(username=config.mongo.username, password=config.mongo.password)
+        kwargs.update(
+            username=config.mongo.username,
+            password=config.mongo.password.get_secret_value(),
+        )
 
     async_mongo_client = AsyncMongoClient(**kwargs, maxPoolSize=50, minPoolSize=50)
     async_mongo_loop = asyncio.get_running_loop()
@@ -159,14 +168,15 @@ def check_mongo():
     db = mongo_client.get_database(config.mongo.db_name)
     names = set(db.list_collection_names())
 
-    # 'cache' is also known but should have been removed by setup
     expected_names = {
         'action_document',
         'archive',
+        'cache',
         'dataset',
         'd_o_i',  # auto-named from class DOI
         'entry',
         'package_definition',
+        'notifications',
         'ownership_transfer',
         'upload',
         'user_group',
@@ -189,17 +199,8 @@ def check_mongo():
 
 def setup_elastic():
     """Creates connection to elastic search."""
-    http_auth = None
-    if config.elastic.username and config.elastic.password:
-        http_auth = (config.elastic.username, config.elastic.password)
     global elastic_client
-    elastic_client = connections.create_connection(
-        hosts=[f'{config.elastic.host}:{config.elastic.port}'],
-        timeout=config.elastic.timeout,
-        max_retries=10,
-        retry_on_timeout=True,
-        http_auth=http_auth,
-    )
+    elastic_client = create_elastic_client()
     logger.info('setup elastic connection')
     from nomad.metainfo.elasticsearch_extension import (
         create_indices as create_v1_indices,
@@ -291,7 +292,7 @@ def send_mail(name: str, email: str, message: str, subject: str) -> None:
 
     if config.mail.with_login:
         try:
-            server.login(config.mail.user, config.mail.password)
+            server.login(config.mail.user, config.mail.password.get_secret_value())
         except Exception as e:
             logger.warning('Could not log into mail server', exc_info=e)
     msg = MIMEText(message)

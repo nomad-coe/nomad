@@ -1,7 +1,26 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import math
 import os
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timezone
 
 import pytest
@@ -10,6 +29,7 @@ from fsspec.implementations.local import LocalFileSystem
 
 from nomad import bundles, datamodel, processing, utils
 from nomad.archive import read_archive, to_json, write_archive
+from nomad.common import now
 from nomad.datamodel import EntryArchive, OptimadeEntry, User
 from nomad.datamodel.datamodel import SearchableQuantity
 from nomad.files import FSUtility, UploadFiles
@@ -114,26 +134,36 @@ def non_empty_uploaded(
     return example_upload_id, non_empty_example_upload
 
 
-@pytest.fixture(scope='function')
-def oasis_publishable_upload(
+@pytest_asyncio.fixture(scope='function')
+async def oasis_publishable_upload(
     api_v1,
     proc_infra,
-    non_empty_processed: processing.Upload,
+    non_empty_processed_with_temporal: processing.Upload,
     internal_example_user_metadata,
     monkeypatch,
     user1,
+    temporal_worker: TemporalWorkerContext,
 ):
     """
     Creates a published upload which can be used with Upload.publish_externally. Some monkeypatching
     is done which replaces IDs when importing.
     """
     # Create a published upload
-    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
-    non_empty_processed.publish_upload()
-    non_empty_processed.block_until_complete(interval=0.01)
+    set_upload_entry_metadata(
+        non_empty_processed_with_temporal, internal_example_user_metadata
+    )
+    async with temporal_worker():
+        await asyncio.to_thread(non_empty_processed_with_temporal.publish_upload)
+        await non_empty_processed_with_temporal.await_workflows()
 
     suffix = '_2'  # Will be added to all IDs in the mirrored upload
-    upload_id = non_empty_processed.upload_id
+    upload_id = non_empty_processed_with_temporal.upload_id
+
+    # This fixture simulates two deployments in one database by changing upload
+    # and entry IDs. Synthetic schema snapshots contain stable cross-entry
+    # references and cannot be rewritten safely by this simulation. Schema
+    # transfer itself is covered by the bundle schema round-trip tests.
+    monkeypatch.setattr(bundles.BundleExporter, '_get_schema_packages', lambda _: [])
 
     # Do some tricks to add suffix to the ID fields
     old_bundle_importer_open = bundles.BundleImporter.open
@@ -158,7 +188,12 @@ def oasis_publishable_upload(
         old_bundle_import_files(self, *args, **kwargs)
         # Overwrite the archive files with files containing the updated IDs
         archive_path = self.upload_files.os_path
-        for file_name in os.listdir(archive_path):
+        archive_upath = FSUtility.upath(archive_path)
+        file_names = [
+            os.path.basename(entry)
+            for entry in archive_upath.fs.ls(archive_upath.path, detail=False)
+        ]
+        for file_name in file_names:
             if file_name.endswith('.msg'):
                 full_path = os.path.join(archive_path, file_name)
                 new_data: dict = {}
@@ -181,11 +216,25 @@ def oasis_publishable_upload(
         'nomad.bundles.BundleImporter._import_files', new_bundle_import_files
     )
 
+    async def async_post(url, data, params, **kwargs):
+        assert url == '/api/v1/uploads/import'
+        assert params['format'] == 'bundle'
+        async with temporal_worker():
+            return await asyncio.to_thread(
+                lambda: api_v1.post(
+                    build_url(url.lstrip('/api/v1/'), params),
+                    data=data.read(),
+                    **kwargs,
+                )
+            )
+
     # Further monkey patching
-    def new_post(url, data, params={}, **kwargs):
-        return api_v1.post(
-            build_url(url.lstrip('/api/v1/'), params), data=data.read(), **kwargs
-        )
+    def new_post(url, data=None, params=None, **kwargs):
+        if params is None:
+            params = {}
+
+        # Run async work inside a loop explicitly
+        return asyncio.run(async_post(url, data, params, **kwargs))
 
     monkeypatch.setattr('requests.post', new_post)
     monkeypatch.setattr('nomad.config.oasis.is_oasis', True)
@@ -194,13 +243,13 @@ def oasis_publishable_upload(
     monkeypatch.setattr('nomad.config.oasis.central_nomad_deployment_url', '/api')
 
     # create a dataset to also test this aspect of oasis uploads
-    entry = non_empty_processed.successful_entries[0]
+    entry = non_empty_processed_with_temporal.successful_entries[0]
     datamodel.Dataset(
         dataset_id='dataset_id', dataset_name='dataset_name', user_id=user1.user_id
     ).a_mongo.save()
     entry.datasets = ['dataset_id']
     entry.save()
-    return non_empty_processed.upload_id, suffix
+    return non_empty_processed_with_temporal.upload_id, suffix
 
 
 @pytest_asyncio.fixture(scope='function')
@@ -773,3 +822,52 @@ def example_datasets(mongo_function, user1, user2):
 
     while datasets:
         datasets.pop().a_mongo.delete()
+
+
+@pytest.fixture(scope='function')
+def create_upload(mongo_function, user1, normalized, elastic_function):
+
+    def create(upload: dict, entries: Iterable[dict] | None = None):
+        data = ExampleData(main_author=user1)
+
+        upload_id = upload['upload_id']
+        data.create_upload(**upload)
+        for entry in entries or []:
+            entry.setdefault('entry_id', f'{upload_id}_1')
+            data.create_entry(upload_id=upload_id, **entry)
+        data.save()
+
+        return data
+
+    return create
+
+
+@pytest.fixture(scope='function')
+def create_including_upload(mongo_function, user1, normalized, elastic_function):
+
+    def create(upload_id, embargo_length, has_entry):
+        data = ExampleData(main_author=user1)
+
+        # included upload
+        inc_id = 'id_included'
+        data.create_upload(
+            upload_id=inc_id, published=True, embargo_length=embargo_length
+        )
+        data.create_entry(upload_id=inc_id, entry_id=f'{inc_id}_1')
+
+        # including upload
+        data.create_upload(
+            upload_id=upload_id,
+            included_entries={
+                'query': {'upload_id': {'any': [inc_id]}},
+                'timestamp': now(),
+            },
+        )
+        if has_entry:
+            data.create_entry(upload_id=upload_id, entry_id=f'{upload_id}_1')
+
+        data.save()
+
+        return data
+
+    return create

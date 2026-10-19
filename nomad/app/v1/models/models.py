@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import datetime
 import fnmatch
 import json
@@ -42,12 +43,8 @@ from pydantic_core import PydanticCustomError
 
 from nomad import datamodel, metainfo  # noqa: F401
 from nomad.app.v1.utils import parameter_dependency_from_model
-from nomad.config import config
-from nomad.metainfo.elasticsearch_extension import (
-    DocumentType,
-    material_entry_type,
-    material_type,
-)
+from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.models.common import UTCDateTime
 from nomad.utils import strip
 
 from .pagination import Pagination, PaginationResponse
@@ -437,9 +434,6 @@ def _validate_query(query: Query):
 
 
 class QueryParameters:
-    def __init__(self, doc_type: DocumentType):
-        self.doc_type = doc_type
-
     def __call__(
         self,
         request: Request,
@@ -485,28 +479,13 @@ class QueryParameters:
             name_op, value = '__'.join(fragments[:-1]), fragments[-1]
             quantity_name = name_op.split('__', maxsplit=1)[0]
 
-            doc_type = self.doc_type
-            if quantity_name.startswith('entries.'):
-                if self.doc_type == material_type:
-                    doc_type = material_entry_type
-                else:
-                    raise HTTPException(
-                        status.HTTP_422_UNPROCESSABLE_CONTENT,
-                        detail=[
-                            {
-                                'loc': ['query', parameter],
-                                'msg': f'entries can only be nested into material queries',
-                            }
-                        ],
-                    )
-
-            if quantity_name not in doc_type.quantities:
+            if quantity_name not in entry_type.quantities:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=[
                         {
                             'loc': ['query', parameter],
-                            'msg': f'{quantity_name} is not a {doc_type} quantity',
+                            'msg': f'{quantity_name} is not a {entry_type} quantity',
                         }
                     ],
                 )
@@ -522,10 +501,7 @@ class QueryParameters:
             else:
                 quantity_name = key
 
-            if quantity_name.startswith('entries.'):
-                quantity = material_entry_type.quantities.get(quantity_name[8:])
-            else:
-                quantity = self.doc_type.quantities.get(quantity_name)
+            quantity = entry_type.quantities.get(quantity_name)
 
             if quantity is None:
                 continue
@@ -929,8 +905,81 @@ class HistogramAggregation(BucketAggregation):
         return values
 
 
+_CALENDAR_INTERVALS = frozenset(
+    {
+        'second',
+        '1s',
+        'minute',
+        '1m',
+        'hour',
+        '1h',
+        'day',
+        '1d',
+        'week',
+        '1w',
+        'month',
+        '1M',
+        'quarter',
+        '1q',
+        'year',
+        '1y',
+    }
+)
+
+
 class DateHistogramAggregation(BucketAggregation):
-    interval: str = Field('1M')  #  type: ignore
+    interval: str | None = Field(  # type: ignore
+        None,
+        description=strip(
+            """
+            The date histogram bucketing interval. Deprecated, use calendar_interval
+            or fixed_interval instead.
+            """
+        ),
+    )
+    calendar_interval: str | None = Field(
+        None,
+        description=strip(
+            """
+            The calendar interval for the date histogram (e.g. 1s, 1m, 1h, 1d, 1w, 1M, 1q, 1y).
+            Only one of calendar_interval or fixed_interval can be given.
+            """
+        ),
+    )
+    fixed_interval: str | None = Field(
+        None,
+        description=strip(
+            """
+            The fixed interval for the date histogram (e.g. 10m, 2h, 30s).
+            Only one of calendar_interval or fixed_interval can be given.
+            """
+        ),
+    )
+
+    @model_validator(mode='after')
+    def check_intervals(self):
+        specified = [
+            k
+            for k, v in [
+                ('interval', self.interval),
+                ('calendar_interval', self.calendar_interval),
+                ('fixed_interval', self.fixed_interval),
+            ]
+            if v is not None
+        ]
+        if len(specified) > 1:
+            raise ValueError(
+                f'Only one of {", ".join(specified)} can be given for date histogram aggregation.'
+            )
+        if self.interval is not None:
+            if self.interval in _CALENDAR_INTERVALS:
+                self.calendar_interval = self.interval
+            else:
+                self.fixed_interval = self.interval
+            self.interval = None
+        elif not specified:
+            self.calendar_interval = '1M'
+        return self
 
 
 class AutoDateHistogramAggregation(BucketAggregation):
@@ -1349,6 +1398,47 @@ class MetadataEditRequest(WithQuery):
     )
 
 
+class IncludedEntriesRequestBase(BaseModel):
+    query: Query = Body(embed=True, description=query_documentation)
+
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, query):  # pylint: disable=no-self-argument
+        return _validate_query(query)
+
+    model_config = ConfigDict(use_enum_values=True)
+
+
+class IncludedEntriesValidateRequest(IncludedEntriesRequestBase):
+    pagination: MetadataPagination | None = Body(
+        None, examples=[{'page_size': 5, 'order_by': 'upload_create_time'}]
+    )
+
+
+class IncludedEntriesEditRequest(IncludedEntriesRequestBase):
+    pass
+
+
+class ExtraEntriesValidateResponse(BaseModel):
+    query: Query | None = Field(None, description='Query for included entries.')
+    timestamp: UTCDateTime | None = Field(None, description='Timestamp of the query.')
+    pagination: PaginationResponse | None = Field(
+        None, description='Pagination of queried data.'
+    )
+    entries: list[dict] | None = Field(
+        None, description='Entries matched by the query at the timestamp.'
+    )
+    n_unpublished: int | None = Field(
+        None, description='Number of unpublished entries.'
+    )
+
+
+class IncludedEntriesEditResponse(BaseModel):
+    query: Query | None = Field(None, description='Query for included entries.')
+    timestamp: UTCDateTime | None = Field(None, description='Timestamp of the query.')
+    total: int | None = Field(None, description='Number of included entries.')
+
+
 class Files(BaseModel):
     """Configures the download of files."""
 
@@ -1546,29 +1636,4 @@ class MetadataResponse(Metadata):
         description=strip(
             """The elasticsearch query that was used to retrieve the results."""
         ),
-    )
-
-
-def _get_target_deployment_url():
-    return config.oasis.central_nomad_deployment_url
-
-
-class TransferBundleRequest(BaseModel):
-    target_deployment_url: str = Field(
-        default_factory=_get_target_deployment_url,  # Factory has better behavior for testing
-        description='If not provided, the transfer will target the central nomad deployment. The url must end with /api',
-        examples=['https://nomad-lab.eu/prod/v1/api'],
-    )
-    auth_token: str = Field(
-        ...,
-        description='Token used to authenticate the upload transfer in the target deployment. You can use the /auth/token API endpoint in the target depoyment to retrieve the token. Provide the plain token, do not include the "Bearer"',
-        examples=['eyJhbGciOiJSUzI1NiIsInR5cCI...'],
-    )
-    embargo_length: int | None = Field(
-        None,
-        description="""
-                If provided, updates the embargo length of the upload. The value should
-                be between 0 and 36 months. 0 means no embargo.""",
-        ge=0,
-        le=36,
     )

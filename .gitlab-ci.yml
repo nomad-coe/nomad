@@ -10,7 +10,7 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
 
 default:
   tags:
-    - cloud # Necessary to select the right CI runner
+    - mpcdf-shared
   interruptible: true
 
 variables:
@@ -128,6 +128,8 @@ check python dependencies:
       when: never
 
 .base_test:
+  tags:
+    - cloud
   image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
   stage: test
   services:
@@ -137,14 +139,15 @@ check python dependencies:
         - bash
         - "-c"
         - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
-    - name: mongo:5
+    - name: mongo:8
       alias: mongo
-    - name: chrislusf/seaweedfs:4.25
-      alias: seaweedfs
   variables:
     AWS_ACCESS_KEY_ID: nomad_test
     AWS_SECRET_ACCESS_KEY: nomad_test
     NOMAD_ELASTIC_HOST: elastic
+    # The config loader JSON-decodes environment variables, so preserve the
+    # Elasticsearch version as a string rather than an integer.
+    NOMAD_ELASTIC_VERSION: '"7"'
     NOMAD_MONGO_HOST: mongo
     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
     NOMAD_SERVICES_API_SECRET: some-very-long-test-secret-string
@@ -153,6 +156,24 @@ check python dependencies:
     - scripts/check_elastic.sh
     - uv pip install -e ".[dev]"
     - uv pip install -r requirements-plugins.txt -c requirements-dev.txt # remove this after moving to distro
+
+.base_test_es9:
+  extends: .base_test
+  services:
+    - name: elasticsearch:9.3.1
+      alias: elastic
+      command:
+        - bash
+        - "-c"
+        - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
+    - name: mongo:8
+      alias: mongo
+    - name: chrislusf/seaweedfs:4.25
+      alias: seaweedfs
+  variables:
+    # The config loader JSON-decodes environment variables, so preserve the
+    # Elasticsearch version as a string rather than an integer.
+    NOMAD_ELASTIC_VERSION: '"9"'
 
 generate pytest timings:
   extends: .base_test
@@ -168,7 +189,7 @@ generate pytest timings:
     - <<: *manual-allow_failure
 
 python tests:
-  parallel: 4
+  parallel: 3
   extends: .base_test
   script:
     - >
@@ -194,15 +215,42 @@ python tests:
       when: never
     - when: on_success
 
-python tests with s3:
-  parallel: 4
-  extends: .base_test
+python tests elasticsearch 9:
+  extends: .base_test_es9
   script:
     - >
       python -m pytest -sv -n=3
       --dist=loadscope
       --disable-socket
       --allow-hosts=localhost,elastic,mongo
+      tests/test_search.py
+      tests/app/v1/routers/test_suggestions.py
+      tests/app/test_optimade.py
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+python tests with s3:
+  parallel: 1
+  extends: .base_test
+  services:
+    - name: elasticsearch:7.17.24
+      alias: elastic
+      command:
+        - bash
+        - "-c"
+        - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
+    - name: mongo:5
+      alias: mongo
+    - name: chrislusf/seaweedfs:4.25
+      alias: seaweedfs
+  script:
+    - >
+      python -m pytest -sv -n=3
+      --dist=loadscope
+      --disable-socket
+      --allow-hosts=localhost,elastic,mongo,seaweedfs
       --cov=nomad
       --cov-report term
       --cov-config=.coveragerc
@@ -331,25 +379,32 @@ build python package:
       - archive.json
       - example.out
 
-# audit python:
-#   stage: test
-#   needs: []
-#   image: $UV_IMAGE
-#   variables:
-#     UV_LINK_MODE: copy
-#   before_script:
-#     - uv venv
-#     - uv pip install ".[dev,infrastructure]" -c requirements-dev.txt
-#   script:
-#     - EXIT=0
-#     - uv audit || EXIT=1
-#     - uv run pip-audit --skip-editable || EXIT=$((EXIT+2))
-#     - exit $EXIT
-#   rules:
-#     - if: $CI_COMMIT_BRANCH == 'develop'
-#       allow_failure: true
-#     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
-#     - if: $CI_COMMIT_BRANCH == 'main'
+audit python:
+  stage: test
+  needs: []
+  image: $UV_IMAGE
+  variables:
+    UV_LINK_MODE: copy
+    # jupyterhub is pinned <5.0.0 for running the deprecated old NORTH API. The new API
+    # runs Jupyterhub in a separate service where the version has been upgraded. These can
+    # be removed once we fully also remove the jupyterhub dependency from this package.
+    IGNORED_VULNS: >-
+      GHSA-m68r-v472-jgq9 PYSEC-2026-2189
+      GHSA-3vff-hjqv-m7h8 PYSEC-2026-2188
+      GHSA-p43p-whwx-q52h PYSEC-2026-3853
+  before_script:
+    - uv venv
+    - uv pip install ".[dev,infrastructure]" -c requirements-dev.txt
+  script:
+    - EXIT=0
+    - uv audit $(printf -- '--ignore %s ' $IGNORED_VULNS) || EXIT=1
+    - uv run pip-audit --skip-editable $(printf -- '--ignore-vuln %s ' $IGNORED_VULNS) || EXIT=$((EXIT+2))
+    - exit $EXIT
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'develop'
+      allow_failure: true
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main'
 
 python package install tests:
   stage: test

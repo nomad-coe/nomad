@@ -427,7 +427,7 @@ class DbUpdater:
                 os.remove(tarname)
                 print(f'Error writing tar file {tarname}. {e}')
 
-        def get_status_upload(uploadname: str) -> tuple[str, str]:
+        def get_status_upload(uploadname: str) -> tuple[str, str] | tuple[None, None]:
             response = api.get(f'uploads', params=dict(name=uploadname), auth=self.auth)
             assert response.status_code == 200
             response_json = response.json()
@@ -455,6 +455,8 @@ class DbUpdater:
             if size > max_zip_size or i == (len(plist) - 1):
                 tarname, uploadname = self._make_name(dirs)
                 status, uid = get_status_upload(uploadname)
+                if status is None and uid is None:
+                    raise RuntimeError('failed to get upload status')
                 if status == 'published':
                     continue
                 if status != 'uploaded':

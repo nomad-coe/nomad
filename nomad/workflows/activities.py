@@ -1,22 +1,42 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 import os
 import random
 import shutil
 import time
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
 from nomad.actions.heartbeat import activity_heartbeat
+from nomad.common import now
 from nomad.config import config
 from nomad.files import PublicUploadFiles, StagingUploadFiles
+from nomad.notifications import notification_service
 from nomad.parsing.parsers import parsers
 from nomad.processing.base import ProcessFailure, ProcessStatus
 from nomad.processing.data import Entry, Upload
 from nomad.search import delete_upload
+from nomad.server_stats import collect_server_stats
 from nomad.uploads import remove_upload_reviewers
 from nomad.workflows.shared_objects import (
     CleanupEntriesBatchActivityInput,
@@ -83,7 +103,7 @@ def _process_single_entry(input: ProcessEntryActivityInput):
         entry._process_entry_local()
         entry.on_success()
         entry.process_status = ProcessStatus.SUCCESS
-        entry.complete_time = datetime.now(timezone.utc)
+        entry.complete_time = now()
         entry.save()
     except Exception as e:
         entry.fail(*[e])
@@ -366,10 +386,13 @@ def complete_upload_ownership_transfer_activity(
         upload = Upload.get(input.upload_id)
         reviewers_to_remove = {input.new_owner_user_id, input.previous_owner_user_id}
         remove_upload_reviewers(reviewers_to_remove, upload=upload)
-        OwnershipTransferRecord.objects(
+        transfer_records = OwnershipTransferRecord.objects(
             resource_type='upload',
             resource_id=input.upload_id,
-        ).delete()
+        )
+        for record in transfer_records:
+            notification_service.retract(f'ownership-transfer-request-{record.id}')
+        transfer_records.delete()
 
 
 @activity.defn
@@ -396,6 +419,8 @@ def finalize_upload_processing_activity(input: FinalizeUploadProcessingInput):
         upload.process_status = (
             ProcessStatus.SUCCESS if input.trigger_processing else ProcessStatus.READY
         )
+        if input.trigger_processing:
+            upload.complete_time = now()
         upload.set_last_status_message('Process completed successfully')
     else:
         upload.last_status_message = (
@@ -411,6 +436,41 @@ def finalize_upload_processing_activity(input: FinalizeUploadProcessingInput):
     if input.workflow_tmp_dir and os.path.exists(input.workflow_tmp_dir):
         shutil.rmtree(input.workflow_tmp_dir, ignore_errors=True)
 
+    # Deferred processing and ownership transfers do not produce job inbox rows.
+    # Run IDs distinguish reused workflow IDs while keeping activity retries idempotent.
+    if (
+        upload.main_author
+        and upload.current_process
+        and upload.current_process != '_transfer_upload_ownership'
+        # Notify failures even if processing was disabled; skip deferred-processing successes.
+        and (input.result != 'success' or input.trigger_processing)
+    ):
+        try:
+            workflow_run_id = activity.info().workflow_run_id
+            assert workflow_run_id is not None
+            notification_service.emit(
+                user_id=upload.main_author,
+                source='user',
+                notification_type='upload_process',
+                dedup_key=workflow_run_id,
+                data={
+                    'resource_type': 'upload',
+                    'resource_id': upload.upload_id,
+                    'resource_name': upload.upload_name,
+                    'process': upload.current_process,
+                    'result': input.result,
+                    'message': (
+                        input.failure_message or 'Process upload failed'
+                        if input.result == 'failure'
+                        else 'Process completed successfully'
+                    ),
+                },
+            )
+        except Exception:
+            upload.get_logger().warning(
+                'could not emit process notification', exc_info=True
+            )
+
 
 @activity.defn
 def publish_externally_activity(input: PublishExternallyWorkflowInput):
@@ -420,6 +480,7 @@ def publish_externally_activity(input: PublishExternallyWorkflowInput):
             target_deployment_url=input.target_deployment_url,
             auth_token=input.auth_token,
             embargo_length=input.embargo_length,
+            export_settings=input.export_settings,
         )
 
 
@@ -437,3 +498,8 @@ def handle_heartbeat_failure_activity(input: ProcessEntryActivityInput):
         ]
     )
     entry.save()
+
+
+@activity.defn
+def server_stats_checkin_activity():
+    collect_server_stats()

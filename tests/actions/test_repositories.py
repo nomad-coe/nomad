@@ -1,11 +1,34 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from datetime import datetime, timezone
 from typing import Any
 
 import pytest
 
 from nomad import infrastructure
-from nomad.actions.models import ActionRecord
-from nomad.actions.repositories import AsyncActionRepository, SyncActionRepository
+from nomad.actions.domain import ActionRecord
+from nomad.actions.mongo_repository import (
+    MongoAsyncActionRepository as AsyncActionRepository,
+)
+from nomad.actions.mongo_repository import (
+    MongoSyncActionRepository as SyncActionRepository,
+)
 from nomad.config import config
 
 
@@ -73,7 +96,7 @@ def test_sync_repository_require_for_user_raises(mongo_function, user1):
 
 
 @pytest.mark.asyncio
-async def test_async_repository_create_get_and_patch(
+async def test_async_repository_create_get_and_save_result(
     mongo_function, async_mongo_function, user1
 ):
     repo = AsyncActionRepository()
@@ -83,7 +106,7 @@ async def test_async_repository_create_get_and_patch(
     assert fetched is not None
     assert fetched.status == 'PENDING'
 
-    patched = await repo.patch_for_user(
+    patched = await repo.save_result_for_user(
         'workflow-async-1',
         user1.user_id,
         status='RUNNING',
@@ -126,13 +149,13 @@ async def test_async_repository_pending_signal_input_roundtrip(
     )
     assert created is True
 
-    consumed = await repo.consume_pending_signal_input(
+    consumed = await repo.claim_pending_signal_input(
         'workflow-async-4',
         user1.user_id,
         'approve',
     )
     assert consumed is not None
-    assert consumed['signal_input_requests'][0]['signal_fn_name'] == 'approve'
+    assert consumed.request['signal_fn_name'] == 'approve'
 
     await repo.restore_pending_signal_input(
         'workflow-async-4',
@@ -155,6 +178,38 @@ async def test_async_repository_pending_signal_input_roundtrip(
     )
     updated = await repo.require_for_user('workflow-async-4', user1.user_id)
     assert updated.signal_inputs_submitted[0]['signal_fn_name'] == 'approve'
+
+
+@pytest.mark.asyncio
+async def test_typed_signal_claim_is_owned_and_single_use(
+    mongo_function, async_mongo_function, user1
+):
+    from nomad.actions.domain import SignalInputClaim
+
+    repo = AsyncActionRepository()
+    request = {'signal_fn_name': 'approve', 'title': 'Approval'}
+    await repo.create(
+        _record(
+            'claim-workflow',
+            user1.user_id,
+            status='RUNNING',
+            signal_input_requests=[request],
+        )
+    )
+    assert (
+        await repo.claim_pending_signal_input('claim-workflow', 'other-user', 'approve')
+        is None
+    )
+    claim = await repo.claim_pending_signal_input(
+        'claim-workflow', user1.user_id, 'approve'
+    )
+    assert claim == SignalInputClaim(action_id='my-action', request=request)
+    assert (
+        await repo.claim_pending_signal_input(
+            'claim-workflow', user1.user_id, 'approve'
+        )
+        is None
+    )
 
 
 @pytest.mark.asyncio

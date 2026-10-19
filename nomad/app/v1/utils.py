@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import annotations
 
 import gzip
@@ -23,7 +24,7 @@ import io
 import json
 import lzma
 import os
-import urllib
+import urllib.parse
 from collections.abc import Iterator
 from types import FunctionType
 from typing import IO, Any
@@ -101,7 +102,7 @@ class DownloadItem(BaseModel):
     entry_metadata: dict[str, Any] | None = None
 
 
-async def create_download_stream_zipped(
+def create_download_stream_zipped(
     download_items: DownloadItem | Iterator[DownloadItem],
     upload_files: UploadFiles | None = None,
     re_pattern: Any = None,
@@ -194,16 +195,16 @@ async def create_download_stream_zipped(
             if upload_files:
                 upload_files.close()
 
-    for x in create_zipstream(streamed_files(upload_files), compress=compress):
-        yield x
+    yield from create_zipstream(streamed_files(upload_files), compress=compress)
 
 
-async def create_download_stream_raw_file(
+def create_download_stream_raw_file(
     upload_files: UploadFiles,
     path: str,
     offset: int = 0,
     length: int = -1,
     decompress=False,
+    raw_path_reader=None,
 ):
     """
     Creates a file stream for downloading raw data with ``StreamingResponse``.
@@ -216,30 +217,39 @@ async def create_download_stream_raw_file(
             file will be read.
         decompress: decompresses if the file is compressed (and of a supported type).
     """
-    with upload_files, upload_files.raw_file(path, 'rb') as raw_file:
-        target_file: IO | io.IOBase = raw_file
-        if decompress:
-            if path.endswith('.gz'):
-                target_file = gzip.GzipFile(
-                    filename=path[:3], mode='rb', fileobj=raw_file
-                )
-            elif path.endswith('.xz'):
-                target_file = lzma.open(filename=raw_file, mode='rb')
-
-        assert offset >= 0, 'Invalid offset provided'
-        assert length > 0 or length == -1, (
-            'Invalid length provided. Should be > 0 or equal to -1.'
+    try:
+        raw_file_context = (
+            raw_path_reader.open('rb')
+            if raw_path_reader is not None
+            else upload_files.raw_file(path, 'rb')
         )
-        if offset > 0:
-            target_file.seek(offset)
+        with upload_files, raw_file_context as raw_file:
+            target_file: IO | io.IOBase = raw_file
+            if decompress:
+                if path.endswith('.gz'):
+                    target_file = gzip.GzipFile(
+                        filename=path[:3], mode='rb', fileobj=raw_file
+                    )
+                elif path.endswith('.xz'):
+                    target_file = lzma.open(filename=raw_file, mode='rb')
 
-        if length > 0:
-            # Read up to a certain number of bytes
-            yield target_file.read(length)
-        else:
-            # Read until the end of the file.
-            while content := target_file.read(1024 * 1024):
-                yield content
+            assert offset >= 0, 'Invalid offset provided'
+            assert length > 0 or length == -1, (
+                'Invalid length provided. Should be > 0 or equal to -1.'
+            )
+            if offset > 0:
+                target_file.seek(offset)
+
+            if length > 0:
+                # Read up to a certain number of bytes
+                yield target_file.read(length)
+            else:
+                # Read until the end of the file.
+                while content := target_file.read(1024 * 1024):
+                    yield content
+    finally:
+        if raw_path_reader is not None:
+            raw_path_reader.close()
 
 
 async def create_stream_from_string(content: str):
@@ -261,12 +271,23 @@ def browser_download_headers(
     data to a file with the specified filename. Note, the `media_type` should normally be
     either `application/octet-stream` or `application/zip`, using for example `application/json`
     will cause most browsers to try to open and view the file instead of downloading it.
+
+    File names may contain any character the file system accepts, including non-ASCII
+    characters and control characters such as CR/LF, none of which can be sent verbatim
+    in a header value. Following RFC 6266, the name is therefore sent twice: as an ASCII
+    `filename` fallback in which every non-printable and non-ASCII character is replaced
+    by '_', and as an RFC 5987 percent-encoded `filename*` carrying the exact name.
+    Clients that understand `filename*` use it in preference to `filename`.
     """
     assert filename, 'Filename must be specified'
-    filename = filename.replace('"', '\\"')
+    ascii_fallback = ''.join(c if ' ' <= c <= '~' else '_' for c in filename)
+    ascii_fallback = ascii_fallback.replace('\\', '\\\\').replace('"', '\\"')
     return {
         'Content-Type': media_type,
-        'Content-Disposition': f'attachment; filename="{filename}"',
+        'Content-Disposition': (
+            f'attachment; filename="{ascii_fallback}"; '
+            f"filename*=UTF-8''{urllib.parse.quote(filename, safe='')}"
+        ),
     }
 
 

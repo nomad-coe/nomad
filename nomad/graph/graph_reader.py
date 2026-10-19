@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import annotations
 
 import asyncio
@@ -24,7 +25,7 @@ import functools
 import os
 import re
 from collections.abc import AsyncIterator, Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from threading import Lock
 from typing import Any, TypeAlias
 
@@ -32,7 +33,8 @@ import orjson
 from cachetools import TTLCache
 from fastapi import HTTPException
 from mongoengine import Q
-from msglc.reader import LazyDict, LazyList
+from msglc.reader import LazyDict, LazyList, LazyReader
+from pydantic import ValidationError
 
 from nomad import utils
 from nomad.app.v1.models import (
@@ -60,7 +62,7 @@ from nomad.archive.storage_v2 import ArchiveList as ArchiveListNew
 from nomad.datamodel import Dataset, EntryArchive, ServerContext, User
 from nomad.datamodel.metainfo.plot import PlotlyFigure
 from nomad.datamodel.util import parse_path
-from nomad.files import RawPathInfo, UploadFiles
+from nomad.files import RawPathInfo, UploadFiles, measure_fs_reads
 from nomad.graph.lazy_wrapper import (
     CachedUpload,
     LazyUploadFailureCount,
@@ -69,6 +71,8 @@ from nomad.graph.lazy_wrapper import (
     LazyUserWrapper,
 )
 from nomad.graph.model import (
+    _WILDCARD_FROZENSET,
+    ArchivePagination,
     DatasetQuery,
     DefinitionType,
     DirectiveType,
@@ -94,13 +98,13 @@ from nomad.metainfo import (
     Section,
     SubSection,
 )
-from nomad.metainfo.data_type import JSON, Datatype
-from nomad.metainfo.data_type import Any as AnyType
+from nomad.metainfo.data_type import Datatype
 from nomad.metainfo.util import MSubSectionList, split_python_definition
 from nomad.mongo.groups import MongoUserGroup, get_mongo_user_group
 from nomad.mongo.package import PackageDefinition
 from nomad.mongo.search import MongoQueryError, create_mongo_query
 from nomad.processing import Entry, Upload
+from nomad.tracing import trace_span, traced
 
 logger = utils.get_logger(__name__)
 
@@ -124,6 +128,48 @@ class _EntryLayoutReadPlan:
     archive_request: _LayoutArchiveRequest | None = None
 
 
+_OBJECT_SETATTR = object.__setattr__
+
+
+def _copy_request_config(config: RequestConfig, **updates: Any) -> RequestConfig:
+    """Copy an already validated config."""
+
+    # The internal shortcut is deliberately limited to the exact model whose
+    # invariants are known here. Subclasses may add fields, private attributes,
+    # or a different extra policy and must use Pydantic's supported copy path.
+    if (
+        type(config) is not RequestConfig
+        or not updates.keys() <= RequestConfig.model_fields.keys()
+    ):
+        copied = config.model_copy(update=updates)
+        copied.__dict__.pop('hash', None)
+        return copied
+
+    copied = object.__new__(type(config))
+    d = config.__dict__.copy()
+    d.update(updates)
+    d.pop('hash', None)
+    _OBJECT_SETATTR(copied, '__dict__', d)
+    _OBJECT_SETATTR(
+        copied,
+        '__pydantic_fields_set__',
+        config.__pydantic_fields_set__ | updates.keys(),
+    )
+    _OBJECT_SETATTR(
+        copied,
+        '__pydantic_extra__',
+        None if config.__pydantic_extra__ is None else config.__pydantic_extra__.copy(),
+    )
+    _OBJECT_SETATTR(
+        copied,
+        '__pydantic_private__',
+        None
+        if config.__pydantic_private__ is None
+        else config.__pydantic_private__.copy(),
+    )
+    return copied
+
+
 @dataclasses.dataclass
 class _ReaderCache:
     """State shared by readers participating in one graph request."""
@@ -133,6 +179,12 @@ class _ReaderCache:
     )
     definitions: dict[tuple[str | None, str | None, str | None, str | None], Any] = (
         dataclasses.field(default_factory=dict)
+    )
+    short_definition_references: dict[int, tuple[Any, tuple[int, ...], str]] = (
+        dataclasses.field(default_factory=dict)
+    )
+    property_definitions: dict[tuple[int, str], tuple[Any, Any]] = dataclasses.field(
+        default_factory=dict
     )
 
 
@@ -238,8 +290,10 @@ async def async_to_json(data):
     # return await asyncio.to_thread(to_json, data)
 
 
-# todo: set slots=True when 3.10 is the minimum version
-@dataclasses.dataclass(frozen=True)
+_NODE_SENTINEL = object()
+
+
+@dataclasses.dataclass(slots=True)
 class GraphNode:
     upload_id: str  # the upload id of the current node
     entry_id: str  # the entry id of the current node
@@ -252,27 +306,79 @@ class GraphNode:
     visited_path: set[str]  # visited paths, for tracking circular references
     current_depth: int  # current depth, for tracking depth limit
     reader: Any  # the reader used to read the archive # pylint: disable=E0601
+    result_cursor: ResultCursor | None = None
 
-    @functools.cached_property
-    def _prefix_to_remove(self):
-        """Duplicated prefix to remove."""
-        return f'uploads/{self.upload_id}/entries/{self.entry_id}/archive/'
+    def descend(self, key: str, **kwargs) -> GraphNode:
+        return self.replace(
+            current_path=self.current_path + [key],
+            result_cursor=_node_cursor(self).child(key),
+            **kwargs,
+        )
 
-    def replace(self, **kwargs):
+    def replace(
+        self,
+        upload_id: Any = _NODE_SENTINEL,
+        entry_id: Any = _NODE_SENTINEL,
+        current_path: Any = _NODE_SENTINEL,
+        result_root: Any = _NODE_SENTINEL,
+        ref_result_root: Any = _NODE_SENTINEL,
+        archive: Any = _NODE_SENTINEL,
+        archive_root: Any = _NODE_SENTINEL,
+        definition: Any = _NODE_SENTINEL,
+        visited_path: Any = _NODE_SENTINEL,
+        current_depth: Any = _NODE_SENTINEL,
+        reader: Any = _NODE_SENTINEL,
+        result_cursor: Any = _NODE_SENTINEL,
+    ):
         """
         Create a new `ArchiveNode` instance with the attributes of the current instance replaced.
-        The `ArchiveNode` class is deliberately designed to be immutable.
         """
-        return dataclasses.replace(self, **kwargs)
+        new_current_path = (
+            self.current_path if current_path is _NODE_SENTINEL else current_path
+        )
+        new_result_cursor = (
+            self.result_cursor if result_cursor is _NODE_SENTINEL else result_cursor
+        )
+        if (
+            result_cursor is _NODE_SENTINEL
+            and current_path is not _NODE_SENTINEL
+            and current_path != self.current_path
+        ):
+            new_result_cursor = None
+        return GraphNode(
+            self.upload_id if upload_id is _NODE_SENTINEL else upload_id,
+            self.entry_id if entry_id is _NODE_SENTINEL else entry_id,
+            new_current_path,
+            self.result_root if result_root is _NODE_SENTINEL else result_root,
+            self.ref_result_root
+            if ref_result_root is _NODE_SENTINEL
+            else ref_result_root,
+            self.archive if archive is _NODE_SENTINEL else archive,
+            self.archive_root if archive_root is _NODE_SENTINEL else archive_root,
+            self.definition if definition is _NODE_SENTINEL else definition,
+            self.visited_path if visited_path is _NODE_SENTINEL else visited_path,
+            self.current_depth if current_depth is _NODE_SENTINEL else current_depth,
+            self.reader if reader is _NODE_SENTINEL else reader,
+            new_result_cursor,
+        )
+
+    @property
+    def _prefix_to_remove(self) -> str:
+        """Duplicated prefix to remove."""
+        return f'uploads/{self.upload_id}/entries/{self.entry_id}/archive/'
 
     def generate_reference(self, path: list | None = None) -> str:
         """
         Generate a reference string using a given path or the current path.
         """
         actual_path: list = path if path is not None else self.current_path
-        actual_ref: str = '/'.join(str(v) for v in actual_path).removeprefix(
-            self._prefix_to_remove
+        actual_ref: str = (
+            '/'.join(actual_path)
+            if actual_path and isinstance(actual_path[0], str)
+            else '/'.join(str(v) for v in actual_path)
         )
+        if self.upload_id and self.entry_id:
+            actual_ref = actual_ref.removeprefix(self._prefix_to_remove)
         return f'{self._generate_prefix()}#/{actual_ref}'
 
     def _generate_prefix(self) -> str:
@@ -381,19 +487,16 @@ class GraphNode:
         self, node: GraphNode, resolve_inplace: bool, reference_url: str
     ):
         if resolve_inplace:
-            # place the target into the current result container
             return node
 
-        # place the reference into the current result container
-        await _populate_result(
-            self.result_root,
-            self.current_path,
-            _convert_ref_to_path_string(reference_url),
-        )
+        ref_path_string = _convert_ref_to_path_string(reference_url)
+        _node_cursor(self).set(ref_path_string)
 
+        target_path = _convert_ref_to_path(reference_url)
         return node.replace(
-            current_path=_convert_ref_to_path(reference_url),
+            current_path=target_path,
             result_root=self.ref_result_root,
+            result_cursor=ResultCursor.from_path(self.ref_result_root, target_path),
         )
 
 
@@ -422,16 +525,20 @@ async def _if_exists(target_root: dict, path_stack: list) -> bool:
 
 @functools.lru_cache(maxsize=1024)
 def _convert_ref_to_path(ref: str, upload_id: str | None = None) -> list:
-    # test module name
-    if '.' in (stripped_ref := ref.strip('.')) or re.compile(r'^\w*(\.\w*)*$').match(
-        ref.split('/section_definitions', maxsplit=1)[0]
-    ):
-        module_path, _ = split_python_definition(stripped_ref)
-        return [Token.METAINFO, '.'.join(module_path[:-1])] + module_path[-1].split('/')
-
-    # test reference
+    # Parse archive references before checking for Python definition names. Raw
+    # mainfile paths commonly contain dots (for example ``vasprun.xml.gz``),
+    # which must not make an otherwise valid archive reference look like a
+    # metainfo reference.
     parse_result = parse_path(ref, upload_id)
     if parse_result is None:
+        stripped_ref = ref.strip('.')
+        if '.' in stripped_ref or re.compile(r'^\w*(\.\w*)*$').match(
+            ref.split('/section_definitions', maxsplit=1)[0]
+        ):
+            module_path, _ = split_python_definition(stripped_ref)
+            return [Token.METAINFO, '.'.join(module_path[:-1])] + module_path[-1].split(
+                '/'
+            )
         raise ArchiveError(f'Invalid reference: {ref}.')
 
     installation, upload_id, entry_id, kind, path = parse_result
@@ -480,6 +587,164 @@ def _to_response_config(config: RequestConfig, exclude: list | None = None, **kw
     return response_config
 
 
+def _merge_result_list(target: list, source: list):
+    for index, value in enumerate(source):
+        if index >= len(target):
+            target.append(value)
+        elif isinstance(target[index], dict) and isinstance(value, dict):
+            _merge_result_dict(target[index], value)
+        elif isinstance(target[index], list) and isinstance(value, list):
+            _merge_result_list(target[index], value)
+        elif target[index] is None:
+            target[index] = value
+        elif value is not None and target[index] != value:
+            logger.warning(
+                f'Cannot merge {target[index]} and {value}, potential conflicts.'
+            )
+
+
+def _merge_result_dict(target: dict, source: dict):
+    for key, value in source.items():
+        if key not in target or target[key] is None:
+            target[key] = value
+        elif isinstance(target[key], set) and isinstance(value, set):
+            target[key].update(value)
+        elif isinstance(target[key], dict) and isinstance(value, dict):
+            _merge_result_dict(target[key], value)
+        elif isinstance(target[key], list) and isinstance(value, list):
+            _merge_result_list(target[key], value)
+        elif value is not None and target[key] != value:
+            logger.warning(
+                f'Cannot merge {target[key]} and {value}, potential conflicts.'
+            )
+
+
+_SCALAR_TYPES = (str, int, float, bool)
+
+
+def _slot_get(container: dict | list, key: str | int) -> Any:
+    if isinstance(container, dict):
+        assert isinstance(key, str)
+        return container.get(key)
+    assert isinstance(key, int)
+    if (extra := max(key - len(container) + 1, 0)) > 0:
+        container.extend([None] * extra)
+    return container[key]
+
+
+def _slot_set(container: dict | list, key: str | int, value: Any) -> None:
+    if isinstance(container, dict):
+        assert isinstance(key, str)
+        container[key] = value
+    else:
+        assert isinstance(key, int)
+        if (extra := max(key - len(container) + 1, 0)) > 0:
+            container.extend([None] * extra)
+        container[key] = value
+
+
+class ResultCursor:
+    """Denotes a slot (parent container + key) in the result tree.
+
+    Nothing exists in the result tree until ``set()`` or ``container()`` is
+    called. Digit keys denote list indices, mirroring ``_populate_result``.
+    """
+
+    __slots__ = ('_parent', '_key', '_container')
+
+    def __init__(
+        self,
+        container: dict | list | None = None,
+        *,
+        parent: ResultCursor | None = None,
+        key: str | int | None = None,
+    ):
+        self._parent = parent
+        self._key = key
+        self._container = container
+
+    @classmethod
+    def from_path(cls, root: dict, path: list[str]) -> ResultCursor:
+        cursor = cls(root)
+        for segment in path:
+            cursor = cursor.child(segment)
+        return cursor
+
+    def child(self, key: str) -> ResultCursor:
+        key_or_index: str | int = int(key) if key.isdigit() else key
+        return ResultCursor(parent=self, key=key_or_index)
+
+    def _parent_container(self) -> dict | list:
+        assert self._parent is not None and self._key is not None
+        return self._parent.container(list if isinstance(self._key, int) else dict)
+
+    def container(self, kind: type[dict] | type[list]) -> dict | list:
+        if self._parent is None:
+            assert isinstance(self._container, kind)
+            return self._container
+
+        if self._container is not None and isinstance(self._container, kind):
+            return self._container
+
+        parent = self._parent_container()
+        key = self._key
+        assert key is not None
+        existing = _slot_get(parent, key)
+        if isinstance(existing, kind):
+            child = existing
+        else:
+            child = kind()
+            _slot_set(parent, key, child)
+        self._container = child
+        return child
+
+    def set(self, value: Any) -> None:
+        if self._parent is None:
+            assert isinstance(self._container, dict)
+            new_value = to_json(value)
+            assert isinstance(new_value, dict)
+            _merge_result_dict(self._container, new_value)
+            return
+
+        parent = self._parent_container()
+        key = self._key
+        assert key is not None
+        _write_result_at(parent, key, value)
+
+
+def _write_result_at(
+    target_container: dict | list,
+    key_or_index: str | int,
+    value: Any,
+) -> None:
+    val_type = type(value)
+    if val_type in _SCALAR_TYPES or value is None:
+        _slot_set(target_container, key_or_index, value)
+        return
+
+    new_value = to_json(value)
+    if new_value is value and isinstance(value, dict | list):
+        new_value = value.copy()
+
+    existing = _slot_get(target_container, key_or_index)
+
+    if existing is None:
+        _slot_set(target_container, key_or_index, new_value)
+    elif isinstance(new_value, dict) and isinstance(existing, dict):
+        _merge_result_dict(existing, new_value)
+    elif isinstance(new_value, list) and isinstance(existing, list):
+        _merge_result_list(existing, new_value)
+    else:
+        _slot_set(target_container, key_or_index, new_value)
+
+
+def _node_cursor(node: GraphNode) -> ResultCursor:
+    """The node's result cursor, derived lazily from its path for readers that do not track one."""
+    return node.result_cursor or ResultCursor.from_path(
+        node.result_root, node.current_path
+    )
+
+
 async def _populate_result(
     container_root: dict,
     path: list,
@@ -495,32 +760,6 @@ async def _populate_result(
     the path will be treated as a true file system path such that
     numerical values are not interpreted as list indices.
     """
-
-    def _merge_list(a: list, b: list):
-        for i, v in enumerate(b):
-            if i >= len(a):
-                a.append(v)
-            elif isinstance(a[i], dict) and isinstance(v, dict):
-                _merge_dict(a[i], v)
-            elif isinstance(a[i], list) and isinstance(v, list):
-                _merge_list(a[i], v)
-            elif a[i] is None:
-                a[i] = v
-            elif v is not None and a[i] != v:
-                logger.warning(f'Cannot merge {a[i]} and {v}, potential conflicts.')
-
-    def _merge_dict(a: dict, b: dict):
-        for k, v in b.items():
-            if k not in a or a[k] is None:
-                a[k] = v
-            elif isinstance(a[k], set) and isinstance(v, set):
-                a[k].update(v)
-            elif isinstance(a[k], dict) and isinstance(v, dict):
-                _merge_dict(a[k], v)
-            elif isinstance(a[k], list) and isinstance(v, list):
-                _merge_list(a[k], v)
-            elif v is not None and a[k] != v:
-                logger.warning(f'Cannot merge {a[k]} and {v}, potential conflicts.')
 
     def _set_default(
         container: dict | list, k_or_i: str | int, value_type: type
@@ -547,7 +786,7 @@ async def _populate_result(
         assert isinstance(container_root, dict) and isinstance(
             new_value := to_json(value), dict
         )
-        _merge_dict(container_root, new_value)
+        _merge_result_dict(container_root, new_value)
         return
 
     target_container: dict | list = container_root
@@ -570,7 +809,14 @@ async def _populate_result(
 
     # the target container does not necessarily have to be a dict or a list
     # if the result is striped due to large size, it will be replaced by a string
-    new_value = await async_to_json(value)
+    val_type = type(value)
+    if val_type in _SCALAR_TYPES or value is None:
+        new_value = value
+    else:
+        new_value = await async_to_json(value)
+        if new_value is value and isinstance(value, dict | list):
+            new_value = value.copy()
+
     if isinstance(target_container, list):
         assert isinstance(key_or_index, int)
         if target_container[key_or_index] is None:
@@ -578,9 +824,9 @@ async def _populate_result(
         elif isinstance(target_container[key_or_index], str) and overwrite_existing_str:
             target_container[key_or_index] = new_value
         elif isinstance(new_value, dict):
-            _merge_dict(target_container[key_or_index], new_value)
+            _merge_result_dict(target_container[key_or_index], new_value)
         elif isinstance(new_value, list):
-            _merge_list(target_container[key_or_index], new_value)
+            _merge_result_list(target_container[key_or_index], new_value)
         else:
             target_container[key_or_index] = new_value
     elif isinstance(target_container, dict):
@@ -592,10 +838,10 @@ async def _populate_result(
             target_container[key_or_index] = new_value
         elif isinstance(new_value, dict):
             target_container.setdefault(key_or_index, {})
-            _merge_dict(target_container[key_or_index], new_value)
+            _merge_result_dict(target_container[key_or_index], new_value)
         elif isinstance(new_value, list):
             target_container.setdefault(key_or_index, [])
-            _merge_list(target_container[key_or_index], new_value)
+            _merge_result_list(target_container[key_or_index], new_value)
         else:
             target_container[key_or_index] = new_value
 
@@ -817,8 +1063,31 @@ def _normalise_index(index: tuple | None, length: int) -> range:
     return range(_bound(start), _bound(end) + 1)
 
 
+def _child_pagination(config: RequestConfig) -> ArchivePagination:
+    """
+    The pagination that the children of a paginated node inherit: the page size.
+    The page only applies to the requested repeating subsection.
+    """
+    assert isinstance(config.pagination, ArchivePagination)
+    return ArchivePagination(page_size=config.pagination.page_size)
+
+
 def _unwrap_subsection(target):
     return target.sub_section.m_resolved() if isinstance(target, SubSection) else target
+
+
+def _explicit_indices(required: dict, name: str, length: int) -> set[int]:
+    """
+    The indices of the list `name` that are explicitly requested as `name[i]` keys.
+    """
+    indices: set[int] = set()
+    for key in required:
+        if key == GeneralReader.__CONFIG__:
+            continue
+        other_name, other_index = _parse_key(key)
+        if other_name == name and other_index is not None:
+            indices.update(_normalise_index(other_index, length))
+    return indices
 
 
 def _get_property_definition(node: GraphNode, name: str):
@@ -828,28 +1097,96 @@ def _get_property_definition(node: GraphNode, name: str):
     missing inherited properties.
     """
 
-    candidates = [
+    for candidate in (
         getattr(node, 'definition', None),
         getattr(node.archive, 'm_def', None),
-    ]
-
-    for candidate in candidates:
+    ):
         if candidate is None:
             continue
-        if isinstance(candidate, SubSection):
-            candidate = candidate.sub_section
-        if hasattr(candidate, 'm_resolved'):
-            candidate = candidate.m_resolved()
 
-        all_properties = getattr(candidate, 'all_properties', None)
-        if all_properties is None:
-            continue
+        cache = node.reader._reader_cache.property_definitions
+        cache_key = (id(candidate), name)
+        cached = cache.get(cache_key)
+        if cached is not None and cached[0] is candidate:
+            child_definition = cached[1]
+        else:
+            resolved = (
+                candidate.sub_section
+                if isinstance(candidate, SubSection)
+                else candidate
+            )
+            if hasattr(resolved, 'm_resolved'):
+                resolved = resolved.m_resolved()
 
-        child_definition = all_properties.get(name, None)
+            all_properties = getattr(resolved, 'all_properties', None)
+            child_definition = (
+                all_properties.get(name, None) if all_properties is not None else None
+            )
+            # Retain the candidate alongside the result so object IDs cannot be
+            # accidentally reused during a long graph request.
+            cache[cache_key] = (candidate, child_definition)
+
         if child_definition is not None:
             return child_definition
 
     return None
+
+
+def _definition_tree_version(definition: Any) -> tuple[int, ...]:
+    """Return ``m_mod_count`` along the parent chain, starting at ``definition``.
+
+    ``qualified_name()`` includes ancestor names, but renaming a parent only
+    increments the parent's ``m_mod_count``. Keying the short-ref cache on the
+    child's count alone would return a stale ``package.Section@id`` string.
+    """
+    counts: list[int] = []
+    seen: set[int] = set()
+    current = definition
+    while current is not None:
+        ident = id(current)
+        if ident in seen:
+            break
+        seen.add(ident)
+        counts.append(getattr(current, 'm_mod_count', 0))
+        current = getattr(current, 'm_parent', None)
+    return tuple(counts)
+
+
+def _store_short_definition_reference(
+    definition: Any, reference: str, version: tuple[int, ...]
+) -> None:
+    try:
+        cache_store = object.__getattribute__(definition, '__dict__')
+    except AttributeError:
+        return
+    cache_store['_cached_short_def_ref'] = reference
+    cache_store['_cached_short_def_ref_version'] = version
+
+
+def _get_short_definition_reference(cache: _ReaderCache, definition: Any) -> str:
+    # Level 1: definition-level cache across requests, keyed by ancestor versions
+    version = _definition_tree_version(definition)
+    cached_ref = getattr(definition, '_cached_short_def_ref', None)
+    if (
+        cached_ref is not None
+        and getattr(definition, '_cached_short_def_ref_version', None) == version
+    ):
+        return cached_ref
+
+    # Level 2: request-local cache for objects that cannot store instance attrs
+    cache_key = id(definition)
+    cached_in_cache = cache.short_definition_references.get(cache_key)
+    if (
+        cached_in_cache is not None
+        and cached_in_cache[0] is definition
+        and cached_in_cache[1] == version
+    ):
+        return cached_in_cache[2]
+
+    reference = f'{definition.qualified_name()}@{definition.definition_id}'
+    cache.short_definition_references[cache_key] = (definition, version, reference)
+    _store_short_definition_reference(definition, reference, version)
+    return reference
 
 
 class GeneralReader:
@@ -881,6 +1218,9 @@ class GeneralReader:
     __UPLOAD_ID__: set = {'upload_id'}
     # controls the names of fields that are treated as dataset id
     __DATASET_ID__: set = {'datasets'}
+    __ALL_ID_FIELDS__: frozenset[str] = frozenset(
+        __USER_ID__ | __ENTRY_ID__ | __UPLOAD_ID__ | __DATASET_ID__
+    )
     __CACHE__: str = '__CACHE__'
 
     def __init__(
@@ -985,9 +1325,12 @@ class GeneralReader:
         error_type: str = QueryError.GENERAL,
         to_response: bool = True,
     ):
-        logger.debug(message)
         if to_response:
-            self.errors.setdefault(error_type, set()).add(message)
+            error_set = self.errors.setdefault(error_type, set())
+            if message in error_set:
+                return
+            error_set.add(message)
+        logger.debug(message)
 
     def _check_cache(self, path: str | list, config_hash=None) -> bool:
         """
@@ -1160,6 +1503,7 @@ class GeneralReader:
 
         return entry
 
+    @traced(span_name='graph.entry.retrieve')
     async def retrieve_entry(self, entry_id: str) -> str | dict:
         if (
             entry := await asyncio.to_thread(self._retrieve_entry_if_visible, entry_id)
@@ -1212,11 +1556,36 @@ class GeneralReader:
             self._reader_cache.server_contexts[upload_id] = ServerContext(upload)
 
         try:
-            with self.upload_pool[upload_id].read_archive(entry_id) as reader:
-                yield reader[entry_id]
+            with trace_span(
+                'graph.archive.load',
+                attributes={'upload_id': upload_id, 'entry_id': entry_id},
+            ) as span:
+                measurement = (
+                    measure_fs_reads()
+                    if span is not None and span.is_recording()
+                    else nullcontext(None)
+                )
+                with (
+                    measurement as stats,
+                    self.upload_pool[upload_id].read_archive(entry_id) as reader,
+                ):
+                    if isinstance(archive := reader[entry_id], LazyReader):
+                        # unwrap to reveal the actual container
+                        archive = archive.unwrap()
+                    try:
+                        # The caller walks the archive while this generator is
+                        # suspended, so lazy reads happen within this context.
+                        # Record the accumulated stats once the walk finishes.
+                        yield archive
+                    finally:
+                        if stats is not None and span is not None:
+                            span.set_attribute('fs.read_bytes', stats.read_bytes)
+                            span.set_attribute(
+                                'fs.read_time_ms', stats.read_time * 1000
+                            )
         except KeyError:
             raise ArchiveError(
-                f'Archive {entry_id} does not exist in upload {entry_id}.'
+                f'Archive {entry_id} does not exist in upload {upload_id}.'
             )
 
     async def _apply_resolver(self, node: GraphNode, config: RequestConfig):
@@ -1251,17 +1620,29 @@ class GeneralReader:
         *,
         omit_keys=None,
         wildcard: bool = False,
+        omit_indices: set[int] | None = None,
     ):
-        # the original archive may be an empty list
-        # populate an empty list to keep the structure
-        await _populate_result(node.result_root, node.current_path, [])
-        new_config: RequestConfig = config.new({'index': None}, retain_pattern=True)
+        """
+        Resolve the items of a list.
+        Items in `omit_indices` are explicitly requested (`name[i]`) next to the
+        list and are resolved by the caller, like `omit_keys` for sections.
+        """
+        # The list contents are intentionally not traced individually; the
+        # enclosing archive walk span provides the useful aggregate timing.
+        new_config = (
+            config if config.index is None else _copy_request_config(config, index=None)
+        )
+        _node_cursor(node).container(list)
         for i in _normalise_index(config.index, len(node.archive)):
+            if omit_indices is not None and i in omit_indices:
+                continue
+            archive_item = await goto_child(node.archive, i)
+            child = node.descend(str(i), archive=archive_item)
+            if new_config.is_plain() and isinstance(node.definition, Quantity):
+                _node_cursor(child).set(archive_item)
+                continue
             await self._resolve(
-                node.replace(
-                    archive=await goto_child(node.archive, i),
-                    current_path=node.current_path + [str(i)],
-                ),
+                child,
                 new_config,
                 omit_keys=omit_keys,
                 wildcard=wildcard,
@@ -1472,6 +1853,7 @@ class MongoReader(GeneralReader):
     def datasets(self):
         return Dataset.m_def.a_mongo.objects(user_id=self.auth_user_id)
 
+    @traced(span_name='graph.mongo.query_es')
     async def _query_es(self, config: RequestConfig):
         search_params: dict = {
             'owner': 'user' if self.auth_user_id else 'public',
@@ -1513,6 +1895,7 @@ class MongoReader(GeneralReader):
             v['entry_id']: _overwrite(v) for v in search_response.data
         }
 
+    @traced(span_name='graph.mongo.query_entries')
     async def _query_entries(self, config: RequestConfig):
         if not config.query:
             return None, self.entries
@@ -1545,6 +1928,7 @@ class MongoReader(GeneralReader):
             mongo_query
         )
 
+    @traced(span_name='graph.mongo.query_uploads')
     async def _query_uploads(self, config: RequestConfig):
         if not config.query:
             return None, self.uploads
@@ -1563,6 +1947,7 @@ class MongoReader(GeneralReader):
             mongo_query
         )
 
+    @traced(span_name='graph.mongo.query_datasets')
     async def _query_datasets(self, config: RequestConfig):
         if not config.query:
             return None, self.datasets
@@ -1598,6 +1983,7 @@ class MongoReader(GeneralReader):
         )
         return query.model_dump(exclude_unset=True), MongoUserGroup.get_by_query(query)
 
+    @traced(span_name='graph.mongo.normalise')
     async def _normalise(
         self, mongo_result, config: RequestConfig, transformer: Callable
     ) -> tuple[dict, PaginationResponse | None]:
@@ -1681,6 +2067,7 @@ class MongoReader(GeneralReader):
 
         return mongo_dict, pagination_response
 
+    @traced(span_name='graph.mongo.read')
     async def read(self):
         """
         All read() methods, including the ones in the subclasses, should return a dict as the response.
@@ -2246,6 +2633,7 @@ class EntryReader(MongoReader):
     def datasets(self):
         return Dataset.m_def.a_mongo.objects(entries=self.target_entry_id)
 
+    @traced(span_name='graph.entry.build_layout_read_plan')
     async def _build_layout_read_plan(
         self, target_entry: dict[str, Any], archive: GenericDict
     ) -> _EntryLayoutReadPlan:
@@ -2286,6 +2674,7 @@ class EntryReader(MongoReader):
             archive_request=archive_request,
         )
 
+    @traced(span_name='graph.entry.read_layout_archive')
     async def _read_layout_archive(
         self, archive: GenericDict, request: _LayoutArchiveRequest
     ) -> dict[str, Any]:
@@ -2300,6 +2689,7 @@ class EntryReader(MongoReader):
             return await reader.read(archive)
 
     # noinspection PyMethodOverriding
+    @traced(span_name='graph.entry.read')
     async def read(self, entry_id: str) -> dict:  # type: ignore
         """Read one entry and resolve a server-selected layout when requested."""
         with self._prepare_reading() as response:
@@ -2576,6 +2966,12 @@ class FileSystemReader(GeneralReader):
                     error_type=QueryError.NOACCESS,
                 )
             else:
+                if upload_id not in self.upload_pool:
+                    self.upload_pool[upload_id] = upload.upload_files
+                    self._reader_cache.server_contexts[upload_id] = ServerContext(
+                        upload
+                    )
+                upload_files = self.upload_pool[upload_id]
                 await self._walk(
                     GraphNode(
                         upload_id=upload_id,
@@ -2583,7 +2979,7 @@ class FileSystemReader(GeneralReader):
                         current_path=[],
                         result_root=response,
                         ref_result_root=self.global_root,
-                        archive=upload.upload_files,
+                        archive=upload_files,
                         archive_root=None,
                         definition=None,
                         visited_path=set(),
@@ -2822,6 +3218,25 @@ def _is_quantity_reference(definition) -> bool:
     )
 
 
+_CONVENTIONAL_LABEL_QUANTITIES = frozenset({'label', 'name', 'type', 'id'})
+
+
+def _label_quantity_names(definition) -> frozenset[str]:
+    """
+    The names of the quantities that may label a section of the given definition:
+    the `label_quantity` of the definition or of one of its base sections, and the
+    conventional identifying quantities.
+    """
+    if not isinstance(definition, Section):
+        return _CONVENTIONAL_LABEL_QUANTITIES
+    names = set(_CONVENTIONAL_LABEL_QUANTITIES)
+    for section in (definition, *definition.all_base_sections):
+        label_quantity = (getattr(section, 'more', None) or {}).get('label_quantity')
+        if isinstance(label_quantity, str):
+            names.add(label_quantity)
+    return frozenset(names)
+
+
 class ArchiveReader(ArchiveLikeReader):
     """
     This class provides functionalities to read an archive with the required fields.
@@ -2861,6 +3276,13 @@ class ArchiveReader(ArchiveLikeReader):
     @staticmethod
     def __if_strip(node: GraphNode, config: RequestConfig, *, depth_check: bool = True):
         if (
+            isinstance(node.archive, GenericList | GenericDict)  # type: ignore
+            and len(node.archive) == 0
+        ):
+            # an empty container is cheaper than a reference to it
+            return False
+
+        if (
             config.max_list_size is not None
             and isinstance(node.archive, GenericList)  # type: ignore
             and len(node.archive) > config.max_list_size
@@ -2883,6 +3305,7 @@ class ArchiveReader(ArchiveLikeReader):
 
         return False
 
+    @traced(span_name='graph.archive.read')
     async def read(self, *args) -> dict:
         """
         Read the given archive with the required fields.
@@ -2895,23 +3318,25 @@ class ArchiveReader(ArchiveLikeReader):
             metadata = await goto_child(_archive, 'metadata')
 
             with self._prepare_reading() as response:
-                await self._walk(
-                    GraphNode(
-                        upload_id=await goto_child(metadata, 'upload_id'),
-                        entry_id=await goto_child(metadata, 'entry_id'),
-                        current_path=[],
-                        result_root=response,
-                        ref_result_root=self.global_root,
-                        archive=_archive,
-                        archive_root=_archive,
-                        definition=EntryArchive.m_def,
-                        visited_path=set(),
-                        current_depth=0,
-                        reader=self,
-                    ),
-                    self.required_query,
-                    self.global_config,
-                )
+                with trace_span('graph.archive.walk'):
+                    await self._walk(
+                        GraphNode(
+                            upload_id=await goto_child(metadata, 'upload_id'),
+                            entry_id=await goto_child(metadata, 'entry_id'),
+                            current_path=[],
+                            result_root=response,
+                            ref_result_root=self.global_root,
+                            archive=_archive,
+                            archive_root=_archive,
+                            definition=EntryArchive.m_def,
+                            visited_path=set(),
+                            current_depth=0,
+                            reader=self,
+                            result_cursor=ResultCursor(response),
+                        ),
+                        self.required_query,
+                        self.global_config,
+                    )
 
                 return response
 
@@ -3031,33 +3456,52 @@ class ArchiveReader(ArchiveLikeReader):
                 self._log(f'Definition {key} is not repeatable.')
                 continue
 
-            child_path: list = node.current_path + [name]
-
-            child = functools.partial(node.replace, definition=child_definition)
-
             if isinstance(value, RequestConfig):
-                # this is a leaf, resolve it according to the config
-                child_node = child(current_path=child_path, archive=child_archive)
+                # Quantities are atomic from the graph reader's perspective, so a
+                # plain request can copy them directly. Subsections still need a
+                # definition-aware walk: archive dictionaries may contain fields
+                # that are not part of their metainfo definition.
+                if value.is_plain() and isinstance(child_definition, Quantity):
+                    _node_cursor(node).child(name).set(child_archive)
+                    continue
+
+                child_node = node.descend(
+                    name, archive=child_archive, definition=child_definition
+                )
                 await self._resolve_figure(child_node, node, value)
-                await self._resolve(child_node, value)
+                # items explicitly requested next to the list (`name[i]`) are
+                # walked on their own, like explicitly requested keys of a section
+                omit_indices = (
+                    _explicit_indices(required, name, len(child_archive))
+                    if is_list and index is None
+                    else None
+                )
+                await self._resolve(child_node, value, omit_indices=omit_indices)
             elif isinstance(value, dict):
                 # this is a nested query, keep walking down the tree
-                async def __walk(__path, __archive):
-                    await self._walk(
-                        child(current_path=__path, archive=__archive),
-                        value,
-                        current_config,
-                    )
-
                 if is_list:
                     if GeneralReader.__CONFIG__ in value:
                         index = value[GeneralReader.__CONFIG__].index or index
-                    # field[start:end]: dict
+
+                    list_node = node.descend(
+                        name,
+                        archive=child_archive,
+                        definition=child_definition,
+                    )
                     for i in _normalise_index(index, len(child_archive)):
-                        await __walk(child_path + [str(i)], child_archive[i])
+                        await self._walk(
+                            list_node.descend(str(i), archive=child_archive[i]),
+                            value,
+                            current_config,
+                        )
                 else:
-                    # field: dict
-                    await __walk(child_path, child_archive)
+                    await self._walk(
+                        node.descend(
+                            name, archive=child_archive, definition=child_definition
+                        ),
+                        value,
+                        current_config,
+                    )
             elif isinstance(value, list):
                 # optionally support alternative syntax
                 pass
@@ -3114,13 +3558,15 @@ class ArchiveReader(ArchiveLikeReader):
         *,
         omit_keys=None,
         wildcard: bool = False,
+        omit_indices: set[int] | None = None,
     ):
         """
         Resolve the given node.
 
         If omit_keys is given, the keys matching any of the omit_keys will not be resolved.
         Those come from explicitly given fields in the required query.
-        They are handled by the caller.
+        They are handled by the caller. Likewise, `omit_indices` are the explicitly
+        requested items of a list.
         """
         if isinstance(node.archive, GenericList):  # type: ignore
             if (
@@ -3135,8 +3581,23 @@ class ArchiveReader(ArchiveLikeReader):
                     if self.__if_strip(node, config)
                     else node.archive,
                 )
+            if isinstance(node.definition, SubSection):
+                node = node.replace(definition=_unwrap_subsection(node.definition))
+            if (
+                isinstance(node.definition, Section)
+                and config.pagination is not None
+                and config.index is None
+            ):
+                # an indexed request (`name[i]`) paginates the selected items instead
+                config = await self._paginate_list(node, config)
+                if config is None:
+                    return
             return await self._resolve_list(
-                node, config, omit_keys=omit_keys, wildcard=wildcard
+                node,
+                config,
+                omit_keys=omit_keys,
+                wildcard=wildcard,
+                omit_indices=omit_indices,
             )
 
         # no matter if to resolve, it is always necessary to replace the definition with potential custom definition
@@ -3158,7 +3619,10 @@ class ArchiveReader(ArchiveLikeReader):
                 and config.always_rewrite_references
             ):
                 try:
-                    if node.archive.startswith(('/', '#')):
+                    if (
+                        node.archive.startswith(('#', '/'))
+                        and parse_path(node.archive, node.upload_id) is None
+                    ):
                         # normalize a local reference
                         target_reference = node.generate_reference(
                             [v for v in node.archive.lstrip('/#').split('/') if v]
@@ -3174,21 +3638,28 @@ class ArchiveReader(ArchiveLikeReader):
             else:
                 result_to_write = await self._apply_resolver(node, config)
 
-            return await _populate_result(
-                node.result_root, node.current_path, result_to_write
-            )
+            _node_cursor(node).set(result_to_write)
+            return
 
-        if isinstance(node.definition, Quantity) or isinstance(
-            getattr(node.definition, 'type', None), JSON | AnyType
-        ):
+        if isinstance(node.definition, Quantity):
             # the container size limit does not recursively apply to JSON
             result_to_write = (
                 f'__INTERNAL__:{node.generate_reference()}'
                 if self.__if_strip(node, config)
                 else await self._apply_resolver(node, config)
             )
-            await _populate_result(node.result_root, node.current_path, result_to_write)
+            _node_cursor(node).set(result_to_write)
             return
+
+        label_keys: frozenset[str] = frozenset()
+        if not config.include_quantities:
+            # without quantities, a section is listed even if it has no subsections
+            _node_cursor(node).container(dict)
+            if config.include_label_quantities:
+                label_keys = _label_quantity_names(node.definition)
+        if config.pagination is not None:
+            # only repeating subsections are paged, those below inherit the page size
+            config = _copy_request_config(config, pagination=_child_pagination(config))
 
         for key in node.archive.keys():
             if key in (Token.DEF, Token.DEFID):
@@ -3203,40 +3674,104 @@ class ArchiveReader(ArchiveLikeReader):
                     self._log(f'Definition {key} is not found.')
                     continue
 
+                if not config.include_quantities and isinstance(
+                    child_definition, Quantity
+                ):
+                    # only the scalar values that label the section
+                    if key not in label_keys or _is_quantity_reference(
+                        child_definition
+                    ):
+                        continue
+                    child_archive = await goto_child(node.archive, key)
+                    if type(child_archive) in (str, int, float, bool):
+                        _node_cursor(node).child(key).set(child_archive)
+                    continue
+
+                child_archive = await goto_child(node.archive, key)
+                if (
+                    isinstance(child_definition, Quantity)
+                    and not _is_quantity_reference(child_definition)
+                    and key not in GeneralReader.__ALL_ID_FIELDS__
+                    and config.resolve_type is None
+                    and (
+                        child_archive is None
+                        or type(child_archive) in (str, int, float, bool)
+                    )
+                ):
+                    _node_cursor(node).child(key).set(child_archive)
+                    continue
+
                 if is_subsection := isinstance(child_definition, SubSection):
                     child_definition = child_definition.sub_section
 
-                child_node = node.replace(
-                    archive=await goto_child(node.archive, key),
-                    current_path=node.current_path + [key],
+                child_node = node.descend(
+                    key,
+                    archive=child_archive,
                     definition=child_definition,
                     current_depth=node.current_depth + 1,
                 )
 
                 if self.__if_strip(child_node, config, depth_check=is_subsection):
-                    await _populate_result(
-                        node.result_root,
-                        child_node.current_path,
-                        f'__INTERNAL__:{child_node.generate_reference()}',
+                    _node_cursor(node).child(key).set(
+                        f'__INTERNAL__:{child_node.generate_reference()}'
                     )
                     continue
 
-                child_config = config.new(
-                    {
-                        'property_name': key,  # set the proper quantity name
-                        'include': ['*'],  # ignore the pattern for children
-                        'exclude': None,
-                        'index': None,  # ignore index requirements for children
-                    }
-                )
+                if (
+                    (
+                        config.include is _WILDCARD_FROZENSET
+                        or config.include == _WILDCARD_FROZENSET
+                    )
+                    and config.exclude is None
+                    and config.index is None
+                    and (
+                        config.property_name == key
+                        or (
+                            config.property_name not in GeneralReader.__ALL_ID_FIELDS__
+                            and key not in GeneralReader.__ALL_ID_FIELDS__
+                        )
+                    )
+                ):
+                    child_config = config
+                else:
+                    child_config = _copy_request_config(
+                        config,
+                        property_name=key,
+                        include=_WILDCARD_FROZENSET,
+                        exclude=None,
+                        index=None,
+                    )
 
                 if child_config.is_plain():
-                    await _populate_result(
-                        node.result_root, child_node.current_path, child_node.archive
-                    )
+                    _node_cursor(node).child(key).set(child_node.archive)
                 else:
                     await self._resolve_figure(child_node, node, child_config)
                     await self._resolve(child_node, child_config)
+
+    async def _paginate_list(
+        self, node: GraphNode, config: RequestConfig
+    ) -> RequestConfig | None:
+        """
+        Apply `pagination` to a repeating subsection. The page is reported in the
+        `m_response` of the parent section, as a list cannot carry its own. Returns
+        the config that walks the items of the page, or `None` if the page is empty.
+        """
+        assert isinstance(config.pagination, ArchivePagination)
+        start, end, response = config.pagination.resolve_window(len(node.archive))
+        await _populate_result(
+            node.result_root,
+            node.current_path[:-1]
+            + [Token.RESPONSE, 'subsection_lists', node.current_path[-1], 'pagination'],
+            response,
+        )
+        _node_cursor(node).container(list)
+        if start >= end:
+            return None
+
+        # the end of an index is inclusive
+        return _copy_request_config(
+            config, index=(start, end - 1), pagination=_child_pagination(config)
+        )
 
     async def _check_definition(
         self, node: GraphNode, config: RequestConfig
@@ -3256,15 +3791,12 @@ class ArchiveReader(ArchiveLikeReader):
 
         if custom_def is None and custom_def_id is None:
             if use_qualified or config.include_definition is DefinitionType.both:
-                definition = node.definition
-                if isinstance(definition, SubSection):
-                    definition = definition.sub_section.m_resolved()
+                definition = _unwrap_subsection(node.definition)
                 if use_qualified:
-                    await _populate_result(
-                        node.result_root,
-                        node.current_path + [Token.DEF],
-                        f'{definition.qualified_name()}@{definition.definition_id}',
+                    def_val = _get_short_definition_reference(
+                        self._reader_cache, definition
                     )
+                    _node_cursor(node).child(Token.DEF).set(def_val)
                 else:
                     with DefinitionReader(
                         RequestConfig(
@@ -3293,11 +3825,8 @@ class ArchiveReader(ArchiveLikeReader):
             return node
 
         if use_qualified:
-            await _populate_result(
-                node.result_root,
-                node.current_path + [Token.DEF],
-                f'{new_def.qualified_name()}@{new_def.definition_id}',
-            )
+            def_val = _get_short_definition_reference(self._reader_cache, new_def)
+            _node_cursor(node).child(Token.DEF).set(def_val)
         elif config.include_definition is not DefinitionType.none:
             with DefinitionReader(
                 RequestConfig(
@@ -3329,7 +3858,10 @@ class ArchiveReader(ArchiveLikeReader):
 
         # resolve subsections
         if isinstance(original_def, SubSection):
-            return node.replace(definition=original_def.sub_section.m_resolved())
+            return node.replace(definition=_unwrap_subsection(original_def))
+
+        if isinstance(original_def, Section):
+            return node
 
         # if not a quantity reference, early return
         if not _is_quantity_reference(original_def):
@@ -3371,10 +3903,17 @@ class ArchiveReader(ArchiveLikeReader):
 
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
-        if config.pagination is not None:
-            raise ConfigError(f'Pagination is not supported in {cls.__name__} @ {key}.')
         if config.query is not None:
             raise ConfigError(f'Query is not supported in {cls.__name__} @ {key}.')
+        if config.pagination is not None:
+            try:
+                config.pagination = ArchivePagination.model_validate(
+                    config.pagination
+                    if isinstance(config.pagination, dict)
+                    else config.pagination.model_dump(exclude_unset=True)
+                )
+            except ValidationError as e:
+                raise ConfigError(f'Invalid pagination in {cls.__name__} @ {key}: {e}.')
 
         return config
 

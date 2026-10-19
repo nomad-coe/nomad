@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import datetime
 import os
 import random
@@ -30,7 +31,7 @@ import requests
 from ase.data import atomic_masses, atomic_numbers, chemical_symbols
 from unidecode import unidecode
 
-from nomad.common import now
+from nomad.datamodel.metainfo.common import default_datetime
 from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 from nomad.metainfo import SchemaPackage
 from nomad.metainfo.data_type import m_str
@@ -219,7 +220,7 @@ class BaseSection(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short human readable and descriptive name.',
-        a_eln=dict(component='StringEditQuantity', label='name'),
+        a_eln=dict(component='StringEditQuantity'),
     )
     datetime = Quantity(
         type=Datetime,
@@ -241,7 +242,7 @@ class BaseSection(ArchiveSection):
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         """
         - If the instance is of type `EntryData`, it sets the archive's entry name based on the instance's name.
-        - Sets the `datetime` field to the current time if it is not already set.
+        - Sets the `datetime` field to the creation time of the entry if it is not already set.
         - Manages the `lab_id` field and updates the archive's `results.eln.lab_ids` list.
         - Adds the instance's `name` and `description` to the archive's `results.eln.names` and `results.eln.descriptions` lists, respectively.
         - Handles the `tags` attribute, if present, and updates the archive's `results.eln.tags` list.
@@ -262,7 +263,7 @@ class BaseSection(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.datetime is None:
-            self.datetime = now()
+            self.datetime = default_datetime(archive)
 
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
@@ -328,7 +329,7 @@ class ActivityStep(ArchiveSection):
         """,
         a_eln=ELNAnnotation(
             component='StringEditQuantity',
-            label='step name',
+            label='Step name',
         ),
     )
     start_time = Quantity(
@@ -337,7 +338,7 @@ class ActivityStep(ArchiveSection):
         Optionally, the starting time of the activity step. If omitted, it is assumed to
         follow directly after the previous step.
         """,
-        a_eln=ELNAnnotation(component='DateTimeEditQuantity', label='starting time'),
+        a_eln=ELNAnnotation(component='DateTimeEditQuantity', label='Starting time'),
     )
     comment = Quantity(
         type=str,
@@ -371,7 +372,7 @@ class Activity(BaseSection):
     datetime = Quantity(
         type=Datetime,
         description='The date and time when this activity was started.',
-        a_eln=dict(component='DateTimeEditQuantity', label='starting Time'),
+        a_eln=dict(component='DateTimeEditQuantity', label='Starting time'),
     )
     method = Quantity(
         type=str,
@@ -425,7 +426,7 @@ class SectionReference(ArchiveSection):
         description='A reference to a NOMAD archive section.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='section reference',
+            label='Section reference',
         ),
     )
 
@@ -440,7 +441,7 @@ class EntityReference(SectionReference):
         description='A reference to a NOMAD `Entity` entry.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='entity reference',
+            label='Entity reference',
         ),
     )
     lab_id = Quantity(
@@ -448,7 +449,7 @@ class EntityReference(SectionReference):
         description="""
         The readable identifier for the entity.
         """,
-        a_eln=ELNAnnotation(component='StringEditQuantity'),
+        a_eln=ELNAnnotation(component='StringEditQuantity', label='Entity ID'),
     )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
@@ -504,7 +505,7 @@ class ExperimentStep(ActivityStep):
         """,
         a_eln=ELNAnnotation(
             component='StringEditQuantity',
-            label='activity ID',
+            label='Activity ID',
         ),
     )
 
@@ -762,7 +763,7 @@ class InstrumentReference(EntityReference):
         description='A reference to a NOMAD `Instrument` entry.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='instrument reference',
+            label='Instrument reference',
         ),
     )
 
@@ -775,7 +776,7 @@ class Component(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short name for the component.',
-        a_eln=dict(component='StringEditQuantity', label='component label'),
+        a_eln=dict(component='StringEditQuantity', label='Component label'),
     )
     mass = Quantity(
         type=np.float64,
@@ -820,7 +821,7 @@ class PureSubstanceSection(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short name for the substance.',
-        a_eln=dict(component='StringEditQuantity', label='substance name'),
+        a_eln=dict(component='StringEditQuantity', label='Substance name'),
     )
     iupac_name = Quantity(
         type=str,
@@ -1123,7 +1124,7 @@ class CompositeSystemReference(EntityReference):
         description='A reference to a NOMAD `CompositeSystem` entry.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='composite system reference',
+            label='Composite system reference',
         ),
     )
 
@@ -1164,7 +1165,7 @@ class Process(Activity):
     end_time = Quantity(
         type=Datetime,
         description='The date and time when this process was finished.',
-        a_eln=dict(component='DateTimeEditQuantity', label='ending time'),
+        a_eln=dict(component='DateTimeEditQuantity', label='Ending time'),
     )
     steps = SubSection(
         section_def=ProcessStep,
@@ -1220,7 +1221,7 @@ class ActivityResult(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short and descriptive name for the result.',
-        a_eln=dict(component='StringEditQuantity', label='name'),
+        a_eln=dict(component='StringEditQuantity'),
     )
 
 
@@ -1341,14 +1342,14 @@ class PureSubstance(System):
     name = Quantity(
         type=str,
         description='The name of the substance entry.',
-        a_eln=dict(component='StringEditQuantity', label='substance name'),
+        a_eln=dict(component='StringEditQuantity', label='Substance name'),
     )
     lab_id = Quantity(
         type=str,
         description="""
         A human readable substance ID that is at least unique for the lab.
         """,
-        a_eln=dict(component='StringEditQuantity', label='substance ID'),
+        a_eln=dict(component='StringEditQuantity', label='Substance ID'),
     )
     description = Quantity(
         type=str,
@@ -1358,7 +1359,7 @@ class PureSubstance(System):
         """,
         a_eln=dict(
             component='RichTextEditQuantity',
-            label='detailed substance description',
+            label='Detailed substance description',
         ),
     )
     pure_substance = SubSection(
@@ -1667,7 +1668,7 @@ class CASPureSubstanceSection(PureSubstanceSection):
         type=str,
         description='CAS image.',
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor', label='image of substance'),
+        a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'),
     )
     cas_experimental_properties = SubSection(
         section_def=CASExperimentalProperty,
@@ -1906,7 +1907,7 @@ class ReadableIdentifiers(ArchiveSection):
         Spaces in any of the individual components will be replaced with hyphens (-).
         An example would be hzb_oah_20200602_4001-08.
         """,
-        a_eln=dict(component='StringEditQuantity'),
+        a_eln=dict(component='StringEditQuantity', label='ID'),
     )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
@@ -1917,8 +1918,8 @@ class ReadableIdentifiers(ArchiveSection):
         the author's affiliation.
 
         If no datetime is filled, the datetime will be taken from the `datetime`
-        property of the parent, if it exists, otherwise the current date and time will be
-        used.
+        property of the parent, if it exists, otherwise the creation time of the entry
+        will be used.
 
         If no short name is filled, the name will be taken from the parent name, if it
         exists, otherwise it will be taken from the archive metadata entry name, if it
@@ -1956,7 +1957,7 @@ class ReadableIdentifiers(ArchiveSection):
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.datetime = self.m_parent.datetime
             else:
-                self.datetime = now()
+                self.datetime = default_datetime(archive)
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):

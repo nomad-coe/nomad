@@ -19,11 +19,12 @@
 import json
 import re
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlencode
 
 import pytest
 from fastapi import status
 
+from nomad.app.v1.models.models import DateHistogramAggregation
 from nomad.datamodel import results
 from nomad.utils import deep_get
 from tests.utils import assert_at_least, assert_url_query_args, build_url
@@ -278,34 +279,34 @@ def get_query_test_parameters(
 
 def owner_test_parameters():
     return [
-        # (owner, user, status_code, total_entries, total_mainfiles, total_materials)
+        # (owner, user, status_code, total_entries, total_mainfiles)
         # Test missing authentication
-        pytest.param('user', None, 401, -1, -1, -1, id='user-wo-auth'),
-        pytest.param('staging', None, 401, -1, -1, -1, id='staging-wo-auth'),
-        pytest.param('visible', None, 200, 23, 23, 6, id='visible-wo-auth'),
-        pytest.param('admin', None, 401, -1, -1, -1, id='admin-wo-auth'),
-        pytest.param('shared', None, 401, -1, -1, -1, id='shared-wo-auth'),
-        pytest.param('public', None, 200, 23, 23, 6, id='public-wo-auth'),
+        pytest.param('user', None, 401, -1, -1, id='user-wo-auth'),
+        pytest.param('staging', None, 401, -1, -1, id='staging-wo-auth'),
+        pytest.param('visible', None, 200, 23, 23, id='visible-wo-auth'),
+        pytest.param('admin', None, 401, -1, -1, id='admin-wo-auth'),
+        pytest.param('shared', None, 401, -1, -1, id='shared-wo-auth'),
+        pytest.param('public', None, 200, 23, 23, id='public-wo-auth'),
         # Test accessing as `user1`
-        pytest.param('user', 'user1', 200, 32, 30, 13, id='user-user1'),
-        pytest.param('staging', 'user1', 200, 6, 4, 4, id='staging-user1'),
-        pytest.param('visible', 'user1', 200, 32, 30, 13, id='visible-user1'),
-        pytest.param('admin', 'user1', 403, -1, -1, -1, id='admin-user1'),
-        pytest.param('shared', 'user1', 200, 32, 30, 13, id='shared-user1'),
-        pytest.param('public', 'user1', 200, 23, 23, 6, id='public-user1'),
+        pytest.param('user', 'user1', 200, 32, 30, id='user-user1'),
+        pytest.param('staging', 'user1', 200, 6, 4, id='staging-user1'),
+        pytest.param('visible', 'user1', 200, 32, 30, id='visible-user1'),
+        pytest.param('admin', 'user1', 403, -1, -1, id='admin-user1'),
+        pytest.param('shared', 'user1', 200, 32, 30, id='shared-user1'),
+        pytest.param('public', 'user1', 200, 23, 23, id='public-user1'),
         # Test accessing as `user2`
-        pytest.param('user', 'user2', 200, 0, 0, 0, id='user-user2'),
-        pytest.param('staging', 'user2', 200, 2, 2, 2, id='staging-user2'),
-        pytest.param('visible', 'user2', 200, 27, 27, 10, id='visible-user2'),
-        pytest.param('shared', 'user2', 200, 4, 4, 4, id='shared-user2'),
-        pytest.param('public', 'user2', 200, 23, 23, 6, id='public-user2'),
+        pytest.param('user', 'user2', 200, 0, 0, id='user-user2'),
+        pytest.param('staging', 'user2', 200, 2, 2, id='staging-user2'),
+        pytest.param('visible', 'user2', 200, 27, 27, id='visible-user2'),
+        pytest.param('shared', 'user2', 200, 4, 4, id='shared-user2'),
+        pytest.param('public', 'user2', 200, 23, 23, id='public-user2'),
         # Test owner as `all`
-        pytest.param('all', 'user1', 403, 32, 30, 13, id='metadata-all-user1'),
-        pytest.param('all', 'user2', 403, 28, 28, 11, id='metadata-all-user2'),
-        pytest.param('all', 'invalid', 401, -1, -1, -1, id='bad-credentials'),
-        pytest.param('all', None, 403, 26, 26, 9, id='metadata-all-wo-auth'),
+        pytest.param('all', 'user1', 403, 32, 30, id='metadata-all-user1'),
+        pytest.param('all', 'user2', 403, 28, 28, id='metadata-all-user2'),
+        pytest.param('all', 'invalid', 401, -1, -1, id='bad-credentials'),
+        pytest.param('all', None, 403, 26, 26, id='metadata-all-wo-auth'),
         # Test accessing as `user0` (admin)
-        pytest.param('admin', 'user0', 200, 32, 30, 13, id='admin-user0'),
+        pytest.param('admin', 'user0', 200, 32, 30, id='admin-user0'),
     ]
 
 
@@ -682,6 +683,46 @@ def aggregation_test_parameters(
             {
                 'date_histogram': {
                     'quantity': histogram_date['name'],
+                    'calendar_interval': histogram_date['interval'],
+                }
+            },
+            histogram_date['interval_size'],
+            histogram_date['interval_size'],
+            200,
+            'user1',
+            id='date-histogram-calendar-interval',
+        ),
+        pytest.param(
+            {
+                'date_histogram': {
+                    'quantity': histogram_date['name'],
+                    'fixed_interval': '24h',
+                }
+            },
+            histogram_date['interval_size'],
+            histogram_date['interval_size'],
+            200,
+            'user1',
+            id='date-histogram-fixed-interval',
+        ),
+        pytest.param(
+            {
+                'date_histogram': {
+                    'quantity': histogram_date['name'],
+                    'calendar_interval': '1d',
+                    'fixed_interval': '24h',
+                }
+            },
+            -1,
+            -1,
+            422,
+            'user1',
+            id='date-histogram-both-intervals',
+        ),
+        pytest.param(
+            {
+                'date_histogram': {
+                    'quantity': histogram_date['name'],
                     'interval': histogram_date['interval'],
                     'metrics': ['n_uploads'],
                 }
@@ -701,7 +742,12 @@ def aggregation_test_parameters(
             id='date-histogram-no-date',
         ),
         pytest.param(
-            {'date_histogram': {'quantity': histogram_date['name'], 'interval': '1xy'}},
+            {
+                'date_histogram': {
+                    'quantity': histogram_date['name'],
+                    'interval': '1xy',
+                }
+            },
             -1,
             -1,
             400,
@@ -1136,7 +1182,9 @@ def aggregation_exclude_from_search_test_parameters(total_per_entity: int, total
     ]
 
 
-def assert_response(response, status_code: int | None = None) -> None:
+def assert_response(
+    response, status_code: int | None = None, error_detail: str | None = None
+) -> None:
     """General assertions for status code and error messages"""
     if status_code is None:
         return
@@ -1172,6 +1220,9 @@ def assert_response(response, status_code: int | None = None) -> None:
     if 400 <= status_code < 500:
         response_json = response.json()
         assert 'detail' in response_json
+
+        if error_detail is not None:
+            assert response_json['detail'] == error_detail
 
 
 def assert_base_metadata_response(response, status_code=None):
@@ -1274,7 +1325,16 @@ def assert_aggregations(
     if agg_type != 'statistics':
         assert 'quantity' in agg_response
 
-    assert_at_least(agg, agg_response)
+    if agg_type == 'date_histogram':
+        # Date histogram responses expose the normalized interval fields.
+        expected_agg = DateHistogramAggregation(**agg).model_dump(exclude_none=True)
+        assert 'interval' not in agg_response
+        assert ('calendar_interval' in agg_response) != (
+            'fixed_interval' in agg_response
+        )
+    else:
+        expected_agg = agg
+    assert_at_least(expected_agg, agg_response)
 
     data = agg_response['data']
     n_data = len(data)
@@ -1459,8 +1519,10 @@ def assert_browser_download_headers(response, media_type: str, filename: str):
     content_disposition = response.headers['Content-Disposition']
     assert 'attachment;' in content_disposition
     if filename:
-        filename_in_header = content_disposition.split('filename="')[1][:-1]
-        assert filename_in_header == filename
+        # RFC 6266: `filename*` carries the exact name, `filename` an ASCII fallback
+        match = re.search(r"filename\*=UTF-8''([^;]*)", content_disposition)
+        assert match, content_disposition
+        assert unquote(match.group(1)) == filename
 
 
 def perform_metadata_test(
@@ -1473,8 +1535,8 @@ def perform_metadata_test(
     http_method='get',
     **kwargs,
 ):
-    # Currently operations with `owner=all` would be allowed for
-    # `entries/materials` endpoints only, others would reject with status code 403
+    # Currently operations with `owner=all` would be allowed for the `entries`
+    # endpoints only, others would reject with status code 403
     if status_code == 403 and owner == 'all':
         status_code = 200
 
@@ -1514,11 +1576,6 @@ def perform_metadata_test(
 
 def perform_entries_metadata_test(*args, **kwargs):
     kwargs.update(endpoint='entries')
-    return perform_metadata_test(*args, **kwargs)
-
-
-def perform_materials_metadata_test(*args, **kwargs):
-    kwargs.update(endpoint='materials')
     return perform_metadata_test(*args, **kwargs)
 
 

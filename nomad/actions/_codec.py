@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import base64
 from collections.abc import Iterable
 
@@ -29,11 +47,17 @@ class EncryptionCodec(PayloadCodec):
         # Payloads using the default key retain the existing metadata format so
         # previously recorded workflow histories remain decryptable during replay.
         check_api_secret()
-        self.default_fernet = _create_fernet(config.services.api_secret)
+        self.default_fernet = _create_fernet(
+            config.services.api_secret.get_secret_value()
+        )
 
         codec_key = config.temporal.payload_codec_key
         self.key_id = config.temporal.payload_codec_key_id if codec_key else None
-        self.fernet = _create_fernet(codec_key) if codec_key else self.default_fernet
+        self.fernet = (
+            _create_fernet(codec_key.get_secret_value())
+            if codec_key
+            else self.default_fernet
+        )
 
     async def encode(self, payloads: Iterable[Payload]) -> list[Payload]:
         """Encrypt all payloads during encoding."""

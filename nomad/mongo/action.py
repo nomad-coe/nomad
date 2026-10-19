@@ -1,9 +1,29 @@
-from datetime import datetime, timezone
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from datetime import datetime
 from typing import Annotated, Any
 
 from beanie import Document, Indexed
 from pydantic import Field
 from pymongo import ASCENDING, DESCENDING, IndexModel
+
+from nomad.common import now
 
 
 class ActionDocument(Document):
@@ -34,8 +54,8 @@ class ActionDocument(Document):
     signal_inputs_submitted: list[dict] = Field(default_factory=list)
     priority_key: int | None = None
     priority_fairness_key: str | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=now)
+    updated_at: datetime = Field(default_factory=now)
 
     class Settings:
         name = 'action_document'
@@ -48,5 +68,5 @@ class ActionDocument(Document):
         ]
 
     async def save(self, *args, **kwargs):
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = now()
         return await super().save(*args, **kwargs)

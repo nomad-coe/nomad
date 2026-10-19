@@ -25,7 +25,7 @@ from cachetools import TTLCache
 from pydantic import Field
 
 from nomad.config import config
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
+from nomad.metainfo.elasticsearch_extension import Elasticsearch
 from nomad.metainfo.metainfo import (
     JSON,
     Capitalized,
@@ -127,10 +127,8 @@ class Author(MSection):
         type=str,
         derived=lambda user: f'{user.first_name} {user.last_name}'.strip(),
         a_elasticsearch=[
-            Elasticsearch(material_entry_type, _es_field='keyword'),
-            Elasticsearch(
-                material_entry_type, mapping='text', field='text', _es_field=''
-            ),
+            Elasticsearch(_es_field='keyword'),
+            Elasticsearch(mapping='text', field='text', _es_field=''),
             Elasticsearch(suggestion='default'),
         ],
     )
@@ -164,7 +162,7 @@ class User(Author):
 
     m_def = Section(a_pydantic=PydanticModel())
 
-    user_id = Quantity(type=str, a_elasticsearch=Elasticsearch(material_entry_type))
+    user_id = Quantity(type=str, a_elasticsearch=Elasticsearch())
 
     username = Quantity(type=str)
 
@@ -204,19 +202,62 @@ class User(Author):
 
         key = cachetools.keys.hashkey(user_id=user_id, username=username, email=email)
 
-        # Fast lock-free path for cache hits (99% of requests)
-        if key in User._user_cache:
+        # Optimistic lock-free path for the common cache-hit case.
+        try:
             return User._user_cache[key]
+        except KeyError:
+            pass
 
-        # Slow locked path for cache misses to prevent Keycloak stampede
+        # Do not hold the cache lock during the potentially slow backend lookup.
+        user = user_management.user_management.get_user(
+            user_id=user_id, username=username, email=email
+        )
+
         with User._user_cache_lock:
-            # Double-check inside lock in case another thread just fetched it
+            # Another caller may have populated the cache during the lookup.
             if key in User._user_cache:
                 return User._user_cache[key]
 
-            user = user_management.user_management.get_user(
-                user_id=user_id, username=username, email=email
+            User._user_cache[key] = user
+            return user
+
+    @staticmethod
+    async def a_get(
+        *args: Any,
+        user_id: str | None = None,
+        username: str | None = None,
+        email: str | None = None,
+        **kwargs: Any,
+    ) -> 'User | None':
+        """Async version."""
+        from nomad.auth import user_management
+
+        if args:
+            raise TypeError(
+                'User.get only accepts keyword arguments: user_id, username, email.'
             )
+        if kwargs:
+            unknown = ', '.join(sorted(kwargs.keys()))
+            raise TypeError(f'Unknown keyword argument(s) for User.get: {unknown}')
+
+        key = cachetools.keys.hashkey(user_id=user_id, username=username, email=email)
+
+        # Optimistic lock-free path for the common cache-hit case.
+        try:
+            return User._user_cache[key]
+        except KeyError:
+            pass
+
+        # Never hold a threading lock while awaiting external I/O.
+        user = await user_management.user_management.a_get_user(
+            user_id=user_id, username=username, email=email
+        )
+
+        with User._user_cache_lock:
+            # Another caller may have populated the cache during the lookup.
+            if key in User._user_cache:
+                return User._user_cache[key]
+
             User._user_cache[key] = user
             return user
 
@@ -224,7 +265,8 @@ class User(Author):
         """Returns a User object with all attributes loaded from the user management system."""
         from nomad.auth import user_management
 
-        assert self.user_id is not None
+        if self.user_id is None:
+            raise ValueError('Cannot resolve user.')
         return user_management.user_management.get_user(user_id=self.user_id)
 
 

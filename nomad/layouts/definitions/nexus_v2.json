@@ -1,0 +1,93 @@
+{
+  "id": "nexus_v2",
+  "label": "NeXus",
+  "priority": 30,
+  "query": {
+    "section_defs[].definition_qualified_name:any": [
+      "pynxtools.nomad.metainfo.base_classes.Entry"
+    ]
+  },
+  "overview": {
+    "type": "container",
+    "editable": false,
+    "children": [
+      {
+        "type": "container",
+        "title": "NeXus Entry",
+        "md": 6,
+        "children": [
+          {
+            "type": "quantity",
+            "property": "data/definition",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "data/definition__version",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "data/title",
+            "md": 12
+          },
+          {
+            "type": "quantity",
+            "property": "data/start_time",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "data/end_time",
+            "md": 6
+          }
+        ]
+      },      
+      {
+        "type": "container",
+        "title": "Material",
+        "md": 6,
+        "children": [
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_iupac",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_reduced",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_hill",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/chemical_formula_descriptive",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/elements",
+            "direction": "horizontal",
+            "md": 6
+          },
+          {
+            "type": "quantity",
+            "property": "results/material/n_elements",
+            "md": 6
+          }
+        ]
+      },
+      {
+        "type": "hdf5",
+        "property": "metadata/mainfile",
+        "title": "NeXus HDF5",
+        "md": 12,
+        "sx": {"height": "700px"}
+      }
+    ]
+  }
+}

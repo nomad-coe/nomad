@@ -1,3 +1,21 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from collections.abc import Mapping
 from enum import Enum
 
@@ -348,6 +366,42 @@ def test_create_group(
     assert_group(group, response_group)
     ref_group = group_molds[ref_group_label]
     assert_group(group, ref_group, ref_group.keys())
+
+
+def test_group_description_create_and_edit(
+    auth_headers,
+    client,
+    group_molds,
+    mongo_function,
+):
+    """Group descriptions are persisted and returned on create and edit."""
+    group_data = group_molds['group1'].copy()
+    group_data.pop('members', None)
+    group_data.update(
+        group_name='Description group',
+        description='Initial group description',
+    )
+
+    response = perform_post(client, base_url, auth_headers['user1'], json=group_data)
+    assert_response(response, 201)
+
+    created_group = UserGroup.model_validate_json(response.content)
+    stored_group = get_mongo_user_group(created_group.group_id)
+    assert stored_group.description == 'Initial group description'
+    assert created_group.description == 'Initial group description'
+
+    response = perform_post(
+        client,
+        f'{base_url}/{created_group.group_id}/edit',
+        auth_headers['user1'],
+        json={'description': 'Updated group description'},
+    )
+    assert_response(response, 200)
+
+    edited_group = UserGroup.model_validate_json(response.content)
+    stored_group = get_mongo_user_group(created_group.group_id)
+    assert stored_group.description == 'Updated group description'
+    assert edited_group.description == 'Updated group description'
 
 
 @pytest.mark.parametrize(

@@ -333,7 +333,7 @@ class DatasetCreate(BaseModel):  # type: ignore
 
 
 @router.get(
-    '/',
+    '',
     tags=[APITag.DEFAULT],
     summary='Get a list of datasets',
     response_model=DatasetsResponse,
@@ -347,12 +347,12 @@ def get_datasets(
         User,
         Depends(get_current_user([Scope.DATASETS_READ])),
     ],
-    dataset_id: Annotated[str, FastApiQuery()] = None,
-    dataset_name: Annotated[str, FastApiQuery()] = None,
-    user_id: Annotated[list[str], FastApiQuery()] = None,
-    dataset_type: Annotated[str, FastApiQuery()] = None,
-    doi: Annotated[str, FastApiQuery()] = None,
-    prefix: Annotated[str, FastApiQuery()] = None,
+    dataset_id: Annotated[str | None, FastApiQuery()] = None,
+    dataset_name: Annotated[str | None, FastApiQuery()] = None,
+    user_id: Annotated[list[str] | None, FastApiQuery()] = None,
+    dataset_type: Annotated[str | None, FastApiQuery()] = None,
+    doi: Annotated[str | None, FastApiQuery()] = None,
+    prefix: Annotated[str | None, FastApiQuery()] = None,
 ):
     """
     Retrieves all datasets that match the given criteria.
@@ -417,7 +417,7 @@ def get_dataset(
 
 
 @router.post(
-    '/',
+    '',
     tags=[APITag.DEFAULT],
     summary='Create a new dataset',
     response_model=DatasetResponse,
@@ -505,6 +505,7 @@ def post_datasets(
             """,
             params=dict(dataset=entry_type.create_index_doc(dataset)),
             query=es_query,
+            owner=Owner.user,
             user_id=user.user_id,
             refresh=True,
         )

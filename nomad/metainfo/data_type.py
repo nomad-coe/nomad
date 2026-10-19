@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import annotations
 
 import builtins
@@ -1165,8 +1166,12 @@ def normalize_type(value):
         type_data = value.get('type_data', '')
 
         # python primitive types
-        if type_kind in ('python', 'user', 'author'):
+        if type_kind == 'python':
             return normalize_type(type_data).normalize_flags(value)
+
+        # User and author types are references, not flag-bearing data types.
+        if type_kind in ('user', 'author'):
+            return normalize_type(type_data)
 
         # numpy primitive types
         if type_kind == 'numpy':
@@ -1347,12 +1352,14 @@ def to_elastic_type(in_type: Datatype, dynamic: bool) -> str:
     raise NotImplementedError(f'Unsupported elastic data type {in_type}.')
 
 
-def to_json_schema_type(in_type: Datatype) -> dict[str, str]:
+def to_json_schema_type(in_type: Datatype) -> dict[str, typing.Any]:
     """
     Convert a metainfo Datatype to a JSON Schema type.
     """
     std_type = in_type.standard_type()
 
+    if std_type == 'any':
+        return {}
     if std_type.startswith('int'):
         return {'type': 'integer'}
     if std_type.startswith('float'):
@@ -1365,6 +1372,35 @@ def to_json_schema_type(in_type: Datatype) -> dict[str, str]:
         return {'type': 'object'}
     if std_type == 'datetime':
         return {'type': 'string', 'format': 'date-time'}
+    if std_type.startswith('complex'):
+        return {
+            'type': 'object',
+            'properties': {'re': {'type': 'number'}, 'im': {'type': 'number'}},
+        }
+    if std_type == 'bytes':
+        return {
+            'type': 'string',
+            'contentEncoding': 'base64',
+        }
+    if std_type.startswith('hdf5'):
+        return {'type': 'string'}
+    if std_type == 'quantitytype':
+        return {
+            'type': 'object',
+            'properties': {
+                'type_kind': {'type': 'string'},
+                'type_data': {
+                    'anyOf': [
+                        {'type': 'string'},
+                        {'type': 'array', 'items': {'type': 'string'}},
+                    ]
+                },
+            },
+        }
+    if std_type == 'dimension':
+        return {'anyOf': [{'type': 'integer'}, {'type': 'string'}]}
+    if std_type == 'callable':
+        return {}
 
     raise NotImplementedError(f'Unsupported JSON Schema type: {std_type}')
 

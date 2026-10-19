@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 """
 This module contains the physical/mathematical constants as to be used within
 the NOMAD infrastructure. The constants may be mixed from different sources. By

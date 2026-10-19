@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -171,7 +172,13 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
             )
             method.workflow_name = workflow_name
         # if the entry is a GW or XS workflow, keep method_name as DFT+XS
-        if method.workflow_name in ['DFT+GW', 'XS']:
+
+        from .results import is_valid_workflow
+
+        if not is_valid_workflow(self.entry_archive.workflow2):
+            pass
+
+        elif method.workflow_name in ['DFT+GW', 'XS']:
             gs_task = self.entry_archive.workflow2.tasks[0]  # Ground-state task
             xs_task = self.entry_archive.workflow2.tasks[
                 -1

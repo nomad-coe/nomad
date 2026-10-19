@@ -18,7 +18,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from nomad.config.models.common import ConfigBaseModel, Options
 
@@ -92,8 +92,17 @@ class NORTHTool(BaseModel):
     with_path: bool = Field(
         False,
         description=(
-            'Whether the tool supports a path to a file or directory. '
-            'This also enables tools to be launched from files in the NOMAD UI.'
+            'Whether the path of the file or directory the tool was launched '
+            'from is forwarded to the tool so it can open or deep-link to that '
+            'item. When enabled, the launcher passes the item path to the tool: '
+            'in the old hub it is appended to the tool URL via `path_prefix` '
+            '(e.g. `lab/tree/<path>` for JupyterLab); in the new hub it is sent '
+            'as `upload_id`/`path` query parameters for a handler inside the '
+            'tool image to consume. Only meaningful for tools that can open a '
+            'file from a URL (e.g. JupyterLab); set to False for tools that '
+            'cannot, such as desktop (noVNC) apps like VESTA or FIJI. This does '
+            'NOT control whether the tool is offered for a file in the NOMAD '
+            'UI. That is determined solely by `file_extensions`.'
         ),
     )
     file_extensions: list[str] = Field(
@@ -168,8 +177,8 @@ class NORTH(ConfigBaseModel):
         The internal port that NOMAD services use to connect to the jupyterhub API.
     """,
     )
-    jupyterhub_crypt_key: str | None = Field(
-        None, description=_jupyterhub_config_description
+    jupyterhub_crypt_key: SecretStr | None = Field(
+        None, exclude=True, description=_jupyterhub_config_description
     )
 
     nomad_host: str | None = Field(
@@ -196,8 +205,9 @@ class NORTH(ConfigBaseModel):
         """,
     )
 
-    hub_service_api_token: str = Field(
-        'secret-token',
+    hub_service_api_token: SecretStr = Field(
+        SecretStr('secret-token'),
+        exclude=True,
         description="""
         A secret token shared between NOMAD and the NORTH jupyterhub.
         This needs to be the token of an admin service.""",

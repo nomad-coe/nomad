@@ -19,8 +19,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from io import BytesIO
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO
 
 from msglc import FileInfo, LazyReader, LazyWriter, combine, dump
 
@@ -31,7 +30,7 @@ v2_magic: bytes = b'nomad-archive-v2023'
 v2_magic_len: int = len(v2_magic)
 
 
-def check_archive_version(file_or_path: str | BytesIO) -> int:
+def check_archive_version(file_or_path: str | BinaryIO) -> int:
     from nomad.files import FSUtility
 
     magic_len = max(v2_magic_len, LazyWriter.magic_len())
@@ -51,7 +50,7 @@ def check_archive_version(file_or_path: str | BytesIO) -> int:
     return 1
 
 
-def write_archive(path_or_file: str | BytesIO, data: dict) -> None:
+def write_archive(path_or_file: str | BinaryIO, data: dict) -> None:
     from nomad.files import FSUtility
 
     if not isinstance(path_or_file, str):
@@ -60,8 +59,15 @@ def write_archive(path_or_file: str | BytesIO, data: dict) -> None:
         dump(FSUtility.upath(path_or_file), data, backend='rust')
 
 
-def combine_archive(target_fp, data: Iterable[tuple]):
-    from nomad.files import FSUtility
+def combine_archive(target_fp, data: Iterable[tuple], *, fs=None):
+    """Combine per-entry archives into ``target_fp``.
+
+    ``fs`` selects the destination filesystem. When omitted, the historical
+    ``FSUtility.upath`` mapping is used (public paths go to remote when
+    ``protocol`` is set). Pack passes an explicit local filesystem for
+    ``local_only`` / ``local_then_remote`` writes.
+    """
+    from nomad.files import FSUtility, PathObject
 
     def _kernel():
         for uuid, msg_fp in data:
@@ -74,16 +80,25 @@ def combine_archive(target_fp, data: Iterable[tuple]):
                     FSUtility.open(msg_path) as file_obj,
                     LazyReader(file_obj, cached=False) as reader,
                 ):
-                    yield FileInfo(None, uuid, obj=to_json(reader[uuid]))
+                    yield FileInfo(None, uuid, obj=reader[uuid])
             else:
                 with read_archive(msg_path, detected_version=msg_version) as reader:
                     yield FileInfo(None, uuid, obj=to_json(reader[uuid]))
 
-    upath = FSUtility.upath(target_fp)
-    combine(upath.path, _kernel(), fs=upath.fs, backend='rust')
+    os_path = getattr(target_fp, 'os_path', target_fp)
+    if not isinstance(os_path, str):
+        os_path = str(os_path)
+
+    if fs is None:
+        upath = FSUtility.upath(os_path)
+        dest_fs, location = upath.fs, upath.path
+    else:
+        dest_fs = fs
+        location = PathObject(os_path, fs=fs).location
+    combine(location, _kernel(), fs=dest_fs, backend='rust')
 
 
-def read_archive(file_or_path: str | BytesIO, **kwargs):
+def read_archive(file_or_path: str | BinaryIO, **kwargs):
     """
     Allows to read a msgpack-based archive.
 
@@ -127,8 +142,14 @@ def read_archive(file_or_path: str | BytesIO, **kwargs):
     raise NotImplementedError
 
 
+_PRIMITIVE_TYPES = (str, int, float, bool)
+
+
 def to_json(data: Any) -> Any:
     """Convert data into JSON-compatible Python data."""
+    if data is None or type(data) in _PRIMITIVE_TYPES:
+        return data
+
     if hasattr(data, 'to_json'):
         return data.to_json()
 

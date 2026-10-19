@@ -1,9 +1,7 @@
 archive:
-  block_size: 1048576
   read_buffer_size: 1048576
   copy_chunk_size: 16777216
-  toc_depth: 10
-  small_obj_optimization_threshold: 16777216
+  small_obj_optimization_threshold: 4194304
   fast_loading: true
   fast_loading_threshold: 0.6
   trivial_size: 20
@@ -68,11 +66,11 @@ elastic:
   bulk_size: 1000
   bulk_timeout: 600
   entries_index: nomad_entries_v1
-  entries_per_material_cap: 1000
   host: localhost
-  materials_index: nomad_materials_v1
   port: 9200
+  scheme: http
   timeout: 60
+  version: '7'
 temporal:
   host: localhost
   namespace: default
@@ -123,12 +121,6 @@ logstash:
   host: localhost
   level: 20
   tcp_port: '5000'
-logtransfer:
-  enabled: false
-  level: 20
-  transfer_threshold: 0
-  transfer_capacity: 1048576
-  transfer_interval: 600
 mail:
   enabled: false
   from_address: support@nomad-lab.eu
@@ -176,7 +168,6 @@ oasis:
   uses_central_user_management: false
 process:
   auxfile_cutoff: 100
-  index_materials: false
   max_upload_size: 34359738368
   metadata_file_extensions:
     - json
@@ -235,6 +226,8 @@ north:
   hub_service_api_token: secret-token
   nomad_access_token_expiry_time: 86400
   windows: true
+dashboards:
+  enabled: true
 ui:
   entry:
     cards:
@@ -639,9 +632,6 @@ plugins:
                 size: m
               metadata:
                 label: Visibility / IDs / Schema
-              optimade:
-                label: Optimade
-                size: m
       apps/2_theory/1_calculations:
         entry_point_type: app
         app:
@@ -750,9 +740,6 @@ plugins:
                 size: m
               metadata:
                 label: Visibility / IDs / Schema
-              optimade:
-                label: Optimade
-                size: m
           dashboard:
             widgets:
               - layout:
@@ -857,14 +844,8 @@ plugins:
                 size: xl
               eln:
                 label: Electronic Lab Notebook
-              custom_quantities:
-                label: User Defined Quantities
-                size: l
               author:
                 label: Author / Origin / Dataset
                 size: m
               metadata:
                 label: Visibility / IDs / Schema
-              optimade:
-                label: Optimade
-                size: m

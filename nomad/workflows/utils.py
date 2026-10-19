@@ -1,6 +1,31 @@
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import math
 from typing import TypeVar
 
+_GENERIC_TEMPORAL_ERROR_MESSAGES = (
+    'child workflow failed',
+    'child workflow execution failed',
+    'workflow execution failed',
+    'activity task failed',
+    'activity failed',
+)
 T = TypeVar('T')
 MAX_CONCURRENT_ACTIVITIES_PER_WORKFLOW = 1000
 CLEANUP_ENTRY_BATCH_SIZE = 100
@@ -37,3 +62,30 @@ def generate_batches(
         item_batches.append(items[start_idx:end_idx])
 
     return item_batches
+
+
+def extract_temporal_error_details(error: Exception) -> str:
+    """Return the most specific message from a Temporal error cause chain."""
+    messages: list[str] = []
+    current: Exception | None = error
+    seen: set[int] = set()
+
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        message = str(current).strip()
+        if message:
+            messages.append(message)
+        current = getattr(current, 'cause', None)
+
+    if not messages:
+        return str(error)
+
+    for message in reversed(messages):
+        lowered_message = message.lower()
+        if not any(
+            generic_message in lowered_message
+            for generic_message in _GENERIC_TEMPORAL_ERROR_MESSAGES
+        ):
+            return message
+
+    return messages[-1]

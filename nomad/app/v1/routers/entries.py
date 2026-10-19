@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import copy
 import csv
 import functools
 import io
@@ -25,7 +26,7 @@ import tempfile
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import anyio
 import orjson
@@ -42,7 +43,7 @@ from fastapi import (
 )
 from fastapi import Query as QueryParameter
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import ORJSONResponse, StreamingResponse
+from fastapi.responses import ORJSONResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.main import create_model
 from starlette.responses import Response
@@ -56,8 +57,13 @@ from nomad.config import config
 from nomad.config.models.config import Reprocess
 from nomad.datamodel import EditableUserMetadata
 from nomad.datamodel.context import ServerContext
-from nomad.files import StreamedFile, create_zipstream_async
-from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.files import (
+    FSUtility,
+    PublicUploadFiles,
+    StreamedFile,
+    UploadFiles,
+    create_zipstream_async,
+)
 from nomad.mongo.groups import MongoUserGroup
 from nomad.processing.data import Upload
 from nomad.search import (
@@ -65,6 +71,7 @@ from nomad.search import (
     PermissionDeniedError,
     QueryValidationError,
     SearchError,
+    normalize_api_query,
     search,
 )
 from nomad.search import update_metadata as es_update_metadata
@@ -114,7 +121,7 @@ class APITag(str, Enum):
 
 logger = utils.get_logger(__name__)
 
-query_parameters = QueryParameters(doc_type=entry_type)
+query_parameters = QueryParameters()
 
 archive_required_documentation = strip(
     """
@@ -376,6 +383,7 @@ def _default_sub_section_payload(
 def _section_def_from_dict(
     section_data: dict[str, Any],
     fallback_def: metainfo.Section,
+    archive: metainfo.MSection = None,
 ) -> metainfo.Section:
     """Resolve the actual Section definition for a raw dict.
 
@@ -393,7 +401,7 @@ def _section_def_from_dict(
         # resolve to the real Section definition without needing a DB context.
         proxy = metainfo.MSectionReference().normalize(
             m_def_name,
-            section=datamodel.EntryArchive.m_def,
+            section=archive if archive is not None else datamodel.EntryArchive.m_def,
         )
         if isinstance(proxy, metainfo.Section):
             return proxy
@@ -418,6 +426,7 @@ def _resolve_archive_change_target_in_dict(
     path: str,
     *,
     create_missing: bool,
+    archive: metainfo.MSection = None,
 ) -> tuple[dict[str, Any], metainfo.Property, int | None]:
     """Walk *archive_data* (a raw dict) to the parent container described by *path*.
 
@@ -444,7 +453,9 @@ def _resolve_archive_change_target_in_dict(
         property_name = parts[index]
 
         # Allow the actual section type to differ (polymorphism via m_def).
-        current_section_def = _section_def_from_dict(current_data, current_section_def)
+        current_section_def = _section_def_from_dict(
+            current_data, current_section_def, archive=archive
+        )
 
         try:
             definition = current_section_def.all_properties[property_name]
@@ -538,7 +549,9 @@ def _resolve_archive_change_target_in_dict(
     property_name = parts[-1]
 
     # Resolve section def one last time for the final hop.
-    current_section_def = _section_def_from_dict(current_data, current_section_def)
+    current_section_def = _section_def_from_dict(
+        current_data, current_section_def, archive=archive
+    )
 
     try:
         definition = current_section_def.all_properties[property_name]
@@ -558,6 +571,7 @@ def _resolve_archive_change_target_in_dict(
 def _apply_archive_change_to_dict(
     archive_data: dict[str, Any],
     change: ArchiveChange,
+    archive: metainfo.MSection = None,
 ) -> None:
     """Apply a single :class:`ArchiveChange` directly to the raw *archive_data* dict.
 
@@ -569,6 +583,7 @@ def _apply_archive_change_to_dict(
         archive_data,
         change.path,
         create_missing=change.action != ArchiveChangeAction.remove,
+        archive=archive,
     )
 
     if change.action == ArchiveChangeAction.remove:
@@ -757,6 +772,146 @@ def perform_search(*args, **kwargs):
                 status.HTTP_400_BAD_REQUEST,
                 detail=f'Elasticsearch could not process your query: {str(e)}',
             )
+
+
+def _is_upload_visible_for_owner(
+    upload: Upload, owner: Owner, user: User | None
+) -> bool:
+    """Return whether an upload belongs to the requested search owner scope."""
+    user_id = user.user_id if user is not None else None
+    group_ids = MongoUserGroup.get_ids_by_user_id(user_id)
+    is_viewer = (user_id is not None and user_id in upload.viewers) or not set(
+        group_ids
+    ).isdisjoint(upload.viewer_groups)
+    is_public = upload.published and not upload.with_embargo
+
+    if owner == Owner.public:
+        return is_public
+    if owner == Owner.all_:
+        return upload.published or is_viewer
+    if owner == Owner.visible:
+        return is_public or is_viewer
+
+    if user is None:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            detail=f'Authentication required for owner={owner!r}.',
+        )
+
+    if owner == Owner.shared:
+        return is_viewer
+    if owner == Owner.user:
+        return upload.main_author == user_id
+    if owner == Owner.staging:
+        return not upload.published and is_viewer
+    if owner == Owner.admin:
+        if not user.is_admin:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail='This can only be used by the admin user.',
+            )
+        return True
+
+    return False
+
+
+def _resolve_entry_metadata_from_mongo(
+    query: Any, user: User | None, owner: Owner = Owner.visible
+) -> dict | None:
+    """Resolve core metadata for a visible exact-ID entry directly from MongoDB."""
+    if (
+        isinstance(query, dict)
+        and len(query) == 1
+        and 'entry_id' in query
+        and isinstance(query['entry_id'], str)
+    ):
+        entry = proc.Entry.objects(entry_id=query['entry_id']).first()
+        if entry is not None:
+            upload = Upload.objects(upload_id=entry.upload_id).first()
+            if upload is not None and _is_upload_visible_for_owner(upload, owner, user):
+                return {
+                    'entry_id': entry.entry_id,
+                    'upload_id': entry.upload_id,
+                    'mainfile': entry.mainfile,
+                    'mainfile_key': entry.mainfile_key,
+                    'parser_name': entry.parser_name,
+                }
+    return None
+
+
+def _get_entry_archive_redirect(
+    entry_id: str, user: User | None, format: Literal['json', 'msgpack']
+) -> RedirectResponse | None:
+    """Return a redirect for an eligible public remote entry archive."""
+    redirects = config.fs.public_fs.redirects
+    gateway = redirects.nomad_storage_gateway
+    # Archive redirects are opt-in and require the gateway archive feature.
+    if not (redirects.enabled and gateway.enabled and gateway.archives):
+        return None
+
+    # Resolve the entry before checking its upload and storage eligibility.
+    query = dict(entry_id=entry_id)
+    entry_metadata = _resolve_entry_metadata_from_mongo(query, user)
+    if entry_metadata is None:
+        search_response = perform_search(
+            owner=Owner.visible,
+            query=query,
+            required=MetadataRequired(include=['entry_id', 'upload_id']),
+            user_id=user.user_id if user is not None else None,
+        )
+        if search_response.pagination.total == 0:
+            return None
+        entry_metadata = search_response.data[0]
+
+    if 'upload_id' not in entry_metadata:
+        return None
+
+    # Only public uploads stored remotely can be served by the gateway.
+    upload_files = UploadFiles.get(entry_metadata['upload_id'])
+    if not isinstance(upload_files, PublicUploadFiles):
+        return None
+    if upload_files.access != 'public':
+        return None
+    if FSUtility.is_local(
+        upload_files.msg_fp('public').os_path, fs=upload_files.storage_fs
+    ):
+        return None
+
+    # Sign the gateway URL with the same credentials used for the remote storage.
+    return RedirectResponse(
+        gateway.presign_url(
+            gateway.get_archive_url(
+                redirects.public_endpoint_url,
+                entry_metadata['upload_id'],
+                entry_id,
+                format=format,
+            ),
+            extra=config.fs.public_fs.extra,
+            expires=redirects.signed_url_expiration,
+            user_id=user.user_id if user is not None else None,
+        ),
+        status_code=307,
+    )
+
+
+def _single_entry_pagination(
+    pagination: MetadataPagination,
+) -> tuple[bool, PaginationResponse] | None:
+    """Build pagination for one result, or defer unsupported cases to search."""
+    if pagination.page_after_value is not None or pagination.order_by not in {
+        None,
+        'entry_id',
+    }:
+        return None
+
+    page_size = pagination.page_size if pagination.page_size is not None else 10
+    page = pagination.page if pagination.page is not None else 1
+    page_offset = pagination.page_offset or 0
+    include_entry = page_size > 0 and page == 1 and page_offset == 0
+    response_data = pagination.model_dump(exclude_none=True)
+    response_data['order_by'] = pagination.order_by or 'entry_id'
+
+    return include_entry, PaginationResponse(total=1, **response_data)
 
 
 @router.post(
@@ -948,29 +1103,49 @@ def _answer_entries_rawdir_request(
             ),
         )
 
-    search_response = perform_search(
-        owner=owner,
-        query=query,
-        pagination=pagination,
-        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
-        user_id=user.user_id if user is not None else None,
+    single_metadata = _resolve_entry_metadata_from_mongo(query, user, owner)
+    single_pagination = (
+        _single_entry_pagination(pagination) if single_metadata is not None else None
     )
+    if single_metadata is not None and single_pagination is not None:
+        include_entry, response_pagination = single_pagination
+        entries_metadata = [single_metadata] if include_entry else []
+        response_owner = owner
+        response_query = normalize_api_query(query)
+    else:
+        search_response = perform_search(
+            owner=owner,
+            query=query,
+            pagination=pagination,
+            required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
+            user_id=user.user_id if user is not None else None,
+        )
+        entries_metadata = search_response.data
+        response_owner = search_response.owner
+        response_query = search_response.query
+        response_pagination = search_response.pagination
 
     with _Uploads() as uploads:
         response_data = [
             _create_entry_rawdir(entry_metadata, uploads)
-            for entry_metadata in search_response.data
+            for entry_metadata in entries_metadata
         ]
 
     return EntriesRawDirResponse(
-        owner=search_response.owner,
-        query=search_response.query,
-        pagination=search_response.pagination,
+        owner=response_owner,
+        query=response_query,
+        pagination=response_pagination,
         data=response_data,
     )
 
 
-def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: User):
+def _answer_entries_raw_request(
+    owner: Owner,
+    query: Query,
+    files: Files,
+    user: User,
+    entry_metadata: dict[str, Any] | None = None,
+):
     if owner == Owner.all_:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -982,20 +1157,27 @@ def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: 
             ),
         )
 
-    response = perform_search(
-        owner=owner,
-        query=query,
-        pagination=MetadataPagination(page_size=0),
-        required=MetadataRequired(include=[]),
-        user_id=user.user_id if user is not None else None,
-    )
+    if entry_metadata is None:
+        response = perform_search(
+            owner=owner,
+            query=query,
+            pagination=MetadataPagination(page_size=0),
+            required=MetadataRequired(include=[]),
+            user_id=user.user_id if user is not None else None,
+        )
+        total = response.pagination.total
+    else:
+        entry_metadata = {
+            key: entry_metadata[key] for key in ('entry_id', 'upload_id', 'mainfile')
+        }
+        total = 1
 
-    if response.pagination.total > config.services.max_entry_download:
+    if total > config.services.max_entry_download:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail=(
                 f'The limit of maximum number of entries in a single download '
-                f'({config.services.max_entry_download}) has been exceeded ({response.pagination.total}).'
+                f'({config.services.max_entry_download}) has been exceeded ({total}).'
             ),
         )
 
@@ -1006,22 +1188,28 @@ def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: 
         # a generator of File objects to create the streamed zip from
         def download_items_generator():
             # go through all entries that match the query
-            for entry_metadata in _do_exhaustive_search(
-                owner,
-                query,
-                required=MetadataRequired(include=search_includes),
-                user=user,
-            ):
-                upload_id = entry_metadata['upload_id']
-                mainfile = entry_metadata['mainfile']
-                entry_metadata['mainfile'] = os.path.join(upload_id, mainfile)
+            entries_metadata = (
+                [entry_metadata]
+                if entry_metadata is not None
+                else _do_exhaustive_search(
+                    owner,
+                    query,
+                    required=MetadataRequired(include=search_includes),
+                    user=user,
+                )
+            )
+            for current_entry_metadata in entries_metadata:
+                current_entry_metadata = dict(current_entry_metadata)
+                upload_id = current_entry_metadata['upload_id']
+                mainfile = current_entry_metadata['mainfile']
+                current_entry_metadata['mainfile'] = os.path.join(upload_id, mainfile)
 
                 mainfile_dir = os.path.dirname(mainfile)
                 yield DownloadItem(
                     upload_id=upload_id,
                     raw_path=mainfile_dir,
                     zip_path=os.path.join(upload_id, mainfile_dir),
-                    entry_metadata=entry_metadata,
+                    entry_metadata=current_entry_metadata,
                 )
 
         return StreamingResponse(
@@ -1371,22 +1559,44 @@ def _answer_entries_archive_request(
     if required is None:
         required = '*'
 
-    search_response = perform_search(
-        owner=owner,
-        query=query,
-        pagination=pagination,
-        required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
-        user_id=user.user_id if user is not None else None,
+    single_metadata = _resolve_entry_metadata_from_mongo(query, user, owner)
+    single_pagination = (
+        _single_entry_pagination(pagination) if single_metadata is not None else None
     )
-
-    entries: list = [
-        {
-            'entry_id': entry['entry_id'],
-            'upload_id': entry['upload_id'],
-            'parser_name': entry['parser_name'],
-        }
-        for entry in search_response.data
-    ]
+    if single_metadata is not None and single_pagination is not None:
+        include_entry, response_pagination = single_pagination
+        entries: list = (
+            [
+                {
+                    'entry_id': single_metadata['entry_id'],
+                    'upload_id': single_metadata['upload_id'],
+                    'parser_name': single_metadata['parser_name'],
+                }
+            ]
+            if include_entry
+            else []
+        )
+        response_owner = owner
+        response_query = normalize_api_query(query)
+    else:
+        search_response = perform_search(
+            owner=owner,
+            query=query,
+            pagination=pagination,
+            required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
+            user_id=user.user_id if user is not None else None,
+        )
+        entries = [
+            {
+                'entry_id': entry['entry_id'],
+                'upload_id': entry['upload_id'],
+                'parser_name': entry['parser_name'],
+            }
+            for entry in search_response.data
+        ]
+        response_owner = search_response.owner
+        response_query = search_response.query
+        response_pagination = search_response.pagination
 
     required_reader = _validate_required(required, user)
     response_data = []
@@ -1406,9 +1616,9 @@ def _answer_entries_archive_request(
         logger.info('read all archives', endpoint='entries/archive')
 
     response = EntriesArchiveResponse(
-        owner=search_response.owner,
-        query=search_response.query,
-        pagination=search_response.pagination,
+        owner=response_owner,
+        query=response_query,
+        pagination=response_pagination,
         required=required,
     )
     if populate_url:
@@ -1720,22 +1930,24 @@ def get_entry_rawdir(
     of the given `entry_id`. The first file will be the *mainfile*.
     """
     query = dict(entry_id=entry_id)
-    response = perform_search(
-        owner=Owner.visible,
-        query=query,
-        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
-        user_id=user.user_id if user is not None else None,
-    )
-
-    if response.pagination.total == 0:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.',
+    entry_metadata = _resolve_entry_metadata_from_mongo(query, user)
+    if entry_metadata is None:
+        response = perform_search(
+            owner=Owner.visible,
+            query=query,
+            required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
+            user_id=user.user_id if user is not None else None,
         )
+        if response.pagination.total == 0:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail='The entry with the given id does not exist or is not visible to you.',
+            )
+        entry_metadata = response.data[0]
 
     with _Uploads() as uploads:
         return EntryRawDirResponse(
-            entry_id=entry_id, data=_create_entry_rawdir(response.data[0], uploads)
+            entry_id=entry_id, data=_create_entry_rawdir(entry_metadata, uploads)
         )
 
 
@@ -1761,21 +1973,64 @@ def get_entry_raw(
     Streams a .zip file with the raw files from the requested entry.
     """
     query = dict(entry_id=entry_id)
-    response = perform_search(
-        owner=Owner.visible,
-        query=query,
-        required=MetadataRequired(include=['entry_id']),
-        user_id=user.user_id if user is not None else None,
-    )
-
-    if response.pagination.total == 0:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.',
+    entry_metadata = _resolve_entry_metadata_from_mongo(query, user)
+    if entry_metadata is None:
+        response = perform_search(
+            owner=Owner.visible,
+            query=query,
+            required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
+            user_id=user.user_id if user is not None else None,
         )
+        if response.pagination.total == 0:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail='The entry with the given id does not exist or is not visible to you.',
+            )
+        entry_metadata = response.data[0]
+
+    redirects = config.fs.public_fs.redirects
+    gw = redirects.nomad_storage_gateway
+    # Gateway ZIP extraction is only safe for unfiltered, publicly visible entries.
+    if (
+        redirects.enabled
+        and gw.enabled
+        and gw.raw_files
+        and not (files and files.re_pattern)
+        and 'upload_id' in entry_metadata
+        and 'mainfile' in entry_metadata
+    ):
+        upload_id = entry_metadata['upload_id']
+        upload_files = UploadFiles.get(upload_id)
+        # The parent upload must expose a remote public raw ZIP to the gateway.
+        if (
+            isinstance(upload_files, PublicUploadFiles)
+            and upload_files.access == 'public'
+            and not FSUtility.is_local(
+                upload_files.raw_zip_file_object().os_path, fs=upload_files.storage_fs
+            )
+        ):
+            mainfile_dir = os.path.dirname(entry_metadata['mainfile'])
+            # The gateway streams the entry's containing directory as a ZIP.
+            return RedirectResponse(
+                gw.presign_url(
+                    gw.get_zip_url(
+                        redirects.public_endpoint_url,
+                        upload_id,
+                        path=mainfile_dir,
+                    ),
+                    extra=config.fs.public_fs.extra,
+                    expires=redirects.signed_url_expiration,
+                    user_id=user.user_id if user is not None else None,
+                ),
+                status_code=307,
+            )
 
     return _answer_entries_raw_request(
-        owner=Owner.visible, query=query, files=files, user=user
+        owner=Owner.visible,
+        query=query,
+        files=files,
+        user=user,
+        entry_metadata=entry_metadata,
     )
 
 
@@ -1803,6 +2058,7 @@ def get_entry_raw_file(
             description="A relative path to a file based on the directory of the entry's mainfile."
         ),
     ],
+    request: Request,
     offset: Annotated[
         int | None,
         QueryParameter(
@@ -1839,20 +2095,21 @@ def get_entry_raw_file(
     Streams the contents of an individual file from the requested entry.
     """
     query = dict(entry_id=entry_id)
-    response = perform_search(
-        owner=Owner.visible,
-        query=query,
-        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
-        user_id=user.user_id if user is not None else None,
-    )
-
-    if response.pagination.total == 0:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.',
+    entry_metadata = _resolve_entry_metadata_from_mongo(query, user)
+    if entry_metadata is None:
+        response = perform_search(
+            owner=Owner.visible,
+            query=query,
+            required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
+            user_id=user.user_id if user is not None else None,
         )
+        if response.pagination.total == 0:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail='The entry with the given id does not exist or is not visible to you.',
+            )
+        entry_metadata = response.data[0]
 
-    entry_metadata = response.data[0]
     upload_id, mainfile = entry_metadata['upload_id'], entry_metadata['mainfile']
     # The user is allowed to access all files, because the entry is in the "visible" scope
     upload_files = files.UploadFiles.get(upload_id)
@@ -1865,6 +2122,36 @@ def get_entry_raw_file(
     entry_path = os.path.dirname(mainfile)
     path = os.path.join(entry_path, path)
 
+    redirects = config.fs.public_fs.redirects
+    gw = redirects.nomad_storage_gateway
+    # Individual entry files can use the gateway only when raw-file redirects are enabled.
+    if (
+        redirects.enabled
+        and gw.enabled
+        and gw.raw_files
+        and isinstance(upload_files, PublicUploadFiles)
+        and upload_files.access == 'public'
+        and not FSUtility.is_local(
+            upload_files.raw_zip_file_object().os_path, fs=upload_files.storage_fs
+        )
+    ):
+        # The upload and raw ZIP checks prevent redirects for private or local data.
+        return RedirectResponse(
+            gw.presign_url(
+                gw.get_file_url(
+                    redirects.public_endpoint_url,
+                    upload_id,
+                    path,
+                    query_params=str(request.query_params),
+                ),
+                extra=config.fs.public_fs.extra,
+                expires=redirects.signed_url_expiration,
+                user_id=user.user_id if user is not None else None,
+            ),
+            status_code=307,
+        )
+
+    # Otherwise keep normal existence, MIME, and streaming handling in NOMAD.
     if not upload_files.raw_exists(path):
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -1893,6 +2180,9 @@ def answer_entry_archive_request(
     query: dict, required: ArchiveRequired, user: User, entry_metadata=None
 ):
     required_reader = _validate_required(required, user)
+
+    if not entry_metadata:
+        entry_metadata = _resolve_entry_metadata_from_mongo(query, user)
 
     if not entry_metadata:
         response = perform_search(
@@ -2010,9 +2300,22 @@ def post_entry_edit(
             )
 
     # Apply changes directly to the raw dict – no full archive deserialisation.
+    # This context-only archive resolves relative m_def references to local schemas.
+    # Inline definitions are loaded so that bare m_def names resolve like in processing.
+    # The definitions are copied because deserialisation mutates the given dict.
     # TODO no handling of concurrent changes yet
+    archive_dict = {}
+    if isinstance(archive_data.get('definitions'), dict):
+        archive_dict['definitions'] = copy.deepcopy(archive_data['definitions'])
+    try:
+        archive = datamodel.EntryArchive.m_from_dict(archive_dict, m_context=context)
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail='Could not load the definitions of the entry mainfile.',
+        ) from exc
     for change in data.changes:
-        _apply_archive_change_to_dict(archive_data, change)
+        _apply_archive_change_to_dict(archive_data, change, archive=archive)
 
     reprocess_settings = Reprocess(
         index_individual_entries=True, reprocess_existing_entries=True
@@ -2059,10 +2362,19 @@ def get_entry_archive(
         User,
         Depends(get_current_user([Scope.ENTRIES_READ])),
     ],
+    request: Request,
 ):
     """
     Returns the full archive for the given `entry_id`.
     """
+    accept = request.headers.get('accept', '')
+    archive_format: Literal['json', 'msgpack'] = (
+        'msgpack' if 'application/msgpack' in accept else 'json'
+    )
+    archive_redirect = _get_entry_archive_redirect(entry_id, user, archive_format)
+    if archive_redirect is not None:
+        return archive_redirect
+
     return ORJSONResponse(
         answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
     )
@@ -2089,6 +2401,10 @@ def get_entry_archive_download(
     """
     Returns the full archive for the given `entry_id`.
     """
+    archive_redirect = _get_entry_archive_redirect(entry_id, user, 'json')
+    if archive_redirect is not None:
+        return archive_redirect
+
     response = answer_entry_archive_request(
         dict(entry_id=entry_id), required='*', user=user
     )
@@ -2175,9 +2491,7 @@ def edit(
                 # Add to list
                 updated_metadata.append(entry_metadata)
 
-            failed = es_update_metadata(
-                updated_metadata, update_materials=False, refresh=True
-            )
+            failed = es_update_metadata(updated_metadata, refresh=True)
 
             if failed > 0:
                 logger.error(

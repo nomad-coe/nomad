@@ -23,16 +23,14 @@ from enum import Enum
 from typing import Any
 
 import rfc3161ng
-from elasticsearch_dsl import analyzer, tokenizer
+from elasticsearch.dsl import analyzer, tokenizer
 
 from nomad import utils
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     create_searchable_quantity,
-    material_entry_type,
 )
-from nomad.metainfo.elasticsearch_extension import entry_type as es_entry_type
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.metainfo.pydantic_extension import PydanticModel
 
@@ -58,12 +56,20 @@ from .util import parse_path
 m_package = Package()
 
 from .results import Results  # noqa: I001
-from .data import EntryData, ArchiveSection, User, UserReference, AuthorReference
+from .data import (
+    Author,
+    EntryData,
+    ArchiveSection,
+    User,
+    UserReference,
+    AuthorReference,
+)
 from .optimade import OptimadeEntry
 from .metainfo.simulation.legacy_workflows import Workflow as LegacySimulationWorkflow
 from .metainfo.workflow import Workflow
 from .metainfo.measurements import Measurement
 from .metainfo.tabulartree import TabularTree
+from nomad.models.common import ProcessStatus
 
 try:
     from runschema.run import Run as run_def
@@ -132,9 +138,8 @@ quantity_analyzer = analyzer(
 
 def QuantitySearch():
     return [
-        Elasticsearch(material_entry_type, _es_field='keyword'),
+        Elasticsearch(_es_field='keyword'),
         Elasticsearch(
-            material_entry_type,
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
             field='path',
             _es_field='',
@@ -173,13 +178,13 @@ class Dataset(MSection):
     dataset_id = Quantity(
         type=str,
         a_mongo=Mongo(primary_key=True),
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
     dataset_name = Quantity(
         type=str,
         a_mongo=Mongo(index=True),
         a_elasticsearch=[
-            Elasticsearch(material_entry_type),
+            Elasticsearch(),
             Elasticsearch(suggestion='default'),
         ],
     )
@@ -187,7 +192,7 @@ class Dataset(MSection):
     doi = Quantity(
         type=str,
         a_mongo=Mongo(index=True),
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
     pid = Quantity(type=str, a_mongo=Mongo(index=True))
     dataset_create_time = Quantity(
@@ -293,17 +298,17 @@ class CompatibleSectionDef(MSection):
     definition_qualified_name = Quantity(
         type=str,
         description='The qualified name of the compatible section.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
     definition_id = Quantity(
         type=str,
         description='The definition id of the compatible section.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
     used_directly = Quantity(
         type=bool,
         description='If the compatible section is directly used as base section.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
 
@@ -466,6 +471,42 @@ class RFC3161Timestamp(MSection):
         return rfc3161ng.get_timestamp(self.token)
 
 
+class ParsedBlock(MSection):
+    """A half-open UTF-8 byte range consumed by a text parser in one raw file."""
+
+    start = Quantity(
+        type=int,
+        description='Inclusive, zero-based UTF-8 byte offset in the source file.',
+    )
+    end = Quantity(
+        type=int,
+        description='Exclusive UTF-8 byte offset in the source file.',
+    )
+    quantity_name = Quantity(
+        type=str, description='Optional stable parser quantity identifier.'
+    )
+    depth = Quantity(type=int, description='Optional nesting depth of this block.')
+
+
+class SourceFile(MSection):
+    """A raw file used by a parser to generate the entry."""
+
+    file_name = Quantity(
+        type=str,
+        description='Path of the raw file, relative to the upload root.',
+    )
+    parser = Quantity(type=str, description='Optional parser identifier.')
+    is_mainfile = Quantity(type=bool, description='Whether this is the entry mainfile.')
+    parsed_blocks = SubSection(
+        sub_section=ParsedBlock,
+        repeats=True,
+        description=(
+            'Optional parser-consumed byte ranges in this raw file. Populated when '
+            'the parser reports which parts of the file were consumed.'
+        ),
+    )
+
+
 class EntryMetadata(MSection):
     """
     Attributes:
@@ -524,13 +565,22 @@ class EntryMetadata(MSection):
 
     m_def = Section(label='Metadata')
 
+    source_files = SubSection(
+        sub_section=SourceFile,
+        repeats=True,
+        description=(
+            'Raw files used by the parser to generate the entry, including the '
+            'mainfile and the parsed byte ranges used by the raw-file viewer. This '
+            'subsection is not populated by default and must be filled explicitly '
+            'by the parser.'
+        ),
+    )
+
     upload_id = Quantity(
         type=str,
         categories=[MongoUploadMetadata],
         description='The persistent and globally unique identifier for the upload of the entry',
-        a_elasticsearch=Elasticsearch(
-            material_entry_type, metrics=dict(n_uploads='cardinality')
-        ),
+        a_elasticsearch=Elasticsearch(metrics=dict(n_uploads='cardinality')),
     )
 
     upload_name = Quantity(
@@ -538,7 +588,7 @@ class EntryMetadata(MSection):
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The user provided upload name',
         a_elasticsearch=[
-            Elasticsearch(material_entry_type),
+            Elasticsearch(),
             Elasticsearch(suggestion='default'),
         ],
     )
@@ -548,7 +598,7 @@ class EntryMetadata(MSection):
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The date and time when the upload was created in nomad',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     description = Quantity(
@@ -556,7 +606,7 @@ class EntryMetadata(MSection):
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='Further information about the upload.',
         a_elasticsearch=[
-            Elasticsearch(material_entry_type),
+            Elasticsearch(),
             Elasticsearch(suggestion='default'),
         ],
     )
@@ -565,19 +615,16 @@ class EntryMetadata(MSection):
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[MongoEntryMetadata, MongoSystemMetadata],
-        a_elasticsearch=Elasticsearch(
-            material_entry_type, metrics=dict(n_entries='cardinality')
-        ),
+        a_elasticsearch=Elasticsearch(metrics=dict(n_entries='cardinality')),
     )
 
     entry_name = Quantity(
         type=str,
         description='A brief human readable name for the entry.',
         a_elasticsearch=[
-            Elasticsearch(material_entry_type, _es_field='keyword'),
+            Elasticsearch(_es_field='keyword'),
             Elasticsearch(suggestion='default'),
             Elasticsearch(
-                material_entry_type,
                 field='prefix',
                 es_query='match_phrase_prefix',
                 mapping='text',
@@ -589,14 +636,14 @@ class EntryMetadata(MSection):
     entry_type = Quantity(
         type=str,
         description='The main schema definition. This is the name of the section used for data.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     calc_id = Quantity(
         type=str,
         description='Legacy field name, use `entry_id` instead.',
         derived=lambda entry: entry.entry_id,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     entry_hash = Quantity(
@@ -615,7 +662,7 @@ class EntryMetadata(MSection):
         categories=[MongoEntryMetadata, MongoSystemMetadata, EditableUserMetadata],
         description='The date and time when the entry was created in nomad',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     last_edit_time = Quantity(
@@ -676,7 +723,7 @@ class EntryMetadata(MSection):
             NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
         """,
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch(es_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     raw_id = Quantity(
@@ -685,7 +732,7 @@ class EntryMetadata(MSection):
             The code specific identifier extracted from the entry's raw files by the parser,
             if supported.
         """,
-        a_elasticsearch=Elasticsearch(es_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     external_id = Quantity(
@@ -703,7 +750,7 @@ class EntryMetadata(MSection):
         default=False,
         description='Indicates if the entry is published',
         categories=[MongoUploadMetadata],
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     publish_time = Quantity(
@@ -711,7 +758,7 @@ class EntryMetadata(MSection):
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The date and time when the upload was published in nomad',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     with_embargo = Quantity(
@@ -719,7 +766,7 @@ class EntryMetadata(MSection):
         default=False,
         categories=[MongoUploadMetadata, MongoSystemMetadata],
         description='Indicated if this entry is under an embargo',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     embargo_length = Quantity(
@@ -746,6 +793,21 @@ class EntryMetadata(MSection):
         default=False,
         categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='Indicates that the entry is successfully processed.',
+        a_elasticsearch=Elasticsearch(),
+    )
+
+    process_status = Quantity(
+        type=MEnum(
+            ProcessStatus.READY,
+            ProcessStatus.PENDING,
+            ProcessStatus.RUNNING,
+            ProcessStatus.WAITING_FOR_RESULT,
+            ProcessStatus.SUCCESS,
+            ProcessStatus.FAILURE,
+            ProcessStatus.DELETED,
+        ),
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
+        description='The status of the current or last completed processing step.',
         a_elasticsearch=Elasticsearch(),
     )
 
@@ -812,7 +874,7 @@ class EntryMetadata(MSection):
         ),
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     origin = Quantity(
@@ -822,7 +884,7 @@ class EntryMetadata(MSection):
             handle of an external database/repository or the name of the main author.
         """,
         derived=derive_origin,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     main_author = Quantity(
@@ -830,7 +892,7 @@ class EntryMetadata(MSection):
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The main author of the entry',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     coauthors = Quantity(
@@ -896,9 +958,7 @@ class EntryMetadata(MSection):
         shape=['0..*'],
         description='All authors (main author and co-authors)',
         derived=derive_authors,
-        a_elasticsearch=Elasticsearch(
-            material_entry_type, metrics=dict(n_authors='cardinality')
-        ),
+        a_elasticsearch=Elasticsearch(metrics=dict(n_authors='cardinality')),
     )
 
     writers = Quantity(
@@ -909,7 +969,7 @@ class EntryMetadata(MSection):
             ([entry.main_author] if entry.main_author is not None else [])
             + entry.coauthors
         ),
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     writer_groups = Quantity(
@@ -917,7 +977,7 @@ class EntryMetadata(MSection):
         shape=['0..*'],
         description='Groups with write access (= coauthor groups).',
         derived=lambda entry: entry.coauthor_groups,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     viewers = Quantity(
@@ -929,7 +989,7 @@ class EntryMetadata(MSection):
             + entry.coauthors
             + entry.reviewers
         ),
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     viewer_groups = Quantity(
@@ -937,7 +997,7 @@ class EntryMetadata(MSection):
         shape=['0..*'],
         description='Groups with read access (= coauthor groups + reviewer groups).',
         derived=lambda entry: entry.coauthor_groups + entry.reviewer_groups,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     datasets = Quantity(
@@ -946,19 +1006,19 @@ class EntryMetadata(MSection):
         default=[],
         categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A list of user curated datasets this entry belongs to.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     optimade = SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
-        a_elasticsearch=Elasticsearch(es_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     domain = Quantity(
         type=MEnum('dft', 'ems', 'nexus'),
         description='The material science domain',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     n_quantities = Quantity(
@@ -979,14 +1039,14 @@ class EntryMetadata(MSection):
         type=str,
         shape=['*'],
         description='All sections that are present in this entry. This field is deprecated and will be removed.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     section_defs = SubSection(
         sub_section=CompatibleSectionDef,
         repeats=True,
         description='All sections that are compatible with the present sections in this entry.',
-        a_elasticsearch=Elasticsearch(material_entry_type, nested=True),
+        a_elasticsearch=Elasticsearch(nested=True),
     )
 
     entry_references = SubSection(
@@ -1005,7 +1065,7 @@ class EntryMetadata(MSection):
         type=bool,
         default=False,
         description='Indicates if the entry shall not be edited manually',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(),
     )
 
     def apply_archive_metadata(self, archive):
@@ -1017,6 +1077,77 @@ class EntryMetadata(MSection):
         entry_references = []
         search_quantities = []
         keywords_set = set()
+
+        # Metadata quantities that are human-readable, descriptive information
+        # (e.g. names, comments, author references) rather than internal
+        # identifiers, hashes, paths, or purely derived/duplicate values. Only
+        # these are useful for free text search and therefore included in
+        # `text_search_contents`.
+        metadata_text_search_includes = {
+            'upload_name',
+            'description',
+            'entry_name',
+            'comment',
+            'origin',
+            'main_author',
+            'coauthors',
+            'entry_coauthors',
+            'reviewers',
+            'authors',
+            'datasets',
+            'domain',
+        }
+        # Lists longer than this are considered too technical/bulky to be useful
+        # for free text search (e.g. `references`) and are skipped. Small, but
+        # important lists, like the list of authors, are still indexed.
+        metadata_text_search_max_list_size = 20
+
+        def add_text_search_keywords(
+            _section, _property_def, max_list_size: int | None = None
+        ):
+            """
+            Extracts text keywords from the given quantity and adds them to
+            `keywords_set`, unless too many unique values are already stored. String
+            and enum quantities are added directly. Reference quantities that point
+            to authors/users or datasets are resolved and their human-readable
+            name/DOI is added instead of the (non-descriptive) reference itself.
+            """
+            if len(keywords_set) >= 10000:
+                return
+
+            prop_type = _property_def.type
+            if isinstance(prop_type, MEnum | m_str):
+                values = _section.m_get(_property_def)
+                if not values:
+                    return
+                if not _property_def.shape:
+                    values = [values]
+            elif isinstance(
+                prop_type, UserReference | AuthorReference | DatasetReference
+            ):
+                references = _section.m_get(_property_def)
+                if not references:
+                    return
+                if not _property_def.shape:
+                    references = [references]
+
+                values = []
+                for ref in references:
+                    if isinstance(ref, User) or isinstance(ref, Author):
+                        values.append(ref.name)
+                    elif isinstance(ref, Dataset):
+                        values.append(ref.dataset_name)
+                        values.append(ref.doi)
+                values = [v for v in values if v is not None]
+
+            else:
+                return
+
+            if max_list_size is not None and len(values) > max_list_size:
+                return
+
+            for val in values:
+                keywords_set.add(str(val)[0:500].strip())
 
         _check_mongo_connection()
 
@@ -1147,26 +1278,31 @@ class EntryMetadata(MSection):
 
             collect_references(section, property_def, quantity_path)
 
-            if section_path.startswith('data') and isinstance(property_def, Quantity):
-                # From each string dtype, we get a truncated sample to put into
-                # the keywords field, unless we are already storing too many unique values.
-                if (isinstance(property_def.type, MEnum | m_str)) and len(
-                    keywords_set
-                ) < 10000:
-                    keyword = section.m_get(property_def)
-                    if keyword:
-                        if not property_def.shape:
-                            keyword = [keyword]
-                        for val in keyword:
-                            keywords_set.add(str(val)[0:500].strip())
-                if searchable_quantity := create_searchable_quantity(
-                    property_def,
-                    quantity_path,
-                    sections,
-                    '.'.join([str(x) for x in location]),
-                    schema_name,
+            if isinstance(property_def, Quantity):
+                if section_path.startswith('data'):
+                    # From each string dtype, we get a truncated sample to put into
+                    # the keywords field, unless we are already storing too many unique values.
+                    add_text_search_keywords(section, property_def)
+                    if searchable_quantity := create_searchable_quantity(
+                        property_def,
+                        quantity_path,
+                        sections,
+                        '.'.join([str(x) for x in location]),
+                        schema_name,
+                    ):
+                        search_quantities.append(searchable_quantity)
+                elif (
+                    section_path == 'metadata'
+                    and property_def.name in metadata_text_search_includes
                 ):
-                    search_quantities.append(searchable_quantity)
+                    # Also cover "regular" items directly on archive.metadata (e.g.
+                    # author names, dataset names/DOIs, comments, descriptions, ...)
+                    # so they can be found through the free text search bar.
+                    add_text_search_keywords(
+                        section,
+                        property_def,
+                        max_list_size=metadata_text_search_max_list_size,
+                    )
 
         # We collected entry_references, quantities, and sections before adding these
         # data to the archive itself. We manually add them here.
