@@ -120,11 +120,11 @@ nomad-normalizer-plugin-simulation-workflow==1.0.3  # via -r test_plugins.txt
 nomad-normalizer-plugin-soap==1.0.1  # via -r test_plugins.txt
 nomad-normalizer-plugin-spectra==1.0.3  # via -r test_plugins.txt
 nomad-normalizer-plugin-system==1.0.4  # via -r test_plugins.txt
-nomad-parser-plugins-atomistic==1.0.11  # via -r test_plugins.txt
+nomad-parser-plugins-atomistic==1.0.11  # via --override (workspace), -r test_plugins.txt
 nomad-parser-plugins-database==1.1.1  # via -r test_plugins.txt
-nomad-parser-plugins-electronic==1.0.8  # via -r test_plugins.txt
+nomad-parser-plugins-electronic==1.0.8  # via --override (workspace), -r test_plugins.txt
 nomad-parser-plugins-simulation==1.0.2  # via nomad-parser-plugins-atomistic, nomad-parser-plugins-electronic
-nomad-parser-plugins-workflow==1.1.9  # via -r test_plugins.txt
+nomad-parser-plugins-workflow==1.1.9  # via --override (workspace), -r test_plugins.txt
 nomad-schema-plugin-run==1.0.4  # via nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-simulation, nomad-parser-plugins-workflow, nomad-schema-plugin-simulation-workflow, -r test_plugins.txt
 nomad-schema-plugin-simulation-workflow==1.0.10  # via nomad-normalizer-plugin-simulation-workflow, nomad-parser-plugins-atomistic, nomad-parser-plugins-database, nomad-parser-plugins-electronic, nomad-parser-plugins-workflow, -r test_plugins.txt
 numpy==2.2.6 ; python_full_version < '3.11'  # via ase, cftime, contourpy, griddataformats, h5grove, h5py, matid, matplotlib, mdanalysis, monty, mrcfile, netcdf4, nomad-lab, nomad-parser-plugins-atomistic, nomad-parser-plugins-electronic, pandas, phonopy, pyedr, pymatgen, scipy, spglib, symfc, tifffile, xarray, -c requirements-dev.txt
@@ -182,7 +182,7 @@ pyjwt==2.15.1             # via nomad-lab, oauthenticator, -c requirements-dev.t
 pymatgen==2025.10.7 ; python_full_version < '3.11'  # via asr, nomad-lab, -c requirements-dev.txt
 pymatgen==2026.5.4 ; python_full_version >= '3.11'  # via asr, nomad-lab, -c requirements-dev.txt
 pymatgen-core==2026.8.13 ; python_full_version >= '3.11'  # via pymatgen, -c requirements-dev.txt
-pymongo==4.17.0           # via beanie, mongoengine, optimade, -c requirements-dev.txt
+pymongo==4.18.2           # via beanie, mongoengine, optimade, -c requirements-dev.txt
 pyparsing==3.3.2          # via bibtexparser, matplotlib, rdflib, -c requirements-dev.txt
 python-dateutil==2.9.0.post0  # via aiobotocore, botocore, elasticsearch, jupyterhub, matplotlib, pandas, pendulum, rfc3161ng, temporalio, -c requirements-dev.txt
 python-dotenv==1.2.3      # via pydantic-settings, uvicorn, -c requirements-dev.txt

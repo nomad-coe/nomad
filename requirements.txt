@@ -154,7 +154,7 @@ pyjwt==2.15.1             # via oauthenticator, nomad-lab (pyproject.toml)
 pymatgen==2025.10.7 ; python_full_version < '3.11'  # via nomad-lab (pyproject.toml)
 pymatgen==2026.5.4 ; python_full_version >= '3.11'  # via nomad-lab (pyproject.toml)
 pymatgen-core==2026.8.13 ; python_full_version >= '3.11'  # via pymatgen
-pymongo==4.17.0           # via beanie, mongoengine, optimade
+pymongo==4.18.2           # via beanie, mongoengine, optimade, nomad-lab (pyproject.toml)
 pyparsing==3.3.2          # via bibtexparser, matplotlib, rdflib
 python-dateutil==2.9.0.post0  # via aiobotocore, botocore, elasticsearch, jupyterhub, matplotlib, pandas, pendulum, rfc3161ng, temporalio
 python-dotenv==1.2.3      # via pydantic-settings, uvicorn
