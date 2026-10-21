@@ -145,6 +145,43 @@ def test_simulation_layout_requests_resolved_displacements_only_when_present(
         assert dynamical is None
 
 
+@pytest.mark.parametrize('layout_id', ['default', 'simulation'])
+@pytest.mark.parametrize('has_greens_functions', [False, True])
+def test_greens_functions_only_entries_get_resolved_plots_and_dmft(
+    layout_id, has_greens_functions
+):
+    quantities = (
+        ['results.method.simulation.program_name'] if layout_id == 'simulation' else []
+    )
+    if has_greens_functions:
+        quantities.append('results.properties.electronic.greens_functions_electronic')
+    context = {'quantities': quantities}
+    request = derive_request_from_layout(layout_id, context)
+    electronic = request.get('results', {}).get('properties', {}).get('electronic', {})
+    if not has_greens_functions:
+        assert 'greens_functions_electronic' not in electronic
+        return
+    greens = electronic['greens_functions_electronic']
+    for field in (
+        'tau',
+        'matsubara_freq',
+        'frequencies',
+        'greens_function_tau',
+        'greens_function_iw',
+        'self_energy_iw',
+        'greens_function_freq',
+        'self_energy_freq',
+    ):
+        assert greens[field] == {'m_request': {'directive': 'resolved'}}
+    assert 'hybridization_function_freq' not in greens
+    assert request['results']['method']['simulation']['dmft'] == '*'
+    plan = create_layout_plan(context, requested_layout_id=layout_id)
+    compiled = next(
+        layout for layout in plan.matching_layouts if layout['id'] == layout_id
+    )
+    assert "Green's functions and self-energy" in str(compiled)
+
+
 def test_default_layout_keeps_top_level_data_expanded_with_figures():
     derived_request = derive_request_from_layout(
         'default',

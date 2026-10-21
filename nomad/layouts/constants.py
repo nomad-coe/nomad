@@ -198,6 +198,34 @@ BUILTIN_NODE_TYPE_DEFAULTS: dict[str, Any] = {
             }
         }
     },
+    'greens_functions_electronic': {
+        'request': {
+            'results': {
+                'properties': {
+                    'electronic': {
+                        'greens_functions_electronic': {
+                            'type': '*',
+                            'label': '*',
+                            **{
+                                name: _resolved_request()
+                                for name in (
+                                    'tau',
+                                    'matsubara_freq',
+                                    'frequencies',
+                                    'greens_function_tau',
+                                    'greens_function_iw',
+                                    'self_energy_iw',
+                                    'greens_function_freq',
+                                    'self_energy_freq',
+                                )
+                            },
+                        }
+                    }
+                },
+                'method': {'simulation': {'dmft': '*'}},
+            }
+        }
+    },
     'mean_squared_displacement': {
         'request': {
             'results': {
