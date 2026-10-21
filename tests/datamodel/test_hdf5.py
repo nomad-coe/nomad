@@ -83,3 +83,23 @@ def test_hdf5(test_context, quantity_type, value):
         ):
             quantity = HDF5Reference.read_dataset(archive, value)
             assert (quantity == f[path][()]).all()
+
+
+def test_hdf5_dataset_uses_staging_files_for_server_context(test_context, monkeypatch):
+    class SectionForTest(EntryData):
+        quantity = Quantity(type=HDF5Dataset)
+
+    archive = EntryArchive(
+        m_context=test_context,
+        metadata=EntryMetadata(entry_id='test_entry', upload_id='test_upload'),
+        data=SectionForTest(),
+    )
+
+    def fail_if_called(*args, **kwargs):
+        pytest.fail('HDF5 dataset normalization must not select files generically')
+
+    monkeypatch.setattr(files.UploadFiles, 'get', fail_if_called)
+
+    archive.data.quantity = np.ones(3)
+
+    assert os.path.isfile(test_context.upload_files.archive_hdf5_location('test_entry'))
