@@ -87,6 +87,27 @@ def test_builtin_widget_defaults_are_applied_to_derived_requests():
         task_request = task_request['tasks']
 
 
+def test_band_structure_electronic_request_includes_band_gap():
+    def electronic_request(node_type):
+        compiled = compile_layout({'type': node_type}, {})
+        derived_request: dict = {}
+        calculate_request_from_layout(compiled, derived_request)
+        return derived_request['results']['properties']['electronic'][
+            'band_structure_electronic'
+        ]
+
+    resolved = {'m_request': {'directive': 'resolved'}}
+    # The viewer needs the band gap to shift energies to the highest occupied state.
+    band_structure = electronic_request('band_structure_electronic')
+    assert band_structure['band_gap'] == resolved
+    assert band_structure['reciprocal_cell'] == resolved
+    assert band_structure['segment'] == {
+        'm_request': {'directive': 'resolved', 'exclude': ['occupations']}
+    }
+    # The Brillouin zone only needs the k-path and the reciprocal cell.
+    assert 'band_gap' not in electronic_request('brillouin_zone_electronic')
+
+
 def test_entry_layout_helpers_only_require_search_when_needed():
     intent = get_layout_query_intent({'entry_id': '*'})
     assert not intent.requires_search_metadata
