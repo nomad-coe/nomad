@@ -218,7 +218,9 @@ def test_entry_layout_read_opens_archive_once(monkeypatch):
         opens += 1
         yield archive
 
-    async def read_layout_archive(_archive, _request):
+    async def read_layout_archive(_archive, _request, upload_id, entry_id):
+        assert _archive is archive
+        assert (upload_id, entry_id) == ('upload-id', 'entry-id')
         return {'metadata': archive['metadata']}
 
     monkeypatch.setattr(reader, 'retrieve_entry', retrieve_entry)
