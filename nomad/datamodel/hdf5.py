@@ -235,11 +235,9 @@ class HDF5Dataset(NonPrimitive):
         # server context: it prefers public files when reprocessing a published
         # upload, whose combined archive HDF5 file might not exist yet.
         upload = getattr(section_context, 'upload', None)
-        upload_files = (
-            upload.staging_upload_files
-            if upload is not None
-            else UploadFiles.get(section_context.upload_id)
-        )
+        upload_files = getattr(upload, 'staging_upload_files', None)
+        if upload_files is None:
+            upload_files = UploadFiles.get(section_context.upload_id)
         if upload_files is None:
             raise ValueError('Cannot normalize HDF5 value without upload files.')
         hdf5_path: str = upload_files.archive_hdf5_location(archive.entry_id)
